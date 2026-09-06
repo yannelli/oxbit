@@ -1,0 +1,74 @@
+[
+  {
+    "name": "desktop",
+    "theme": "dark",
+    "width": 1440,
+    "height": 900,
+    "changedPixels": 107272,
+    "totalPixels": 1296000,
+    "ratio": 0.08277160493827161
+  },
+  {
+    "name": "desktop",
+    "theme": "light",
+    "width": 1440,
+    "height": 900,
+    "changedPixels": 124118,
+    "totalPixels": 1296000,
+    "ratio": 0.09577006172839506
+  },
+  {
+    "name": "tablet-landscape",
+    "theme": "dark",
+    "width": 1024,
+    "height": 768,
+    "changedPixels": 64269,
+    "totalPixels": 786432,
+    "ratio": 0.08172225952148438
+  },
+  {
+    "name": "tablet-landscape",
+    "theme": "light",
+    "width": 1024,
+    "height": 768,
+    "changedPixels": 72732,
+    "totalPixels": 786432,
+    "ratio": 0.0924835205078125
+  },
+  {
+    "name": "tablet-portrait",
+    "theme": "dark",
+    "width": 768,
+    "height": 1024,
+    "changedPixels": 73142,
+    "totalPixels": 786432,
+    "ratio": 0.09300486246744792
+  },
+  {
+    "name": "tablet-portrait",
+    "theme": "light",
+    "width": 768,
+    "height": 1024,
+    "changedPixels": 82084,
+    "totalPixels": 786432,
+    "ratio": 0.10437520345052083
+  },
+  {
+    "name": "phone",
+    "theme": "dark",
+    "width": 390,
+    "height": 844,
+    "changedPixels": 64206,
+    "totalPixels": 329160,
+    "ratio": 0.19506015311702515
+  },
+  {
+    "name": "phone",
+    "theme": "light",
+    "width": 390,
+    "height": 844,
+    "changedPixels": 71767,
+    "totalPixels": 329160,
+    "ratio": 0.21803074492647953
+  }
+]

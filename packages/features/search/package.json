@@ -1,0 +1,21 @@
+{
+  "name": "@zapp/feature-search",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@zapp/documents": "workspace:*",
+    "@zapp/ui": "workspace:*"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

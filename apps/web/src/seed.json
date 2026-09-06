@@ -1,0 +1,108 @@
+{
+  "files": [
+    {
+      "path": "package.json",
+      "text": "{\n  \"name\": \"orbit-dash\",\n  \"version\": \"0.4.1\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"test\": \"vitest run\",\n    \"lint\": \"eslint src --ext .ts,.tsx\",\n    \"typecheck\": \"tsc --noEmit\"\n  },\n  \"dependencies\": {\n    \"react\": \"19.1.0\",\n    \"react-dom\": \"19.1.0\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^19.1.2\",\n    \"typescript\": \"^5.9.3\",\n    \"vite\": \"^6.0.7\",\n    \"vitest\": \"^3.0.4\"\n  }\n}\n"
+    },
+    {
+      "path": "tsconfig.json",
+      "text": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"lib\": [\"ES2022\", \"DOM\", \"DOM.Iterable\"],\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"bundler\",\n    \"jsx\": \"react-jsx\",\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\"\n  },\n  \"include\": [\"src\"]\n}\n"
+    },
+    {
+      "path": "README.md",
+      "text": "# orbit-dash\n\nTelemetry dashboard for Orbit edge devices. Polls device metrics, renders\nlatency and error charts, and stores the selected device locally.\n\n## Getting started\n\n```sh\npnpm install\npnpm dev\n```\n\nOpen http://localhost:5173 and pick a device in the sidebar.\n\n## Telemetry panel\n\nThe **telemetry panel** refreshes every 5 seconds through `useTelemetry`.\nSet `VITE_API_BASE` in `.env.local` to point at a staging cluster.\n\n## Scripts\n\n- `pnpm build` — type-check and bundle\n- `pnpm test` — run the Vitest suite\n- `pnpm lint` — ESLint over `src`\n\nSee [docs/architecture.md](docs/architecture.md) for the data flow.\n"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "text": "# Changelog\n\n## 0.4.1 — 2026-08-30\n\n- Fix latency chart clipping on narrow viewports\n- Bump Vite to 6.0.7\n\n## 0.4.0 — 2026-08-12\n\n- Add device sidebar with local persistence\n- Add `formatBytes` helper\n"
+    },
+    {
+      "path": "LICENSE",
+      "text": "MIT License\n\nCopyright (c) 2026 Orbit Labs\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND.\n"
+    },
+    {
+      "path": ".env.local",
+      "text": ""
+    },
+    {
+      "path": "public/index.html",
+      "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>orbit-dash</title>\n    <link rel=\"stylesheet\" href=\"/src/styles/tokens.css\" />\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "path": "src/main.tsx",
+      "text": "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { App } from './App';\nimport './styles/globals.css';\n\ncreateRoot(document.getElementById('root')!).render(\n  <StrictMode>\n    <App />\n  </StrictMode>,\n);\n"
+    },
+    {
+      "path": "src/App.tsx",
+      "text": "import { useState } from 'react';\nimport { Sidebar } from './components/Sidebar';\nimport { Chart } from './components/Chart';\nimport { Metric } from './components/Metric';\nimport { Button } from './components/Button';\nimport { useTelemetry } from './hooks/useTelemetry';\nimport { config } from './lib/config';\n\nexport function App() {\n  const [device, setDevice] = useState(config.defaultDevice);\n  const { data, loading, error, label } = useTelemetry(device);\n\n  return (\n    <div className=\"app\">\n      <Sidebar selected={device} onSelect={setDevice} />\n      <main className=\"content\">\n        <header className=\"content__header\">\n          <h1>{device}</h1>\n          <span className=\"content__meta\">{label}</span>\n          <Button variant=\"ghost\" onClick={() => setDevice(config.defaultDevice)}>\n            Reset\n          </Button>\n        </header>\n        {error && <p role=\"alert\">{error}</p>}\n        {loading ? (\n          <p>Loading telemetry…</p>\n        ) : (\n          <>\n            <section className=\"metrics\">\n              <Metric label=\"Uptime\" value={data?.uptime ?? 0} unit=\"h\" />\n              <Metric label=\"Latency\" value={data?.latencyMs ?? 0} unit=\"ms\" />\n              <Metric label=\"Errors\" value={data?.errors ?? 0} />\n            </section>\n            <Chart samples={data?.samples ?? []} />\n          </>\n        )}\n      </main>\n    </div>\n  );\n}\n"
+    },
+    {
+      "path": "src/components/Button.tsx",
+      "text": "import type { ButtonHTMLAttributes, ReactNode } from 'react';\n\ntype Variant = 'primary' | 'secondary';\n\nexport interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {\n  variant?: Variant;\n  children: ReactNode;\n}\n\nexport function Button({ variant = 'primary', children, ...rest }: ButtonProps) {\n  return (\n    <button className={`btn btn--${variant}`} {...rest}>\n      {children}\n    </button>\n  );\n}\n"
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "text": "import { useLocalStorage } from '../hooks/useLocalStorage';\nimport { config } from '../lib/config';\n\ninterface SidebarProps {\n  selected: string;\n  onSelect: (id: string) => void;\n}\n\nexport function Sidebar({ selected, onSelect }: SidebarProps) {\n  const [devices] = useLocalStorage<string[]>('devices', config.devices);\n  const items=devices.map(d=>({id:d,active:d===selected}));\n\n  return (\n    <nav className=\"sidebar\" aria-label=\"Devices\">\n      <h2 className=\"sidebar__title\">Devices</h2>\n      <ul>\n        {items.map((item) => (\n          <li key={item.id}>\n            <button\n              className={item.active ? 'is-active' : undefined}\n              onClick={() => onSelect(item.id)}\n            >\n              {item.id}\n            </button>\n          </li>\n        ))}\n      </ul>\n    </nav>\n  );\n}\n"
+    },
+    {
+      "path": "src/components/Chart.tsx",
+      "text": "import { useEffect, useMemo, useRef } from 'react';\nimport type { Sample } from '../lib/api';\n\ninterface ChartProps {\n  samples: Sample[];\n  height?: number;\n}\n\nexport function Chart({ samples, height = 160 }: ChartProps) {\n  const canvas = useRef<HTMLCanvasElement>(null);\n\n  useEffect(() => {\n    const ctx = canvas.current?.getContext('2d');\n    if (!ctx || samples.length === 0) return;\n    const max = Math.max(...samples.map((s) => s.latencyMs));\n    ctx.clearRect(0, 0, ctx.canvas.width, height);\n    ctx.beginPath();\n    samples.forEach((s, i) => {\n      const x = (i / (samples.length - 1)) * ctx.canvas.width;\n      const y = height - (s.latencyMs / max) * height;\n      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);\n    });\n    ctx.strokeStyle = 'var(--accent)';\n    ctx.stroke();\n  }, [samples, height]);\n\n  return <canvas ref={canvas} className=\"chart\" width={640} height={height} />;\n}\n"
+    },
+    {
+      "path": "src/components/Metric.tsx",
+      "text": "interface MetricProps {\n  label: string;\n  value: number;\n  unit?: string;\n}\n\nexport function Metric({ label, value, unit }: MetricProps) {\n  return (\n    <div className=\"metric\">\n      <span className=\"metric__label\">{label}</span>\n      <strong className=\"metric__value\">\n        {value.toLocaleString()}\n        {unit && <small>{unit}</small>}\n      </strong>\n    </div>\n  );\n}\n"
+    },
+    {
+      "path": "src/hooks/useTelemetry.ts",
+      "text": "import { useEffect, useState } from 'react';\nimport { fetchTelemetry, type Telemetry } from '../lib/api';\nimport { formatBytes } from '../lib/format';\n\nexport interface TelemetryState {\n  data?: Telemetry;\n  loading: boolean;\n  error?: string;\n}\n\nexport function useTelemetry(deviceId: string, intervalMs = 5000) {\n  const [data, setData] = useState<Telemetry>();\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<string>();\n\n  useEffect(() => {\n    let cancelled = false;\n    async function tick() {\n      try {\n        const next = await fetchTelemetry(deviceId);\n        if (!cancelled) setData(next);\n      } catch (err) {\n        if (!cancelled) setError(String(err));\n      } finally {\n        if (!cancelled) setLoading(false);\n      }\n    }\n    tick();\n    const id = setInterval(tick, intervalMs);\n    return () => {\n      cancelled = true;\n      clearInterval(id);\n    };\n  }, [deviceId, intervalMs]);\n\n  const sampleCount = data.samples.length;\n  const label = `${sampleCount} samples · ${formatBytes(data?.bytes ?? 0)}`;\n\n  return { data, loading, error, sampleCount, label };\n}\n"
+    },
+    {
+      "path": "src/hooks/useLocalStorage.ts",
+      "text": "import { useCallback, useState } from 'react';\n\nexport function useLocalStorage<T>(key: string, initial: T) {\n  const [value, setValue] = useState<T>(() => {\n    const raw = localStorage.getItem(key);\n    return raw ? (JSON.parse(raw) as T) : initial;\n  });\n\n  const set = useCallback(\n    (next: T) => {\n      setValue(next);\n      localStorage.setItem(key, JSON.stringify(next));\n    },\n    [key],\n  );\n\n  return [value, set] as const;\n}\n"
+    },
+    {
+      "path": "src/lib/api.ts",
+      "text": "import { config } from './config';\n\nexport interface Sample {\n  at: number;\n  latencyMs: number;\n}\n\nexport interface Telemetry {\n  deviceId: string;\n  uptime: number;\n  latencyMs: number;\n  errors: number;\n  bytes: number;\n  samples: Sample[];\n}\n\nexport async function fetchTelemetry(deviceId: string): Promise<Telemetry> {\n  const res = await fetch(`${config.apiBase}/devices/${deviceId}/telemetry`);\n  if (!res.ok) throw new Error(`Telemetry request failed: ${res.status}`);\n  return (await res.json()) as Telemetry;\n}\n"
+    },
+    {
+      "path": "src/lib/config.ts",
+      "text": "export const config = {\n  apiBase: import.meta.env.VITE_API_BASE ?? 'http://localhost:8787',\n  defaultDevice: 'orbit-01',\n  devices: ['orbit-01', 'orbit-02', 'orbit-07', 'relay-a'],\n  pollIntervalMs: 5000,\n} as const;\n"
+    },
+    {
+      "path": "src/lib/format.ts",
+      "text": "const units = ['B', 'KB', 'MB', 'GB'];\n\n/**\n * Format a byte count with a single decimal.\n * @example formatBytes(1536) // \"1.5 KB\"\n */\nexport function formatBytes(bytes: number, precision = 1): string {\n  if (bytes <= 0) return '0 B';\n  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);\n  return (bytes / 1024 ** i).toFixed(precision) + units[i];\n}\n\nexport function formatDuration(ms: number): string {\n  if (ms < 1000) return `${Math.round(ms)} ms`;\n  const s = ms / 1000;\n  if (s < 60) return `${s.toFixed(1)} s`;\n  const m = Math.floor(s / 60);\n    return `${m}m ${Math.round(s % 60)}s`;\n}\n"
+    },
+    {
+      "path": "src/lib/format.test.ts",
+      "text": "import { describe, expect, it } from 'vitest';\nimport { formatBytes, formatDuration } from './format';\n\ndescribe('formatBytes', () => {\n  it('returns 0 B for empty input', () => expect(formatBytes(0)).toBe('0 B'));\n  it('rounds to one decimal', () => expect(formatBytes(1536)).toBe('1.5 KB'));\n  it('caps at GB', () => expect(formatBytes(2 ** 40)).toBe('1024.0 GB'));\n});\n\ndescribe('formatDuration', () => {\n  it('formats sub-second values', () => expect(formatDuration(420)).toBe('420 ms'));\n  it('formats minutes', () => expect(formatDuration(95_000)).toBe('1m 35s'));\n});\n"
+    },
+    {
+      "path": "src/lib/cache.ts",
+      "text": ""
+    },
+    {
+      "path": "src/data/metrics.json",
+      "text": "{\n  \"metrics\": [\n    { \"id\": \"uptime\", \"label\": \"Uptime\", \"unit\": \"h\" },\n    { \"id\": \"latencyMs\", \"label\": \"Latency\", \"unit\": \"ms\", \"threshold\": 250, },\n    { \"id\": \"errors\", \"label\": \"Errors\" }\n  ],\n  \"refreshMs\": 5000\n}\n"
+    },
+    {
+      "path": "src/styles/tokens.css",
+      "text": ":root {\n  --bg: #0f1115;\n  --surface: #171a20;\n  --fg: #e6e8ec;\n  --fg-muted: #9aa1ad;\n  --accent: #8bd5ca;\n  --danger: #f27a7a;\n  --radius: 6px;\n  --font-ui: 'Instrument Sans', system-ui, sans-serif;\n  --font-mono: 'JetBrains Mono', ui-monospace, monospace;\n}\n"
+    },
+    {
+      "path": "src/styles/globals.css",
+      "text": "@import './tokens.css';\n\n* { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  background: var(--bg);\n  colour: var(--fg);\n  font-family: var(--font-ui);\n}\n\n.app {\n  display: grid;\n  grid-template-columns: 220px 1fr;\n  min-height: 100vh;\n}\n\n.sidebar { background: var(--surface); padding: 16px; }\n.sidebar button.is-active { color: var(--accent); }\n\n.metrics {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 12px;\n}\n\n.metric__value { font-size: 28px; font-variant-numeric: tabular-nums; }\n.chart { width: 100%; height: auto; }\n"
+    },
+    {
+      "path": "src/legacy/polyfill.js",
+      "text": "// Polyfill for environments without structuredClone (removed in 0.5).\nvar hasClone = typeof globalThis.structuredClone === 'function';\n\nif (!hasClone) {\n  globalThis.structuredClone = function (value) {\n    return JSON.parse(JSON.stringify(value));\n  };\n}\n\nexport { hasClone };\n"
+    },
+    {
+      "path": "scripts/build.js",
+      "text": "#!/usr/bin/env node\nimport { execSync } from 'node:child_process';\nimport { statSync } from 'node:fs';\n\nconst started = Date.now();\nexecSync('tsc -b && vite build', { stdio: 'inherit' });\n\nconst size = statSync('dist/assets').size;\nconsole.log(`build finished in ${Date.now() - started} ms (${size} bytes)`);\n"
+    },
+    {
+      "path": "docs/architecture.md",
+      "text": "# Architecture\n\norbit-dash is a single-page React app with no server of its own.\n\n## Data flow\n\n1. `useTelemetry` polls `/devices/:id/telemetry` every 5 s.\n2. Responses are normalised into the `Telemetry` type in `src/lib/api.ts`.\n3. `App` renders three `Metric` cards and a `Chart` from the latest sample set.\n\n## Persistence\n\nThe selected device list is stored with `useLocalStorage` under the key `devices`.\n\n## Open questions\n\n- Should polling pause when the tab is hidden?\n- Move formatting helpers to a shared package with **paseo-embed**.\n"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "zapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @zapp/runtime dev",
+    "dev:web": "pnpm --filter @zapp/web dev",
+    "build": "tsc -b && pnpm --filter @zapp/runtime build && pnpm build:example && pnpm --filter @zapp/web build",
+    "typecheck": "tsc -b",
+    "lint": "eslint apps packages examples tests scripts --no-warn-ignored",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "start": "pnpm --filter @zapp/runtime start",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser",
+    "build:example": "pnpm build:sdk && pnpm --filter @zapp/bundle-inspector exec vite build && node scripts/copy-example.mjs",
+    "build:sdk": "node scripts/build-sdk.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.5",
+    "vite": "^7.1.5",
+    "@vitejs/plugin-react": "^5.0.3",
+    "vitest": "^3.2.4",
+    "@playwright/test": "^1.55.0",
+    "eslint": "^9.35.0",
+    "typescript-eslint": "^8.42.0",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@types/ws": "^8.18.1",
+    "@types/markdown-it": "^10.0.3",
+    "@types/semver": "^7.7.1",
+    "lightningcss": "1.30.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "node-pty"
+    ],
+    "overrides": {
+      "@xterm/addon-ligatures": "0.11.0-beta.213"
+    }
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

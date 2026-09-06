@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
+
+ ✓ packages/features/language/src/index.test.ts (7 tests) 18ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  19:46:40
+   Duration  267ms (transform 75ms, setup 0ms, collect 133ms, tests 18ms, environment 0ms, prepare 35ms)
+

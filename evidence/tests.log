@@ -1,0 +1,226 @@
+
+> zapp@0.1.0 test /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
+> vitest run
+
+
+ RUN  v3.2.7 /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
+
+ ✓ packages/core/src/index.test.ts (10 tests) 16ms
+ ✓ packages/documents/src/index.test.ts (8 tests) 26ms
+ ✓ packages/host-browser/src/index.test.ts (4 tests) 11ms
+ ✓ packages/features/tasks/src/tasks.test.ts (2 tests) 1ms
+ ✓ packages/features/search/src/engine.test.ts (2 tests) 3ms
+ ✓ packages/features/git/src/git.test.ts (1 test) 1ms
+ ❯ apps/runtime/tests/runtime.test.ts (9 tests | 2 failed) 15743ms
+   ✓ authenticated runtime with real services > requires authentication, origin approval and trust 6ms
+   ✓ authenticated runtime with real services > checks revisions, escaping paths and symlinks and revokes scoped grants 9ms
+   ✓ authenticated runtime with real services > serializes competing saves and validates encoding conversions 4ms
+   ✓ authenticated runtime with real services > searches actual files with ripgrep and reports UTF-16 editor ranges 14ms
+   ✓ authenticated runtime with real services > executes real PTYs and tasks with resize, cancellation and reconnect replay 86ms
+   ✓ authenticated runtime with real services > makes a real commit and deduplicates non-idempotent requests 73ms
+   × authenticated runtime with real services > merges independent Yjs edits, persists drafts and uses one disk writer 15003ms
+     → Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × authenticated runtime with real services > uses a real TypeScript server for completion, diagnostics, navigation, rename and code actions 499ms
+     → expected 0 to be greater than 0
+   ✓ authenticated runtime with real services > recovers collaboration drafts and operation status after runtime restart 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/runtime/tests/runtime.test.ts > authenticated runtime with real services > merges independent Yjs edits, persists drafts and uses one disk writer
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/runtime/tests/runtime.test.ts:79:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/runtime/tests/runtime.test.ts > authenticated runtime with real services > uses a real TypeScript server for completion, diagnostics, navigation, rename and code actions
+AssertionError: expected 0 to be greater than 0
+ ❯ apps/runtime/tests/runtime.test.ts:96:258
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 10 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleDir node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:546:27
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:591:26
+ ❯ node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/index.js:343:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace', filename: '/tmp/zapp-runtime-7jP62v/workspace' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/hello.ts'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/hello.ts', filename: '/tmp/zapp-runtime-7jP62v/workspace/hello.ts' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleDir node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:546:27
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:591:26
+ ❯ node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/index.js:343:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace', filename: '/tmp/zapp-runtime-7jP62v/workspace' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/hello.ts'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/hello.ts', filename: '/tmp/zapp-runtime-7jP62v/workspace/hello.ts' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/helper.ts'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/helper.ts', filename: '/tmp/zapp-runtime-7jP62v/workspace/helper.ts' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/language.ts'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/language.ts', filename: '/tmp/zapp-runtime-7jP62v/workspace/language.ts' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/readonly.txt'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/readonly.txt', filename: '/tmp/zapp-runtime-7jP62v/workspace/readonly.txt' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/search.txt'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/search.txt', filename: '/tmp/zapp-runtime-7jP62v/workspace/search.txt' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/shared.ts'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/shared.ts', filename: '/tmp/zapp-runtime-7jP62v/workspace/shared.ts' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: EMFILE: too many open files, watch '/tmp/zapp-runtime-7jP62v/workspace/tsconfig.json'
+ ❯ FSWatcher.<computed> node:internal/fs/watchers:323:19
+ ❯ watch node:fs:2609:36
+ ❯ createFsWatchInstance node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:126:16
+ ❯ setFsWatchListener node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:171:19
+ ❯ NodeFsHandler._watchWithNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:325:22
+ ❯ NodeFsHandler._handleFile node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:391:29
+ ❯ NodeFsHandler._addToNodeFs node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar/esm/handler.js:615:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -24, syscall: 'watch', code: 'EMFILE', path: '/tmp/zapp-runtime-7jP62v/workspace/tsconfig.json', filename: '/tmp/zapp-runtime-7jP62v/workspace/tsconfig.json' }
+This error originated in "apps/runtime/tests/runtime.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "recovers collaboration drafts and operation status after runtime restart". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  2 failed | 34 passed (36)
+     Errors  10 errors
+   Start at  19:39:37
+   Duration  16.05s (transform 164ms, setup 0ms, collect 334ms, tests 15.80s, environment 1ms, prepare 293ms)
+
+ ELIFECYCLE  Test failed. See above for more details.

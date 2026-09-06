@@ -1,0 +1,28 @@
+{
+  "name": "@zapp/feature-language",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@zapp/documents": "workspace:*",
+    "@zapp/ui": "workspace:*",
+    "@codemirror/commands": "6.10.4",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/search": "6.7.1",
+    "@codemirror/state": "6.7.1",
+    "@codemirror/view": "6.43.6",
+    "@codemirror/autocomplete": "^6.18.7",
+    "@codemirror/lint": "^6.8.5"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@zapp/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@zapp/core": "workspace:*",
+    "@zapp/documents": "workspace:*",
+    "@zapp/ui": "workspace:*",
+    "@zapp/workbench": "workspace:*",
+    "@zapp/host-browser": "workspace:*",
+    "@zapp/host-runtime": "workspace:*",
+    "@zapp/bundle-inspector": "workspace:*",
+    "@zapp/feature-editor": "workspace:*",
+    "@zapp/feature-explorer": "workspace:*",
+    "@zapp/feature-settings": "workspace:*",
+    "@zapp/feature-extensions": "workspace:*",
+    "@zapp/feature-themes": "workspace:*",
+    "@zapp/feature-language": "workspace:*",
+    "@zapp/feature-search": "workspace:*",
+    "@zapp/feature-previews": "workspace:*",
+    "@zapp/feature-formatters": "workspace:*",
+    "@zapp/feature-terminal": "workspace:*",
+    "@zapp/feature-tasks": "workspace:*",
+    "@zapp/feature-git": "workspace:*",
+    "@zapp/feature-collaboration": "workspace:*",
+    "i18next": "^26.3.0",
+    "react-i18next": "^17.0.8"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

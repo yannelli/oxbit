@@ -1,0 +1,18 @@
+{
+  "name": "@zapp/host-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "@zapp/protocol": "workspace:*"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

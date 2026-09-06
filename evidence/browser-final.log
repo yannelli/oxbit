@@ -1,0 +1,24 @@
+[WebServer] (node:3411627) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:3411709) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 13 tests using 1 worker
+
+(node:3412027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/browser/acceptance.spec.ts:44:1 › browser workspace edits, saves, splits and recovers Unicode drafts and view state (782ms)
+  ✓   2 tests/browser/acceptance.spec.ts:77:1 › localized settings persist and fit the phone viewport (526ms)
+  ✓   3 tests/browser/acceptance.spec.ts:99:1 › runtime filesystem, revision checked save, refresh and failed save recovery (596ms)
+  ✓   4 tests/browser/acceptance.spec.ts:163:1 › real language responses, diagnostics, rename edits and supported code action (1.8s)
+  ✓   5 tests/browser/acceptance.spec.ts:235:1 › workspace search previews replacements against unsaved versions (596ms)
+  ✓   6 tests/browser/acceptance.spec.ts:263:1 › real terminal, resize, task status and cancellation (773ms)
+  ✓   7 tests/browser/acceptance.spec.ts:326:1 › stage and commit actual Git changes without repeating a request (525ms)
+  ✓   8 tests/browser/acceptance.spec.ts:360:1 › two independent browsers converge concurrent offline edits and keep per-user undo (1.1s)
+  ✓   9 tests/browser/acceptance.spec.ts:410:1 › external SDK extension lifecycle removes contributions and survives failed activation (517ms)
+  ✓  10 tests/browser/acceptance.spec.ts:476:1 › both themes render at all four reference viewports with visual comparison artifacts (4.4s)
+  ✓  11 tests/browser/acceptance.spec.ts:559:1 › Unicode, synthetic composition, multiple cursors and local paint latency (3.8s)
+  ✓  12 tests/browser/acceptance.spec.ts:647:1 › sustained editing and repeated switching keep document and extension state (2.0m)
+  ✓  13 tests/browser/acceptance.spec.ts:686:1 › runtime process loss preserves browser drafts and reports lost PTYs (2.4s)
+
+  13 passed (2.3m)

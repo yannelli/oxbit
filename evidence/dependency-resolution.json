@@ -1,0 +1,1372 @@
+[
+  {
+    "name": "zapp",
+    "version": "0.1.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard",
+    "private": true,
+    "devDependencies": {
+      "@playwright/test": {
+        "from": "@playwright/test",
+        "version": "1.63.0",
+        "resolved": "https://registry.npmjs.org/@playwright/test/-/test-1.63.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@playwright+test@1.63.0/node_modules/@playwright/test"
+      },
+      "@types/markdown-it": {
+        "from": "@types/markdown-it",
+        "version": "10.0.3",
+        "resolved": "https://registry.npmjs.org/@types/markdown-it/-/markdown-it-10.0.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+markdown-it@10.0.3/node_modules/@types/markdown-it"
+      },
+      "@types/node": {
+        "from": "@types/node",
+        "version": "24.13.3",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+node@24.13.3/node_modules/@types/node"
+      },
+      "@types/react": {
+        "from": "@types/react",
+        "version": "19.2.18",
+        "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.18.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+react@19.2.18/node_modules/@types/react"
+      },
+      "@types/react-dom": {
+        "from": "@types/react-dom",
+        "version": "19.2.7",
+        "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+react-dom@19.2.7_@types+react@19.2.18/node_modules/@types/react-dom"
+      },
+      "@types/semver": {
+        "from": "@types/semver",
+        "version": "7.8.0",
+        "resolved": "https://registry.npmjs.org/@types/semver/-/semver-7.8.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+semver@7.8.0/node_modules/@types/semver"
+      },
+      "@types/ws": {
+        "from": "@types/ws",
+        "version": "8.18.1",
+        "resolved": "https://registry.npmjs.org/@types/ws/-/ws-8.18.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@types+ws@8.18.1/node_modules/@types/ws"
+      },
+      "@vitejs/plugin-react": {
+        "from": "@vitejs/plugin-react",
+        "version": "5.2.0",
+        "resolved": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.2.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@vitejs+plugin-react@5.2.0_vite@7.3.6_@types+node@24.13.3_lightningcss@1.30.1_tsx@4.23.13_/node_modules/@vitejs/plugin-react"
+      },
+      "eslint": {
+        "from": "eslint",
+        "version": "9.39.5",
+        "resolved": "https://registry.npmjs.org/eslint/-/eslint-9.39.5.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/eslint@9.39.5/node_modules/eslint"
+      },
+      "lightningcss": {
+        "from": "lightningcss",
+        "version": "1.30.1",
+        "resolved": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.30.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/lightningcss@1.30.1/node_modules/lightningcss"
+      },
+      "tsx": {
+        "from": "tsx",
+        "version": "4.23.13",
+        "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.23.13.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/tsx@4.23.13/node_modules/tsx"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "typescript-eslint": {
+        "from": "typescript-eslint",
+        "version": "8.69.0",
+        "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.69.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/typescript-eslint@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/typescript-eslint"
+      },
+      "vite": {
+        "from": "vite",
+        "version": "7.3.6",
+        "resolved": "https://registry.npmjs.org/vite/-/vite-7.3.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.3_lightningcss@1.30.1_tsx@4.23.13/node_modules/vite"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "3.2.7",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-3.2.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/vitest@3.2.7_@types+node@24.13.3_lightningcss@1.30.1_tsx@4.23.13/node_modules/vitest"
+      }
+    },
+    "unsavedDependencies": {
+      "eslint-scope": {
+        "from": "eslint-scope",
+        "version": "link:node_modules/.pnpm/eslint-scope@8.4.0/node_modules/eslint-scope",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/eslint-scope@8.4.0/node_modules/eslint-scope"
+      },
+      "prettier": {
+        "from": "prettier",
+        "version": "link:node_modules/.pnpm/prettier@3.9.6/node_modules/prettier",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/prettier@3.9.6/node_modules/prettier"
+      },
+      "@typescript-eslint/eslint-plugin": {
+        "from": "@typescript-eslint/eslint-plugin",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+eslint-plugin@8.69.0_@typescript-eslint+parser@8.69.0_eslint@9.39.5_typesc_xzyz26ud34o3gfnmxcqxim6uei/node_modules/@typescript-eslint/eslint-plugin",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+eslint-plugin@8.69.0_@typescript-eslint+parser@8.69.0_eslint@9.39.5_typesc_xzyz26ud34o3gfnmxcqxim6uei/node_modules/@typescript-eslint/eslint-plugin"
+      },
+      "@eslint-community/regexpp": {
+        "from": "@eslint-community/regexpp",
+        "version": "link:node_modules/.pnpm/@eslint-community+regexpp@4.12.2/node_modules/@eslint-community/regexpp",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint-community+regexpp@4.12.2/node_modules/@eslint-community/regexpp"
+      },
+      "eslint-visitor-keys": {
+        "from": "eslint-visitor-keys",
+        "version": "link:node_modules/.pnpm/eslint-visitor-keys@4.2.1/node_modules/eslint-visitor-keys",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/eslint-visitor-keys@4.2.1/node_modules/eslint-visitor-keys"
+      },
+      "@eslint-community/eslint-utils": {
+        "from": "@eslint-community/eslint-utils",
+        "version": "link:node_modules/.pnpm/@eslint-community+eslint-utils@4.10.1_eslint@9.39.5/node_modules/@eslint-community/eslint-utils",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint-community+eslint-utils@4.10.1_eslint@9.39.5/node_modules/@eslint-community/eslint-utils"
+      },
+      "@typescript-eslint/parser": {
+        "from": "@typescript-eslint/parser",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+parser@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/parser",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+parser@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/parser"
+      },
+      "@typescript-eslint/project-service": {
+        "from": "@typescript-eslint/project-service",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+project-service@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/project-service",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+project-service@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/project-service"
+      },
+      "@typescript-eslint/tsconfig-utils": {
+        "from": "@typescript-eslint/tsconfig-utils",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+tsconfig-utils@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/tsconfig-utils",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+tsconfig-utils@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/tsconfig-utils"
+      },
+      "@typescript-eslint/scope-manager": {
+        "from": "@typescript-eslint/scope-manager",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+scope-manager@8.69.0/node_modules/@typescript-eslint/scope-manager",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+scope-manager@8.69.0/node_modules/@typescript-eslint/scope-manager"
+      },
+      "@typescript-eslint/types": {
+        "from": "@typescript-eslint/types",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+types@8.69.0/node_modules/@typescript-eslint/types",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+types@8.69.0/node_modules/@typescript-eslint/types"
+      },
+      "@typescript-eslint/type-utils": {
+        "from": "@typescript-eslint/type-utils",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+type-utils@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/type-utils",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+type-utils@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/type-utils"
+      },
+      "@typescript-eslint/typescript-estree": {
+        "from": "@typescript-eslint/typescript-estree",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+typescript-estree@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/typescript-estree",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+typescript-estree@8.69.0_typescript@5.9.3/node_modules/@typescript-eslint/typescript-estree"
+      },
+      "@typescript-eslint/utils": {
+        "from": "@typescript-eslint/utils",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+utils@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/utils",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+utils@8.69.0_eslint@9.39.5_typescript@5.9.3/node_modules/@typescript-eslint/utils"
+      },
+      "@eslint/core": {
+        "from": "@eslint/core",
+        "version": "link:node_modules/.pnpm/@eslint+core@0.17.0/node_modules/@eslint/core",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+core@0.17.0/node_modules/@eslint/core"
+      },
+      "@eslint/config-array": {
+        "from": "@eslint/config-array",
+        "version": "link:node_modules/.pnpm/@eslint+config-array@0.21.2/node_modules/@eslint/config-array",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+config-array@0.21.2/node_modules/@eslint/config-array"
+      },
+      "@eslint/js": {
+        "from": "@eslint/js",
+        "version": "link:node_modules/.pnpm/@eslint+js@9.39.5/node_modules/@eslint/js",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+js@9.39.5/node_modules/@eslint/js"
+      },
+      "@typescript-eslint/visitor-keys": {
+        "from": "@typescript-eslint/visitor-keys",
+        "version": "link:node_modules/.pnpm/@typescript-eslint+visitor-keys@8.69.0/node_modules/@typescript-eslint/visitor-keys",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@typescript-eslint+visitor-keys@8.69.0/node_modules/@typescript-eslint/visitor-keys"
+      },
+      "@eslint/config-helpers": {
+        "from": "@eslint/config-helpers",
+        "version": "link:node_modules/.pnpm/@eslint+config-helpers@0.4.2/node_modules/@eslint/config-helpers",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+config-helpers@0.4.2/node_modules/@eslint/config-helpers"
+      },
+      "@eslint/eslintrc": {
+        "from": "@eslint/eslintrc",
+        "version": "link:node_modules/.pnpm/@eslint+eslintrc@3.3.7/node_modules/@eslint/eslintrc",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+eslintrc@3.3.7/node_modules/@eslint/eslintrc"
+      },
+      "@eslint/object-schema": {
+        "from": "@eslint/object-schema",
+        "version": "link:node_modules/.pnpm/@eslint+object-schema@2.1.7/node_modules/@eslint/object-schema",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+object-schema@2.1.7/node_modules/@eslint/object-schema"
+      },
+      "@eslint/plugin-kit": {
+        "from": "@eslint/plugin-kit",
+        "version": "link:node_modules/.pnpm/@eslint+plugin-kit@0.4.1/node_modules/@eslint/plugin-kit",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@eslint+plugin-kit@0.4.1/node_modules/@eslint/plugin-kit"
+      }
+    }
+  },
+  {
+    "name": "@zapp/runtime",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/apps/runtime",
+    "private": true,
+    "dependencies": {
+      "@zapp/core": {
+        "from": "@zapp/core",
+        "version": "link:../../packages/core",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/core"
+      },
+      "@zapp/protocol": {
+        "from": "@zapp/protocol",
+        "version": "link:../../packages/protocol",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/protocol"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../packages/sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "chokidar": {
+        "from": "chokidar",
+        "version": "4.0.3",
+        "resolved": "https://registry.npmjs.org/chokidar/-/chokidar-4.0.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/chokidar@4.0.3/node_modules/chokidar"
+      },
+      "node-pty": {
+        "from": "node-pty",
+        "version": "1.1.0",
+        "resolved": "https://registry.npmjs.org/node-pty/-/node-pty-1.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/node-pty@1.1.0/node_modules/node-pty"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "typescript-language-server": {
+        "from": "typescript-language-server",
+        "version": "5.3.0",
+        "resolved": "https://registry.npmjs.org/typescript-language-server/-/typescript-language-server-5.3.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/typescript-language-server@5.3.0/node_modules/typescript-language-server"
+      },
+      "vscode-jsonrpc": {
+        "from": "vscode-jsonrpc",
+        "version": "8.2.1",
+        "resolved": "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/vscode-jsonrpc@8.2.1/node_modules/vscode-jsonrpc"
+      },
+      "ws": {
+        "from": "ws",
+        "version": "8.21.3",
+        "resolved": "https://registry.npmjs.org/ws/-/ws-8.21.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/ws@8.21.3/node_modules/ws"
+      },
+      "y-protocols": {
+        "from": "y-protocols",
+        "version": "1.0.7",
+        "resolved": "https://registry.npmjs.org/y-protocols/-/y-protocols-1.0.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/y-protocols@1.0.7_yjs@13.6.32/node_modules/y-protocols"
+      },
+      "yjs": {
+        "from": "yjs",
+        "version": "13.6.32",
+        "resolved": "https://registry.npmjs.org/yjs/-/yjs-13.6.32.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/yjs@13.6.32/node_modules/yjs"
+      }
+    }
+  },
+  {
+    "name": "@zapp/web",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/apps/web",
+    "private": true,
+    "dependencies": {
+      "@zapp/bundle-inspector": {
+        "from": "@zapp/bundle-inspector",
+        "version": "link:../../examples/bundle-inspector",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/examples/bundle-inspector"
+      },
+      "@zapp/core": {
+        "from": "@zapp/core",
+        "version": "link:../../packages/core",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/core"
+      },
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../packages/documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/feature-collaboration": {
+        "from": "@zapp/feature-collaboration",
+        "version": "link:../../packages/features/collaboration",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/collaboration"
+      },
+      "@zapp/feature-editor": {
+        "from": "@zapp/feature-editor",
+        "version": "link:../../packages/features/editor",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/editor"
+      },
+      "@zapp/feature-explorer": {
+        "from": "@zapp/feature-explorer",
+        "version": "link:../../packages/features/explorer",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/explorer"
+      },
+      "@zapp/feature-extensions": {
+        "from": "@zapp/feature-extensions",
+        "version": "link:../../packages/features/extensions",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/extensions"
+      },
+      "@zapp/feature-formatters": {
+        "from": "@zapp/feature-formatters",
+        "version": "link:../../packages/features/formatters",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/formatters"
+      },
+      "@zapp/feature-git": {
+        "from": "@zapp/feature-git",
+        "version": "link:../../packages/features/git",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/git"
+      },
+      "@zapp/feature-language": {
+        "from": "@zapp/feature-language",
+        "version": "link:../../packages/features/language",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/language"
+      },
+      "@zapp/feature-previews": {
+        "from": "@zapp/feature-previews",
+        "version": "link:../../packages/features/previews",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/previews"
+      },
+      "@zapp/feature-search": {
+        "from": "@zapp/feature-search",
+        "version": "link:../../packages/features/search",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/search"
+      },
+      "@zapp/feature-settings": {
+        "from": "@zapp/feature-settings",
+        "version": "link:../../packages/features/settings",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/settings"
+      },
+      "@zapp/feature-tasks": {
+        "from": "@zapp/feature-tasks",
+        "version": "link:../../packages/features/tasks",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/tasks"
+      },
+      "@zapp/feature-terminal": {
+        "from": "@zapp/feature-terminal",
+        "version": "link:../../packages/features/terminal",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/terminal"
+      },
+      "@zapp/feature-themes": {
+        "from": "@zapp/feature-themes",
+        "version": "link:../../packages/features/themes",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/themes"
+      },
+      "@zapp/host-browser": {
+        "from": "@zapp/host-browser",
+        "version": "link:../../packages/host-browser",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-browser"
+      },
+      "@zapp/host-runtime": {
+        "from": "@zapp/host-runtime",
+        "version": "link:../../packages/host-runtime",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-runtime"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../packages/sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../packages/ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "@zapp/workbench": {
+        "from": "@zapp/workbench",
+        "version": "link:../../packages/workbench",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench"
+      },
+      "i18next": {
+        "from": "i18next",
+        "version": "26.4.2",
+        "resolved": "https://registry.npmjs.org/i18next/-/i18next-26.4.2.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/i18next@26.4.2_typescript@5.9.3/node_modules/i18next"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      },
+      "react-i18next": {
+        "from": "react-i18next",
+        "version": "17.0.13",
+        "resolved": "https://registry.npmjs.org/react-i18next/-/react-i18next-17.0.13.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-i18next@17.0.13_i18next@26.4.2_typescript@5.9.3__react-dom@19.1.0_react@19.1.0__react@19.1.0_typescript@5.9.3/node_modules/react-i18next"
+      }
+    }
+  },
+  {
+    "name": "@zapp/bundle-inspector",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/examples/bundle-inspector",
+    "private": false,
+    "dependencies": {
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../packages/sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/core",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/core",
+    "private": true,
+    "dependencies": {
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "semver": {
+        "from": "semver",
+        "version": "7.8.5",
+        "resolved": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/semver@7.8.5/node_modules/semver"
+      }
+    }
+  },
+  {
+    "name": "@zapp/documents",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents",
+    "private": true,
+    "dependencies": {
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "y-protocols": {
+        "from": "y-protocols",
+        "version": "1.0.7",
+        "resolved": "https://registry.npmjs.org/y-protocols/-/y-protocols-1.0.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/y-protocols@1.0.7_yjs@13.6.32/node_modules/y-protocols"
+      },
+      "yjs": {
+        "from": "yjs",
+        "version": "13.6.32",
+        "resolved": "https://registry.npmjs.org/yjs/-/yjs-13.6.32.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/yjs@13.6.32/node_modules/yjs"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-collaboration",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/collaboration",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      },
+      "y-protocols": {
+        "from": "y-protocols",
+        "version": "1.0.7",
+        "resolved": "https://registry.npmjs.org/y-protocols/-/y-protocols-1.0.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/y-protocols@1.0.7_yjs@13.6.32/node_modules/y-protocols"
+      },
+      "yjs": {
+        "from": "yjs",
+        "version": "13.6.32",
+        "resolved": "https://registry.npmjs.org/yjs/-/yjs-13.6.32.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/yjs@13.6.32/node_modules/yjs"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-editor",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/editor",
+    "private": true,
+    "dependencies": {
+      "@codemirror/autocomplete": {
+        "from": "@codemirror/autocomplete",
+        "version": "6.20.3",
+        "resolved": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+autocomplete@6.20.3/node_modules/@codemirror/autocomplete"
+      },
+      "@codemirror/commands": {
+        "from": "@codemirror/commands",
+        "version": "6.10.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/commands/-/commands-6.10.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+commands@6.10.4/node_modules/@codemirror/commands"
+      },
+      "@codemirror/lang-css": {
+        "from": "@codemirror/lang-css",
+        "version": "6.3.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/lang-css/-/lang-css-6.3.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lang-css@6.3.1/node_modules/@codemirror/lang-css"
+      },
+      "@codemirror/lang-html": {
+        "from": "@codemirror/lang-html",
+        "version": "6.4.12",
+        "resolved": "https://registry.npmjs.org/@codemirror/lang-html/-/lang-html-6.4.12.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lang-html@6.4.12/node_modules/@codemirror/lang-html"
+      },
+      "@codemirror/lang-javascript": {
+        "from": "@codemirror/lang-javascript",
+        "version": "6.2.5",
+        "resolved": "https://registry.npmjs.org/@codemirror/lang-javascript/-/lang-javascript-6.2.5.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lang-javascript@6.2.5/node_modules/@codemirror/lang-javascript"
+      },
+      "@codemirror/lang-json": {
+        "from": "@codemirror/lang-json",
+        "version": "6.0.2",
+        "resolved": "https://registry.npmjs.org/@codemirror/lang-json/-/lang-json-6.0.2.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lang-json@6.0.2/node_modules/@codemirror/lang-json"
+      },
+      "@codemirror/lang-markdown": {
+        "from": "@codemirror/lang-markdown",
+        "version": "6.5.2",
+        "resolved": "https://registry.npmjs.org/@codemirror/lang-markdown/-/lang-markdown-6.5.2.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lang-markdown@6.5.2/node_modules/@codemirror/lang-markdown"
+      },
+      "@codemirror/language": {
+        "from": "@codemirror/language",
+        "version": "6.12.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/language/-/language-6.12.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+language@6.12.4/node_modules/@codemirror/language"
+      },
+      "@codemirror/lint": {
+        "from": "@codemirror/lint",
+        "version": "6.9.7",
+        "resolved": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lint@6.9.7/node_modules/@codemirror/lint"
+      },
+      "@codemirror/search": {
+        "from": "@codemirror/search",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/search/-/search-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+search@6.7.1/node_modules/@codemirror/search"
+      },
+      "@codemirror/state": {
+        "from": "@codemirror/state",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/state/-/state-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+state@6.7.1/node_modules/@codemirror/state"
+      },
+      "@codemirror/view": {
+        "from": "@codemirror/view",
+        "version": "6.43.6",
+        "resolved": "https://registry.npmjs.org/@codemirror/view/-/view-6.43.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+view@6.43.6/node_modules/@codemirror/view"
+      },
+      "@lezer/highlight": {
+        "from": "@lezer/highlight",
+        "version": "1.2.3",
+        "resolved": "https://registry.npmjs.org/@lezer/highlight/-/highlight-1.2.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@lezer+highlight@1.2.3/node_modules/@lezer/highlight"
+      },
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "@zapp/workbench": {
+        "from": "@zapp/workbench",
+        "version": "link:../../workbench",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      },
+      "y-codemirror.next": {
+        "from": "y-codemirror.next",
+        "version": "0.3.6",
+        "resolved": "https://registry.npmjs.org/y-codemirror.next/-/y-codemirror.next-0.3.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/y-codemirror.next@0.3.6_@codemirror+state@6.7.1_@codemirror+view@6.43.6_yjs@13.6.32/node_modules/y-codemirror.next"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-explorer",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/explorer",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "@zapp/workbench": {
+        "from": "@zapp/workbench",
+        "version": "link:../../workbench",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-extensions",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/extensions",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "@zapp/workbench": {
+        "from": "@zapp/workbench",
+        "version": "link:../../workbench",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-formatters",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/formatters",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "prettier": {
+        "from": "prettier",
+        "version": "3.9.6",
+        "resolved": "https://registry.npmjs.org/prettier/-/prettier-3.9.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/prettier@3.9.6/node_modules/prettier"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-git",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/git",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-language",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/language",
+    "private": true,
+    "dependencies": {
+      "@codemirror/autocomplete": {
+        "from": "@codemirror/autocomplete",
+        "version": "6.20.3",
+        "resolved": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+autocomplete@6.20.3/node_modules/@codemirror/autocomplete"
+      },
+      "@codemirror/commands": {
+        "from": "@codemirror/commands",
+        "version": "6.10.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/commands/-/commands-6.10.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+commands@6.10.4/node_modules/@codemirror/commands"
+      },
+      "@codemirror/language": {
+        "from": "@codemirror/language",
+        "version": "6.12.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/language/-/language-6.12.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+language@6.12.4/node_modules/@codemirror/language"
+      },
+      "@codemirror/lint": {
+        "from": "@codemirror/lint",
+        "version": "6.9.7",
+        "resolved": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lint@6.9.7/node_modules/@codemirror/lint"
+      },
+      "@codemirror/search": {
+        "from": "@codemirror/search",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/search/-/search-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+search@6.7.1/node_modules/@codemirror/search"
+      },
+      "@codemirror/state": {
+        "from": "@codemirror/state",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/state/-/state-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+state@6.7.1/node_modules/@codemirror/state"
+      },
+      "@codemirror/view": {
+        "from": "@codemirror/view",
+        "version": "6.43.6",
+        "resolved": "https://registry.npmjs.org/@codemirror/view/-/view-6.43.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+view@6.43.6/node_modules/@codemirror/view"
+      },
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-previews",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/previews",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "dompurify": {
+        "from": "dompurify",
+        "version": "3.4.15",
+        "resolved": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.15.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/dompurify@3.4.15/node_modules/dompurify"
+      },
+      "htmlparser2": {
+        "from": "htmlparser2",
+        "version": "12.0.0",
+        "resolved": "https://registry.npmjs.org/htmlparser2/-/htmlparser2-12.0.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/htmlparser2@12.0.0/node_modules/htmlparser2"
+      },
+      "markdown-it": {
+        "from": "markdown-it",
+        "version": "10.0.0",
+        "resolved": "https://registry.npmjs.org/markdown-it/-/markdown-it-10.0.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/markdown-it@10.0.0/node_modules/markdown-it"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-search",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/search",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-settings",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/settings",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "@zapp/workbench": {
+        "from": "@zapp/workbench",
+        "version": "link:../../workbench",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-tasks",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/tasks",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-terminal",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/terminal",
+    "private": true,
+    "dependencies": {
+      "@xterm/addon-clipboard": {
+        "from": "@xterm/addon-clipboard",
+        "version": "0.3.0-beta.303",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-clipboard/-/addon-clipboard-0.3.0-beta.303.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-clipboard@0.3.0-beta.303_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-clipboard"
+      },
+      "@xterm/addon-fit": {
+        "from": "@xterm/addon-fit",
+        "version": "0.12.0-beta.301",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.12.0-beta.301.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-fit@0.12.0-beta.301_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-fit"
+      },
+      "@xterm/addon-image": {
+        "from": "@xterm/addon-image",
+        "version": "0.10.0-beta.301",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-image/-/addon-image-0.10.0-beta.301.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-image@0.10.0-beta.301_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-image"
+      },
+      "@xterm/addon-ligatures": {
+        "from": "@xterm/addon-ligatures",
+        "version": "0.11.0-beta.213",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-ligatures/-/addon-ligatures-0.11.0-beta.213.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-ligatures@0.11.0-beta.213_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-ligatures"
+      },
+      "@xterm/addon-search": {
+        "from": "@xterm/addon-search",
+        "version": "0.17.0-beta.301",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-search/-/addon-search-0.17.0-beta.301.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-search@0.17.0-beta.301_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-search"
+      },
+      "@xterm/addon-unicode11": {
+        "from": "@xterm/addon-unicode11",
+        "version": "0.10.0-beta.301",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-unicode11/-/addon-unicode11-0.10.0-beta.301.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-unicode11@0.10.0-beta.301_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-unicode11"
+      },
+      "@xterm/addon-web-links": {
+        "from": "@xterm/addon-web-links",
+        "version": "0.13.0-beta.301",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-web-links/-/addon-web-links-0.13.0-beta.301.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-web-links@0.13.0-beta.301_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-web-links"
+      },
+      "@xterm/addon-webgl": {
+        "from": "@xterm/addon-webgl",
+        "version": "0.20.0-beta.300",
+        "resolved": "https://registry.npmjs.org/@xterm/addon-webgl/-/addon-webgl-0.20.0-beta.300.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+addon-webgl@0.20.0-beta.300_@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/addon-webgl"
+      },
+      "@xterm/xterm": {
+        "from": "@xterm/xterm",
+        "version": "6.1.0-beta.304",
+        "resolved": "https://registry.npmjs.org/@xterm/xterm/-/xterm-6.1.0-beta.304.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@xterm+xterm@6.1.0-beta.304/node_modules/@xterm/xterm"
+      },
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/feature-themes",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/features/themes",
+    "private": true,
+    "dependencies": {
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/host-browser",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-browser",
+    "private": true,
+    "dependencies": {
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      }
+    }
+  },
+  {
+    "name": "@zapp/host-runtime",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-runtime",
+    "private": true,
+    "dependencies": {
+      "@zapp/protocol": {
+        "from": "@zapp/protocol",
+        "version": "link:../protocol",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/protocol"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      }
+    }
+  },
+  {
+    "name": "@zapp/protocol",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/protocol",
+    "private": true
+  },
+  {
+    "name": "@zapp/sdk",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk",
+    "private": false,
+    "dependencies": {
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/ui",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui",
+    "private": true,
+    "dependencies": {
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      }
+    }
+  },
+  {
+    "name": "@zapp/workbench",
+    "version": "1.0.0",
+    "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/workbench",
+    "private": true,
+    "dependencies": {
+      "@codemirror/autocomplete": {
+        "from": "@codemirror/autocomplete",
+        "version": "6.20.3",
+        "resolved": "https://registry.npmjs.org/@codemirror/autocomplete/-/autocomplete-6.20.3.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+autocomplete@6.20.3/node_modules/@codemirror/autocomplete"
+      },
+      "@codemirror/commands": {
+        "from": "@codemirror/commands",
+        "version": "6.10.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/commands/-/commands-6.10.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+commands@6.10.4/node_modules/@codemirror/commands"
+      },
+      "@codemirror/language": {
+        "from": "@codemirror/language",
+        "version": "6.12.4",
+        "resolved": "https://registry.npmjs.org/@codemirror/language/-/language-6.12.4.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+language@6.12.4/node_modules/@codemirror/language"
+      },
+      "@codemirror/lint": {
+        "from": "@codemirror/lint",
+        "version": "6.9.7",
+        "resolved": "https://registry.npmjs.org/@codemirror/lint/-/lint-6.9.7.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+lint@6.9.7/node_modules/@codemirror/lint"
+      },
+      "@codemirror/search": {
+        "from": "@codemirror/search",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/search/-/search-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+search@6.7.1/node_modules/@codemirror/search"
+      },
+      "@codemirror/state": {
+        "from": "@codemirror/state",
+        "version": "6.7.1",
+        "resolved": "https://registry.npmjs.org/@codemirror/state/-/state-6.7.1.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+state@6.7.1/node_modules/@codemirror/state"
+      },
+      "@codemirror/view": {
+        "from": "@codemirror/view",
+        "version": "6.43.6",
+        "resolved": "https://registry.npmjs.org/@codemirror/view/-/view-6.43.6.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/@codemirror+view@6.43.6/node_modules/@codemirror/view"
+      },
+      "@zapp/core": {
+        "from": "@zapp/core",
+        "version": "link:../core",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/core"
+      },
+      "@zapp/documents": {
+        "from": "@zapp/documents",
+        "version": "link:../documents",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/documents"
+      },
+      "@zapp/host-browser": {
+        "from": "@zapp/host-browser",
+        "version": "link:../host-browser",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-browser"
+      },
+      "@zapp/host-runtime": {
+        "from": "@zapp/host-runtime",
+        "version": "link:../host-runtime",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/host-runtime"
+      },
+      "@zapp/sdk": {
+        "from": "@zapp/sdk",
+        "version": "link:../sdk",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/sdk"
+      },
+      "@zapp/ui": {
+        "from": "@zapp/ui",
+        "version": "link:../ui",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/packages/ui"
+      },
+      "i18next": {
+        "from": "i18next",
+        "version": "26.4.2",
+        "resolved": "https://registry.npmjs.org/i18next/-/i18next-26.4.2.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/i18next@26.4.2_typescript@5.9.3/node_modules/i18next"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react@19.1.0/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom"
+      },
+      "react-i18next": {
+        "from": "react-i18next",
+        "version": "17.0.13",
+        "resolved": "https://registry.npmjs.org/react-i18next/-/react-i18next-17.0.13.tgz",
+        "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/.pnpm/react-i18next@17.0.13_i18next@26.4.2_typescript@5.9.3__react-dom@19.1.0_react@19.1.0__react@19.1.0_typescript@5.9.3/node_modules/react-i18next"
+      }
+    }
+  }
+]

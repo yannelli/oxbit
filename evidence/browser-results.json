@@ -1,0 +1,161 @@
+{
+  "config": {
+    "argv": [
+      "/home/ubuntu/.nvm/versions/node/v24.19.0/bin/node",
+      "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/node_modules/@playwright/test/cli.js",
+      "test",
+      "--grep",
+      "native browser directory handles"
+    ],
+    "configFile": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/playwright.config.ts",
+    "rootDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "evidence/browser-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "node scripts/start-e2e.mjs",
+      "url": "http://127.0.0.1:4318/api/health",
+      "reuseExistingServer": false,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "acceptance.spec.ts",
+      "file": "acceptance.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "native browser directory handles retain identity, encoded saves and drafts after refresh",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 899,
+                  "error": {
+                    "message": "Error: page.waitForFunction: Target page, context or browser has been closed",
+                    "stack": "Error: page.waitForFunction: Target page, context or browser has been closed\n    at /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts:911:14",
+                    "location": {
+                      "file": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts",
+                      "column": 14,
+                      "line": 911
+                    },
+                    "snippet": "  909 |   await refreshed;\n  910 |   expect(confirmedReload).toBe(true);\n> 911 |   await page.waitForFunction(() => (window as any).__zapp?.ready);\n      |              ^\n  912 |   expect(await page.evaluate(() => (window as any).__zapp.filesystem.id)).toBe(\n  913 |     id,\n  914 |   );"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts",
+                        "column": 14,
+                        "line": 911
+                      },
+                      "message": "Error: page.waitForFunction: Target page, context or browser has been closed\n\n  909 |   await refreshed;\n  910 |   expect(confirmedReload).toBe(true);\n> 911 |   await page.waitForFunction(() => (window as any).__zapp?.ready);\n      |              ^\n  912 |   expect(await page.evaluate(() => (window as any).__zapp.filesystem.id)).toBe(\n  913 |     id,\n  914 |   );\n    at /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts:911:14"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-06T21:19:51.345Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/test-results/acceptance-native-browser--6e83f-es-and-drafts-after-refresh/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/test-results/acceptance-native-browser--6e83f-es-and-drafts-after-refresh/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts",
+                    "column": 14,
+                    "line": 911
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-5101a2b97bfab348660a",
+          "file": "acceptance.spec.ts",
+          "line": 869,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-06T21:19:50.520Z",
+    "duration": 1833.493,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

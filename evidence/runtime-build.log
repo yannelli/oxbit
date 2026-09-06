@@ -1,0 +1,10 @@
+
+> @zapp/runtime@1.0.0 build /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/apps/runtime
+> vite build
+
+vite v7.3.6 building ssr environment for production...
+transforming...
+✓ 60 modules transformed.
+rendering chunks...
+dist/index.js  164.08 kB │ map: 295.37 kB
+✓ built in 264ms

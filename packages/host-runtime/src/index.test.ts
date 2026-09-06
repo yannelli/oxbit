@@ -1,0 +1,17 @@
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {RuntimeClient,RuntimeFileSystem} from './index.js';
+import type {RpcClient} from '@zapp/sdk';
+
+class Socket {
+  static OPEN=1;static instances:Socket[]=[];readyState=0;bufferedAmount=0;sent:any[]=[];onopen?:()=>void;onmessage?:(event:{data:string})=>void;onclose?:(event:{code:number})=>void;onerror?:()=>void;
+  constructor(readonly url:string){Socket.instances.push(this);queueMicrotask(()=>{this.readyState=1;this.onopen?.();});}
+  send(raw:string){const message=JSON.parse(raw);this.sent.push(message);if(message.method==='auth.authenticate')queueMicrotask(()=>this.receive({v:1,type:'response',id:message.id,result:{workspaceId:'default',workspaceKey:'test',trusted:true,capabilities:['git']}}));if(message.method==='operation.status')queueMicrotask(()=>this.receive({v:1,type:'response',id:message.id,result:{id:message.params.id,status:'completed',result:{commit:'saved'}}}));}
+  receive(message:unknown){this.onmessage?.({data:JSON.stringify(message)});}
+  close(){this.readyState=3;this.onclose?.({code:1000});}
+}
+afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();Socket.instances=[];});
+describe('runtime connection recovery',()=>{
+  it('queries durable operation status after reconnect without repeating execution',async()=>{vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();const recovered:any[]=[];client.subscribe('operation.recovered',value=>recovered.push(value));const pending=client.request('git.commit',{message:'one commit'},{id:'commit-1'});const rejected=expect(pending).rejects.toMatchObject({code:'CONNECTION_LOST'});Socket.instances[0].close();await rejected;await vi.advanceTimersByTimeAsync(1000);expect(Socket.instances.flatMap(socket=>socket.sent).filter(message=>message.method==='git.commit')).toHaveLength(1);expect(recovered[0]).toMatchObject({id:'commit-1',status:'completed',result:{commit:'saved'}});client.dispose();});
+  it('rejects oversized and buffered requests before enqueueing them',async()=>{vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();await expect(client.request('fs.write',{text:'🚀'.repeat(600000)})).rejects.toMatchObject({code:'TOO_LARGE'});Socket.instances[0].bufferedAmount=1048577;await expect(client.request('fs.list')).rejects.toMatchObject({code:'BUSY'});client.dispose();});
+  it('renews and disposes filesystem watches and rejects unsynchronized shared saves',async()=>{const listeners=new Map<string,Set<(value:any)=>void>>(),calls:string[]=[];const client:RpcClient={connected:true,request:async<T>(method:string)=>{calls.push(method);return {ok:true} as T;},subscribe(event,listener){const set=listeners.get(event)??new Set();set.add(listener);listeners.set(event,set);return()=>{set.delete(listener);};}};const files=new RuntimeFileSystem(client),watch=files.watch(()=>{});for(const listener of listeners.get('connection.change')??[])listener({state:'connected'});expect(calls.filter(method=>method==='fs.watch')).toHaveLength(2);watch.dispose();expect(calls.at(-1)).toBe('fs.unwatch');files.shared.set('file.ts',{revision:'old',savedText:'saved',update:''});await expect(files.write('file.ts','local',{expectedRevision:'old'})).rejects.toMatchObject({code:'COLLAB_UNAVAILABLE'});expect(calls).not.toContain('collab.save');});
+});

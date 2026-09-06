@@ -1,0 +1,96 @@
+{
+  "date": "2026-09-06",
+  "phase2Verification": "incomplete",
+  "lint": {
+    "status": "passed",
+    "evidence": [
+      "audit-check-corrected.log",
+      "audit-corrections-lint.log",
+      "audit-browser-correction-lint.log"
+    ]
+  },
+  "types": {
+    "status": "passed",
+    "evidence": [
+      "audit-build.log"
+    ]
+  },
+  "productionBuilds": {
+    "status": "passed",
+    "evidence": [
+      "audit-build.log"
+    ]
+  },
+  "unitIntegration": {
+    "status": "passed",
+    "distinctTests": 123,
+    "runs": [
+      {
+        "passed": 115,
+        "failed": 2,
+        "collectionFailures": 4,
+        "log": "audit-resume.log"
+      },
+      {
+        "passed": 11,
+        "failed": 0,
+        "overlapWithEarlierPasses": 3,
+        "log": "audit-tests-corrected.log"
+      }
+    ]
+  },
+  "browser": {
+    "status": "failed",
+    "passed": 18,
+    "failed": 1,
+    "distinctJourneys": 19,
+    "logs": [
+      "audit-browser.log",
+      "audit-directory-browser.log"
+    ],
+    "unresolved": "Native browser directory recovery loses the browser connection during refresh. Two attempts failed; verification stopped under the user rule."
+  },
+  "metadata": {
+    "status": "passed",
+    "packages": 25,
+    "license": "MIT",
+    "copyright": "2026 Ryan Yannelli <ryanyannelli@gmail.com> (yannelli)",
+    "evidence": [
+      "audit-metadata.json",
+      "audit-artifacts.json"
+    ]
+  },
+  "browserNodeBoundary": {
+    "check": "Browser module graph and top-level imports exclude runtime Node dependencies",
+    "modules": 250,
+    "findings": []
+  },
+  "performance": {
+    "hardware": {
+      "cpus": 8,
+      "model": "unknown",
+      "architecture": "arm64",
+      "memory": 32981413888
+    },
+    "browser": "chromium",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "dataset": "orbit-dash design fixture; README typing and cached App.tsx/README switching",
+    "method": "keydown to second requestAnimationFrame; workbench openFile to following animation frame",
+    "typing": {
+      "samples": 60,
+      "p95": 32.30000001192093,
+      "target": 50
+    },
+    "switching": {
+      "samples": 30,
+      "p95": 21.30000001192093,
+      "target": 100
+    }
+  },
+  "sustainedSession": {
+    "durationMs": 120493,
+    "rounds": 193,
+    "refreshRecovery": true,
+    "kind": "automated two-minute session"
+  }
+}

@@ -1,0 +1,52 @@
+[WebServer] (node:3228379) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:3228449) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:3228539) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/browser/acceptance.spec.ts:9:1 › browser workspace edits, saves, splits and recovers Unicode drafts and view state (725ms)
+  ✓   2 tests/browser/acceptance.spec.ts:11:1 › runtime filesystem, revision checked save, refresh and failed save recovery (511ms)
+  ✓   3 tests/browser/acceptance.spec.ts:13:1 › real language responses, diagnostics, rename edits and supported code action (1.4s)
+  ✓   4 tests/browser/acceptance.spec.ts:15:1 › workspace search previews replacements against unsaved versions (485ms)
+  ✓   5 tests/browser/acceptance.spec.ts:17:1 › real terminal, resize, task status and cancellation (780ms)
+  ✓   6 tests/browser/acceptance.spec.ts:19:1 › stage and commit actual Git changes without repeating a request (528ms)
+  ✓   7 tests/browser/acceptance.spec.ts:21:1 › two independent browsers converge concurrent offline edits and keep per-user undo (1.1s)
+  ✘   8 tests/browser/acceptance.spec.ts:23:1 › external SDK extension lifecycle removes contributions and survives failed activation (381ms)
+Testing stopped early after 1 maximum allowed failures.
+
+
+  1) tests/browser/acceptance.spec.ts:23:1 › external SDK extension lifecycle removes contributions and survives failed activation 
+
+    Error: page.evaluate: TypeError: Failed to resolve module specifier "react". Relative references must start with either "/", "./", or "../".
+
+      21 | test('two independent browsers converge concurrent offline edits and keep per-user undo',async({browser})=>{const a=await browser.newContext(),b=await browser.newContext();const left=await a.newPage(),right=await b.newPage();try{await runtime(left);await runtime(right);await open(left,'collab.ts');await open(right,'collab.ts');await right.evaluate(()=>(window as any).__zapp.runtime.disconnect());await Promise.all([left.evaluate(()=>{const d=(window as any).__zapp.documents.get('collab.ts');d.transact([{from:0,to:0,insert:'// Alice\n'}]);}),right.evaluate(()=>{const d=(window as any).__zapp.documents.get('collab.ts');d.transact([{from:0,to:0,insert:'// Bob\n'}]);})]);await right.evaluate(async()=>{await(window as any).__zapp.runtime.connect();await(window as any).__zapp.kernel.services.get('collaboration').resync();});await expect.poll(async()=>await text(left,'collab.ts')===await text(right,'collab.ts')).toBe(true);expect(await text(left,'collab.ts')).toContain('// Alice');expect(await text(left,'collab.ts')).toContain('// Bob');await right.evaluate(()=>(window as any).__zapp.documents.get('collab.ts').undo.undo());await expect.poll(()=>text(left,'collab.ts')).not.toContain('// Bob');expect(await text(left,'collab.ts')).toContain('// Alice');await left.screenshot({path:'evidence/collaboration-left.png'});await right.screenshot({path:'evidence/collaboration-right.png'});}finally{await a.close();await b.close();}});
+      22 |
+    > 23 | test('external SDK extension lifecycle removes contributions and survives failed activation',async({page})=>{await ready(page);const result=await page.evaluate(async()=>{const z=(window as any).__zapp;const existing=z.kernel.extensions.list().find((e:any)=>e.manifest.name==='Bundle Inspector');if(existing)await z.kernel.extensions.remove(existing.manifest.id);const id=await z.kernel.extensions.load(location.origin+'/extensions/bundle-inspector.js');await z.kernel.commands.execute('bundle.analyze');const active=z.kernel.contributions.list().map((c:any)=>c.id);for(let i=0;i<15;i++){await z.kernel.extensions.disable(id);await z.kernel.extensions.activate(id);}await z.kernel.extensions.disable(id);const disabled=z.kernel.contributions.list().map((c:any)=>c.id);let fail=true;z.kernel.extensions.register({manifest:{manifestVersion:1,id:'test.failure',name:'Failure probe',version:'1.0.0',sdk:'^1.0.0',environments:['browser'],activation:[],capabilities:[]},activate(ctx:any){ctx.contributions.register({id:'test.failure.panel',kind:'panel',title:'Failure'});if(fail)throw new Error('Injected activation failure');}});try{await z.kernel.extensions.activate('test.failure');}catch{}const rolledBack=!z.kernel.contributions.list().some((c:any)=>c.id==='test.failure.panel');fail=false;await z.kernel.extensions.activate('test.failure');return{active,disabled,rolledBack,recovered:z.kernel.extensions.list().find((e:any)=>e.manifest.id==='test.failure').state};});expect(result.active).toContain('bundle');expect(result.disabled).not.toContain('bundle');expect(result.disabled).not.toContain('bundle.report');expect(result.rolledBack).toBe(true);expect(result.recovered).toBe('active');});
+         |                                                                                                                                                        ^
+      24 |
+      25 | test('both themes render at all four reference viewports with visual comparison artifacts',async({page})=>{await mkdir('evidence/visual',{recursive:true});const results=[];for(const[name,width,height]of[['desktop',1440,900],['tablet-landscape',1024,768],['tablet-portrait',768,1024],['phone',390,844]]as const)for(const theme of['dark','light']){await page.setViewportSize({width,height});await ready(page);await page.evaluate(async theme=>{const z=(window as any).__zapp;z.kernel.configuration.set('workbench.colorTheme',theme==='dark'?'Graphite (dark)':'Paper (light)');z.workbench.resetLayout();await z.workbench.openFile('src/hooks/useTelemetry.ts',{preview:false});},theme);await page.waitForTimeout(300);const file=`evidence/visual/${name}-${theme}.png`;const png=await page.screenshot({path:file});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const baseline=await readFile(`design/baselines/${name}-${theme}.png`);const comparison=await page.evaluate(async({a,b})=>{const load=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src='data:image/png;base64,'+src;});const[ref,actual]=await Promise.all([load(a),load(b)]);const canvas=document.createElement('canvas');canvas.width=ref.width;canvas.height=ref.height;const ctx=canvas.getContext('2d')!;ctx.drawImage(ref,0,0);const x=ctx.getImageData(0,0,ref.width,ref.height).data;ctx.clearRect(0,0,ref.width,ref.height);ctx.drawImage(actual,0,0);const y=ctx.getImageData(0,0,ref.width,ref.height).data;let changed=0;for(let i=0;i<x.length;i+=4)if(Math.max(Math.abs(x[i]-y[i]),Math.abs(x[i+1]-y[i+1]),Math.abs(x[i+2]-y[i+2]))>25)changed++;return{width:actual.width,height:actual.height,changedPixels:changed,totalPixels:actual.width*actual.height,ratio:changed/(actual.width*actual.height)};},{a:baseline.toString('base64'),b:png.toString('base64')});expect(comparison.width).toBe(width);expect(comparison.height).toBe(height);results.push({name,theme,...comparison});}await writeFile('evidence/visual/comparison.json',JSON.stringify(results,null,2));});
+      26 |
+        at /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/tests/browser/acceptance.spec.ts:23:152
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/acceptance-external-SDK-ex-e72f3--survives-failed-activation/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/acceptance-external-SDK-ex-e72f3--survives-failed-activation/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/acceptance-external-SDK-ex-e72f3--survives-failed-activation/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/acceptance-external-SDK-ex-e72f3--survives-failed-activation/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/browser/acceptance.spec.ts:23:1 › external SDK extension lifecycle removes contributions and survives failed activation 
+  3 did not run
+  7 passed (7.3s)
+  1 error was not a part of any test, see above for details

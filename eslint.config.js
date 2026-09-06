@@ -1,0 +1,2 @@
+import tseslint from 'typescript-eslint';
+export default tseslint.config({ignores:['**/dist/**','**/dist-types/**','apps/web/public/extensions/**','design/**','support.js','fixtures.js','services.js','lang.js','evidence/**']}, ...tseslint.configs.recommended, {rules:{'@typescript-eslint/no-explicit-any':'off','@typescript-eslint/no-unused-vars':['error',{argsIgnorePattern:'^_',varsIgnorePattern:'^_'}]}});

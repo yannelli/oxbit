@@ -1,0 +1,19 @@
+{
+  "name": "@zapp/bundle-inspector",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

@@ -1,0 +1,777 @@
+{
+  "commands": [
+    {
+      "id": "workbench.showCommands",
+      "title": "Show All Commands",
+      "cat": "View",
+      "mac": "⇧⌘P",
+      "win": "Ctrl+Shift+P"
+    },
+    {
+      "id": "workbench.quickOpen",
+      "title": "Go to File…",
+      "cat": "Go",
+      "mac": "⌘P",
+      "win": "Ctrl+P"
+    },
+    {
+      "id": "workbench.gotoSymbol",
+      "title": "Go to Symbol in Editor…",
+      "cat": "Go",
+      "mac": "⇧⌘O",
+      "win": "Ctrl+Shift+O",
+      "when": "editor"
+    },
+    {
+      "id": "workbench.gotoLine",
+      "title": "Go to Line/Column…",
+      "cat": "Go",
+      "mac": "⌃G",
+      "win": "Ctrl+G",
+      "when": "editor"
+    },
+    {
+      "id": "workbench.recent",
+      "title": "Go to Recent…",
+      "cat": "Go",
+      "mac": "⌘E",
+      "win": "Ctrl+E"
+    },
+    {
+      "id": "view.explorer",
+      "title": "Show Explorer",
+      "cat": "View",
+      "mac": "⇧⌘E",
+      "win": "Ctrl+Shift+E"
+    },
+    {
+      "id": "view.search",
+      "title": "Search in Files",
+      "cat": "View",
+      "mac": "⇧⌘F",
+      "win": "Ctrl+Shift+F"
+    },
+    {
+      "id": "view.scm",
+      "title": "Show Source Control",
+      "cat": "View",
+      "mac": "⌃⇧G",
+      "win": "Ctrl+Shift+G"
+    },
+    {
+      "id": "view.extensions",
+      "title": "Show Extensions",
+      "cat": "View",
+      "mac": "⇧⌘X",
+      "win": "Ctrl+Shift+X"
+    },
+    {
+      "id": "view.problems",
+      "title": "Show Problems",
+      "cat": "View",
+      "mac": "⇧⌘M",
+      "win": "Ctrl+Shift+M"
+    },
+    {
+      "id": "view.output",
+      "title": "Show Output",
+      "cat": "View",
+      "mac": "⇧⌘U",
+      "win": "Ctrl+Shift+U"
+    },
+    {
+      "id": "view.toggleSidebar",
+      "title": "Toggle Sidebar",
+      "cat": "View",
+      "mac": "⌘B",
+      "win": "Ctrl+B"
+    },
+    {
+      "id": "view.togglePanel",
+      "title": "Toggle Panel",
+      "cat": "View",
+      "mac": "⌘J",
+      "win": "Ctrl+J"
+    },
+    {
+      "id": "view.focusMode",
+      "title": "Toggle Focus Mode",
+      "cat": "View",
+      "mac": "⌘K Z",
+      "win": "Ctrl+K Z"
+    },
+    {
+      "id": "view.resetLayout",
+      "title": "Reset Workspace Layout",
+      "cat": "View"
+    },
+    {
+      "id": "theme.toggle",
+      "title": "Toggle Light/Dark Theme",
+      "cat": "Preferences",
+      "mac": "⌘K ⌘T",
+      "win": "Ctrl+K Ctrl+T"
+    },
+    {
+      "id": "settings.open",
+      "title": "Open Settings",
+      "cat": "Preferences",
+      "mac": "⌘,",
+      "win": "Ctrl+,"
+    },
+    {
+      "id": "settings.keyboard",
+      "title": "Open Keyboard Shortcuts",
+      "cat": "Preferences",
+      "mac": "⌘K ⌘S",
+      "win": "Ctrl+K Ctrl+S"
+    },
+    {
+      "id": "file.new",
+      "title": "New File",
+      "cat": "File",
+      "mac": "⌘N",
+      "win": "Ctrl+N"
+    },
+    {
+      "id": "file.newFolder",
+      "title": "New Folder",
+      "cat": "File"
+    },
+    {
+      "id": "file.save",
+      "title": "Save",
+      "cat": "File",
+      "mac": "⌘S",
+      "win": "Ctrl+S",
+      "when": "editor"
+    },
+    {
+      "id": "file.saveAll",
+      "title": "Save All",
+      "cat": "File",
+      "mac": "⌥⌘S",
+      "win": "Ctrl+K S"
+    },
+    {
+      "id": "file.revert",
+      "title": "Revert File",
+      "cat": "File",
+      "when": "editor"
+    },
+    {
+      "id": "file.rename",
+      "title": "Rename…",
+      "cat": "File",
+      "mac": "↩",
+      "win": "F2",
+      "when": "explorer"
+    },
+    {
+      "id": "file.delete",
+      "title": "Delete",
+      "cat": "File",
+      "mac": "⌘⌫",
+      "win": "Delete",
+      "when": "explorer"
+    },
+    {
+      "id": "file.reveal",
+      "title": "Reveal Active File in Explorer",
+      "cat": "File",
+      "when": "editor"
+    },
+    {
+      "id": "file.copyPath",
+      "title": "Copy Path",
+      "cat": "File",
+      "mac": "⌥⌘C",
+      "win": "Ctrl+Alt+C",
+      "when": "editor"
+    },
+    {
+      "id": "editor.closeTab",
+      "title": "Close Editor",
+      "cat": "View",
+      "mac": "⌘W",
+      "win": "Ctrl+W",
+      "when": "editor"
+    },
+    {
+      "id": "editor.closeOthers",
+      "title": "Close Other Editors",
+      "cat": "View",
+      "when": "editor"
+    },
+    {
+      "id": "editor.pin",
+      "title": "Pin Editor",
+      "cat": "View",
+      "mac": "⌘K ⇧↩",
+      "win": "Ctrl+K Shift+Enter",
+      "when": "editor"
+    },
+    {
+      "id": "editor.keepOpen",
+      "title": "Keep Editor Open",
+      "cat": "View",
+      "mac": "⌘K ↩",
+      "win": "Ctrl+K Enter",
+      "when": "editor"
+    },
+    {
+      "id": "editor.splitRight",
+      "title": "Split Editor Right",
+      "cat": "View",
+      "mac": "⌘\\",
+      "win": "Ctrl+\\",
+      "when": "editor"
+    },
+    {
+      "id": "editor.splitDown",
+      "title": "Split Editor Down",
+      "cat": "View",
+      "mac": "⌘K ⌘\\",
+      "win": "Ctrl+K Ctrl+\\",
+      "when": "editor"
+    },
+    {
+      "id": "editor.moveToNextGroup",
+      "title": "Move Editor into Next Group",
+      "cat": "View",
+      "mac": "⌃⌘→",
+      "win": "Ctrl+Alt+Right",
+      "when": "split"
+    },
+    {
+      "id": "editor.find",
+      "title": "Find",
+      "cat": "Edit",
+      "mac": "⌘F",
+      "win": "Ctrl+F",
+      "when": "editor"
+    },
+    {
+      "id": "editor.replace",
+      "title": "Replace",
+      "cat": "Edit",
+      "mac": "⌥⌘F",
+      "win": "Ctrl+H",
+      "when": "editor"
+    },
+    {
+      "id": "editor.format",
+      "title": "Format Document",
+      "cat": "Edit",
+      "mac": "⇧⌥F",
+      "win": "Shift+Alt+F",
+      "when": "formattable"
+    },
+    {
+      "id": "editor.rename",
+      "title": "Rename Symbol",
+      "cat": "Edit",
+      "mac": "F2",
+      "win": "F2",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.gotoDefinition",
+      "title": "Go to Definition",
+      "cat": "Go",
+      "mac": "F12",
+      "win": "F12",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.references",
+      "title": "Find All References",
+      "cat": "Go",
+      "mac": "⇧F12",
+      "win": "Shift+F12",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.codeAction",
+      "title": "Quick Fix…",
+      "cat": "Edit",
+      "mac": "⌘.",
+      "win": "Ctrl+.",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.hover",
+      "title": "Show Hover",
+      "cat": "Edit",
+      "mac": "⌘K ⌘I",
+      "win": "Ctrl+K Ctrl+I",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.suggest",
+      "title": "Trigger Suggest",
+      "cat": "Edit",
+      "mac": "⌃Space",
+      "win": "Ctrl+Space",
+      "when": "lsp"
+    },
+    {
+      "id": "editor.foldAll",
+      "title": "Fold All",
+      "cat": "Edit",
+      "mac": "⌘K ⌘0",
+      "win": "Ctrl+K Ctrl+0",
+      "when": "editor"
+    },
+    {
+      "id": "editor.unfoldAll",
+      "title": "Unfold All",
+      "cat": "Edit",
+      "mac": "⌘K ⌘J",
+      "win": "Ctrl+K Ctrl+J",
+      "when": "editor"
+    },
+    {
+      "id": "editor.toggleWordWrap",
+      "title": "Toggle Word Wrap",
+      "cat": "View",
+      "mac": "⌥Z",
+      "win": "Alt+Z",
+      "when": "editor"
+    },
+    {
+      "id": "editor.selectAll",
+      "title": "Select All",
+      "cat": "Edit",
+      "mac": "⌘A",
+      "win": "Ctrl+A",
+      "when": "editor"
+    },
+    {
+      "id": "terminal.new",
+      "title": "New Terminal",
+      "cat": "Terminal",
+      "mac": "⌃⇧`",
+      "win": "Ctrl+Shift+`"
+    },
+    {
+      "id": "terminal.toggle",
+      "title": "Toggle Terminal",
+      "cat": "Terminal",
+      "mac": "⌃`",
+      "win": "Ctrl+`"
+    },
+    {
+      "id": "terminal.split",
+      "title": "Split Terminal",
+      "cat": "Terminal",
+      "mac": "⌘\\",
+      "win": "Ctrl+Shift+5",
+      "when": "terminal"
+    },
+    {
+      "id": "terminal.kill",
+      "title": "Kill Active Terminal",
+      "cat": "Terminal",
+      "when": "terminal"
+    },
+    {
+      "id": "terminal.clear",
+      "title": "Clear Terminal",
+      "cat": "Terminal",
+      "mac": "⌘K",
+      "win": "Ctrl+K",
+      "when": "terminal"
+    },
+    {
+      "id": "tasks.run",
+      "title": "Run Task…",
+      "cat": "Tasks"
+    },
+    {
+      "id": "tasks.runBuild",
+      "title": "Run Build Task",
+      "cat": "Tasks",
+      "mac": "⇧⌘B",
+      "win": "Ctrl+Shift+B"
+    },
+    {
+      "id": "tasks.rerun",
+      "title": "Rerun Last Task",
+      "cat": "Tasks",
+      "when": "lastTask"
+    },
+    {
+      "id": "tasks.cancel",
+      "title": "Cancel Running Task",
+      "cat": "Tasks",
+      "when": "taskRunning"
+    },
+    {
+      "id": "git.stageAll",
+      "title": "Stage All Changes",
+      "cat": "Git",
+      "when": "gitChanges"
+    },
+    {
+      "id": "git.unstageAll",
+      "title": "Unstage All Changes",
+      "cat": "Git",
+      "when": "gitStaged"
+    },
+    {
+      "id": "git.commit",
+      "title": "Commit",
+      "cat": "Git",
+      "mac": "⌘↩",
+      "win": "Ctrl+Enter",
+      "when": "gitStaged"
+    },
+    {
+      "id": "git.discardAll",
+      "title": "Discard All Changes",
+      "cat": "Git",
+      "when": "gitChanges"
+    },
+    {
+      "id": "git.checkout",
+      "title": "Checkout to…",
+      "cat": "Git",
+      "when": "gitRepo"
+    },
+    {
+      "id": "git.push",
+      "title": "Push",
+      "cat": "Git",
+      "when": "gitRepo"
+    },
+    {
+      "id": "git.refresh",
+      "title": "Refresh",
+      "cat": "Git",
+      "when": "gitRepo"
+    },
+    {
+      "id": "lsp.restart",
+      "title": "Restart Language Server",
+      "cat": "Language",
+      "when": "lspFile"
+    },
+    {
+      "id": "preview.markdown",
+      "title": "Open Preview",
+      "cat": "Markdown",
+      "mac": "⇧⌘V",
+      "win": "Ctrl+Shift+V",
+      "when": "markdown"
+    },
+    {
+      "id": "preview.markdownSide",
+      "title": "Open Preview to the Side",
+      "cat": "Markdown",
+      "mac": "⌘K V",
+      "win": "Ctrl+K V",
+      "when": "markdown"
+    },
+    {
+      "id": "extensions.install",
+      "title": "Install Extension…",
+      "cat": "Extensions"
+    },
+    {
+      "id": "extensions.checkUpdates",
+      "title": "Check for Extension Updates",
+      "cat": "Extensions"
+    },
+    {
+      "id": "workspace.open",
+      "title": "Open Folder…",
+      "cat": "File",
+      "mac": "⌘O",
+      "win": "Ctrl+O"
+    },
+    {
+      "id": "workspace.switch",
+      "title": "Switch Workspace…",
+      "cat": "File",
+      "mac": "⌃R",
+      "win": "Ctrl+R"
+    },
+    {
+      "id": "workspace.close",
+      "title": "Close Workspace",
+      "cat": "File",
+      "mac": "⌘K F",
+      "win": "Ctrl+K F",
+      "when": "workspace"
+    },
+    {
+      "id": "collab.share",
+      "title": "Share Workspace…",
+      "cat": "Collaboration"
+    },
+    {
+      "id": "collab.follow",
+      "title": "Follow Participant…",
+      "cat": "Collaboration",
+      "when": "collaborators"
+    },
+    {
+      "id": "sync.reconnect",
+      "title": "Reconnect",
+      "cat": "Collaboration",
+      "when": "offline"
+    },
+    {
+      "id": "notifications.clear",
+      "title": "Clear All Notifications",
+      "cat": "View",
+      "when": "notifications"
+    },
+    {
+      "id": "bundle.analyze",
+      "title": "Bundle Inspector: Analyze",
+      "cat": "Bundle Inspector",
+      "when": "bundleExt",
+      "ext": "orbitlabs.bundle-inspector"
+    },
+    {
+      "id": "help.about",
+      "title": "About Zapp",
+      "cat": "Help"
+    }
+  ],
+  "menus": {
+    "File": [
+      "file.new",
+      "file.newFolder",
+      "workspace.open",
+      "workspace.switch",
+      "-",
+      "file.save",
+      "file.saveAll",
+      "file.revert",
+      "-",
+      "editor.closeTab",
+      "workspace.close"
+    ],
+    "Edit": [
+      "editor.find",
+      "editor.replace",
+      "-",
+      "editor.selectAll",
+      "editor.toggleWordWrap",
+      "-",
+      "editor.format",
+      "editor.rename",
+      "editor.codeAction"
+    ],
+    "View": [
+      "workbench.showCommands",
+      "-",
+      "view.explorer",
+      "view.search",
+      "view.scm",
+      "view.extensions",
+      "view.problems",
+      "view.output",
+      "-",
+      "view.toggleSidebar",
+      "view.togglePanel",
+      "view.focusMode",
+      "view.resetLayout",
+      "-",
+      "theme.toggle"
+    ],
+    "Go": [
+      "workbench.quickOpen",
+      "workbench.gotoSymbol",
+      "workbench.gotoLine",
+      "workbench.recent",
+      "-",
+      "editor.gotoDefinition",
+      "editor.references"
+    ],
+    "Terminal": [
+      "terminal.new",
+      "terminal.split",
+      "terminal.toggle",
+      "terminal.kill",
+      "-",
+      "tasks.run",
+      "tasks.runBuild",
+      "tasks.rerun",
+      "tasks.cancel"
+    ],
+    "Help": [
+      "settings.keyboard",
+      "help.about"
+    ]
+  },
+  "strings": {
+    "en": {
+      "explorer": "Explorer",
+      "search": "Search",
+      "scm": "Source Control",
+      "extensions": "Extensions",
+      "settings": "Settings",
+      "problems": "Problems",
+      "terminal": "Terminal",
+      "output": "Output",
+      "tasks": "Tasks",
+      "openEditors": "Open Editors",
+      "outline": "Outline",
+      "stagedChanges": "Staged Changes",
+      "changes": "Changes",
+      "mergeConflicts": "Merge Conflicts",
+      "commit": "Commit",
+      "stageAll": "Stage All",
+      "unstageAll": "Unstage All",
+      "discardAll": "Discard All Changes",
+      "installed": "Installed",
+      "available": "Available",
+      "install": "Install",
+      "uninstall": "Uninstall",
+      "enable": "Enable",
+      "disable": "Disable",
+      "update": "Update",
+      "retry": "Retry",
+      "replace": "Replace",
+      "replaceAll": "Replace All",
+      "filesToInclude": "files to include",
+      "filesToExclude": "files to exclude",
+      "noResults": "No results found.",
+      "searching": "Searching…",
+      "cancel": "Cancel",
+      "save": "Save",
+      "dontSave": "Don't Save",
+      "delete": "Delete",
+      "rename": "Rename",
+      "newFile": "New File",
+      "newFolder": "New Folder",
+      "keyboardShortcuts": "Keyboard Shortcuts",
+      "user": "User",
+      "workspace": "Workspace",
+      "reset": "Reset to default",
+      "modifiedInUser": "Modified in User",
+      "modifiedInWorkspace": "Modified in Workspace",
+      "recent": "Recent projects",
+      "openFolder": "Open Folder…",
+      "cloneRepo": "Clone Repository…",
+      "noWorkspace": "No workspace open",
+      "focusMode": "Focus mode",
+      "exitFocus": "Exit focus mode (Esc Esc)"
+    },
+    "long": {
+      "explorer": "Datei-Explorer",
+      "search": "Suchen und Ersetzen",
+      "scm": "Quellcodeverwaltung",
+      "extensions": "Erweiterungen",
+      "settings": "Einstellungen",
+      "problems": "Probleme und Warnungen",
+      "terminal": "Terminal",
+      "output": "Ausgabe",
+      "tasks": "Aufgaben",
+      "openEditors": "Geöffnete Editoren",
+      "outline": "Gliederung",
+      "stagedChanges": "Bereitgestellte Änderungen",
+      "changes": "Änderungen",
+      "mergeConflicts": "Zusammenführungskonflikte",
+      "commit": "Änderungen committen",
+      "stageAll": "Alle Änderungen bereitstellen",
+      "unstageAll": "Bereitstellung aufheben",
+      "discardAll": "Alle Änderungen verwerfen",
+      "installed": "Installiert",
+      "available": "Verfügbar",
+      "install": "Installieren",
+      "uninstall": "Deinstallieren",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "update": "Aktualisieren",
+      "retry": "Erneut versuchen",
+      "replace": "Ersetzen",
+      "replaceAll": "Alle ersetzen",
+      "filesToInclude": "einzuschließende Dateien",
+      "filesToExclude": "auszuschließende Dateien",
+      "noResults": "Keine Ergebnisse gefunden.",
+      "searching": "Suche läuft…",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "dontSave": "Nicht speichern",
+      "delete": "Löschen",
+      "rename": "Umbenennen",
+      "newFile": "Neue Datei",
+      "newFolder": "Neuer Ordner",
+      "keyboardShortcuts": "Tastenkombinationen",
+      "user": "Benutzer",
+      "workspace": "Arbeitsbereich",
+      "reset": "Auf Standard zurücksetzen",
+      "modifiedInUser": "In Benutzereinstellungen geändert",
+      "modifiedInWorkspace": "Im Arbeitsbereich geändert",
+      "recent": "Zuletzt verwendete Projekte",
+      "openFolder": "Ordner öffnen…",
+      "cloneRepo": "Repository klonen…",
+      "noWorkspace": "Kein Arbeitsbereich geöffnet",
+      "focusMode": "Fokusmodus",
+      "exitFocus": "Fokusmodus verlassen (Esc Esc)"
+    }
+  },
+  "langMeta": {
+    "ts": {
+      "label": "TypeScript",
+      "badge": "TS",
+      "color": "#82b1ff",
+      "lsp": true,
+      "formattable": true
+    },
+    "tsx": {
+      "label": "TypeScript JSX",
+      "badge": "TX",
+      "color": "#82b1ff",
+      "lsp": true,
+      "formattable": true
+    },
+    "js": {
+      "label": "JavaScript",
+      "badge": "JS",
+      "color": "#f2b571",
+      "lsp": true,
+      "formattable": true
+    },
+    "json": {
+      "label": "JSON",
+      "badge": "{}",
+      "color": "#e5b567",
+      "lsp": true,
+      "formattable": true
+    },
+    "css": {
+      "label": "CSS",
+      "badge": "#",
+      "color": "#b39ddb",
+      "lsp": true,
+      "formattable": true
+    },
+    "html": {
+      "label": "HTML",
+      "badge": "<>",
+      "color": "#f28b82",
+      "lsp": false,
+      "formattable": true
+    },
+    "md": {
+      "label": "Markdown",
+      "badge": "M↓",
+      "color": "#8bd5ca",
+      "lsp": false,
+      "formattable": true
+    },
+    "txt": {
+      "label": "Plain Text",
+      "badge": "≡",
+      "color": "#9aa1ad",
+      "lsp": false,
+      "formattable": false
+    }
+  }
+}

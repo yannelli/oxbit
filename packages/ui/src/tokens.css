@@ -1,0 +1,22 @@
+
+html,body{margin:0;min-height:100%;background:#0c0d10;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent,#8bd5ca)}a:hover{color:var(--fg,#e6e8ec)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus{outline:none}:focus-visible{outline:2px solid var(--focus);outline-offset:-2px;border-radius:3px}
+::selection{background:var(--sel)}
+*::-webkit-scrollbar{width:10px;height:10px}*::-webkit-scrollbar-thumb{background:var(--bd-strong);border-radius:5px;border:2px solid transparent;background-clip:padding-box}*::-webkit-scrollbar-track{background:transparent}
+[data-theme="dark"]{--bg-app:#14161a;--bg-surface:#1a1d22;--bg-editor:#1e2227;--bg-raised:#242931;--bg-input:#15181c;--bg-hover:rgba(255,255,255,.055);--bg-active:rgba(255,255,255,.09);--bg-selected:rgba(139,213,202,.14);--bd:#2a2f37;--bd-strong:#3a4049;--fg:#e6e8ec;--fg-2:#a3a9b4;--fg-3:#767d89;--fg-4:#4b5058;--accent:#8bd5ca;--accent-fg:#0f1a18;--accent-soft:rgba(139,213,202,.16);--focus:#8bd5ca;--err:#f27a7a;--warn:#e5b567;--info:#7fb3ff;--ok:#7ed49a;--mod:#e5b567;--add:#7ed49a;--del:#f27a7a;--conflict:#e08a5b;--err-soft:rgba(242,122,122,.14);--warn-soft:rgba(229,181,103,.14);--add-soft:rgba(126,212,154,.14);--del-soft:rgba(242,122,122,.14);--info-soft:rgba(127,179,255,.14);--tok-keyword:#b39ddb;--tok-string:#9ccc9c;--tok-number:#f2b571;--tok-comment:#6b7280;--tok-type:#8bd5ca;--tok-function:#82b1ff;--tok-property:#d6dbe3;--tok-variable:#e6e8ec;--tok-ident:#e6e8ec;--tok-text:#e6e8ec;--tok-tag:#f28b82;--tok-attr:#f2b571;--tok-punct:#8f96a3;--tok-operator:#a3a9b4;--tok-heading:#82b1ff;--tok-link:#8bd5ca;--tok-strong:#e6e8ec;--tok-space:transparent;--tok-guide:transparent;--line-active:rgba(255,255,255,.04);--match:rgba(229,181,103,.28);--match-active:rgba(229,181,103,.55);--occ:rgba(255,255,255,.08);--sel:rgba(139,213,202,.28);--guide:#2e343d;--shadow:0 8px 28px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.4);--scrim:rgba(0,0,0,.5)}
+[data-theme="light"]{--bg-app:#e9eaee;--bg-surface:#f3f4f6;--bg-editor:#ffffff;--bg-raised:#ffffff;--bg-input:#ffffff;--bg-hover:rgba(0,0,0,.05);--bg-active:rgba(0,0,0,.08);--bg-selected:rgba(15,123,108,.12);--bd:#d7dae0;--bd-strong:#bfc4cc;--fg:#1c1e24;--fg-2:#4b5160;--fg-3:#767d8c;--fg-4:#aab0bc;--accent:#0f7b6c;--accent-fg:#ffffff;--accent-soft:rgba(15,123,108,.12);--focus:#0f7b6c;--err:#c93c3c;--warn:#a86d00;--info:#2b6cb0;--ok:#2f855a;--mod:#a86d00;--add:#2f855a;--del:#c93c3c;--conflict:#b5541b;--err-soft:rgba(201,60,60,.1);--warn-soft:rgba(168,109,0,.12);--add-soft:rgba(47,133,90,.12);--del-soft:rgba(201,60,60,.1);--info-soft:rgba(43,108,176,.1);--tok-keyword:#6f42c1;--tok-string:#2e7d32;--tok-number:#b35a00;--tok-comment:#7a8090;--tok-type:#0f7b6c;--tok-function:#1f5fbf;--tok-property:#2d3340;--tok-variable:#1c1e24;--tok-ident:#1c1e24;--tok-text:#1c1e24;--tok-tag:#c0392b;--tok-attr:#b35a00;--tok-punct:#6b7280;--tok-operator:#4b5160;--tok-heading:#1f5fbf;--tok-link:#0f7b6c;--tok-strong:#1c1e24;--tok-space:transparent;--tok-guide:transparent;--line-active:rgba(0,0,0,.035);--match:rgba(255,196,0,.35);--match-active:rgba(255,166,0,.6);--occ:rgba(0,0,0,.07);--sel:rgba(15,123,108,.22);--guide:#e1e4ea;--shadow:0 8px 28px rgba(20,30,40,.18),0 1px 2px rgba(20,30,40,.12);--scrim:rgba(20,30,40,.35)}
+[data-density="compact"]{--row:22px;--ui:12px;--tab:34px;--pad:8px;--ctl:24px}
+[data-density="comfortable"]{--row:28px;--ui:13px;--tab:38px;--pad:12px;--ctl:28px}
+[data-mode="phone"]{--row:44px;--tab:44px;--ctl:44px;--ui:14px}
+[data-mode="tablet"]{--row:32px;--tab:40px;--ctl:36px;--ui:13px}
+[data-rm="1"] *{transition:none!important;animation:none!important}
+@keyframes zspin{to{transform:rotate(360deg)}}
+@keyframes zflash{from{background:var(--accent-soft)}to{background:transparent}}
+@keyframes zin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes zsheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes zpulse{50%{opacity:.35}}

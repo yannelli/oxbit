@@ -1,0 +1,257 @@
+[
+  {
+    "id": "workbench.colorTheme",
+    "title": "Color Theme",
+    "description": "Specifies the color theme used in the workbench.",
+    "type": "string",
+    "default": "Graphite (dark)",
+    "enum": [
+      "Graphite (dark)",
+      "Paper (light)"
+    ],
+    "category": "Appearance"
+  },
+  {
+    "id": "workbench.density",
+    "title": "Layout Density",
+    "description": "Controls row heights, padding and label sizes across the workbench.",
+    "type": "string",
+    "default": "compact",
+    "enum": [
+      "compact",
+      "comfortable"
+    ],
+    "category": "Appearance"
+  },
+  {
+    "id": "workbench.sidebarLocation",
+    "title": "Sidebar Location",
+    "description": "Where the primary sidebar is docked.",
+    "type": "string",
+    "default": "left",
+    "enum": [
+      "left",
+      "right"
+    ],
+    "category": "Appearance"
+  },
+  {
+    "id": "editor.fontFamily",
+    "title": "Font Family",
+    "description": "Controls the font family of the editor.",
+    "type": "string",
+    "default": "'JetBrains Mono', ui-monospace, monospace",
+    "category": "Editor · Typography"
+  },
+  {
+    "id": "editor.fontSize",
+    "title": "Font Size",
+    "description": "Font size in pixels.",
+    "type": "number",
+    "default": 13,
+    "min": 8,
+    "max": 32,
+    "category": "Editor · Typography"
+  },
+  {
+    "id": "editor.lineHeight",
+    "title": "Line Height",
+    "description": "Line height in pixels. 0 uses 1.55 × font size.",
+    "type": "number",
+    "default": 20,
+    "min": 0,
+    "max": 60,
+    "category": "Editor · Typography"
+  },
+  {
+    "id": "editor.fontLigatures",
+    "title": "Font Ligatures",
+    "description": "Enables font ligatures when the font supports them.",
+    "type": "boolean",
+    "default": false,
+    "category": "Editor · Typography"
+  },
+  {
+    "id": "editor.tabSize",
+    "title": "Tab Size",
+    "description": "The number of spaces a tab is equal to.",
+    "type": "number",
+    "default": 2,
+    "min": 1,
+    "max": 8,
+    "category": "Editor · Indentation"
+  },
+  {
+    "id": "editor.insertSpaces",
+    "title": "Insert Spaces",
+    "description": "Insert spaces when pressing Tab.",
+    "type": "boolean",
+    "default": true,
+    "category": "Editor · Indentation"
+  },
+  {
+    "id": "editor.detectIndentation",
+    "title": "Detect Indentation",
+    "description": "Detect Tab Size and Insert Spaces from file contents on open.",
+    "type": "boolean",
+    "default": true,
+    "category": "Editor · Indentation"
+  },
+  {
+    "id": "editor.renderIndentGuides",
+    "title": "Indentation Guides",
+    "description": "Render vertical guides for each indent level.",
+    "type": "boolean",
+    "default": true,
+    "category": "Editor · Indentation"
+  },
+  {
+    "id": "editor.wordWrap",
+    "title": "Word Wrap",
+    "description": "Controls how lines should wrap.",
+    "type": "string",
+    "default": "off",
+    "enum": [
+      "off",
+      "on",
+      "bounded"
+    ],
+    "category": "Editor"
+  },
+  {
+    "id": "editor.renderWhitespace",
+    "title": "Render Whitespace",
+    "description": "Controls how the editor renders whitespace characters.",
+    "type": "string",
+    "default": "selection",
+    "enum": [
+      "none",
+      "boundary",
+      "selection",
+      "all"
+    ],
+    "category": "Editor"
+  },
+  {
+    "id": "editor.cursorBlinking",
+    "title": "Cursor Blinking",
+    "description": "Cursor animation style.",
+    "type": "string",
+    "default": "blink",
+    "enum": [
+      "blink",
+      "smooth",
+      "phase",
+      "solid"
+    ],
+    "category": "Editor"
+  },
+  {
+    "id": "editor.minimap",
+    "title": "Minimap",
+    "description": "Show a minimap of the document.",
+    "type": "boolean",
+    "default": false,
+    "category": "Editor"
+  },
+  {
+    "id": "files.autoSave",
+    "title": "Auto Save",
+    "description": "Controls auto save of editors that have unsaved changes.",
+    "type": "string",
+    "default": "off",
+    "enum": [
+      "off",
+      "afterDelay",
+      "onFocusChange",
+      "onWindowChange"
+    ],
+    "category": "Files"
+  },
+  {
+    "id": "files.autoSaveDelay",
+    "title": "Auto Save Delay",
+    "description": "Delay in milliseconds after which an editor is saved automatically. Applies when Auto Save is afterDelay.",
+    "type": "number",
+    "default": 1000,
+    "min": 100,
+    "max": 60000,
+    "category": "Files"
+  },
+  {
+    "id": "files.trimTrailingWhitespace",
+    "title": "Trim Trailing Whitespace",
+    "description": "Remove trailing whitespace when saving.",
+    "type": "boolean",
+    "default": true,
+    "category": "Files"
+  },
+  {
+    "id": "editor.formatOnSave",
+    "title": "Format On Save",
+    "description": "Format a file on save. A formatter must be available.",
+    "type": "boolean",
+    "default": false,
+    "category": "Formatting"
+  },
+  {
+    "id": "editor.defaultFormatter",
+    "title": "Default Formatter",
+    "description": "Formatter used when several are available.",
+    "type": "string",
+    "default": "zapp.prettier",
+    "enum": [
+      "zapp.prettier",
+      "zapp.builtin-ts"
+    ],
+    "category": "Formatting"
+  },
+  {
+    "id": "terminal.fontSize",
+    "title": "Terminal Font Size",
+    "description": "Font size in pixels for the terminal.",
+    "type": "number",
+    "default": 12,
+    "min": 8,
+    "max": 32,
+    "category": "Terminal"
+  },
+  {
+    "id": "terminal.scrollback",
+    "title": "Scrollback",
+    "description": "Maximum number of lines kept in the terminal buffer.",
+    "type": "number",
+    "default": 5000,
+    "min": 100,
+    "max": 100000,
+    "category": "Terminal"
+  },
+  {
+    "id": "terminal.confirmOnKill",
+    "title": "Confirm On Kill",
+    "description": "Ask before killing a terminal with a running process.",
+    "type": "boolean",
+    "default": true,
+    "category": "Terminal"
+  },
+  {
+    "id": "scm.autoFetch",
+    "title": "Auto Fetch",
+    "description": "Periodically fetch from the default remote.",
+    "type": "boolean",
+    "default": true,
+    "category": "Source Control"
+  },
+  {
+    "id": "scm.diffLayout",
+    "title": "Diff Layout",
+    "description": "Default layout for diff editors.",
+    "type": "string",
+    "default": "side-by-side",
+    "enum": [
+      "side-by-side",
+      "inline"
+    ],
+    "category": "Source Control"
+  }
+]

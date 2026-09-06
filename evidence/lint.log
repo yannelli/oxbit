@@ -1,0 +1,4 @@
+
+> zapp@0.1.0 lint /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
+> eslint apps packages examples tests scripts --no-warn-ignored
+

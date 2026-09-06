@@ -1,0 +1,114 @@
+[
+  {
+    "name": "desktop",
+    "theme": "dark",
+    "requested": {
+      "width": 1440,
+      "height": 900
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 1440,
+      "height": 900
+    }
+  },
+  {
+    "name": "desktop",
+    "theme": "light",
+    "requested": {
+      "width": 1440,
+      "height": 900
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 1440,
+      "height": 900
+    }
+  },
+  {
+    "name": "tablet-landscape",
+    "theme": "dark",
+    "requested": {
+      "width": 1024,
+      "height": 768
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 1024,
+      "height": 768
+    }
+  },
+  {
+    "name": "tablet-landscape",
+    "theme": "light",
+    "requested": {
+      "width": 1024,
+      "height": 768
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 1024,
+      "height": 768
+    }
+  },
+  {
+    "name": "tablet-portrait",
+    "theme": "dark",
+    "requested": {
+      "width": 768,
+      "height": 1024
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 768,
+      "height": 1024
+    }
+  },
+  {
+    "name": "tablet-portrait",
+    "theme": "light",
+    "requested": {
+      "width": 768,
+      "height": 1024
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 768,
+      "height": 1024
+    }
+  },
+  {
+    "name": "phone",
+    "theme": "dark",
+    "requested": {
+      "width": 390,
+      "height": 844
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "name": "phone",
+    "theme": "light",
+    "requested": {
+      "width": 390,
+      "height": 844
+    },
+    "actual": {
+      "x": 32,
+      "y": 24,
+      "width": 390,
+      "height": 844
+    }
+  }
+]

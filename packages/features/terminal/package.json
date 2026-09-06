@@ -1,0 +1,30 @@
+{
+  "name": "@zapp/feature-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@zapp/sdk": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@zapp/documents": "workspace:*",
+    "@zapp/ui": "workspace:*",
+    "@xterm/xterm": "^6.1.0-beta.213",
+    "@xterm/addon-clipboard": "^0.3.0-beta.213",
+    "@xterm/addon-fit": "^0.12.0-beta.213",
+    "@xterm/addon-image": "^0.10.0-beta.213",
+    "@xterm/addon-ligatures": "^0.11.0-beta.213",
+    "@xterm/addon-search": "^0.17.0-beta.213",
+    "@xterm/addon-unicode11": "^0.10.0-beta.213",
+    "@xterm/addon-web-links": "^0.13.0-beta.213",
+    "@xterm/addon-webgl": "^0.20.0-beta.212"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

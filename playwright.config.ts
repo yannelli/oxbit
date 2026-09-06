@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'tests/browser',fullyParallel:false,workers:1,timeout:120000,expect:{timeout:15000},reporter:[['list'],['json',{outputFile:'evidence/browser-results.json'}]],use:{baseURL:'http://127.0.0.1:4318',viewport:{width:1440,height:900},trace:'retain-on-failure',screenshot:'only-on-failure'},webServer:{command:'node scripts/start-e2e.mjs',url:'http://127.0.0.1:4318/api/health',reuseExistingServer:false,timeout:30000}});

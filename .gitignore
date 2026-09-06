@@ -1,0 +1,12 @@
+node_modules/
+**/dist/
+*.tsbuildinfo
+.zapp-runtime/
+test-results/
+playwright-report/
+.env
+
+**/dist-types/
+evidence/e2e-workspace.json
+
+apps/web/public/extensions/

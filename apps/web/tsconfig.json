@@ -1,0 +1,81 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist-types",
+    "tsBuildInfoFile": "dist-types/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/documents"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/workbench"
+    },
+    {
+      "path": "../../packages/host-browser"
+    },
+    {
+      "path": "../../packages/host-runtime"
+    },
+    {
+      "path": "../../examples/bundle-inspector"
+    },
+    {
+      "path": "../../packages/features/editor"
+    },
+    {
+      "path": "../../packages/features/explorer"
+    },
+    {
+      "path": "../../packages/features/settings"
+    },
+    {
+      "path": "../../packages/features/extensions"
+    },
+    {
+      "path": "../../packages/features/themes"
+    },
+    {
+      "path": "../../packages/features/language"
+    },
+    {
+      "path": "../../packages/features/search"
+    },
+    {
+      "path": "../../packages/features/previews"
+    },
+    {
+      "path": "../../packages/features/formatters"
+    },
+    {
+      "path": "../../packages/features/terminal"
+    },
+    {
+      "path": "../../packages/features/tasks"
+    },
+    {
+      "path": "../../packages/features/git"
+    },
+    {
+      "path": "../../packages/features/collaboration"
+    }
+  ]
+}

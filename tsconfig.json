@@ -1,0 +1,77 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/sdk"
+    },
+    {
+      "path": "packages/protocol"
+    },
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/documents"
+    },
+    {
+      "path": "packages/host-browser"
+    },
+    {
+      "path": "packages/host-runtime"
+    },
+    {
+      "path": "packages/ui"
+    },
+    {
+      "path": "packages/workbench"
+    },
+    {
+      "path": "examples/bundle-inspector"
+    },
+    {
+      "path": "apps/runtime"
+    },
+    {
+      "path": "packages/features/editor"
+    },
+    {
+      "path": "packages/features/explorer"
+    },
+    {
+      "path": "packages/features/settings"
+    },
+    {
+      "path": "packages/features/extensions"
+    },
+    {
+      "path": "packages/features/themes"
+    },
+    {
+      "path": "packages/features/language"
+    },
+    {
+      "path": "packages/features/search"
+    },
+    {
+      "path": "packages/features/previews"
+    },
+    {
+      "path": "packages/features/formatters"
+    },
+    {
+      "path": "packages/features/terminal"
+    },
+    {
+      "path": "packages/features/tasks"
+    },
+    {
+      "path": "packages/features/git"
+    },
+    {
+      "path": "packages/features/collaboration"
+    },
+    {
+      "path": "apps/web"
+    }
+  ]
+}
