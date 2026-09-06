@@ -114,10 +114,10 @@ builds, and browser journeys. Run a part with `pnpm lint`, `pnpm typecheck`,
 production build and use port 4318 plus isolated temporary workspaces. Tests
 run real processes and create Git repositories and commits.
 
-Current results: 123 unit/integration tests and 18 browser journeys passed.
-Native directory recovery failed twice during browser refresh; Phase 2
-verification remains incomplete. [Remaining gap](PHASE-2_REMAINING_GAP.md)
-records the failure, the fix tried, and the checks needed to close it.
+Current results: 123 unit/integration tests and 19 browser journeys passed.
+Native directory recovery now passes after a browser refresh.
+[Remaining gap](PHASE-2_REMAINING_GAP.md) records the earlier failure, the
+Chromium 153 crash behind it, and the Playwright pin that closes it.
 
 [Acceptance evidence](evidence/acceptance.md) records results, screenshots,
 performance measurements, and checks that were not run.

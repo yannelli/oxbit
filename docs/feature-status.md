@@ -1,12 +1,12 @@
 # Phase 2 feature status
 
-The original-spec audit fixed gaps in provider wiring, lifecycle, recovery, workbench controls, and runtime operations. 123 unit/integration tests and 18 of 19 browser journeys passed. Native directory recovery failed twice during refresh and remains unresolved. Phase 2 verification is incomplete. See [audit changes](phase-2-audit.md) and [acceptance evidence](../evidence/acceptance.md).
+The original-spec audit fixed gaps in provider wiring, lifecycle, recovery, workbench controls, and runtime operations. 123 unit/integration tests and all 19 browser journeys passed. Native directory recovery passes after refresh; the earlier failure was a Chromium 153 browser crash, recorded in [the gap record](../PHASE-2_REMAINING_GAP.md). See [audit changes](phase-2-audit.md) and [acceptance evidence](../evidence/acceptance.md).
 
 ## Acceptance outcomes
 
 | # | Implemented scope and owner | Check status |
 | --- | --- | --- |
-| 1 | Files, saves, drafts, splits and restored layout: `packages/documents`, `packages/host-browser`, `packages/host-runtime`, `packages/workbench`, `packages/features/explorer`, `packages/features/editor`. | Browser storage and real runtime file journeys passed. The OPFS-backed native-handle refresh journey failed twice on browser connection loss. OS directory-picker UI was not tested. |
+| 1 | Files, saves, drafts, splits and restored layout: `packages/documents`, `packages/host-browser`, `packages/host-runtime`, `packages/workbench`, `packages/features/explorer`, `packages/features/editor`. | Browser storage, real runtime file and OPFS-backed native-handle refresh journeys passed. OS directory-picker UI was not tested. |
 | 2 | Real TypeScript language features: `packages/features/language`, `apps/runtime/src/lsp.ts`. Edits check local and server versions separately. | Real server and browser checks passed, including rename, code actions and server-initiated edit acknowledgements. Contributed provider lifecycle tests passed. No production browser worker server is shipped. |
 | 3 | Worker/ripgrep search and version-checked replace previews: `packages/features/search`, `packages/documents`, `apps/runtime`. | Worker search, unsaved-buffer replacement, per-file selection and partial-failure checks passed. |
 | 4 | Real terminals and tasks with resize, cancel, output replay and process exit state: `packages/features/terminal`, `packages/features/tasks`, `apps/runtime`. | Terminal and task journeys passed. Runtime loss reports ended terminals. |
