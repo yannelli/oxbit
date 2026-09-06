@@ -1,10 +1,11 @@
 # Phase 2 acceptance evidence
 
 Checked on 2026-09-06 with Node 24.19.0, pnpm 9.15.0 and Chromium
-153.0.8010.12 on Linux ARM64. The [original-spec audit](../docs/phase-2-audit.md)
-fixed implementation gaps. **Verification remains incomplete:** native
-directory recovery failed twice during refresh. The other 18 browser journeys
-and 123 unit/integration tests passed.
+151.0.7922.34 on Linux ARM64. The [original-spec audit](../docs/phase-2-audit.md)
+fixed implementation gaps. All 19 browser journeys and 123 unit/integration
+tests passed. Native directory recovery failed twice on Chromium 153.0.8010.12;
+[the gap record](../PHASE-2_REMAINING_GAP.md) documents that browser crash and
+the Playwright pin that closes it.
 
 ## Check results
 
@@ -17,7 +18,7 @@ and 123 unit/integration tests passed.
 | Unit/integration tests | Passed: 123 distinct tests across the recorded runs | [Suite](audit-resume.log), [corrected tests](audit-tests-corrected.log) |
 | Runtime, SDK/example and browser production builds | Passed | [Build log](audit-build.log) |
 | Browser Node boundary | Passed: 250 source modules, zero findings | [Bundle audit](browser-bundle.json) |
-| Browser journeys | Failed: 18 passed, 1 unresolved | [Full run](audit-browser.log), [directory retry](audit-directory-browser.log) |
+| Browser journeys | Passed: 19 passed | [Passing run](audit-browser-directory-fix.log), [earlier failure](audit-browser.log), [retry](audit-directory-browser.log) |
 | Documentation links | Passed before the final result update | [Link check](document-links.json) |
 
 [Structured verification](audit-verification.json) records counts and commands.
@@ -37,45 +38,39 @@ Build output records large lazy TypeScript formatter chunks, a 1.78 MB main
 JavaScript chunk (560 kB gzip), and duplicate source-map emission warnings for
 formatter assets shared by browser and worker builds. No build errors occurred.
 
-## Unresolved directory recovery check
+## Directory recovery check
 
 The test selects a real origin-private filesystem handle through a picker
-stub, saves Latin-1 bytes, keeps an unsaved draft, and refreshes the page. The
-first attempt stopped at `page.reload()` with:
+stub, saves Latin-1 bytes, keeps an unsaved draft, and refreshes the page. It
+now passes: the workspace keeps its `directory:` identity, the draft returns as
+`café unsaved`, the file on disk holds the Latin-1 bytes `99 97 102 233`, and
+the before-unload confirmation fires.
 
-```text
-Object with guid response@c5c31d0e00a7259a9698acf2b55eacff was not bound in the connection
-```
-
-The retry accepted the app's before-unload confirmation and drove reload through
-`location.reload()`. Confirmation and navigation completed, then Playwright
-reported:
-
-```text
-page.waitForFunction: Target page, context or browser has been closed
-```
-
-The cause of the browser connection loss is unresolved. The post-refresh
-identity, draft and disk-byte assertions did not complete. Further checks
-stopped under the user's rule: “If a check fails twice for the same reason,
-stop and report the failure and what you tried.”
+Two earlier runs lost the browser connection instead. Both messages reported
+one event: the Chromium browser process exiting with SIGTRAP when IndexedDB
+deserializes an origin-private filesystem handle. Chromium 148 and 151 and
+Google Chrome 152 read the same handle; Chrome for Testing 153.0.8010.12
+crashes. `@playwright/test` is pinned to `1.62.1`, whose bundled Chromium is
+151.0.7922.34. Application code and the test are unchanged.
+[The gap record](../PHASE-2_REMAINING_GAP.md) holds the reduced case and the
+per-browser results.
 
 Native-handle unit tests passed for encoding hints, binary rename, directory
-identity and permission fallback. Those tests do not establish browser refresh
-recovery. OS directory-picker interaction was not tested.
+identity and permission fallback. OS directory-picker interaction was not
+tested.
 
 ## Nine required outcomes
 
 | Outcome | Result | Evidence scope |
 | --- | --- | --- |
-| 1. Workspace edits, save, refresh and layout recovery | Failed for native directory recovery; runtime and IndexedDB paths passed | Real runtime bytes, failed-save drafts and browser split/Unicode recovery passed. The native-handle refresh journey remains unresolved. |
+| 1. Workspace edits, save, refresh and layout recovery | Passed | Real runtime bytes, failed-save drafts, browser split/Unicode recovery and native-handle refresh recovery passed. |
 | 2. Real language intelligence | Passed | TypeScript completion, diagnostics, definition, rename, code actions and server-initiated edit acknowledgements. Contributed provider lifecycle and stale-result checks passed. |
 | 3. Search and replace | Passed | Real ripgrep/worker searches, unsaved buffers, revision checks, grouped results and reversible file selection. Partial failures preserve newer buffers. |
 | 4. Terminal and tasks | Passed | Real PTY command/resize/replay, task cancellation, exit status, Unicode chunk decoding and SDK terminal events. |
 | 5. Git | Passed | Actual staging/commits/deduplication, local-bare-remote clone/push/fetch, cancellation cleanup and protected checkout. |
 | 6. Collaboration | Passed | Two independent browser contexts converge after offline edits; per-user undo preserves remote edits. [Left](collaboration-left.png), [right](collaboration-right.png). |
 | 7. External SDK extension | Passed | Bundle Inspector loads as external ESM; 15 activation cycles dispose contributions. SDK exports, lazy commands, installed settings and provider teardown have checks. |
-| 8. Failure recovery | Passed for tested runtime services | Save, language-server, extension and runtime-loss journeys preserve local edits. Ended PTYs are reported. Native refresh remains the separate failure above. [Runtime recovery](runtime-recovery.png). |
+| 8. Failure recovery | Passed for tested runtime services | Save, language-server, extension and runtime-loss journeys preserve local edits. Ended PTYs are reported. [Runtime recovery](runtime-recovery.png). |
 | 9. Design comparisons | Passed: comparisons captured | Both themes at all four exact dimensions, with no page overflow. Pixel differences are recorded below; strict visual parity is unverified. |
 
 [Browser journeys](../tests/browser/acceptance.spec.ts) use real runtime services

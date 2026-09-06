@@ -5,9 +5,10 @@ and the preserved [design interaction](../design/interaction-spec.md) and
 [extension surface](../design/extension-surfaces.md) contracts. It checks
 reachable behavior, public consumers, disposal, and recovery.
 
-Native directory recovery remains unresolved: its browser journey failed twice
-during refresh. The other 18 browser journeys and 123 unit/integration tests
-passed. This audit does not certify Phase 2 as gap-free.
+Native directory recovery passes: its browser journey failed twice on a
+Chromium 153 browser crash, and passes on the pinned Chromium 151. All 19
+browser journeys and 123 unit/integration tests passed. This audit does not
+certify Phase 2 as gap-free.
 
 ## Gaps fixed
 

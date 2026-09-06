@@ -40,15 +40,17 @@
     ]
   },
   "browser": {
-    "status": "failed",
-    "passed": 18,
-    "failed": 1,
+    "status": "passed",
+    "passed": 19,
+    "failed": 0,
     "distinctJourneys": 19,
+    "browser": "Chromium 151.0.7922.34 (@playwright/test 1.62.1)",
     "logs": [
+      "audit-browser-directory-fix.log",
       "audit-browser.log",
       "audit-directory-browser.log"
     ],
-    "unresolved": "Native browser directory recovery loses the browser connection during refresh. Two attempts failed; verification stopped under the user rule."
+    "resolved": "Native browser directory recovery lost the browser connection on Chrome for Testing 153.0.8010.12, which exits with SIGTRAP when IndexedDB deserializes an origin-private filesystem handle. Pinning @playwright/test to 1.62.1 restores Chromium 151 and the journey passes."
   },
   "metadata": {
     "status": "passed",
