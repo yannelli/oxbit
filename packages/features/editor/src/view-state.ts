@@ -1,7 +1,7 @@
 import { EditorSelection, type EditorState } from "@codemirror/state";
 import { foldedRanges } from "@codemirror/language";
 import type { EditorView } from "@codemirror/view";
-import type { DocumentViewState } from "@zapp/documents";
+import type { DocumentViewState } from "@oxbit/documents";
 export function restoredSelection(
   saved: DocumentViewState | undefined,
   length: number,

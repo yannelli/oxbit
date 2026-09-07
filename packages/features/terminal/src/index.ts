@@ -1,4 +1,4 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -7,7 +7,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import "@xterm/xterm/css/xterm.css";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
 import { loadOptionalAddons } from "./addons.js";
 type Chunk = { seq: number; data: string };
 type Session = {
@@ -448,7 +448,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.terminal",
+      id: "oxbit.terminal",
       name: "Terminal",
       version: "1.0.0",
       sdk: "^1.0.0",

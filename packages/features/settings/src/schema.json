@@ -199,10 +199,10 @@
     "title": "Default Formatter",
     "description": "Formatter used when several are available.",
     "type": "string",
-    "default": "zapp.prettier",
+    "default": "oxbit.prettier",
     "enum": [
-      "zapp.prettier",
-      "zapp.builtin-ts"
+      "oxbit.prettier",
+      "oxbit.builtin-ts"
     ],
     "category": "Formatting"
   },

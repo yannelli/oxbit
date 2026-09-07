@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createKernel } from "@zapp/core";
-import { DocumentService } from "@zapp/documents";
-import { BrowserFileSystem, MemoryPersistence } from "@zapp/host-browser";
+import { createKernel } from "@oxbit/core";
+import { DocumentService } from "@oxbit/documents";
+import { BrowserFileSystem, MemoryPersistence } from "@oxbit/host-browser";
 import { WorkbenchController } from "./controller.js";
-import type { FileEntry } from "@zapp/sdk";
+import type { FileEntry } from "@oxbit/sdk";
 const disposables: { dispose(): void }[] = [];
 afterEach(() => {
   for (const disposable of disposables.splice(0).reverse())

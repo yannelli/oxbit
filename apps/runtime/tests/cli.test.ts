@@ -28,7 +28,7 @@ const daemon: Daemon = {
 
 beforeAll(async () => {
   root = await fs.realpath(
-    await fs.mkdtemp(path.join(os.tmpdir(), "zapp-cli-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-cli-")),
   );
   await fs.mkdir(path.join(root, "src"), { recursive: true });
   await fs.mkdir(path.join(root, "elsewhere"), { recursive: true });
@@ -52,7 +52,7 @@ describe("argument parsing", () => {
     expect(
       parse([], {
         ...env,
-        ZAPP_WORKSPACE: "/w",
+        OXBIT_WORKSPACE: "/w",
         PORT: "9278",
         HOST: "0.0.0.0",
       }),
@@ -65,7 +65,7 @@ describe("argument parsing", () => {
         ...env,
         PORT: "9278",
         HOST: "0.0.0.0",
-        ZAPP_WORKSPACE: "/w",
+        OXBIT_WORKSPACE: "/w",
       }),
     ).toMatchObject({ target: "/a", port: 9300, host: "::1" });
   });
@@ -159,7 +159,7 @@ describe("browser command", () => {
 
 describe("daemon record", () => {
   it("derives the data directory from the workspace or the environment", () => {
-    expect(dataDirFor("/workspace", { ...env, ZAPP_DATA_DIR: "/d" })).toBe(
+    expect(dataDirFor("/workspace", { ...env, OXBIT_DATA_DIR: "/d" })).toBe(
       "/d",
     );
     const derived = dataDirFor("/workspace", env);

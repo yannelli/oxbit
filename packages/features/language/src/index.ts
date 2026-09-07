@@ -1,4 +1,4 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
 import {
   autocompletion,
@@ -16,9 +16,9 @@ import type {
   LanguageTransportProvider,
   ProviderCodeAction,
   CompletionProvider,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 import { LanguageProviders, documentLanguage } from "./providers.js";
-import type { DocumentHandle } from "@zapp/documents";
+import type { DocumentHandle } from "@oxbit/documents";
 export interface EditSnapshot {
   version?: number;
   revision: string;
@@ -98,7 +98,7 @@ export class WorkerLanguageTransport implements LanguageTransport {
       }
       this.pending.clear();
       for (const fn of this.listeners)
-        fn("zapp/serverState", { state: "stopped", error: e.message });
+        fn("oxbit/serverState", { state: "stopped", error: e.message });
     };
   }
   request<T>(
@@ -228,7 +228,7 @@ export class LanguageService {
       new RuntimeLanguageTransport(o);
     this.subscriptions.push(
       this.transport.onNotification((method, params) => {
-        if (method === "zapp/serverState" && params.state === "stopped") {
+        if (method === "oxbit/serverState" && params.state === "stopped") {
           this.stopped("stopped");
           if (params.error) o.workbench.notify(params.error, "error");
         }
@@ -661,7 +661,7 @@ export class LanguageService {
   }
   private readSnapshot(
     path: string,
-  ): Promise<import("@zapp/sdk").FileSnapshot> {
+  ): Promise<import("@oxbit/sdk").FileSnapshot> {
     return this.o.runtime && this.o.filesystem.id.startsWith("runtime:")
       ? this.o.runtime.request("fs.read", { path })
       : this.o.filesystem.read(path);
@@ -1019,7 +1019,7 @@ export class LanguageService {
         if (++count > 10000)
           throw new Error("Workspace edit snapshot exceeds 10,000 entries");
         if (entry.kind === "directory") {
-          if (![".git", "node_modules", ".zapp"].includes(entry.name))
+          if (![".git", "node_modules", ".oxbit", ".zapp"].includes(entry.name))
             await walk(entry.path);
         } else {
           const doc: DocumentHandle | undefined = this.o.documents.get(
@@ -1365,7 +1365,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.language",
+      id: "oxbit.language",
       name: "TypeScript Language Intelligence",
       version: "1.0.0",
       sdk: "^1.0.0",

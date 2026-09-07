@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as fs from "node:fs/promises";
-import { RpcError } from "@zapp/protocol";
+import { RpcError } from "@oxbit/protocol";
 import { runCommand } from "./processes.js";
 import { WorkspaceFiles } from "./filesystem.js";
 export class Git {

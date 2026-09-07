@@ -1,7 +1,7 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import type { ComponentType } from "react";
 import type { EditorView } from "@codemirror/view";
-import type { DocumentService } from "@zapp/documents";
+import type { DocumentService } from "@oxbit/documents";
 import { documentViewFor } from "./contributions.js";
 import type {
   FileEntry,
@@ -11,7 +11,7 @@ import type {
   Persistence,
   OpenViewOptions,
   NotifyOptions,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 export interface OpenOptions {
   line?: number;
   col?: number;
@@ -620,7 +620,7 @@ export class WorkbenchController {
         });
       }
       view?.focus();
-      performance.measure("zapp.file-switch", {
+      performance.measure("oxbit.file-switch", {
         start,
         end: performance.now(),
       });

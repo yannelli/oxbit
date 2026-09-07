@@ -1,4 +1,4 @@
-# Zapp
+# Oxbit
 
 A web code editor built with React 19 and CodeMirror 6. Use a browser workspace
 on its own, or connect the Node runtime for real files, TypeScript language
@@ -16,43 +16,43 @@ pnpm install --frozen-lockfile
 pnpm install:global
 ```
 
-That builds the workspace and puts `zapp` on your `PATH`:
+That builds the workspace and puts `oxbit` on your `PATH`:
 
 ```sh
-zapp                     # open the current directory
-zapp ~/code/my-project   # open a directory
-zapp src/main.ts         # open the current directory with that file focused
+oxbit                     # open the current directory
+oxbit ~/code/my-project   # open a directory
+oxbit src/main.ts         # open the current directory with that file focused
 ```
 
-`zapp` starts a runtime for the workspace, opens the paired editor in your
+`oxbit` starts a runtime for the workspace, opens the paired editor in your
 browser, and returns to the shell. A workspace already being served is reused,
-so running `zapp` again in the same project reopens the same runtime. Then:
+so running `oxbit` again in the same project reopens the same runtime. Then:
 
 1. Select **Trust workspace tools** in **Runtime connection** to enable terminals, tasks, Git, and language services.
 2. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
 
-`pnpm install:global` links the checkout rather than copying it, so `zapp` follows
-the repository in place. Rerun `pnpm build` after pulling; `npm uninstall -g zapp`
+`pnpm install:global` links the checkout rather than copying it, so `oxbit` follows
+the repository in place. Rerun `pnpm build` after pulling; `npm uninstall -g oxbit`
 removes the command.
 
 | Command            | Effect                                                                                 |
 | ------------------ | -------------------------------------------------------------------------------------- |
-| `zapp --status`    | Report the runtime serving the workspace                                               |
-| `zapp --stop`      | Stop it                                                                                |
-| `zapp -f`          | Serve in the terminal and stay attached                                                |
-| `zapp --no-open`   | Leave the browser closed                                                               |
-| `zapp --port 9300` | Serve on a chosen port; applies when starting, so `--stop` first to move a running one |
-| `zapp --help`      | Full usage                                                                             |
+| `oxbit --status`    | Report the runtime serving the workspace                                               |
+| `oxbit --stop`      | Stop it                                                                                |
+| `oxbit -f`          | Serve in the terminal and stay attached                                                |
+| `oxbit --no-open`   | Leave the browser closed                                                               |
+| `oxbit --port 9300` | Serve on a chosen port; applies when starting, so `--stop` first to move a running one |
+| `oxbit --help`      | Full usage                                                                             |
 
 The first workspace takes port **9277**; later ones take a free port, recorded in
-`~/.zapp/workspaces/<id>/daemon.json` alongside the log. The URL `zapp` prints
+`~/.oxbit/workspaces/<id>/daemon.json` alongside the log. The URL `oxbit` prints
 carries the owner pairing code and the file to focus in its fragment; both are
 consumed on load and removed from the address bar. Opening
 **http://127.0.0.1:9277** without the fragment starts the `orbit-dash` sample
 workspace in IndexedDB instead; pair from **Runtime connection** with the printed
 code to reach the runtime's project.
 
-Without a global install, `ZAPP_WORKSPACE=/absolute/path pnpm start` serves the
+Without a global install, `OXBIT_WORKSPACE=/absolute/path pnpm start` serves the
 same runtime in the foreground. The default host is loopback;
 [runtime configuration](docs/runtime.md) covers ports, allowed origins, state
 storage, and network hosting.
@@ -88,8 +88,8 @@ Run these in separate terminals from the repository root:
 
 ```sh
 # Runtime, with access from the Vite development origin
-ZAPP_WORKSPACE=/absolute/path/to/your/project \
-ZAPP_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
+OXBIT_WORKSPACE=/absolute/path/to/your/project \
+OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
 ```
 
 ```sh
@@ -99,7 +99,7 @@ pnpm dev:web
 
 Open **http://localhost:9279** and pair with runtime URL
 **http://127.0.0.1:9277**. On systems that exhaust filesystem watchers, start
-the runtime with `ZAPP_WATCH_POLLING=1`. A production build is the fallback
+the runtime with `OXBIT_WATCH_POLLING=1`. A production build is the fallback
 when development process watching also fails.
 
 | Location                                             | Responsibility                                   |
@@ -156,7 +156,7 @@ verification limits, and deferred work.
 ## Design and technical references
 
 The original Phase 1 ZIP is preserved under `design/reference/`, including
-its HTML and supplied screenshots. Open `Zapp Workbench.dc.html` for the
+its HTML and supplied screenshots. Open `Oxbit Workbench.dc.html` for the
 original mockup. `design/baselines/` adds full-size captures at all four
 reference dimensions in both themes.
 

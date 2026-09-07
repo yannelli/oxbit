@@ -38,7 +38,7 @@ for (const project of entries) {
   );
   for (const group of ["dependencies", "devDependencies"])
     for (const [name, value] of Object.entries(project[group] ?? {})) {
-      if (name.startsWith("@zapp/")) continue;
+      if (name.startsWith("@oxbit/")) continue;
       const key = name + "@" + value.version;
       let row = rows.get(key);
       if (!row) {

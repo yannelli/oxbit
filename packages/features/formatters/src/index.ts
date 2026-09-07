@@ -4,7 +4,7 @@ import {
   type Extension,
   type FeatureOptions,
   type Formatter,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 export {
   createPrettierFeature,
   createTypeScriptFormatterFeature,
@@ -55,7 +55,7 @@ export class FormatterService {
       this.options.kernel.configuration.get<string>(
         "editor.defaultFormatter",
         language,
-      ) || "zapp.prettier";
+      ) || "oxbit.prettier";
     const formatter = this.list(path).find((provider) => provider.id === id);
     if (!formatter)
       throw new Error(`Formatter ${id} is unavailable for ${language}`);
@@ -102,7 +102,7 @@ export function createFeature(options: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.formatters",
+      id: "oxbit.formatters",
       name: "Formatter coordination",
       version: "1.0.0",
       sdk: "^1.0.0",

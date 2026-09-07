@@ -1,4 +1,4 @@
-# Zapp — interaction specification (Phase 1)
+# Oxbit — interaction specification (Phase 1)
 
 Screen and state inventory, command/action IDs, triggers, transitions, keyboard behaviour, persistence and error handling for the Phase 1 mockup. Command IDs are the single vocabulary shared by the command palette, menus, context menus, toolbar buttons and keybindings (`fixtures.js › commands`).
 
@@ -61,7 +61,7 @@ Focus: `:focus-visible` 2 px accent ring; overlays record the previously focused
 - **Save** (⌘S) → optional format-on-save, trim trailing whitespace, mock `fs.write`, saved content updated, SCM change recomputed against committed base. Read-only → warning toast. Autosave `afterDelay` schedules saves.
 - **Close dirty** → alertdialog Save / Don't Save / Cancel. Closing a file open in no other group reverts unsaved content.
 - **Split** → new group next to active, tab copied (unpinned); tabs drag between groups; empty group is removed.
-- **Layout** (sidebar visibility/width/view, panel visibility/height/tab, split direction, theme) persists to `localStorage["zapp.layout.v1"]` (debounced 300 ms) and restores on load with a toast. `view.resetLayout` clears it.
+- **Layout** (sidebar visibility/width/view, panel visibility/height/tab, split direction, theme) persists to `localStorage["oxbit.layout.v1"]` (debounced 300 ms) and restores on load with a toast. `view.resetLayout` clears it.
 - **Search** → 650 ms simulated worker; cancel keeps partial state "Search cancelled"; regex/glob errors and worker failure render inline with Retry. Result click reveals file + range. Replace preview → apply → unsaved edits + toast (Show changes / Save all).
 - **LSP** state machine: starting (1.4 s) → ready; restart → restarting (1.2 s) → ready/failed; unavailable for non-LSP languages. Widgets require `ready`; otherwise commands explain why.
 - **Git**: stage/unstage move items between groups; commit needs staged + message (Ctrl/⌘↩), 700 ms, updates log/ahead count, offers Push; failures show inline error with Retry/Dismiss; discard confirms and restores committed content (deletes untracked); conflict file shows zone colouring + Accept Current/Incoming/Both.
@@ -76,10 +76,10 @@ Focus: `:focus-visible` 2 px accent ring; overlays record the previously focused
 
 | Key | Content | Lifetime |
 |---|---|---|
-| `zapp.layout.v1` | sidebar, panel, splitDir, theme | localStorage |
+| `oxbit.layout.v1` | sidebar, panel, splitDir, theme | localStorage |
 | in-memory | documents, git, terminals, settings, extensions, notifications | session (reset via Review › Reset) |
 
-Phase 2 should persist open editors/groups, per-file view state (cursor, folds, scroll), settings (user: profile; workspace: `.zapp/settings.json`), keybindings and recently used commands/files.
+Phase 2 should persist open editors/groups, per-file view state (cursor, folds, scroll), settings (user: profile; workspace: `.oxbit/settings.json`), keybindings and recently used commands/files.
 
 ## 6. Error handling
 

@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 export default defineConfig({
-  ssr: { noExternal: ["@zapp/protocol", "@zapp/sdk", "@zapp/core", "semver"] },
+  ssr: { noExternal: ["@oxbit/protocol", "@oxbit/sdk", "@oxbit/core", "semver"] },
   build: {
     ssr: "src/index.ts",
     outDir: "dist",

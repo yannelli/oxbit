@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FileEntry, FileSystem } from "@zapp/sdk";
+import type { FileEntry, FileSystem } from "@oxbit/sdk";
 import { findWorkspaceFiles, workspaceEntries } from "./files.js";
 
 function fixture() {

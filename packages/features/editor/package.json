@@ -1,16 +1,16 @@
 {
-  "name": "@zapp/feature-editor",
+  "name": "@oxbit/feature-editor",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.tsx",
   "scripts": {},
   "dependencies": {
-    "@zapp/sdk": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "@zapp/documents": "workspace:*",
-    "@zapp/ui": "workspace:*",
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/ui": "workspace:*",
     "@codemirror/commands": "6.10.4",
     "@codemirror/language": "6.12.4",
     "@codemirror/search": "6.7.1",
@@ -25,7 +25,7 @@
     "@codemirror/lang-markdown": "^6.3.4",
     "@lezer/highlight": "^1.2.1",
     "y-codemirror.next": "^0.3.5",
-    "@zapp/workbench": "workspace:*"
+    "@oxbit/workbench": "workspace:*"
   },
   "license": "MIT",
   "author": {

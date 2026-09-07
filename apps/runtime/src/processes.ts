@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import * as pty from "node-pty";
-import { RpcError, MAX_BUFFER_BYTES } from "@zapp/protocol";
+import { RpcError, MAX_BUFFER_BYTES } from "@oxbit/protocol";
 
 export interface Chunk {
   seq: number;

@@ -1,12 +1,13 @@
 {
   "config": {
     "argv": [
-      "/home/ubuntu/.nvm/versions/node/v24.19.0/bin/node",
-      "/home/ubuntu/.paseo/worktrees/2fg5jw20/handsome-jellyfish/node_modules/@playwright/test/cli.js",
-      "test"
+      "/opt/homebrew/Cellar/node/26.4.0/bin/node",
+      "/Users/ryanyannelli/Development/zapp/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/browser/branding.spec.ts"
     ],
-    "configFile": "/home/ubuntu/.paseo/worktrees/2fg5jw20/handsome-jellyfish/playwright.config.ts",
-    "rootDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/handsome-jellyfish/tests/browser",
+    "configFile": "/Users/ryanyannelli/Development/zapp/playwright.config.ts",
+    "rootDir": "/Users/ryanyannelli/Development/zapp/tests/browser",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
@@ -22,7 +23,7 @@
     "preserveOutput": "always",
     "projects": [
       {
-        "outputDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/handsome-jellyfish/test-results",
+        "outputDir": "/Users/ryanyannelli/Development/zapp/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -30,7 +31,7 @@
         },
         "id": "",
         "name": "",
-        "testDir": "/home/ubuntu/.paseo/worktrees/2fg5jw20/handsome-jellyfish/tests/browser",
+        "testDir": "/Users/ryanyannelli/Development/zapp/tests/browser",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -63,20 +64,20 @@
     "workers": 1,
     "webServer": {
       "command": "node scripts/start-e2e.mjs",
-      "url": "http://127.0.0.1:4318/api/health",
+      "url": "http://127.0.0.1:9278/api/health",
       "reuseExistingServer": false,
       "timeout": 30000
     }
   },
   "suites": [
     {
-      "title": "acceptance.spec.ts",
-      "file": "acceptance.spec.ts",
+      "title": "branding.spec.ts",
+      "file": "branding.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "browser workspace edits, saves, splits and recovers Unicode drafts and view state",
+          "title": "Oxbit branding, assets, and storage work on a fresh browser profile",
           "ok": true,
           "tags": [],
           "tests": [
@@ -91,12 +92,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 778,
+                  "duration": 398,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-06T22:55:04.136Z",
+                  "startTime": "2026-09-07T02:10:43.482Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -104,13 +105,13 @@
               "status": "expected"
             }
           ],
-          "id": "6bf654160f377cf56a60-6aa282c09cbe2525c024",
-          "file": "acceptance.spec.ts",
-          "line": 44,
+          "id": "c7f19e806919ac620bf8-5e031b9839d679d1de59",
+          "file": "branding.spec.ts",
+          "line": 3,
           "column": 1
         },
         {
-          "title": "localized settings persist and fit the phone viewport",
+          "title": "an existing browser workspace and formatter preference survive the rebrand",
           "ok": true,
           "tags": [],
           "tests": [
@@ -125,12 +126,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 522,
+                  "duration": 420,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-06T22:55:04.982Z",
+                  "startTime": "2026-09-07T02:10:44.008Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -138,587 +139,9 @@
               "status": "expected"
             }
           ],
-          "id": "6bf654160f377cf56a60-923ab184a9d0a257250b",
-          "file": "acceptance.spec.ts",
-          "line": 77,
-          "column": 1
-        },
-        {
-          "title": "runtime filesystem, revision checked save, refresh and failed save recovery",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 620,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:05.512Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-df8574ebffdce24b4ecb",
-          "file": "acceptance.spec.ts",
-          "line": 105,
-          "column": 1
-        },
-        {
-          "title": "real language responses, diagnostics, rename edits and supported code action",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1636,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:06.138Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-58d8bbe9abf6c6f53c37",
-          "file": "acceptance.spec.ts",
-          "line": 169,
-          "column": 1
-        },
-        {
-          "title": "workspace search previews replacements against unsaved versions",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 590,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:07.785Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-18b5bc7c195b92d18267",
-          "file": "acceptance.spec.ts",
-          "line": 241,
-          "column": 1
-        },
-        {
-          "title": "real terminal, resize, task status and cancellation",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 588,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:08.381Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-135ac13fbd2190e3a105",
-          "file": "acceptance.spec.ts",
-          "line": 269,
-          "column": 1
-        },
-        {
-          "title": "stage and commit actual Git changes without repeating a request",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 522,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:08.974Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-35391d7f81d177c1c6c8",
-          "file": "acceptance.spec.ts",
-          "line": 332,
-          "column": 1
-        },
-        {
-          "title": "two independent browsers converge concurrent offline edits and keep per-user undo",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1241,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:09.501Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-3c0388cf0b2d4c195b96",
-          "file": "acceptance.spec.ts",
-          "line": 366,
-          "column": 1
-        },
-        {
-          "title": "external SDK extension lifecycle removes contributions and survives failed activation",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 683,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:10.748Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-d07c766da137267d2066",
-          "file": "acceptance.spec.ts",
-          "line": 416,
-          "column": 1
-        },
-        {
-          "title": "both themes render at all four reference viewports with visual comparison artifacts",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 4541,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:11.436Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-c6901097e809bd535e9a",
-          "file": "acceptance.spec.ts",
-          "line": 488,
-          "column": 1
-        },
-        {
-          "title": "Unicode, synthetic composition, multiple cursors and local paint latency",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 3773,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:15.983Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-e31a7b9b02a86a28316c",
-          "file": "acceptance.spec.ts",
-          "line": 571,
-          "column": 1
-        },
-        {
-          "title": "sustained editing and repeated switching keep document and extension state",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 180000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 120673,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:55:19.761Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-8b1a3fa63a7a6d29f973",
-          "file": "acceptance.spec.ts",
-          "line": 659,
-          "column": 1
-        },
-        {
-          "title": "runtime process loss preserves browser drafts and reports lost PTYs",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 2488,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:20.440Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-dc084a4f872d58cc86d4",
-          "file": "acceptance.spec.ts",
-          "line": 698,
-          "column": 1
-        },
-        {
-          "title": "replacement preview groups files and keeps deselected files available",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 893,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:22.937Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-b12eabe517b1f5eb6303",
-          "file": "acceptance.spec.ts",
-          "line": 772,
-          "column": 1
-        },
-        {
-          "title": "formatter workers obey language scope and Markdown preview opens beside its source",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1487,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:23.835Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-8ebe969c6be5f10c3cf1",
-          "file": "acceptance.spec.ts",
-          "line": 819,
-          "column": 1
-        },
-        {
-          "title": "native browser directory handles retain identity, encoded saves and drafts after refresh",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1354,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:25.335Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-5101a2b97bfab348660a",
-          "file": "acceptance.spec.ts",
-          "line": 869,
-          "column": 1
-        },
-        {
-          "title": "browser IME composition commits and cancels without duplicate text",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 603,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:26.696Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-43d318c0cdc4df49b47f",
-          "file": "acceptance.spec.ts",
-          "line": 926,
-          "column": 1
-        },
-        {
-          "title": "phone touch navigation and reduced motion preserve focus and layout",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 772,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:27.307Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-520dc521a059626249af",
-          "file": "acceptance.spec.ts",
-          "line": 963,
-          "column": 1
-        },
-        {
-          "title": "a contributed filesystem opens through the workspace UI and survives provider teardown",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1011,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-09-06T22:57:28.084Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "6bf654160f377cf56a60-93607d3e864837c1987c",
-          "file": "acceptance.spec.ts",
-          "line": 1003,
+          "id": "c7f19e806919ac620bf8-595c20b13a60bc14c3b9",
+          "file": "branding.spec.ts",
+          "line": 27,
           "column": 1
         }
       ]
@@ -726,9 +149,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-06T22:55:02.928Z",
-    "duration": 146297.025,
-    "expected": 19,
+    "startTime": "2026-09-07T02:10:41.266Z",
+    "duration": 5182.476000000001,
+    "expected": 2,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

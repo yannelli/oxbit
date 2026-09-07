@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url";
-import { createKernel } from "@zapp/core";
-import type { FileChange, FileSystem } from "@zapp/sdk";
-import { RpcError } from "@zapp/protocol";
+import { createKernel } from "@oxbit/core";
+import type { FileChange, FileSystem } from "@oxbit/sdk";
+import { RpcError } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 
 export class RuntimeExtensions {

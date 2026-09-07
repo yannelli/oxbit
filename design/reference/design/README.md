@@ -1,14 +1,14 @@
-# Zapp — Phase 1 design mockup
+# Oxbit — Phase 1 design mockup
 
-High-fidelity, interactive mockup of the Zapp web code editor. Everything runs on fixture data and mock service adapters; no backend.
+High-fidelity, interactive mockup of the Oxbit web code editor. Everything runs on fixture data and mock service adapters; no backend.
 
 ## Launch
 
-Open `Zapp Workbench.dc.html` in the project preview (or any modern browser served from the project root — it loads `support.js`, `fixtures.js`, `lang.js`, `services.js` as siblings). No build step.
+Open `Oxbit Workbench.dc.html` in the project preview (or any modern browser served from the project root — it loads `support.js`, `fixtures.js`, `lang.js`, `services.js` as siblings). No build step.
 
 Files:
 
-- `Zapp Workbench.dc.html` — the workbench (template + logic class).
+- `Oxbit Workbench.dc.html` — the workbench (template + logic class).
 - `fixtures.js` — the `orbit-dash` fixture project, diagnostics, git state, terminals, tasks, extensions, commands, settings schema, keybindings, strings (en + long-label pseudo-locale).
 - `lang.js` — tokenizer, decorations, folding, find, diff, markdown, fuzzy matching, formatter.
 - `services.js` — mock service adapters (`createServices()`), each annotated with the real capability it replaces.
@@ -23,7 +23,7 @@ The **Review** pill (top-right, outside the workbench frame) opens the review dr
 - **Scenarios 1–12** — one group per spec section; each button applies a deterministic state (LSP failed, offline → reconnect fails, merge conflict, install failure, read-only file, …).
 - **Reset fixture & layout** — returns to the default workspace and clears persisted layout.
 
-Programmatic hooks for automation: `window.__zapp` is the workbench instance (`setState`, `openFile(path,{line,col})`, `runCommand(id)`, `playJourney(n)`, `setState({viewport:'phone'})`).
+Programmatic hooks for automation: `window.__oxbit` is the workbench instance (`setState`, `openFile(path,{line,col})`, `runCommand(id)`, `playJourney(n)`, `setState({viewport:'phone'})`).
 
 Tweaks panel props: `theme`, `density`, `platform`, `viewport`, `longLabels`, `reviewTools`, `reducedMotion`.
 
@@ -46,7 +46,7 @@ Tweaks panel props: `theme`, `density`, `platform`, `viewport`, `longLabels`, `r
 
 ## Scope of simulated behaviour
 
-Simulated (works locally, coherent state transitions): editing, saving, folding, find/replace, workspace search, diagnostics (live text rules), completions/hover/signature/definition/references/rename/code actions/format (fixture tables), git stage/unstage/commit/discard/push/checkout, terminals (scripted commands), tasks, output channels, extension lifecycle, collaboration/connection states, settings and keybindings, layout persistence (`localStorage["zapp.layout.v1"]`).
+Simulated (works locally, coherent state transitions): editing, saving, folding, find/replace, workspace search, diagnostics (live text rules), completions/hover/signature/definition/references/rename/code actions/format (fixture tables), git stage/unstage/commit/discard/push/checkout, terminals (scripted commands), tasks, output channels, extension lifecycle, collaboration/connection states, settings and keybindings, layout persistence (`localStorage["oxbit.layout.v1"]`).
 
 Deferred to Phase 2 (explicitly not implemented): real language servers, shell execution, filesystem access, git binary, remote/collaboration transport, extension host execution, marketplace, authentication, clipboard integration beyond `navigator.clipboard.writeText`, encoding/EOL conversion, clone repository.
 

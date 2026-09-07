@@ -1,9 +1,9 @@
-import type { Extension, Kernel } from "@zapp/sdk";
+import type { Extension, Kernel } from "@oxbit/sdk";
 export function createFeature({ kernel }: { kernel: Kernel }): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.themes",
+      id: "oxbit.themes",
       name: "Graphite and Paper",
       version: "1.0.0",
       sdk: "^1.0.0",
@@ -12,13 +12,13 @@ export function createFeature({ kernel }: { kernel: Kernel }): Extension {
       capabilities: [],
       contributions: [
         {
-          id: "zapp.graphite",
+          id: "oxbit.graphite",
           kind: "theme",
           title: "Graphite (dark)",
           data: { mode: "dark" },
         },
         {
-          id: "zapp.paper",
+          id: "oxbit.paper",
           kind: "theme",
           title: "Paper (light)",
           data: { mode: "light" },

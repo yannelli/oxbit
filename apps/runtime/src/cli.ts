@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { createRuntime } from "./runtime.js";
+import { setting } from "./branding.js";
 import {
   available,
   dataDirFor,
@@ -24,12 +25,12 @@ export const DEFAULT_HOST = "127.0.0.1";
 const READY_TIMEOUT = 60000;
 const STOP_TIMEOUT = 10000;
 
-export const USAGE = `zapp [options] [path]
+export const USAGE = `oxbit [options] [path]
 
-Open a workspace in Zapp. Starts a runtime for the workspace unless one is
+Open a workspace in Oxbit. Starts a runtime for the workspace unless one is
 already serving it, then opens the paired editor in the default browser.
 
-  path                 File or directory to open (default: $ZAPP_WORKSPACE or .)
+  path                 File or directory to open (default: $OXBIT_WORKSPACE or .)
 
 Options
   -p, --port <number>  Port to serve on (default: $PORT or ${DEFAULT_PORT})
@@ -99,7 +100,7 @@ export function parse(
       error: `Port must be a whole number between 0 and 65535, received "${requested}"`,
     };
   return {
-    target: positionals[0] ?? env.ZAPP_WORKSPACE ?? ".",
+    target: positionals[0] ?? setting("WORKSPACE", env) ?? ".",
     port,
     host: text(values.host) ?? env.HOST ?? DEFAULT_HOST,
     open: values["no-open"] !== true,
@@ -117,7 +118,7 @@ export function parse(
 }
 
 // A directory is the workspace. A file keeps the current directory as the workspace when it lives inside
-// it, so `zapp src/main.ts` from a checkout opens the checkout with that file focused.
+// it, so `oxbit src/main.ts` from a checkout opens the checkout with that file focused.
 export async function resolveTarget(
   target: string,
   cwd: string,
@@ -152,9 +153,9 @@ async function serve(
     port,
     host,
     dataDir,
-    pairingCode: env.ZAPP_PAIRING_CODE,
-    origins: env.ZAPP_ORIGINS?.split(",").filter(Boolean),
-    webRoot: env.ZAPP_WEB_ROOT,
+    pairingCode: setting("PAIRING_CODE", env),
+    origins: setting("ORIGINS", env)?.split(",").filter(Boolean),
+    webRoot: setting("WEB_ROOT", env),
   });
   const daemon: Daemon = {
     pid: process.pid,
@@ -167,7 +168,7 @@ async function serve(
   await writeRecord(dataDir, daemon);
   const url = launchUrl(daemon, target.file);
   process.stdout.write(
-    `Zapp runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nOpen: ${url}\n`,
+    `Oxbit runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nOpen: ${url}\n`,
   );
   if (invocation.open) launchBrowser(url);
   await new Promise<void>((resolve) => {
@@ -196,9 +197,10 @@ async function detach(
     args.push("--port", String(invocation.port));
   args.push(target.root);
   // The daemon takes its workspace and port from the arguments, so inherited settings cannot contradict them.
-  const env: Environment = { ...process.env, ZAPP_DATA_DIR: dataDir };
+  const env: Environment = { ...process.env, OXBIT_DATA_DIR: dataDir };
   delete env.PORT;
   delete env.HOST;
+  delete env.OXBIT_WORKSPACE;
   delete env.ZAPP_WORKSPACE;
   const child = spawn(process.execPath, args, {
     detached: true,

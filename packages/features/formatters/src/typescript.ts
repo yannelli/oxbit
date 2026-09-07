@@ -1,4 +1,4 @@
-import type { Formatter } from "@zapp/sdk";
+import type { Formatter } from "@oxbit/sdk";
 
 export const formatTypeScript: Formatter["format"] = async (
   text,

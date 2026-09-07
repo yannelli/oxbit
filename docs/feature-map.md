@@ -117,7 +117,7 @@ Menu and palette presentation uses `packages/workbench/src/catalog.json`. Each f
 | `sync.reconnect` | Reconnect | `packages/features/collaboration` |
 | `notifications.clear` | Clear All Notifications | `packages/workbench` |
 | `bundle.analyze` | Bundle Inspector: Analyze | `examples/bundle-inspector` |
-| `help.about` | About Zapp | `packages/workbench` |
+| `help.about` | About Oxbit | `packages/workbench` |
 
 ## Settings
 
@@ -144,7 +144,7 @@ Definitions and validation are owned by `packages/features/settings`. Consumers 
 | `files.autoSaveDelay` | 1000 | apps/web, packages/documents, packages/features/formatters |
 | `files.trimTrailingWhitespace` | true | apps/web, packages/documents, packages/features/formatters |
 | `editor.formatOnSave` | false | packages/features/formatters |
-| `editor.defaultFormatter` | zapp.prettier | packages/features/formatters |
+| `editor.defaultFormatter` | oxbit.prettier | packages/features/formatters |
 | `terminal.fontSize` | 12 | packages/features/terminal |
 | `terminal.scrollback` | 5000 | packages/features/terminal |
 | `terminal.confirmOnKill` | true | packages/features/terminal |

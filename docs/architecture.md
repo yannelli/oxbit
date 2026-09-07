@@ -1,6 +1,6 @@
 # Architecture
 
-Zapp runs a React 19 / CodeMirror 6 browser workbench and a Node 24 runtime. The production runtime serves the browser build and an authenticated WebSocket endpoint. Browser workspaces run without that connection and persist in IndexedDB.
+Oxbit runs a React 19 / CodeMirror 6 browser workbench and a Node 24 runtime. The production runtime serves the browser build and an authenticated WebSocket endpoint. Browser workspaces run without that connection and persist in IndexedDB.
 
 | Package | Owns |
 | --- | --- |

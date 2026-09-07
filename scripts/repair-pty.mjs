@@ -36,7 +36,7 @@ if (process.platform === "darwin") {
         { cause: error },
       );
     }
-    console.log(`[zapp] Repaired execute permissions: ${helper}`);
+    console.log(`[oxbit] Repaired execute permissions: ${helper}`);
   }
   if (!found) {
     throw new Error(

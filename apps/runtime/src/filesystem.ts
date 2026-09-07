@@ -8,8 +8,8 @@ import type {
   FileEntry,
   FileSnapshot,
   WriteOptions,
-} from "@zapp/sdk";
-import { RpcError } from "@zapp/protocol";
+} from "@oxbit/sdk";
+import { RpcError } from "@oxbit/protocol";
 
 export function revision(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -168,7 +168,7 @@ export class WorkspaceFiles {
     const entries = await fs.readdir(full, { withFileTypes: true });
     const result: FileEntry[] = [];
     for (const entry of entries) {
-      if (entry.name === ".git" || entry.name.startsWith(".zapp-tmp-"))
+      if (entry.name === ".git" || entry.name.startsWith(".oxbit-tmp-"))
         continue;
       const child = path.posix.join(relative, entry.name);
       try {
@@ -271,7 +271,7 @@ export class WorkspaceFiles {
         );
       const temporary = path.join(
         path.dirname(full),
-        `.zapp-tmp-${randomUUID()}`,
+        `.oxbit-tmp-${randomUUID()}`,
       );
       let mode = 0o644;
       try {

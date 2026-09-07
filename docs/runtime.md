@@ -4,7 +4,7 @@ The file explorer loads the workspace root and the immediate children of expande
 
 On macOS, dependency installation and the runtime's `build`, `dev`, and `start` scripts automatically repair missing execute permissions on `node-pty`'s `spawn-helper`. The build and launch checks also cover installs that skipped lifecycle scripts. Run `pnpm repair:pty` to repair an existing installation manually if terminals report `posix_spawnp failed.` The repair does nothing on other operating systems and leaves already executable helpers unchanged.
 
-`zapp [path]` starts a runtime for a workspace and opens the paired editor, `zapp --stop` ends it, and `zapp --status` reports it. See [the README](../README.md#quick-start) for the global install. `pnpm start` with `ZAPP_WORKSPACE=/absolute/workspace` serves the same runtime in the foreground under Node 24. The runtime serves the production browser app at `http://127.0.0.1:9277`, or a free port when that one is taken. The launch URL carries `#pair=<code>` and, for a named file, `&open=<path>`; both are consumed once and stripped from the address bar. Without the fragment the app starts in the browser sample workspace, and the printed owner pairing code can be entered in the connection dialog. `ZAPP_WATCH_POLLING=1` selects filesystem polling; watcher exhaustion (EMFILE/ENOSPC) switches to polling automatically before accepting requests. `PORT`, `HOST`, `ZAPP_DATA_DIR`, `ZAPP_PAIRING_CODE`, `ZAPP_WEB_ROOT` and comma-separated `ZAPP_ORIGINS` configure hosting; `--port` and `--host` override the first two. Each detached runtime records its pid, port and pairing code in `<data dir>/daemon.json` at mode 0600 and appends output to `<data dir>/daemon.log`; reuse needs both a live pid and a healthy reply, so a stale record cannot hand you an unrelated process. Vite development access requires `ZAPP_ORIGINS=http://localhost:9279,http://127.0.0.1:9279`. Bind to loopback by default; use a TLS reverse proxy when exposing the runtime to a network.
+`oxbit [path]` starts a runtime for a workspace and opens the paired editor, `oxbit --stop` ends it, and `oxbit --status` reports it. See [the README](../README.md#quick-start) for the global install. `pnpm start` with `OXBIT_WORKSPACE=/absolute/workspace` serves the same runtime in the foreground under Node 24. The runtime serves the production browser app at `http://127.0.0.1:9277`, or a free port when that one is taken. The launch URL carries `#pair=<code>` and, for a named file, `&open=<path>`; both are consumed once and stripped from the address bar. Without the fragment the app starts in the browser sample workspace, and the printed owner pairing code can be entered in the connection dialog. `OXBIT_WATCH_POLLING=1` selects filesystem polling; watcher exhaustion (EMFILE/ENOSPC) switches to polling automatically before accepting requests. `PORT`, `HOST`, `OXBIT_DATA_DIR`, `OXBIT_PAIRING_CODE`, `OXBIT_WEB_ROOT` and comma-separated `OXBIT_ORIGINS` configure hosting; `--port` and `--host` override the first two. Each detached runtime records its pid, port and pairing code in `<data dir>/daemon.json` at mode 0600 and appends output to `<data dir>/daemon.log`; reuse needs both a live pid and a healthy reply, so a stale record cannot hand you an unrelated process. Vite development access requires `OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279`. Bind to loopback by default; use a TLS reverse proxy when exposing the runtime to a network.
 
 `POST /api/pair` accepts `{code}` and returns a random session token with the current workspace capabilities and trust state. It also sets an HttpOnly, SameSite=Strict cookie. WebSocket `/ws` validates the exact Origin, caps frames at 2 MiB, and requires `auth.authenticate {token}` within 10 seconds. The cookie substitutes for an omitted token. Pairing attempts are bounded per address. Persisted session records contain token hashes.
 
@@ -39,3 +39,20 @@ Closing shared documents leaves their rooms and releases listeners. Disabling
 collaboration blocks stale shared saves; enabling it resynchronizes pending
 drafts before saving. Terminal lifecycle changes also reach the public SDK's
 event service.
+
+## Upgrading from Zapp
+
+The command is now `oxbit`, packages use `@oxbit/*`, and runtime variables use
+`OXBIT_*`. The old `ZAPP_*` variables remain fallbacks; an `OXBIT_*` value takes
+precedence. After updating, run `pnpm install` and `pnpm install:global` to rebuild
+and register the new command. An older global link can be removed with
+`npm uninstall -g zapp`.
+
+New runtime workspaces store their data in `~/.oxbit/workspaces/<id>`. If that
+workspace already exists under `~/.zapp`, Oxbit reuses it in place, including its
+daemon record, sessions, and collaboration data. Existing browser storage and
+recovery drafts are also reused. New workspace settings use
+`.oxbit/settings.json`; existing `.zapp/settings.json` files remain editable in
+place when no new settings file exists. Existing built-in formatter preferences
+are translated to their Oxbit identifiers. Restart an already running runtime
+after rebuilding to load the renamed app.

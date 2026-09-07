@@ -8,8 +8,8 @@ import {
   encodeAwarenessUpdate,
   removeAwarenessStates,
 } from "y-protocols/awareness";
-import type { Encoding, Eol } from "@zapp/sdk";
-import { RpcError } from "@zapp/protocol";
+import type { Encoding, Eol } from "@oxbit/sdk";
+import { RpcError } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { LanguageServer } from "./lsp.js";
 interface Room {

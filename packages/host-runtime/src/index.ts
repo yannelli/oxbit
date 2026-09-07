@@ -6,8 +6,8 @@ import type {
   WriteOptions,
   FileChange,
   Disposable,
-} from "@zapp/sdk";
-import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, operationMethods, type ServerMessage } from "@zapp/protocol";
+} from "@oxbit/sdk";
+import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, operationMethods, type ServerMessage } from "@oxbit/protocol";
 type Pending = {
   resolve: (v: any) => void;
   reject: (e: unknown) => void;
@@ -43,6 +43,7 @@ export class RuntimeClient implements RpcClient {
   ) {
     this.url = url.replace(/\/$/, "");
     this.token =
+      globalThis.sessionStorage?.getItem("oxbit.runtime.token:" + this.url) ??
       globalThis.sessionStorage?.getItem("zapp.runtime.token:" + this.url) ??
       undefined;
   }
@@ -50,7 +51,7 @@ export class RuntimeClient implements RpcClient {
     if (code.startsWith("grant:")) {
       this.token = code.slice(6);
       globalThis.sessionStorage?.setItem(
-        "zapp.runtime.token:" + this.url,
+        "oxbit.runtime.token:" + this.url,
         this.token,
       );
       await this.connect();
@@ -68,7 +69,7 @@ export class RuntimeClient implements RpcClient {
     this.session = data;
     this.token = data.token;
     globalThis.sessionStorage?.setItem(
-      "zapp.runtime.token:" + this.url,
+      "oxbit.runtime.token:" + this.url,
       data.token,
     );
     return data;

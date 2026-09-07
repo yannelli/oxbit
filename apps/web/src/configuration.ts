@@ -4,7 +4,7 @@ import type {
   Kernel,
   Persistence,
   RpcClient,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 interface Layers {
   user: Record<string, unknown>;
   workspace: Record<string, unknown>;
@@ -46,6 +46,10 @@ function toFile(value: WorkspaceLayers) {
   return JSON.stringify(result, null, 2) + "\n";
 }
 export class ScopedConfigurationPersistence implements Persistence {
+  private settingsDirectory = ".oxbit";
+  private get settingsPath() {
+    return `${this.settingsDirectory}/settings.json`;
+  }
   private revision: string | null = null;
   private lastText?: string;
   private pending?: Layers;
@@ -98,9 +102,21 @@ export class ScopedConfigurationPersistence implements Persistence {
     }
     if (this.runtime) {
       try {
-        const file = await this.runtime!.request<FileSnapshot>("fs.read", {
-          path: ".zapp/settings.json",
-        });
+        let file: FileSnapshot;
+        try {
+          file = await this.runtime.request<FileSnapshot>("fs.read", {
+            path: this.settingsPath,
+          });
+        } catch (error) {
+          if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(error)))
+            throw error;
+          file = await this.runtime.request<FileSnapshot>("fs.read", {
+            path: ".zapp/settings.json",
+          });
+          // Continue editing the existing file, preserving revision checks and
+          // pending offline changes instead of creating competing settings.
+          this.settingsDirectory = ".zapp";
+        }
         if (!pending || toFile(workspace) === toFile(fromFile(file.text))) {
           workspace = fromFile(file.text);
           this.revision = file.revision;
@@ -109,7 +125,7 @@ export class ScopedConfigurationPersistence implements Persistence {
           await this.storage.delete(this.key + ":pending");
         } else if (file.revision !== this.revision) {
           this.report(
-            "Workspace settings changed on disk. Local settings were recovered; resolve .zapp/settings.json before saving them.",
+            `Workspace settings changed on disk. Local settings were recovered; resolve ${this.settingsPath} before saving them.`,
           );
         }
       } catch (e) {
@@ -194,7 +210,7 @@ export class ScopedConfigurationPersistence implements Persistence {
       });
       this.watch = this.filesystem.watch((event) => {
         if (
-          event.path !== ".zapp/settings.json" ||
+          event.path !== this.settingsPath ||
           this.pending ||
           this.disposed
         )
@@ -214,7 +230,7 @@ export class ScopedConfigurationPersistence implements Persistence {
     let snapshot: FileSnapshot | undefined;
     try {
       snapshot = await this.runtime!.request<FileSnapshot>("fs.read", {
-        path: ".zapp/settings.json",
+        path: this.settingsPath,
       });
     } catch (error) {
       if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(error)))
@@ -235,7 +251,7 @@ export class ScopedConfigurationPersistence implements Persistence {
     let snapshot: FileSnapshot | undefined;
     try {
       snapshot = await this.runtime.request<FileSnapshot>("fs.read", {
-        path: ".zapp/settings.json",
+        path: this.settingsPath,
       });
     } catch (error) {
       if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(error)))
@@ -265,12 +281,12 @@ export class ScopedConfigurationPersistence implements Persistence {
       return;
     }
     try {
-      await this.runtime.request("fs.mkdir", { path: ".zapp" });
+      await this.runtime.request("fs.mkdir", { path: this.settingsDirectory });
     } catch (e) {
       if (!/EEXIST|already exists/i.test(String(e))) throw e;
     }
     const snapshot = await this.runtime.request<FileSnapshot>("fs.write", {
-      path: ".zapp/settings.json",
+      path: this.settingsPath,
       text,
       expectedRevision: this.revision,
       encoding: "utf-8",

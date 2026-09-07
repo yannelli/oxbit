@@ -1,4 +1,4 @@
-import type { FileEntry, FileSystem } from "@zapp/sdk";
+import type { FileEntry, FileSystem } from "@oxbit/sdk";
 
 // Full traversal is reserved for explicit operations such as search and export.
 // The explorer keeps its own shallow directory listings.

@@ -9,12 +9,28 @@ import type {
   HostAdapter,
   Persistence,
   WriteOptions,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 
 export class IndexedDBPersistence implements Persistence {
   private readonly database: Promise<IDBDatabase>;
-  constructor(databaseName = "zapp") {
-    this.database = new Promise((resolve, reject) => {
+  constructor(databaseName?: string) {
+    this.database = this.open(databaseName);
+  }
+  private async open(databaseName?: string): Promise<IDBDatabase> {
+    if (databaseName === undefined) {
+      // Keep existing workspaces and recovery drafts in place. Older browsers
+      // without database enumeration use the original storage namespace.
+      if (typeof indexedDB.databases !== "function") databaseName = "zapp";
+      else {
+        const databases = await indexedDB.databases();
+        databaseName = databases.some((db) => db.name === "oxbit")
+          ? "oxbit"
+          : databases.some((db) => db.name === "zapp")
+            ? "zapp"
+            : "oxbit";
+      }
+    }
+    return new Promise((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore("data");
@@ -214,6 +230,7 @@ export interface WorkspaceArchive {
   files: { path: string; text: string; encoding?: Encoding; eol?: Eol }[];
   directories?: string[];
 }
+// Storage coordination names stay stable so already-open tabs share locks and changes.
 const locks = new WeakMap<Persistence, Map<string, Promise<unknown>>>();
 
 export class BrowserFileSystem implements FileSystem {
@@ -849,7 +866,7 @@ export async function pickDirectory(
   if (!picker) return new BrowserFileSystem(persistence);
   const handle = await picker.call(window, {
     mode: "readwrite",
-    id: "zapp-workspace",
+    id: "oxbit-workspace",
   });
   const known =
     (await persistence.get<SavedDirectory[]>("directory:known")) ?? [];

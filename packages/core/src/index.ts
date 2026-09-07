@@ -16,7 +16,7 @@ import {
   type Persistence,
   type SaveHookContext,
   type Setting,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 
 type Listener = () => void;
 type Layer = Record<string, unknown>;
@@ -296,7 +296,15 @@ export function createKernel({
       const input = data as Partial<ConfigurationData>;
       const record = (value: unknown): Layer =>
         value && typeof value === "object" && !Array.isArray(value)
-          ? Object.fromEntries(Object.entries(value))
+          ? Object.fromEntries(
+              Object.entries(value).map(([key, entry]) => [
+                key,
+                key === "editor.defaultFormatter" &&
+                (entry === "zapp.prettier" || entry === "zapp.builtin-ts")
+                  ? entry.replace(/^zapp\./, "oxbit.")
+                  : entry,
+              ]),
+            )
           : {};
       configurationData = {
         user: record(input.user),

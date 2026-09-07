@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FeatureOptions } from "@zapp/sdk";
+import type { FeatureOptions } from "@oxbit/sdk";
 import { createKernel } from "../../../core/src/index";
 import { createFeature } from "./index";
 

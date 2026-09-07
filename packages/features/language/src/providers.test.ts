@@ -3,7 +3,7 @@ import type {
   FeatureOptions,
   LanguageTransport,
   ProviderCodeAction,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 import { createKernel } from "../../../core/src/index";
 import { DocumentService } from "../../../documents/src/index";
 import {

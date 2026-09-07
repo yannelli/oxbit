@@ -5,7 +5,7 @@ export const recentProjects = [
   { name: 'orbit-dash', path: '~/code/orbit-dash', branch: 'feat/telemetry-panel', opened: 'Today 12:04' },
   { name: 'paseo-embed', path: '~/code/paseo-embed', branch: 'main', opened: 'Yesterday' },
   { name: 'design-tokens', path: '~/code/design-tokens', branch: 'release/2.1', opened: '3 days ago' },
-  { name: 'zapp-plugins', path: '~/work/zapp-plugins', branch: 'main', opened: 'Aug 28' },
+  { name: 'oxbit-plugins', path: '~/work/oxbit-plugins', branch: 'main', opened: 'Aug 28' },
 ];
 
 const F = (lang, content, extra = {}) => ({ lang, content, ...extra });
@@ -832,8 +832,8 @@ export const outputChannels = {
   ],
   Extensions: [
     '[12:03:57] Activating 4 extensions',
-    '[12:03:57] zapp.themes-pack activated in 12 ms',
-    '[12:03:57] zapp.prettier activated in 48 ms',
+    '[12:03:57] oxbit.themes-pack activated in 12 ms',
+    '[12:03:57] oxbit.prettier activated in 48 ms',
     '[12:03:58] orbitlabs.bundle-inspector activated in 91 ms (contributes: panel, command, statusItem, documentView)',
   ],
   'Bundle Inspector': [
@@ -849,13 +849,13 @@ export const bundleChunks = [
 ];
 
 export const extensions = [
-  { id: 'zapp.themes-pack', name: 'Zapp Themes Pack', publisher: 'Zapp', version: '1.2.0', latest: '1.2.0', installed: true, enabled: true, builtin: true, description: 'Graphite and Paper themes plus four community palettes.', categories: ['Themes'], compat: '≥ 1.0.0', deps: [], permissions: ['Read workbench theme'], contributes: [{ kind: 'theme', name: 'Graphite' }, { kind: 'theme', name: 'Paper' }], installs: '1.2M', versions: ['1.2.0', '1.1.3', '1.0.0'] },
-  { id: 'zapp.prettier', name: 'Prettier', publisher: 'Zapp', version: '3.4.1', latest: '3.5.0', installed: true, enabled: true, description: 'Opinionated code formatter for TS, JS, CSS, JSON and Markdown.', categories: ['Formatters'], compat: '≥ 1.1.0', deps: [], permissions: ['Read and modify open documents'], contributes: [{ kind: 'formatter', name: 'prettier' }, { kind: 'command', name: 'Format Document with Prettier' }, { kind: 'setting', name: 'prettier.semi' }], settings: [{ id: 'prettier.semi', title: 'Semicolons', type: 'boolean', default: true }, { id: 'prettier.printWidth', title: 'Print width', type: 'number', default: 100 }], installs: '38.1M', versions: ['3.5.0', '3.4.1', '3.3.0'] },
-  { id: 'orbitlabs.bundle-inspector', name: 'Bundle Inspector', publisher: 'Orbit Labs', version: '0.9.2', latest: '0.9.2', installed: true, enabled: true, description: 'Visualise bundle chunks, sizes and module ownership after each build.', categories: ['Visualization'], compat: '≥ 1.2.0', deps: ['zapp.tasks-api'], permissions: ['Read build output', 'Run tasks', 'Show status bar item'], contributes: [{ kind: 'panel', name: 'Bundle Size' }, { kind: 'command', name: 'Bundle Inspector: Analyze' }, { kind: 'statusItem', name: 'bundle size' }, { kind: 'documentView', name: 'Bundle report (.bundle.json)' }], settings: [{ id: 'bundleInspector.budgetKb', title: 'Size budget (kB)', type: 'number', default: 250 }], installs: '12k', versions: ['0.9.2', '0.9.0'] },
-  { id: 'zapp.blame-lens', name: 'Blame Lens', publisher: 'Zapp', version: '2.0.4', latest: '2.0.4', installed: true, enabled: false, description: 'Inline git blame annotations and history hover.', categories: ['SCM'], compat: '≥ 1.0.0', deps: [], permissions: ['Read git history'], contributes: [{ kind: 'decoration', name: 'Blame annotations' }, { kind: 'command', name: 'Toggle Blame' }], installs: '4.4M', versions: ['2.0.4'] },
-  { id: 'tailwind.intellisense', name: 'Tailwind IntelliSense', publisher: 'Tailwind Labs', version: '0.14.2', latest: '0.14.2', installed: false, enabled: false, description: 'Class name completion, hover previews and linting for Tailwind CSS.', categories: ['Language'], compat: '≥ 1.1.0', deps: ['zapp.css-language'], permissions: ['Read open documents'], contributes: [{ kind: 'completion', name: 'Tailwind classes' }], installs: '9.8M', versions: ['0.14.2'] },
+  { id: 'oxbit.themes-pack', name: 'Oxbit Themes Pack', publisher: 'Oxbit', version: '1.2.0', latest: '1.2.0', installed: true, enabled: true, builtin: true, description: 'Graphite and Paper themes plus four community palettes.', categories: ['Themes'], compat: '≥ 1.0.0', deps: [], permissions: ['Read workbench theme'], contributes: [{ kind: 'theme', name: 'Graphite' }, { kind: 'theme', name: 'Paper' }], installs: '1.2M', versions: ['1.2.0', '1.1.3', '1.0.0'] },
+  { id: 'oxbit.prettier', name: 'Prettier', publisher: 'Oxbit', version: '3.4.1', latest: '3.5.0', installed: true, enabled: true, description: 'Opinionated code formatter for TS, JS, CSS, JSON and Markdown.', categories: ['Formatters'], compat: '≥ 1.1.0', deps: [], permissions: ['Read and modify open documents'], contributes: [{ kind: 'formatter', name: 'prettier' }, { kind: 'command', name: 'Format Document with Prettier' }, { kind: 'setting', name: 'prettier.semi' }], settings: [{ id: 'prettier.semi', title: 'Semicolons', type: 'boolean', default: true }, { id: 'prettier.printWidth', title: 'Print width', type: 'number', default: 100 }], installs: '38.1M', versions: ['3.5.0', '3.4.1', '3.3.0'] },
+  { id: 'orbitlabs.bundle-inspector', name: 'Bundle Inspector', publisher: 'Orbit Labs', version: '0.9.2', latest: '0.9.2', installed: true, enabled: true, description: 'Visualise bundle chunks, sizes and module ownership after each build.', categories: ['Visualization'], compat: '≥ 1.2.0', deps: ['oxbit.tasks-api'], permissions: ['Read build output', 'Run tasks', 'Show status bar item'], contributes: [{ kind: 'panel', name: 'Bundle Size' }, { kind: 'command', name: 'Bundle Inspector: Analyze' }, { kind: 'statusItem', name: 'bundle size' }, { kind: 'documentView', name: 'Bundle report (.bundle.json)' }], settings: [{ id: 'bundleInspector.budgetKb', title: 'Size budget (kB)', type: 'number', default: 250 }], installs: '12k', versions: ['0.9.2', '0.9.0'] },
+  { id: 'oxbit.blame-lens', name: 'Blame Lens', publisher: 'Oxbit', version: '2.0.4', latest: '2.0.4', installed: true, enabled: false, description: 'Inline git blame annotations and history hover.', categories: ['SCM'], compat: '≥ 1.0.0', deps: [], permissions: ['Read git history'], contributes: [{ kind: 'decoration', name: 'Blame annotations' }, { kind: 'command', name: 'Toggle Blame' }], installs: '4.4M', versions: ['2.0.4'] },
+  { id: 'tailwind.intellisense', name: 'Tailwind IntelliSense', publisher: 'Tailwind Labs', version: '0.14.2', latest: '0.14.2', installed: false, enabled: false, description: 'Class name completion, hover previews and linting for Tailwind CSS.', categories: ['Language'], compat: '≥ 1.1.0', deps: ['oxbit.css-language'], permissions: ['Read open documents'], contributes: [{ kind: 'completion', name: 'Tailwind classes' }], installs: '9.8M', versions: ['0.14.2'] },
   { id: 'community.markdown-toolkit', name: 'Markdown Toolkit', publisher: 'Community', version: '5.1.0', latest: '5.1.0', installed: false, enabled: false, description: 'Table of contents, table formatting and Mermaid preview.', categories: ['Preview'], compat: '≥ 1.0.0', deps: [], permissions: ['Read Markdown documents'], contributes: [{ kind: 'documentView', name: 'Mermaid preview' }, { kind: 'command', name: 'Insert Table of Contents' }], installs: '2.1M', versions: ['5.1.0'] },
-  { id: 'rust-lang.analyzer', name: 'rust-analyzer', publisher: 'rust-lang', version: '0.4.2110', latest: '0.4.2110', installed: false, enabled: false, incompatible: 'Requires Zapp ≥ 1.4.0 (you have 1.3.2)', description: 'Rust language support.', categories: ['Language'], compat: '≥ 1.4.0', deps: [], permissions: ['Run language server'], contributes: [{ kind: 'languageServer', name: 'rust-analyzer' }], installs: '6.2M', versions: ['0.4.2110'] },
+  { id: 'rust-lang.analyzer', name: 'rust-analyzer', publisher: 'rust-lang', version: '0.4.2110', latest: '0.4.2110', installed: false, enabled: false, incompatible: 'Requires Oxbit ≥ 1.4.0 (you have 1.3.2)', description: 'Rust language support.', categories: ['Language'], compat: '≥ 1.4.0', deps: [], permissions: ['Run language server'], contributes: [{ kind: 'languageServer', name: 'rust-analyzer' }], installs: '6.2M', versions: ['0.4.2110'] },
   { id: 'docker.docker', name: 'Docker', publisher: 'Docker Inc.', version: '1.29.0', latest: '1.29.0', installed: false, enabled: false, failsInstall: true, description: 'Manage containers, images and compose files.', categories: ['Tools'], compat: '≥ 1.0.0', deps: [], permissions: ['Run shell commands', 'Network access'], contributes: [{ kind: 'panel', name: 'Containers' }, { kind: 'command', name: 'Docker: Compose Up' }], installs: '31M', versions: ['1.29.0'] },
 ];
 
@@ -943,7 +943,7 @@ export const commands = [
   { id: 'sync.reconnect', title: 'Reconnect', cat: 'Collaboration', when: 'offline' },
   { id: 'notifications.clear', title: 'Clear All Notifications', cat: 'View', when: 'notifications' },
   { id: 'bundle.analyze', title: 'Bundle Inspector: Analyze', cat: 'Bundle Inspector', when: 'bundleExt', ext: 'orbitlabs.bundle-inspector' },
-  { id: 'help.about', title: 'About Zapp', cat: 'Help' },
+  { id: 'help.about', title: 'About Oxbit', cat: 'Help' },
 ];
 
 export const menus = {
@@ -975,7 +975,7 @@ export const settingsSchema = [
   { id: 'files.autoSaveDelay', cat: 'Files', title: 'Auto Save Delay', desc: 'Delay in milliseconds after which an editor is saved automatically. Applies when Auto Save is afterDelay.', type: 'number', default: 1000, min: 100, max: 60000 },
   { id: 'files.trimTrailingWhitespace', cat: 'Files', title: 'Trim Trailing Whitespace', desc: 'Remove trailing whitespace when saving.', type: 'boolean', default: true },
   { id: 'editor.formatOnSave', cat: 'Formatting', title: 'Format On Save', desc: 'Format a file on save. A formatter must be available.', type: 'boolean', default: false },
-  { id: 'editor.defaultFormatter', cat: 'Formatting', title: 'Default Formatter', desc: 'Formatter used when several are available.', type: 'enum', options: ['zapp.prettier', 'zapp.builtin-ts'], default: 'zapp.prettier' },
+  { id: 'editor.defaultFormatter', cat: 'Formatting', title: 'Default Formatter', desc: 'Formatter used when several are available.', type: 'enum', options: ['oxbit.prettier', 'oxbit.builtin-ts'], default: 'oxbit.prettier' },
   { id: 'terminal.fontSize', cat: 'Terminal', title: 'Terminal Font Size', desc: 'Font size in pixels for the terminal.', type: 'number', default: 12, min: 8, max: 32 },
   { id: 'terminal.scrollback', cat: 'Terminal', title: 'Scrollback', desc: 'Maximum number of lines kept in the terminal buffer.', type: 'number', default: 5000, min: 100, max: 100000 },
   { id: 'terminal.confirmOnKill', cat: 'Terminal', title: 'Confirm On Kill', desc: 'Ask before killing a terminal with a running process.', type: 'boolean', default: true },

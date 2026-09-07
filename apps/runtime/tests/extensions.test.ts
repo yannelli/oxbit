@@ -16,7 +16,7 @@ describe("trusted runtime extension host", () => {
       await fs.rm(root, { recursive: true, force: true });
   });
   async function setup() {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zapp-extension-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-extension-"));
     roots.push(root);
     const host = new RuntimeExtensions(new WorkspaceFiles(root));
     hosts.push(host);

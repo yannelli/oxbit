@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Persistence } from "@zapp/sdk";
+import type { Persistence } from "@oxbit/sdk";
 import {
   BrowserFileSystem,
   DirectoryFileSystem,

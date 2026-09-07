@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { workspaceDataDir } from "./runtime.js";
+import { setting, workspaceDataDir } from "./branding.js";
 
 export interface Daemon {
   pid: number;
@@ -14,8 +14,10 @@ export interface Daemon {
 }
 export type Environment = Record<string, string | undefined>;
 
-export const dataDirFor = (root: string, env: Environment = process.env) =>
-  env.ZAPP_DATA_DIR ? path.resolve(env.ZAPP_DATA_DIR) : workspaceDataDir(root);
+export const dataDirFor = (root: string, env: Environment = process.env) => {
+  const directory = setting("DATA_DIR", env);
+  return directory ? path.resolve(directory) : workspaceDataDir(root);
+};
 export const recordFile = (dataDir: string) =>
   path.join(dataDir, "daemon.json");
 export const logFile = (dataDir: string) => path.join(dataDir, "daemon.log");

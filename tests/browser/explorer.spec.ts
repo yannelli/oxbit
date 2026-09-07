@@ -5,9 +5,9 @@ test("explorer loads expanded folders, reveals search results, and exports colla
   page,
 }) => {
   await page.goto("/");
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     await z.filesystem.mkdir("lazy-fixture/child");
     await z.filesystem.mkdir("lazy-fixture/unopened");
     await z.filesystem.write("lazy-fixture/child/visible.txt", "opened", {
@@ -44,13 +44,13 @@ test("explorer loads expanded folders, reveals search results, and exports colla
   await file.click();
   await expect
     .poll(() =>
-      page.evaluate(() => (window as any).__zapp.workbench.activePath()),
+      page.evaluate(() => (window as any).__oxbit.workbench.activePath()),
     )
     .toBe("lazy-fixture/child/visible.txt");
   await folder.click();
   await expect(child).not.toBeVisible();
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     await z.workbench.refreshFiles(false);
     (window as any).__explorerLists = [];
     await z.filesystem.write("lazy-fixture/unopened/new.txt", "hidden", {
@@ -62,7 +62,7 @@ test("explorer loads expanded folders, reveals search results, and exports colla
 
   const download = page.waitForEvent("download");
   await page.evaluate(() =>
-    (window as any).__zapp.kernel.commands.execute("workspace.export"),
+    (window as any).__oxbit.kernel.commands.execute("workspace.export"),
   );
   const archive = JSON.parse(
     await readFile((await (await download).path())!, "utf8"),
@@ -75,7 +75,7 @@ test("explorer loads expanded folders, reveals search results, and exports colla
   );
 
   await page.evaluate(() =>
-    (window as any).__zapp.kernel.commands.execute("workbench.quickOpen"),
+    (window as any).__oxbit.kernel.commands.execute("workbench.quickOpen"),
   );
   await page.getByRole("combobox").fill("needle.txt");
   const result = page
@@ -90,7 +90,7 @@ test("explorer loads expanded folders, reveals search results, and exports colla
     page.locator('[role="treeitem"][title="lazy-fixture/unopened"]'),
   ).toHaveAttribute("aria-expanded", "true");
   await page.evaluate(() =>
-    (window as any).__zapp.kernel.commands.execute("file.move", {
+    (window as any).__oxbit.kernel.commands.execute("file.move", {
       from: "lazy-fixture/unopened",
       to: "lazy-fixture/renamed",
       confirmed: true,
@@ -100,15 +100,15 @@ test("explorer loads expanded folders, reveals search results, and exports colla
     page.locator('[role="treeitem"][title="lazy-fixture/renamed/needle.txt"]'),
   ).toBeVisible();
   await expect.poll(() => page.evaluate(() =>
-    (window as any).__zapp.workbench.activePath(),
+    (window as any).__oxbit.workbench.activePath(),
   )).toBe("lazy-fixture/renamed/needle.txt");
   await folder.click();
-  await page.evaluate(() => (window as any).__zapp.workbench.persist());
+  await page.evaluate(() => (window as any).__oxbit.workbench.persist());
   await page.reload();
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(folder).toHaveAttribute("aria-expanded", "false");
   expect(await page.evaluate(() =>
-    (window as any).__zapp.workbench.state.files.some((file: { path: string }) =>
+    (window as any).__oxbit.workbench.state.files.some((file: { path: string }) =>
       file.path.startsWith("lazy-fixture/"),
     ),
   )).toBe(false);

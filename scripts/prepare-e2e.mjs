@@ -2,7 +2,7 @@ import { mkdir, writeFile, readFile, mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-const root = await mkdtemp(path.join(os.tmpdir(), "zapp-e2e-"));
+const root = await mkdtemp(path.join(os.tmpdir(), "oxbit-e2e-"));
 const seed = JSON.parse(await readFile("apps/web/src/seed.json", "utf8"));
 for (const entry of Array.isArray(seed) ? seed : seed.files) {
   if (!entry.path || entry.text === undefined) continue;
@@ -41,8 +41,8 @@ await writeFile(
   }),
 );
 execFileSync("git", ["init", "-b", "main"], { cwd: root });
-execFileSync("git", ["config", "user.name", "Zapp Acceptance"], { cwd: root });
-execFileSync("git", ["config", "user.email", "acceptance@zapp.test"], {
+execFileSync("git", ["config", "user.name", "Oxbit Acceptance"], { cwd: root });
+execFileSync("git", ["config", "user.email", "acceptance@oxbit.test"], {
   cwd: root,
 });
 execFileSync("git", ["add", "."], { cwd: root });

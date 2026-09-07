@@ -1,6 +1,6 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
 export type Task = {
   id: string;
   command: string;
@@ -310,7 +310,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.tasks",
+      id: "oxbit.tasks",
       name: "Tasks and Output",
       version: "1.0.0",
       sdk: "^1.0.0",

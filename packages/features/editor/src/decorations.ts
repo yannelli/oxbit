@@ -1,4 +1,4 @@
-import type { EditorDecorationContribution, Kernel } from "@zapp/sdk";
+import type { EditorDecorationContribution, Kernel } from "@oxbit/sdk";
 import type { Extension } from "@codemirror/state";
 export function contributedDecorations(
   kernel: Kernel,

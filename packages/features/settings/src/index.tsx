@@ -1,11 +1,11 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Extension, Kernel, Setting } from "@zapp/sdk";
-import type { WorkbenchController } from "@zapp/workbench";
-import { Icon, IconButton, Dialog } from "@zapp/ui";
+import type { Extension, Kernel, Setting } from "@oxbit/sdk";
+import type { WorkbenchController } from "@oxbit/workbench";
+import { Icon, IconButton, Dialog } from "@oxbit/ui";
 import schema from "./schema.json";
 import { scopedSetting } from "./scopes.js";
-import { normalizeShortcut } from "@zapp/workbench";
+import { normalizeShortcut } from "@oxbit/workbench";
 export function Settings({
   kernel,
   workbench,
@@ -403,7 +403,7 @@ export function createFeature({
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.settings",
+      id: "oxbit.settings",
       name: "Settings",
       version: "1.0.0",
       sdk: "^1.0.0",
@@ -464,8 +464,8 @@ export function createFeature({
         if (format)
           format.enum = [
             ...new Set([
-              "zapp.prettier",
-              "zapp.builtin-ts",
+              "oxbit.prettier",
+              "oxbit.builtin-ts",
               ...kernel.contributions
                 .list("formatter")
                 .map((item) => (item.data as { id?: string })?.id || item.id),

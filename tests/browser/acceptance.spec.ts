@@ -6,38 +6,38 @@ import { mkdtemp } from "node:fs/promises";
 import { createRuntime } from "../../apps/runtime/src/runtime";
 const ready = async (page: Page) => {
   await page.goto("/");
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(page.locator(".cm-editor").first()).toBeVisible();
 };
 const runtime = async (page: Page) => {
   await ready(page);
   await page.evaluate(async () => {
-    await (window as any).__zapp.connectRuntime(
+    await (window as any).__oxbit.connectRuntime(
       location.origin,
-      "zapp-acceptance-2026",
+      "oxbit-acceptance-2026",
     );
-    await (window as any).__zapp.runtime.trust(true);
+    await (window as any).__oxbit.runtime.trust(true);
   });
   await page.waitForFunction(
     () =>
-      (window as any).__zapp?.ready === true &&
-      (window as any).__zapp.runtime?.connected,
+      (window as any).__oxbit?.ready === true &&
+      (window as any).__oxbit.runtime?.connected,
   );
 };
 const open = async (page: Page, path: string) => {
   await page.evaluate(async (path) => {
-    await (window as any).__zapp.workbench.openFile(path, { preview: false });
+    await (window as any).__oxbit.workbench.openFile(path, { preview: false });
   }, path);
   await page.waitForFunction(
     (path) =>
-      (window as any).__zapp.workbench.activePath() === path &&
-      !!(window as any).__zapp.workbench.activeEditor(),
+      (window as any).__oxbit.workbench.activePath() === path &&
+      !!(window as any).__oxbit.workbench.activeEditor(),
     path,
   );
 };
 const text = async (page: Page, path: string) =>
   page.evaluate(
-    (path) => (window as any).__zapp.documents.get(path)?.text.toString(),
+    (path) => (window as any).__oxbit.documents.get(path)?.text.toString(),
     path,
   );
 
@@ -47,30 +47,30 @@ test("browser workspace edits, saves, splits and recovers Unicode drafts and vie
   await ready(page);
   await open(page, "README.md");
   await page.evaluate(() => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.documents.get("README.md").replace("# Browser recovery\n漢字 🐱\n");
     z.workbench.split("row");
   });
   await expect(page.locator(".cm-editor")).toHaveCount(2);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     await z.documents.persist();
     await z.workbench.persist();
   });
   await page.reload();
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   expect(await text(page, "README.md")).toContain("漢字 🐱");
   await expect(page.locator(".cm-editor")).toHaveCount(2);
   await page.keyboard.press("Control+s");
   await expect
     .poll(() =>
       page.evaluate(
-        () => (window as any).__zapp.documents.get("README.md").dirty,
+        () => (window as any).__oxbit.documents.get("README.md").dirty,
       ),
     )
     .toBe(false);
   await page.reload();
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   expect(await text(page, "README.md")).toContain("漢字 🐱");
 });
 
@@ -80,7 +80,7 @@ test("localized settings persist and fit the phone viewport", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await ready(page);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.kernel.configuration.set("workbench.locale", "de");
     await z.kernel.commands.execute("settings.open");
   });
@@ -92,10 +92,10 @@ test("localized settings persist and fit the phone viewport", async ({
     ),
   ).toBe(true);
   await page.reload();
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(page.locator("html")).toHaveAttribute("lang", "de");
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.kernel.configuration.set("workbench.locale", "en");
     await z.kernel.commands.execute("settings.open");
   });
@@ -108,14 +108,14 @@ test("the printed pairing link opens the runtime workspace on first launch", asy
   const { root } = JSON.parse(
     await readFile("evidence/e2e-workspace.json", "utf8"),
   );
-  await page.goto("/#pair=zapp-acceptance-2026");
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(page.locator(".cm-editor").first()).toBeVisible();
   expect(
     await page.evaluate(() => ({
-      connected: !!(window as any).__zapp.runtime?.connected,
-      filesystem: (window as any).__zapp.filesystem.id,
-      projectName: (window as any).__zapp.workbench.state.projectName,
+      connected: !!(window as any).__oxbit.runtime?.connected,
+      filesystem: (window as any).__oxbit.filesystem.id,
+      projectName: (window as any).__oxbit.workbench.state.projectName,
       hash: location.hash,
     })),
   ).toEqual({
@@ -126,23 +126,23 @@ test("the printed pairing link opens the runtime workspace on first launch", asy
   });
   expect(
     await page.evaluate(async () =>
-      (await (window as any).__zapp.filesystem.list()).map(
+      (await (window as any).__oxbit.filesystem.list()).map(
         (entry: { path: string }) => entry.path,
       ),
     ),
   ).toContain("acceptance.ts");
 });
 
-test("the zapp command opens the named file in the runtime workspace", async ({
+test("the oxbit command opens the named file in the runtime workspace", async ({
   page,
 }) => {
-  await page.goto("/#pair=zapp-acceptance-2026&open=acceptance.ts");
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.goto("/#pair=oxbit-acceptance-2026&open=acceptance.ts");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(page.locator(".cm-editor").first()).toBeVisible();
   expect(
     await page.evaluate(() => ({
-      connected: !!(window as any).__zapp.runtime?.connected,
-      activePath: (window as any).__zapp.workbench.activePath(),
+      connected: !!(window as any).__oxbit.runtime?.connected,
+      activePath: (window as any).__oxbit.workbench.activePath(),
       hash: location.hash,
     })),
   ).toEqual({ connected: true, activePath: "acceptance.ts", hash: "" });
@@ -155,7 +155,7 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
   await runtime(page);
   await open(page, "acceptance.ts");
   await page.evaluate(() => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.documents
       .get("acceptance.ts")
       .replace('export const accepted = "runtime saved";\n');
@@ -164,7 +164,7 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
   await expect
     .poll(() =>
       page.evaluate(
-        () => (window as any).__zapp.documents.get("acceptance.ts").dirty,
+        () => (window as any).__oxbit.documents.get("acceptance.ts").dirty,
       ),
     )
     .toBe(false);
@@ -172,14 +172,14 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
     await page.evaluate(
       async () =>
         (
-          await (window as any).__zapp.runtime.request("fs.read", {
+          await (window as any).__oxbit.runtime.request("fs.read", {
             path: "acceptance.ts",
           })
         ).text,
     ),
   ).toContain("runtime saved");
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.documents
       .get("acceptance.ts")
       .replace('export const accepted = "recovery draft";\n');
@@ -188,7 +188,7 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
   });
   const failed = await page.evaluate(async () => {
     try {
-      await (window as any).__zapp.documents.save("acceptance.ts");
+      await (window as any).__oxbit.documents.save("acceptance.ts");
       return false;
     } catch {
       return true;
@@ -197,15 +197,15 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
   expect(failed).toBe(true);
   expect(await text(page, "acceptance.ts")).toContain("recovery draft");
   await page.evaluate(async () => {
-    await (window as any).__zapp.runtime.connect();
-    await (window as any).__zapp.kernel.services.get("collaboration").resync();
-    await (window as any).__zapp.documents.save("acceptance.ts");
+    await (window as any).__oxbit.runtime.connect();
+    await (window as any).__oxbit.kernel.services.get("collaboration").resync();
+    await (window as any).__oxbit.documents.save("acceptance.ts");
   });
   expect(
     await page.evaluate(
       async () =>
         (
-          await (window as any).__zapp.runtime.request("fs.read", {
+          await (window as any).__oxbit.runtime.request("fs.read", {
             path: "acceptance.ts",
           })
         ).text,
@@ -219,7 +219,7 @@ test("real language responses, diagnostics, rename edits and supported code acti
   await runtime(page);
   await open(page, "rename.ts");
   const result = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const language = z.kernel.services.get("language");
     await language.start();
     const doc = z.documents.get("rename.ts");
@@ -272,7 +272,7 @@ test("real language responses, diagnostics, rename edits and supported code acti
       () =>
         page.evaluate(
           () =>
-            (window as any).__zapp.kernel.services
+            (window as any).__oxbit.kernel.services
               .get("language")
               .diagnostics.get("diagnostics.ts") ?? [],
         ),
@@ -280,7 +280,7 @@ test("real language responses, diagnostics, rename edits and supported code acti
     )
     .toEqual(expect.arrayContaining([expect.objectContaining({ code: 2322 })]));
   await page.evaluate(async () => {
-    await (window as any).__zapp.kernel.services.get("language").restart();
+    await (window as any).__oxbit.kernel.services.get("language").restart();
   });
   expect(await text(page, "rename.ts")).toContain("afterName");
 });
@@ -290,7 +290,7 @@ test("workspace search previews replacements against unsaved versions", async ({
 }) => {
   await runtime(page);
   const result = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const doc = await z.documents.open("search-a.txt");
     doc.replace("alpha unsaved alpha\n");
     const service = z.kernel.services.get("search"),
@@ -318,12 +318,12 @@ test("real terminal, resize, task status and cancellation", async ({
 }) => {
   await runtime(page);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const s = await z.kernel.services.get("terminal").create();
     (window as any).__terminalId = s.id;
     await z.runtime.request("terminal.input", {
       id: s.id,
-      data: "printf 'ZAPP_TERMINAL_OK\\n'\r",
+      data: "printf 'OXBIT_TERMINAL_OK\\n'\r",
     });
     await z.runtime.request("terminal.resize", {
       id: s.id,
@@ -332,21 +332,21 @@ test("real terminal, resize, task status and cancellation", async ({
     });
     await z.kernel.services
       .get("tasks")
-      .run("printf 'acceptance.ts:1:1 ZAPP_TASK_OK\\n'");
+      .run("printf 'acceptance.ts:1:1 OXBIT_TASK_OK\\n'");
   });
   await expect
     .poll(() =>
       page.evaluate(
         () =>
-          (window as any).__zapp.kernel.services
+          (window as any).__oxbit.kernel.services
             .get("tasks")
             .tasks.values()
             .next().value?.output ?? "",
       ),
     )
-    .toContain("ZAPP_TASK_OK");
+    .toContain("OXBIT_TASK_OK");
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const id = await z.kernel.services
       .get("tasks")
       .run('node -e "setInterval(()=>{},1000)"');
@@ -357,7 +357,7 @@ test("real terminal, resize, task status and cancellation", async ({
       page.evaluate(
         () =>
           [
-            ...(window as any).__zapp.kernel.services
+            ...(window as any).__oxbit.kernel.services
               .get("tasks")
               .tasks.values(),
           ].at(-1)?.state,
@@ -365,14 +365,14 @@ test("real terminal, resize, task status and cancellation", async ({
     )
     .toBe("cancelled");
   const replay = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     return z.runtime.request("terminal.attach", {
       id: (window as any).__terminalId,
       afterSeq: 0,
     });
   });
   expect(replay.chunks.map((c: any) => c.data).join("")).toContain(
-    "ZAPP_TERMINAL_OK",
+    "OXBIT_TERMINAL_OK",
   );
 });
 
@@ -381,7 +381,7 @@ test("stage and commit actual Git changes without repeating a request", async ({
 }) => {
   await runtime(page);
   const result = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     await z.filesystem.write("commit-proof.txt", "real git commit\n", {
       expectedRevision: null,
     });
@@ -422,20 +422,20 @@ test("two independent browsers converge concurrent offline edits and keep per-us
     await runtime(right);
     await open(left, "collab.ts");
     await open(right, "collab.ts");
-    await right.evaluate(() => (window as any).__zapp.runtime.disconnect());
+    await right.evaluate(() => (window as any).__oxbit.runtime.disconnect());
     await Promise.all([
       left.evaluate(() => {
-        const d = (window as any).__zapp.documents.get("collab.ts");
+        const d = (window as any).__oxbit.documents.get("collab.ts");
         d.transact([{ from: 0, to: 0, insert: "// Alice\n" }]);
       }),
       right.evaluate(() => {
-        const d = (window as any).__zapp.documents.get("collab.ts");
+        const d = (window as any).__oxbit.documents.get("collab.ts");
         d.transact([{ from: 0, to: 0, insert: "// Bob\n" }]);
       }),
     ]);
     await right.evaluate(async () => {
-      await (window as any).__zapp.runtime.connect();
-      await (window as any).__zapp.kernel.services
+      await (window as any).__oxbit.runtime.connect();
+      await (window as any).__oxbit.kernel.services
         .get("collaboration")
         .resync();
     });
@@ -448,7 +448,7 @@ test("two independent browsers converge concurrent offline edits and keep per-us
     expect(await text(left, "collab.ts")).toContain("// Alice");
     expect(await text(left, "collab.ts")).toContain("// Bob");
     await right.evaluate(() =>
-      (window as any).__zapp.documents.get("collab.ts").undo.undo(),
+      (window as any).__oxbit.documents.get("collab.ts").undo.undo(),
     );
     await expect.poll(() => text(left, "collab.ts")).not.toContain("// Bob");
     expect(await text(left, "collab.ts")).toContain("// Alice");
@@ -465,7 +465,7 @@ test("external SDK extension lifecycle removes contributions and survives failed
 }) => {
   await ready(page);
   const result = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const existing = z.kernel.extensions
       .list()
       .find((e: any) => e.manifest.name === "Bundle Inspector");
@@ -547,7 +547,7 @@ test("both themes render at all four reference viewports with visual comparison 
       await page.setViewportSize({ width, height });
       await ready(page);
       await page.evaluate(async (theme) => {
-        const z = (window as any).__zapp;
+        const z = (window as any).__oxbit;
         z.kernel.configuration.set(
           "workbench.colorTheme",
           theme === "dark" ? "Graphite (dark)" : "Paper (light)",
@@ -622,7 +622,7 @@ test("Unicode, synthetic composition, multiple cursors and local paint latency",
   await ready(page);
   await open(page, "README.md");
   await page.evaluate(() => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.documents.get("README.md").replace("first\nsecond\n");
   });
   await page.waitForTimeout(100);
@@ -638,7 +638,7 @@ test("Unicode, synthetic composition, multiple cursors and local paint latency",
     .dispatchEvent("compositionend", { data: "漢字🙂" });
   expect(await text(page, "README.md")).toContain("漢字🙂");
   await page.evaluate(() => {
-    const view = (window as any).__zapp.workbench.activeEditor();
+    const view = (window as any).__oxbit.workbench.activeEditor();
     const selection = view.state.selection.constructor;
     view.dispatch({
       selection: selection.create([
@@ -650,7 +650,7 @@ test("Unicode, synthetic composition, multiple cursors and local paint latency",
   await page.keyboard.type("X");
   expect((await text(page, "README.md")).split("X")).toHaveLength(3);
   await page.evaluate(() => {
-    const view = (window as any).__zapp.workbench.activeEditor();
+    const view = (window as any).__oxbit.workbench.activeEditor();
     view.dispatch({ selection: { anchor: view.state.doc.length } });
     (window as any).__paints = [];
     window.addEventListener("keydown", () => {
@@ -674,7 +674,7 @@ test("Unicode, synthetic composition, multiple cursors and local paint latency",
   }
   const measurements = await page.evaluate(() =>
     performance
-      .getEntriesByName("zapp.file-switch")
+      .getEntriesByName("oxbit.file-switch")
       .map((e) => e.duration)
       .slice(-30),
   );
@@ -712,7 +712,7 @@ test("sustained editing and repeated switching keep document and extension state
   let rounds = 0;
   while (Date.now() - started < 120000) {
     await page.evaluate(async (n) => {
-      const z = (window as any).__zapp;
+      const z = (window as any).__oxbit;
       await z.workbench.openFile("README.md");
       const doc = z.documents.get("README.md");
       doc.replace("# Sustained session\n" + n + " 🐱\n");
@@ -722,10 +722,10 @@ test("sustained editing and repeated switching keep document and extension state
     await page.waitForTimeout(500);
   }
   await page.evaluate(async () => {
-    await (window as any).__zapp.documents.persist();
+    await (window as any).__oxbit.documents.persist();
   });
   await page.reload();
-  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   expect(await text(page, "README.md")).toContain("Sustained session");
   await writeFile(
     "evidence/sustained-session.json",
@@ -745,7 +745,7 @@ test("sustained editing and repeated switching keep document and extension state
 test("runtime process loss preserves browser drafts and reports lost PTYs", async ({
   page,
 }) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "zapp-browser-recovery-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "oxbit-browser-recovery-"));
   await writeFile(
     path.join(root, "recovery.ts"),
     'export const recovery = "initial";\n',
@@ -760,20 +760,20 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
   const url = "http://127.0.0.1:" + port;
   try {
     await page.goto(url);
-    await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+    await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
     await page.evaluate(async (url) => {
-      await (window as any).__zapp.connectRuntime(url, "recovery-pair");
-      await (window as any).__zapp.runtime.trust(true);
+      await (window as any).__oxbit.connectRuntime(url, "recovery-pair");
+      await (window as any).__oxbit.runtime.trust(true);
     }, url);
     await open(page, "recovery.ts");
     const sessionId = await page.evaluate(
       async () =>
-        (await (window as any).__zapp.kernel.services.get("terminal").create())
+        (await (window as any).__oxbit.kernel.services.get("terminal").create())
           .id,
     );
     await server.close();
     await page.evaluate(async () => {
-      const z = (window as any).__zapp;
+      const z = (window as any).__oxbit;
       z.documents
         .get("recovery.ts")
         .replace('export const recovery = "survived runtime loss";\n');
@@ -787,12 +787,12 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
     });
     await expect
       .poll(
-        () => page.evaluate(() => (window as any).__zapp.runtime.connected),
+        () => page.evaluate(() => (window as any).__oxbit.runtime.connected),
         { timeout: 30000 },
       )
       .toBe(true);
     await page.evaluate(async () => {
-      const z = (window as any).__zapp;
+      const z = (window as any).__oxbit;
       await z.kernel.services.get("collaboration").resync();
       await z.documents.save("recovery.ts");
     });
@@ -803,7 +803,7 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
       .poll(() =>
         page.evaluate(
           (id) =>
-            (window as any).__zapp.kernel.services
+            (window as any).__oxbit.kernel.services
               .get("terminal")
               .sessions.get(id)?.state,
           sessionId,
@@ -821,7 +821,7 @@ test("replacement preview groups files and keeps deselected files available", as
 }) => {
   await ready(page);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     await z.filesystem.write("preview-a.txt", "needle a", {
       expectedRevision: null,
     });
@@ -869,10 +869,10 @@ test("formatter workers obey language scope and Markdown preview opens beside it
   await ready(page);
   await open(page, "src/App.tsx");
   const result = await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.kernel.configuration.set(
       "editor.defaultFormatter",
-      "zapp.builtin-ts",
+      "oxbit.builtin-ts",
       "workspace",
       "tsx",
     );
@@ -883,7 +883,7 @@ test("formatter workers obey language scope and Markdown preview opens beside it
     const typescript = doc.text.toString();
     z.kernel.configuration.set(
       "editor.defaultFormatter",
-      "zapp.prettier",
+      "oxbit.prettier",
       "workspace",
       "tsx",
     );
@@ -894,7 +894,7 @@ test("formatter workers obey language scope and Markdown preview opens beside it
   expect(result.prettier).toContain("value: 1");
   await open(page, "README.md");
   await page.evaluate(async () =>
-    (window as any).__zapp.kernel.commands.execute("preview.markdownSide"),
+    (window as any).__oxbit.kernel.commands.execute("preview.markdownSide"),
   );
   await expect(
     page.getByRole("article", { name: "Markdown preview" }),
@@ -902,11 +902,11 @@ test("formatter workers obey language scope and Markdown preview opens beside it
   await expect(page.locator(".cm-editor")).toHaveCount(1);
   expect(
     await page.evaluate(
-      () => (window as any).__zapp.workbench.state.groups.length,
+      () => (window as any).__oxbit.workbench.state.groups.length,
     ),
   ).toBe(2);
   await page.evaluate(async () =>
-    (window as any).__zapp.kernel.extensions.disable("zapp.previews"),
+    (window as any).__oxbit.kernel.extensions.disable("oxbit.previews"),
   );
   await expect(
     page.getByRole("article", { name: "Markdown preview" }),
@@ -927,18 +927,18 @@ test("native browser directory handles retain identity, encoded saves and drafts
     const writable = await file.createWritable();
     await writable.write("native before");
     await writable.close();
-    await (window as any).__zapp.kernel.commands.execute("workspace.open");
+    await (window as any).__oxbit.kernel.commands.execute("workspace.open");
   });
   await page.getByRole("button", { name: /Open directory/ }).click();
   await page.waitForFunction(
     () =>
-      (window as any).__zapp?.ready &&
-      (window as any).__zapp.filesystem.id.startsWith("directory:"),
+      (window as any).__oxbit?.ready &&
+      (window as any).__oxbit.filesystem.id.startsWith("directory:"),
   );
-  const id = await page.evaluate(() => (window as any).__zapp.filesystem.id);
+  const id = await page.evaluate(() => (window as any).__oxbit.filesystem.id);
   await open(page, "native.txt");
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const doc = z.documents.get("native.txt");
     doc.replace("café");
     doc.encoding = "latin1";
@@ -955,8 +955,8 @@ test("native browser directory handles retain identity, encoded saves and drafts
   await page.evaluate(() => location.reload());
   await refreshed;
   expect(confirmedReload).toBe(true);
-  await page.waitForFunction(() => (window as any).__zapp?.ready);
-  expect(await page.evaluate(() => (window as any).__zapp.filesystem.id)).toBe(
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  expect(await page.evaluate(() => (window as any).__oxbit.filesystem.id)).toBe(
     id,
   );
   expect(await text(page, "native.txt")).toBe("café unsaved");
@@ -977,7 +977,7 @@ test("browser IME composition commits and cancels without duplicate text", async
   await ready(page);
   await open(page, "README.md");
   await page.evaluate(() =>
-    (window as any).__zapp.documents.get("README.md").replace(""),
+    (window as any).__oxbit.documents.get("README.md").replace(""),
   );
   await page.locator(".cm-content").focus();
   const cdp = await context.newCDPSession(page);
@@ -1052,7 +1052,7 @@ test("a contributed filesystem opens through the workspace UI and survives provi
 }) => {
   await ready(page);
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     const FileSystem = z.filesystem.constructor;
     const storage = z.kernel.services.get("persistence");
     const filesystem = new FileSystem(storage, "provider-proof");
@@ -1088,15 +1088,15 @@ test("a contributed filesystem opens through the workspace UI and survives provi
     .click();
   await page.waitForFunction(
     () =>
-      (window as any).__zapp?.ready &&
-      (window as any).__zapp.filesystem.id === "provider-proof",
+      (window as any).__oxbit?.ready &&
+      (window as any).__oxbit.filesystem.id === "provider-proof",
   );
   expect(
     await page.evaluate(() => (window as any).__providerSignal.aborted),
   ).toBe(true);
   await open(page, "provider.ts");
   await page.evaluate(async () => {
-    const z = (window as any).__zapp;
+    const z = (window as any).__oxbit;
     z.documents
       .get("provider.ts")
       .replace("export const provider = 'saved';\n");
@@ -1105,7 +1105,7 @@ test("a contributed filesystem opens through the workspace UI and survives provi
   expect(
     await page.evaluate(
       async () =>
-        (await (window as any).__zapp.filesystem.read("provider.ts")).text,
+        (await (window as any).__oxbit.filesystem.read("provider.ts")).text,
     ),
   ).toContain("'saved'");
 });

@@ -1,4 +1,4 @@
-import { translate as tr, setLocale } from "@zapp/ui";
+import { translate as tr, setLocale } from "@oxbit/ui";
 import { findWorkspaceFiles } from "./files.js";
 import {
   Component,
@@ -16,7 +16,7 @@ import {
   type Kernel,
   type Contribution,
   type RpcClient,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 import {
   Icon,
   IconButton,
@@ -24,7 +24,7 @@ import {
   EmptyState,
   Dialog,
   IconProvider,
-} from "@zapp/ui";
+} from "@oxbit/ui";
 import {
   WorkbenchController,
   type Group,
@@ -52,7 +52,7 @@ export function createWorkbenchFeature(
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.workbench",
+      id: "oxbit.workbench",
       name: "Workbench",
       version: "1.0.0",
       sdk: "^1.0.0",
@@ -107,9 +107,9 @@ export function createWorkbenchFeature(
       add("notifications.clear", "Clear All Notifications", () =>
         workbench.set({ notifications: [] }),
       );
-      add("help.about", "About Zapp", () =>
+      add("help.about", "About Oxbit", () =>
         workbench.ask(
-          tr("Zapp"),
+          tr("Oxbit"),
           tr("React 19 · CodeMirror 6 · Yjs · Public extension SDK 1.0.0") +
             "\nMIT · Ryan Yannelli <ryanyannelli@gmail.com> · https://github.com/yannelli · /LICENSE.txt",
           ["OK"],
@@ -452,7 +452,7 @@ export function Workbench({
             role="menubar"
             aria-label={tr("Application menu")}
           >
-            <div className="brand">Z</div>
+            <div className="brand">O</div>
             {mode === "desktop" &&
               Object.keys(catalog.menus).map((name) => (
                 <div className="menu-parent" key={name}>
@@ -915,8 +915,8 @@ export function Workbench({
         ) : (
           <div className="welcome">
             <div className="welcome-inner">
-              <div className="welcome-logo">Z</div>
-              <h1>Zapp</h1>
+              <div className="welcome-logo">O</div>
+              <h1>Oxbit</h1>
               <p className="muted">{t.noWorkspace}</p>
               <div className="welcome-columns">
                 <div>
@@ -1117,7 +1117,7 @@ function EditorGroup({
         aria-label={tr("Open editors")}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
-          const data = e.dataTransfer.getData("zapp/tab");
+          const data = e.dataTransfer.getData("oxbit/tab");
           if (data) {
             const d = JSON.parse(data);
             workbench.moveTab(d.group, d.id, group.id);
@@ -1133,7 +1133,7 @@ function EditorGroup({
               draggable
               onDragStart={(e) =>
                 e.dataTransfer.setData(
-                  "zapp/tab",
+                  "oxbit/tab",
                   JSON.stringify({ group: group.id, id: tab.id }),
                 )
               }
@@ -1344,7 +1344,7 @@ function EditorGroup({
         <DocumentView tab={current} group={group} workbench={workbench} />
       ) : (
         <div className="editor-empty">
-          <div className="editor-watermark">Z</div>
+          <div className="editor-watermark">O</div>
           {[
             ["Go to File", "Ctrl P", "workbench.quickOpen"],
             ["Show All Commands", "Ctrl Shift P", "workbench.showCommands"],
@@ -1579,7 +1579,7 @@ function DocumentView({
         <EmptyState title={tr("Text editor extension disabled")}>
           <button
             className="button"
-            onClick={() => void kernel.extensions.activate("zapp.editor")}
+            onClick={() => void kernel.extensions.activate("oxbit.editor")}
           >
             {tr("Enable editor")}
           </button>

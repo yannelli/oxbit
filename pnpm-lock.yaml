@@ -59,13 +59,13 @@ importers:
 
   apps/runtime:
     dependencies:
-      '@zapp/core':
+      '@oxbit/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@zapp/protocol':
+      '@oxbit/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       chokidar:
@@ -95,67 +95,67 @@ importers:
 
   apps/web:
     dependencies:
-      '@zapp/bundle-inspector':
+      '@oxbit/bundle-inspector':
         specifier: workspace:*
         version: link:../../examples/bundle-inspector
-      '@zapp/core':
+      '@oxbit/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../packages/documents
-      '@zapp/feature-collaboration':
+      '@oxbit/feature-collaboration':
         specifier: workspace:*
         version: link:../../packages/features/collaboration
-      '@zapp/feature-editor':
+      '@oxbit/feature-editor':
         specifier: workspace:*
         version: link:../../packages/features/editor
-      '@zapp/feature-explorer':
+      '@oxbit/feature-explorer':
         specifier: workspace:*
         version: link:../../packages/features/explorer
-      '@zapp/feature-extensions':
+      '@oxbit/feature-extensions':
         specifier: workspace:*
         version: link:../../packages/features/extensions
-      '@zapp/feature-formatters':
+      '@oxbit/feature-formatters':
         specifier: workspace:*
         version: link:../../packages/features/formatters
-      '@zapp/feature-git':
+      '@oxbit/feature-git':
         specifier: workspace:*
         version: link:../../packages/features/git
-      '@zapp/feature-language':
+      '@oxbit/feature-language':
         specifier: workspace:*
         version: link:../../packages/features/language
-      '@zapp/feature-previews':
+      '@oxbit/feature-previews':
         specifier: workspace:*
         version: link:../../packages/features/previews
-      '@zapp/feature-search':
+      '@oxbit/feature-search':
         specifier: workspace:*
         version: link:../../packages/features/search
-      '@zapp/feature-settings':
+      '@oxbit/feature-settings':
         specifier: workspace:*
         version: link:../../packages/features/settings
-      '@zapp/feature-tasks':
+      '@oxbit/feature-tasks':
         specifier: workspace:*
         version: link:../../packages/features/tasks
-      '@zapp/feature-terminal':
+      '@oxbit/feature-terminal':
         specifier: workspace:*
         version: link:../../packages/features/terminal
-      '@zapp/feature-themes':
+      '@oxbit/feature-themes':
         specifier: workspace:*
         version: link:../../packages/features/themes
-      '@zapp/host-browser':
+      '@oxbit/host-browser':
         specifier: workspace:*
         version: link:../../packages/host-browser
-      '@zapp/host-runtime':
+      '@oxbit/host-runtime':
         specifier: workspace:*
         version: link:../../packages/host-runtime
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@zapp/workbench':
+      '@oxbit/workbench':
         specifier: workspace:*
         version: link:../../packages/workbench
       i18next:
@@ -173,7 +173,7 @@ importers:
 
   examples/bundle-inspector:
     dependencies:
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       react:
@@ -185,7 +185,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
       semver:
@@ -194,7 +194,7 @@ importers:
 
   packages/documents:
     dependencies:
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
       y-protocols:
@@ -206,13 +206,13 @@ importers:
 
   packages/features/collaboration:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -269,16 +269,16 @@ importers:
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.3
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
-      '@zapp/workbench':
+      '@oxbit/workbench':
         specifier: workspace:*
         version: link:../../workbench
       react:
@@ -293,16 +293,16 @@ importers:
 
   packages/features/explorer:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
-      '@zapp/workbench':
+      '@oxbit/workbench':
         specifier: workspace:*
         version: link:../../workbench
       react:
@@ -314,16 +314,16 @@ importers:
 
   packages/features/extensions:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
-      '@zapp/workbench':
+      '@oxbit/workbench':
         specifier: workspace:*
         version: link:../../workbench
       react:
@@ -335,13 +335,13 @@ importers:
 
   packages/features/formatters:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       prettier:
@@ -359,13 +359,13 @@ importers:
 
   packages/features/git:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -398,13 +398,13 @@ importers:
       '@codemirror/view':
         specifier: 6.43.6
         version: 6.43.6
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -416,13 +416,13 @@ importers:
 
   packages/features/previews:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       dompurify:
@@ -443,13 +443,13 @@ importers:
 
   packages/features/search:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -461,16 +461,16 @@ importers:
 
   packages/features/settings:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
-      '@zapp/workbench':
+      '@oxbit/workbench':
         specifier: workspace:*
         version: link:../../workbench
       react:
@@ -482,13 +482,13 @@ importers:
 
   packages/features/tasks:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -527,13 +527,13 @@ importers:
       '@xterm/xterm':
         specifier: ^6.1.0-beta.213
         version: 6.1.0-beta.304
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -545,13 +545,13 @@ importers:
 
   packages/features/themes:
     dependencies:
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../../ui
       react:
@@ -563,16 +563,16 @@ importers:
 
   packages/host-browser:
     dependencies:
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
 
   packages/host-runtime:
     dependencies:
-      '@zapp/protocol':
+      '@oxbit/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
 
@@ -589,7 +589,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
       react:
@@ -622,22 +622,22 @@ importers:
       '@codemirror/view':
         specifier: 6.43.6
         version: 6.43.6
-      '@zapp/core':
+      '@oxbit/core':
         specifier: workspace:*
         version: link:../core
-      '@zapp/documents':
+      '@oxbit/documents':
         specifier: workspace:*
         version: link:../documents
-      '@zapp/host-browser':
+      '@oxbit/host-browser':
         specifier: workspace:*
         version: link:../host-browser
-      '@zapp/host-runtime':
+      '@oxbit/host-runtime':
         specifier: workspace:*
         version: link:../host-runtime
-      '@zapp/sdk':
+      '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk
-      '@zapp/ui':
+      '@oxbit/ui':
         specifier: workspace:*
         version: link:../ui
       i18next:

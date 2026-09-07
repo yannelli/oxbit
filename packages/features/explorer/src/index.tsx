@@ -1,9 +1,9 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { FileBadge, Icon, IconButton } from "@zapp/ui";
-import type { WorkbenchController } from "@zapp/workbench";
-import type { Extension, FileEntry, FileSystem, Kernel } from "@zapp/sdk";
-import type { DocumentService } from "@zapp/documents";
+import { FileBadge, Icon, IconButton } from "@oxbit/ui";
+import type { WorkbenchController } from "@oxbit/workbench";
+import type { Extension, FileEntry, FileSystem, Kernel } from "@oxbit/sdk";
+import type { DocumentService } from "@oxbit/documents";
 export function Explorer({
   workbench,
   documents,
@@ -179,7 +179,7 @@ export function Explorer({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             if (e.target !== e.currentTarget) return;
-            const from = e.dataTransfer.getData("zapp/file");
+            const from = e.dataTransfer.getData("oxbit/file");
             if (from)
               void workbench.run("file.move", {
                 from,
@@ -233,13 +233,13 @@ export function Explorer({
                   menu(e, entry.path);
                 }}
                 onDragStart={(e) =>
-                  e.dataTransfer.setData("zapp/file", entry.path)
+                  e.dataTransfer.setData("oxbit/file", entry.path)
                 }
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const from = e.dataTransfer.getData("zapp/file");
+                  const from = e.dataTransfer.getData("oxbit/file");
                   const dir =
                     entry.kind === "directory"
                       ? entry.path
@@ -383,7 +383,7 @@ export function createFeature({
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.explorer",
+      id: "oxbit.explorer",
       name: "File Explorer",
       version: "1.0.0",
       sdk: "^1.0.0",
