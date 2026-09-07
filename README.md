@@ -1,4 +1,4 @@
-# Oxbit
+![Oxbit: A code editor in your browser.](apps/web/public/brand/oxbit-github-banner.png)
 
 A web code editor built with React 19 and CodeMirror 6. Use a browser workspace
 on its own, or connect the Node runtime for real files, TypeScript language

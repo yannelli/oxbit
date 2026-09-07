@@ -452,7 +452,9 @@ export function Workbench({
             role="menubar"
             aria-label={tr("Application menu")}
           >
-            <div className="brand">O</div>
+            <div className="brand" role="img" aria-label="Oxbit">
+              <span className="oxbit-mark" aria-hidden="true" />
+            </div>
             {mode === "desktop" &&
               Object.keys(catalog.menus).map((name) => (
                 <div className="menu-parent" key={name}>
@@ -915,7 +917,9 @@ export function Workbench({
         ) : (
           <div className="welcome">
             <div className="welcome-inner">
-              <div className="welcome-logo">O</div>
+              <div className="welcome-logo" role="img" aria-label="Oxbit">
+                <span className="oxbit-mark" aria-hidden="true" />
+              </div>
               <h1>Oxbit</h1>
               <p className="muted">{t.noWorkspace}</p>
               <div className="welcome-columns">
