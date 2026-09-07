@@ -58,6 +58,37 @@ const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();
 const browserFilesystem = new BrowserFileSystem(persistence, "browser");
+// The runtime prints its URL with the owner pairing code in the fragment. Consume the code once so a
+// reload does not mint a second owner session, and so it stops trailing the address bar.
+function takePairingCode() {
+  const code = new URLSearchParams(location.hash.replace(/^#/, "")).get("pair");
+  if (code) history.replaceState(null, "", location.pathname + location.search);
+  return code || undefined;
+}
+async function openRuntime(url: string, pairingCode?: string) {
+  const existing = new RuntimeClient(url);
+  try {
+    // Sessions outlive a runtime restart, so reuse one before spending the code on a duplicate grant.
+    // A restricted grant already held by this tab must not shadow an owner pairing code.
+    await existing.connect();
+    if (!pairingCode || existing.session?.owner) return existing;
+  } catch (error) {
+    if (!pairingCode) {
+      existing.dispose();
+      throw error;
+    }
+  }
+  existing.dispose();
+  const paired = new RuntimeClient(url);
+  try {
+    await paired.pair(pairingCode);
+    await paired.connect();
+    return paired;
+  } catch (error) {
+    paired.dispose();
+    throw error;
+  }
+}
 function boot(
   filesystem: FileSystem,
   runtime?: RuntimeClient,
@@ -205,7 +236,7 @@ async function openSession(
     const sampleWorkspace = filesystem.id === "browser";
     workbench.set({
       projectName: runtime
-        ? "Runtime workspace"
+        ? (runtime.session?.workspaceName ?? "Runtime workspace")
         : sampleWorkspace
           ? "orbit-dash"
           : "Directory workspace",
@@ -438,27 +469,39 @@ function App() {
   useEffect(() => {
     let stopped = false;
     const start = async () => {
-      if (!(await browserFilesystem.list()).length)
-        await browserFilesystem.import(seed);
-      const saved = await persistence.get<any>("last-host");
+      const pairingCode = takePairingCode();
+      let saved = await persistence.get<any>("last-host");
       let runtime: RuntimeClient | undefined;
-      if (saved?.url) {
-        runtime = new RuntimeClient(saved.url);
+      let pairingError = "";
+      if (pairingCode || saved?.url)
         try {
-          await runtime.connect();
-        } catch {
-          runtime.dispose();
-          runtime = undefined;
+          runtime = await openRuntime(
+            pairingCode ? location.origin : saved.url,
+            pairingCode,
+          );
+          if (pairingCode) {
+            saved = { url: runtime.url };
+            await persistence.set("last-host", saved);
+          }
+        } catch (failure) {
+          if (pairingCode) pairingError = String(failure);
         }
-      }
       const directory =
         saved === "directory" ? await restoreDirectory(persistence) : undefined;
-      let next = await boot(
-        runtime
-          ? new RuntimeFileSystem(runtime)
-          : (directory ?? browserFilesystem),
-        runtime,
-      );
+      const filesystem = runtime
+        ? new RuntimeFileSystem(runtime)
+        : (directory ?? browserFilesystem);
+      if (
+        filesystem === browserFilesystem &&
+        !(await browserFilesystem.list()).length
+      )
+        await browserFilesystem.import(seed);
+      let next = await boot(filesystem, runtime);
+      if (pairingError)
+        next.workbench.notify(
+          tr("Runtime pairing failed: {0}", { 0: pairingError }),
+          "error",
+        );
       if (saved === "directory" && !directory)
         next.workbench.notify(
           tr(
