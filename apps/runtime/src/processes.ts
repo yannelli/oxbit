@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import * as pty from "node-pty";
 import { RpcError, MAX_BUFFER_BYTES } from "@oxbit/protocol";
+import { resolveTerminalShell } from "./terminal-shell.js";
 
 export interface Chunk {
   seq: number;
@@ -135,15 +136,13 @@ export class Processes {
     )
       throw new RpcError("LIMIT", "Maximum 16 terminal sessions");
     const id = randomUUID(),
-      shell =
-        process.env.SHELL ||
-        (process.platform === "win32" ? "powershell.exe" : "/bin/bash");
-    const terminal = pty.spawn(shell, [], {
+      { shell, args } = resolveTerminalShell();
+    const terminal = pty.spawn(shell, args, {
       name: "xterm-256color",
       cols: this.dimension(cols, 1000),
       rows: this.dimension(rows, 500),
       cwd: this.root,
-      env: { ...process.env, TERM: "xterm-256color" },
+      env: { ...process.env, SHELL: shell, TERM: "xterm-256color" },
     });
     const session: Terminal = {
       id,
