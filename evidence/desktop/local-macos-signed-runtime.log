@@ -1,0 +1,19 @@
+{
+  "platform": "darwin-arm64",
+  "result": "passed",
+  "checks": [
+    "private readiness",
+    "minimal environment",
+    "read-only resources",
+    "spaces and Unicode",
+    "authentication",
+    "origin rejection",
+    "workspace trust",
+    "filesystem",
+    "bundled ripgrep",
+    "real PTY resize/output",
+    "bundled TypeScript completion",
+    "parent-loss cleanup",
+    "restart identity"
+  ]
+}

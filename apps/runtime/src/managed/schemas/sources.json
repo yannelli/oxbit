@@ -1,0 +1,8 @@
+[
+  {
+    "file": "cargo.json",
+    "source": "https://raw.githubusercontent.com/SchemaStore/schemastore/cd8aa06c45eacd397835176606512d3401cd1a9f/src/schemas/json/cargo.json",
+    "sha256": "6ace70b50909ab2e0b8a37157844c7cbd64e8242629d83daff38928b623c2dcc",
+    "license": "Apache-2.0"
+  }
+]

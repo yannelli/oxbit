@@ -1,0 +1,360 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.binx",
+  "name": "Binx",
+  "version": "1.0.0",
+  "themes": [
+    {
+      "id": "binx",
+      "name": "Binx",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#000000",
+        "surface.background": "#0a0a0a",
+        "editor.background": "#050505",
+        "popover.background": "#171717",
+        "input.background": "#0a0a0a",
+        "control.hover.background": "#ffffff0f",
+        "control.active.background": "#ffffff1a",
+        "list.selection.background": "#ffffff1f",
+        "border.default": "#292929",
+        "border.strong": "#525252",
+        "text.primary": "#ededed",
+        "text.secondary": "#bdbdbd",
+        "text.muted": "#949494",
+        "text.disabled": "#626262",
+        "accent.primary": "#fafafa",
+        "accent.foreground": "#0a0a0a",
+        "accent.background": "#ffffff1f",
+        "focus.border": "#70b8ff",
+        "diagnostic.error": "#ff8a8a",
+        "diagnostic.warning": "#f5c76d",
+        "diagnostic.info": "#70b8ff",
+        "diagnostic.success": "#8bd6a0",
+        "git.modified": "#f5c76d",
+        "git.added": "#8bd6a0",
+        "git.deleted": "#ff8a8a",
+        "git.conflict": "#f6ab7b",
+        "diagnostic.error.background": "#ff8a8a24",
+        "diagnostic.warning.background": "#f5c76d24",
+        "diff.added.background": "#8bd6a024",
+        "diff.deleted.background": "#ff8a8a24",
+        "diagnostic.info.background": "#70b8ff24",
+        "editor.activeLine.background": "#ffffff09",
+        "editor.search.background": "#f5c76d33",
+        "editor.search.activeBackground": "#f5c76d59",
+        "editor.occurrence.background": "#ffffff14",
+        "selection.background": "#70b8ff3d",
+        "editor.guide": "#242424",
+        "overlay.background": "#000000b3"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#c5a3ff"
+        },
+        "string": {
+          "foreground": "#a8d8a0"
+        },
+        "number": {
+          "foreground": "#f5c76d"
+        },
+        "comment": {
+          "foreground": "#949494"
+        },
+        "type": {
+          "foreground": "#8bd5ca"
+        },
+        "function": {
+          "foreground": "#70b8ff"
+        },
+        "property": {
+          "foreground": "#d4d4d4"
+        },
+        "variable": {
+          "foreground": "#ededed"
+        },
+        "ident": {
+          "foreground": "#ededed"
+        },
+        "text": {
+          "foreground": "#ededed"
+        },
+        "tag": {
+          "foreground": "#ff9b9b"
+        },
+        "attr": {
+          "foreground": "#f5c76d"
+        },
+        "punct": {
+          "foreground": "#a3a3a3"
+        },
+        "operator": {
+          "foreground": "#bdbdbd"
+        },
+        "heading": {
+          "foreground": "#fafafa"
+        },
+        "link": {
+          "foreground": "#70b8ff"
+        },
+        "strong": {
+          "foreground": "#fafafa"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#000000a6"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000080"
+          }
+        ]
+      }
+    },
+    {
+      "id": "binx-moon",
+      "name": "Binx Moon",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#17181c",
+        "surface.background": "#1e1f24",
+        "editor.background": "#222329",
+        "popover.background": "#2b2d35",
+        "input.background": "#1a1b20",
+        "control.hover.background": "#ebedf50f",
+        "control.active.background": "#ebedf51a",
+        "list.selection.background": "#bfc7f526",
+        "border.default": "#3a3c46",
+        "border.strong": "#606472",
+        "text.primary": "#eceef4",
+        "text.secondary": "#c3c6d2",
+        "text.muted": "#a1a6b5",
+        "text.disabled": "#6b7080",
+        "accent.primary": "#c4cdf5",
+        "accent.foreground": "#17181c",
+        "accent.background": "#c4cdf526",
+        "focus.border": "#c4cdf5",
+        "diagnostic.error": "#f29b9f",
+        "diagnostic.warning": "#e6c58b",
+        "diagnostic.info": "#a1c4ef",
+        "diagnostic.success": "#a6d1ae",
+        "git.modified": "#e6c58b",
+        "git.added": "#a6d1ae",
+        "git.deleted": "#f29b9f",
+        "git.conflict": "#eeb596",
+        "diagnostic.error.background": "#f29b9f24",
+        "diagnostic.warning.background": "#e6c58b24",
+        "diff.added.background": "#a6d1ae24",
+        "diff.deleted.background": "#f29b9f24",
+        "diagnostic.info.background": "#a1c4ef24",
+        "editor.activeLine.background": "#ebedf509",
+        "editor.search.background": "#e6c58b33",
+        "editor.search.activeBackground": "#e6c58b59",
+        "editor.occurrence.background": "#ebedf514",
+        "selection.background": "#a1b4ef40",
+        "editor.guide": "#353741",
+        "overlay.background": "#0c0d1199"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#cbb2e8"
+        },
+        "string": {
+          "foreground": "#a6d1ae"
+        },
+        "number": {
+          "foreground": "#e6c58b"
+        },
+        "comment": {
+          "foreground": "#a1a6b5"
+        },
+        "type": {
+          "foreground": "#a2d4d0"
+        },
+        "function": {
+          "foreground": "#a1c4ef"
+        },
+        "property": {
+          "foreground": "#cfd2df"
+        },
+        "variable": {
+          "foreground": "#eceef4"
+        },
+        "ident": {
+          "foreground": "#eceef4"
+        },
+        "text": {
+          "foreground": "#eceef4"
+        },
+        "tag": {
+          "foreground": "#f0adb9"
+        },
+        "attr": {
+          "foreground": "#e6c58b"
+        },
+        "punct": {
+          "foreground": "#a1a6b5"
+        },
+        "operator": {
+          "foreground": "#c3c6d2"
+        },
+        "heading": {
+          "foreground": "#c4cdf5"
+        },
+        "link": {
+          "foreground": "#a1c4ef"
+        },
+        "strong": {
+          "foreground": "#eceef4"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000073"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000059"
+          }
+        ]
+      }
+    },
+    {
+      "id": "binx-midnight",
+      "name": "Binx Midnight",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#242933",
+        "surface.background": "#2b313d",
+        "editor.background": "#2e3440",
+        "popover.background": "#3b4252",
+        "input.background": "#272d38",
+        "control.hover.background": "#eceff40f",
+        "control.active.background": "#eceff41a",
+        "list.selection.background": "#88c0d029",
+        "border.default": "#434c5e",
+        "border.strong": "#69788f",
+        "text.primary": "#eceff4",
+        "text.secondary": "#d8dee9",
+        "text.muted": "#adb9cc",
+        "text.disabled": "#76849b",
+        "accent.primary": "#88c0d0",
+        "accent.foreground": "#242933",
+        "accent.background": "#88c0d029",
+        "focus.border": "#8fbcbb",
+        "diagnostic.error": "#e79ba5",
+        "diagnostic.warning": "#ebcb8b",
+        "diagnostic.info": "#a3c1e6",
+        "diagnostic.success": "#a3be8c",
+        "git.modified": "#ebcb8b",
+        "git.added": "#a3be8c",
+        "git.deleted": "#e79ba5",
+        "git.conflict": "#dca78e",
+        "diagnostic.error.background": "#e79ba524",
+        "diagnostic.warning.background": "#ebcb8b24",
+        "diff.added.background": "#a3be8c24",
+        "diff.deleted.background": "#e79ba524",
+        "diagnostic.info.background": "#a3c1e624",
+        "editor.activeLine.background": "#eceff409",
+        "editor.search.background": "#ebcb8b33",
+        "editor.search.activeBackground": "#ebcb8b59",
+        "editor.occurrence.background": "#eceff414",
+        "selection.background": "#88c0d03d",
+        "editor.guide": "#434c5e",
+        "overlay.background": "#12172099"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#a3c1e6"
+        },
+        "string": {
+          "foreground": "#a3be8c"
+        },
+        "number": {
+          "foreground": "#c9a7c5"
+        },
+        "comment": {
+          "foreground": "#adb9cc"
+        },
+        "type": {
+          "foreground": "#8fbcbb"
+        },
+        "function": {
+          "foreground": "#88c0d0"
+        },
+        "property": {
+          "foreground": "#d8dee9"
+        },
+        "variable": {
+          "foreground": "#eceff4"
+        },
+        "ident": {
+          "foreground": "#eceff4"
+        },
+        "text": {
+          "foreground": "#eceff4"
+        },
+        "tag": {
+          "foreground": "#a3c1e6"
+        },
+        "attr": {
+          "foreground": "#8fbcbb"
+        },
+        "punct": {
+          "foreground": "#adb9cc"
+        },
+        "operator": {
+          "foreground": "#a3c1e6"
+        },
+        "heading": {
+          "foreground": "#88c0d0"
+        },
+        "link": {
+          "foreground": "#8fbcbb"
+        },
+        "strong": {
+          "foreground": "#eceff4"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#0f141d80"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#0f141d66"
+          }
+        ]
+      }
+    }
+  ]
+}

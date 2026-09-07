@@ -1,3 +1,15 @@
+import { javascript as streamJavaScript, typescript as streamTypeScript, json as streamJson } from "@codemirror/legacy-modes/mode/javascript";
+import { xml as streamXml, html as streamHtml } from "@codemirror/legacy-modes/mode/xml";
+import { typographyCSS } from "@oxbit/themes";
+import { languageForKernel, resolveLanguage } from "@oxbit/sdk";
+import { php } from "@codemirror/lang-php";
+import { vue } from "@codemirror/lang-vue";
+import { xml } from "@codemirror/lang-xml";
+import { StreamLanguage } from "@codemirror/language";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { toml } from "@codemirror/legacy-modes/mode/toml";
+import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import { localSyntax, astroSyntax } from "./local-syntax.js";
 import { translate as tr, getPhrases } from "@oxbit/ui";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -66,22 +78,33 @@ import {
   LARGE_DOCUMENT_LENGTH,
   detectedIndentation,
 } from "./view-state.js";
-import type { WorkbenchController } from "@oxbit/workbench";
+import { themeMode, themeTypography, type WorkbenchController } from "@oxbit/workbench";
 const syntax = HighlightStyle.define([
-  { tag: tags.keyword, color: "var(--tok-keyword)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "var(--tok-string)" },
-  { tag: tags.number, color: "var(--tok-number)" },
-  { tag: tags.comment, color: "var(--tok-comment)" },
-  { tag: [tags.typeName, tags.className], color: "var(--tok-type)" },
-  { tag: tags.function(tags.variableName), color: "var(--tok-function)" },
-  { tag: tags.propertyName, color: "var(--tok-property)" },
-  { tag: tags.tagName, color: "var(--tok-tag)" },
-  { tag: tags.attributeName, color: "var(--tok-attr)" },
-  { tag: tags.punctuation, color: "var(--tok-punct)" },
-  { tag: tags.operator, color: "var(--tok-operator)" },
-  { tag: tags.heading, color: "var(--tok-heading)", fontWeight: "bold" },
-  { tag: tags.link, color: "var(--tok-link)" },
+  { tag: tags.variableName, color: "var(--tok-variable)", backgroundColor: "var(--tok-variable-background)", fontWeight: "var(--tok-variable-weight)", fontStyle: "var(--tok-variable-style)", textDecoration: "var(--tok-variable-decoration)" },
+  { tag: tags.name, color: "var(--tok-ident)", backgroundColor: "var(--tok-ident-background)", fontWeight: "var(--tok-ident-weight)", fontStyle: "var(--tok-ident-style)", textDecoration: "var(--tok-ident-decoration)" },
+  { tag: tags.content, color: "var(--tok-text)", backgroundColor: "var(--tok-text-background)", fontWeight: "var(--tok-text-weight)", fontStyle: "var(--tok-text-style)", textDecoration: "var(--tok-text-decoration)" },
+  { tag: tags.strong, class: "oxbit-syntax-strong" },
+  { tag: tags.emphasis, class: "oxbit-syntax-emphasis" },
+  { tag: tags.keyword, color: "var(--tok-keyword)", backgroundColor: "var(--tok-keyword-background)", fontWeight: "var(--tok-keyword-weight)", fontStyle: "var(--tok-keyword-style)", textDecoration: "var(--tok-keyword-decoration)" },
+  { tag: [tags.string, tags.special(tags.string)], color: "var(--tok-string)", backgroundColor: "var(--tok-string-background)", fontWeight: "var(--tok-string-weight)", fontStyle: "var(--tok-string-style)", textDecoration: "var(--tok-string-decoration)" },
+  { tag: tags.number, color: "var(--tok-number)", backgroundColor: "var(--tok-number-background)", fontWeight: "var(--tok-number-weight)", fontStyle: "var(--tok-number-style)", textDecoration: "var(--tok-number-decoration)" },
+  { tag: tags.comment, color: "var(--tok-comment)", backgroundColor: "var(--tok-comment-background)", fontWeight: "var(--tok-comment-weight)", fontStyle: "var(--tok-comment-style)", textDecoration: "var(--tok-comment-decoration)" },
+  { tag: [tags.typeName, tags.className], color: "var(--tok-type)", backgroundColor: "var(--tok-type-background)", fontWeight: "var(--tok-type-weight)", fontStyle: "var(--tok-type-style)", textDecoration: "var(--tok-type-decoration)" },
+  { tag: tags.function(tags.variableName), color: "var(--tok-function)", backgroundColor: "var(--tok-function-background)", fontWeight: "var(--tok-function-weight)", fontStyle: "var(--tok-function-style)", textDecoration: "var(--tok-function-decoration)" },
+  { tag: tags.propertyName, color: "var(--tok-property)", backgroundColor: "var(--tok-property-background)", fontWeight: "var(--tok-property-weight)", fontStyle: "var(--tok-property-style)", textDecoration: "var(--tok-property-decoration)" },
+  { tag: tags.tagName, color: "var(--tok-tag)", backgroundColor: "var(--tok-tag-background)", fontWeight: "var(--tok-tag-weight)", fontStyle: "var(--tok-tag-style)", textDecoration: "var(--tok-tag-decoration)" },
+  { tag: tags.attributeName, color: "var(--tok-attr)", backgroundColor: "var(--tok-attr-background)", fontWeight: "var(--tok-attr-weight)", fontStyle: "var(--tok-attr-style)", textDecoration: "var(--tok-attr-decoration)" },
+  { tag: tags.punctuation, color: "var(--tok-punct)", backgroundColor: "var(--tok-punct-background)", fontWeight: "var(--tok-punct-weight)", fontStyle: "var(--tok-punct-style)", textDecoration: "var(--tok-punct-decoration)" },
+  { tag: tags.operator, color: "var(--tok-operator)", backgroundColor: "var(--tok-operator-background)", fontWeight: "var(--tok-operator-weight)", fontStyle: "var(--tok-operator-style)", textDecoration: "var(--tok-operator-decoration)" },
+  { tag: tags.heading, color: "var(--tok-heading)", backgroundColor: "var(--tok-heading-background)", fontWeight: "var(--tok-heading-weight)", fontStyle: "var(--tok-heading-style)", textDecoration: "var(--tok-heading-decoration)" },
+  { tag: tags.link, color: "var(--tok-link)", backgroundColor: "var(--tok-link-background)", fontWeight: "var(--tok-link-weight)", fontStyle: "var(--tok-link-style)", textDecoration: "var(--tok-link-decoration)" },
 ]);
+const selectionForeground = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations=this.build(view); }
+  update(update: ViewUpdate) { if(update.selectionSet||update.docChanged)this.decorations=this.build(update.view); }
+  build(view:EditorView) {return Decoration.set(view.state.selection.ranges.filter(r=>!r.empty).map(r=>Decoration.mark({class:'oxbit-selection-text'}).range(r.from,r.to)),true);}
+}, {decorations:plugin=>plugin.decorations});
 function visualWhitespace(
   mode: string,
   guides: boolean,
@@ -156,33 +179,45 @@ function visualWhitespace(
     { decorations: (plugin) => plugin.decorations },
   );
 }
-export function languageFor(path: string, kernel?: Kernel): CMExtension {
+export function languageFor(path: string, kernel?: Kernel, firstLine?: string): CMExtension {
   const custom = kernel ? contributedLanguage(kernel, path) : undefined;
   if (custom)
     return ((custom.data as LanguageDefinition).editorExtensions ||
       []) as CMExtension[];
-  switch (path.split(".").pop()) {
-    case "ts":
-      return javascript({ typescript: true });
-    case "tsx":
-      return javascript({ typescript: true, jsx: true });
-    case "js":
-    case "jsx":
-    case "mjs":
-    case "cjs":
-      return javascript({ jsx: true });
-    case "json":
-      return json();
-    case "css":
-      return css();
-    case "html":
-      return html();
-    case "md":
-      return markdown();
-    default:
-      return [];
+  const id = kernel ? languageForKernel(kernel, path, firstLine).id : resolveLanguage(path, { firstLine }).id;
+  switch (id) {
+    case "typescript": return javascript({ typescript: true });
+    case "typescriptreact": return javascript({ typescript: true, jsx: true });
+    case "javascript": case "javascriptreact": return javascript({ jsx: true });
+    case "json": return json();
+    case "jsonc": case "jsonl": return StreamLanguage.define(localSyntax(id));
+    case "css": return css();
+    case "html": return html();
+    case "vue": return vue();
+    case "astro": return astroSyntax();
+    case "php": return php();
+    case "xml": return xml();
+    case "markdown": return markdown();
+    case "shellscript": return StreamLanguage.define(shell);
+    case "toml": return StreamLanguage.define(toml);
+    case "dockerfile": return StreamLanguage.define(dockerFile);
+    case "zsh": case "ini": case "dotenv": case "csv": case "log": return StreamLanguage.define(localSyntax(id));
+    default: return [];
   }
 }
+
+function documentSyntax(path: string, kernel: Kernel, text: string): CMExtension {
+  const firstLine = text.split("\n", 1)[0];
+  if (text.length <= LARGE_DOCUMENT_LENGTH) return languageFor(path, kernel, firstLine);
+  const id = languageForKernel(kernel, path, firstLine).id;
+  if (["typescript", "typescriptreact"].includes(id)) return StreamLanguage.define(streamTypeScript);
+  if (["javascript", "javascriptreact"].includes(id)) return StreamLanguage.define(streamJavaScript);
+  if (id === "json") return StreamLanguage.define(streamJson);
+  if (id === "xml") return StreamLanguage.define(streamXml);
+  if (["html", "vue", "php"].includes(id)) return StreamLanguage.define(streamHtml);
+  return ["jsonc", "jsonl", "shellscript", "toml", "dockerfile", "zsh", "ini", "dotenv", "csv", "log", "astro"].includes(id) ? languageFor(path, kernel, firstLine) : [];
+}
+
 function configured(
   kernel: Kernel,
   path: string,
@@ -215,10 +250,11 @@ function configured(
     if (!explicit("editor.tabSize")) size = detected.size;
     if (!explicit("editor.insertSpaces")) spaces = detected.spaces;
   }
-  const fontSize = get("editor.fontSize", 13);
-  const height = get("editor.lineHeight", 20) || fontSize * 1.55;
+  const font = themeTypography(kernel, "editor", language);
+  const fontSize = font.size;
   return [
     EditorState.phrases.of(getPhrases()),
+    selectionForeground,
     drawSelection({
       cursorBlinkRate:
         get("editor.cursorBlinking", "blink") === "solid" ? 0 : 1200,
@@ -240,22 +276,15 @@ function configured(
           height: "100%",
           fontSize: `${fontSize}px`,
           backgroundColor: "var(--bg-editor)",
-          color: "var(--fg)",
+          color: "var(--tok-text)",
         },
         ".cm-scroller": {
-          fontFamily: get(
-            "editor.fontFamily",
-            "'JetBrains Mono',ui-monospace,monospace",
-          ),
-          lineHeight: `${height}px`,
+          ...typographyCSS(font),
           overflow: "auto",
-          fontVariantLigatures: get("editor.fontLigatures", false)
-            ? "normal"
-            : "none",
         },
         ".cm-content": {
           padding: "6px 0",
-          caretColor: "var(--accent)",
+          caretColor: "var(--editor-cursor)",
           ...(get("editor.wordWrap", "off") === "bounded"
             ? { maxWidth: "90ch" }
             : {}),
@@ -271,8 +300,8 @@ function configured(
             : {}),
         },
         ".cm-gutters": {
-          backgroundColor: "var(--bg-editor)",
-          color: "var(--fg-3)",
+          backgroundColor: "var(--editor-gutter-background)",
+          color: "var(--editor-gutter-foreground)",
           border: "none",
           minWidth: "56px",
         },
@@ -280,15 +309,28 @@ function configured(
           minWidth: "35px",
           paddingRight: "8px",
         },
-        ".cm-foldGutter": { width: "16px" },
+        ".cm-foldGutter": { width: "18px" },
+        ".cm-foldGutter .cm-gutterElement": { padding: "0", textAlign: "center" },
+        ".cm-fold-marker": { display: "inline-block", width: "14px", height: "14px", verticalAlign: "middle", position: "relative", top: "-1px" },
+        ".cm-fold-marker::after": { content: '\"\"', position: "absolute", width: "6px", height: "6px", borderRight: "1.5px solid currentColor", borderBottom: "1.5px solid currentColor", left: "4px", top: "2px", transform: "rotate(45deg)" },
+        ".cm-fold-marker[data-folded=true]::after": { transform: "rotate(-45deg)", left: "2px", top: "4px" },
         ".cm-activeLine,.cm-activeLineGutter": {
           backgroundColor: "var(--line-active)",
         },
         ".cm-selectionBackground,&.cm-focused .cm-selectionBackground": {
-          backgroundColor: "var(--sel)",
+          backgroundColor: "var(--editor-selection-background)",
         },
+        "&:not(.cm-focused) .cm-selectionBackground": { backgroundColor: "var(--editor-selection-inactiveBackground)" },
+        ".oxbit-selection-text,.oxbit-selection-text *": {color:"var(--editor-selection-foreground) !important"},
+        ".cm-lintRange-error": {backgroundImage:"none",textDecoration:"underline wavy var(--err)"},
+        ".cm-lintRange-warning": {backgroundImage:"none",textDecoration:"underline wavy var(--warn)"},
+        ".cm-lintRange-info": {backgroundImage:"none",textDecoration:"underline wavy var(--info)"},
+        ".cm-diagnostic-error": {borderLeftColor:"var(--err)"},
+        ".cm-diagnostic-warning": {borderLeftColor:"var(--warn)"},
+        ".cm-diagnostic-info": {borderLeftColor:"var(--info)"},
+        ".cm-content ::selection": { color: "var(--editor-selection-foreground)" },
         ".cm-cursor,.cm-dropCursor": {
-          borderLeftColor: "var(--accent)",
+          borderLeftColor: "var(--editor-cursor)",
           transition:
             get("editor.cursorBlinking", "blink") === "smooth"
               ? "opacity 160ms"
@@ -329,7 +371,7 @@ function configured(
           borderColor: "var(--bd)",
         },
       },
-      { dark: get("workbench.colorTheme", "Graphite (dark)").includes("dark") },
+      { dark: themeMode(kernel) === "dark" },
     ),
   ];
 }
@@ -356,10 +398,15 @@ export function CodeEditor({
     const tick = () => setRevision((v) => v + 1);
     const unsub = kernel.configuration.subscribe(tick);
     const unlanguages = kernel.contributions.subscribe(tick);
+    const measure = () => viewRef.current?.requestMeasure();
+    document.fonts?.addEventListener("loadingdone", measure);
+    document.addEventListener("oxbit-fonts-loaded", measure);
 
     return () => {
       unsub();
       unlanguages();
+      document.fonts?.removeEventListener("loadingdone", measure);
+      document.removeEventListener("oxbit-fonts-loaded", measure);
     };
   }, [kernel]);
   useEffect(() => {
@@ -385,7 +432,13 @@ export function CodeEditor({
           lineNumbers(),
           highlightActiveLineGutter(),
           highlightSpecialChars(),
-          foldGutter(),
+          foldGutter({ markerDOM: open => {
+            const marker = document.createElement("span");
+            marker.className = "cm-fold-marker";
+            marker.dataset.folded = String(!open);
+            marker.title = open ? "Fold code" : "Unfold code";
+            return marker;
+          } }),
           dropCursor(),
           EditorState.allowMultipleSelections.of(true),
           rectangularSelection(),
@@ -399,9 +452,7 @@ export function CodeEditor({
           search({ top: true }),
           syntaxHighlighting(syntax),
           syntaxMode.current.of(
-            content.length > LARGE_DOCUMENT_LENGTH
-              ? []
-              : languageFor(handle.path, kernel),
+            documentSyntax(handle.path, kernel, content),
           ),
           yCollab(handle.text, handle.awareness, { undoManager: handle.undo }),
           keymap.of([
@@ -416,7 +467,7 @@ export function CodeEditor({
           config.current.of(configured(kernel, handle.path, content)),
           decorations.current.of(getDecorations()),
           lsp.current.of(
-            content.length > LARGE_DOCUMENT_LENGTH ? [] : getLsp(),
+            getLsp(),
           ),
           readonly.current.of([
             EditorState.readOnly.of(handle.readonly),
@@ -485,7 +536,7 @@ export function CodeEditor({
       view.dispatch({
         effects: [
           lsp.current.reconfigure(
-            view.state.doc.length > LARGE_DOCUMENT_LENGTH ? [] : getLsp(),
+            getLsp(),
           ),
           decorations.current.reconfigure(getDecorations()),
         ],
@@ -510,10 +561,9 @@ export function CodeEditor({
             (message) => workbench.notify(message, "error"),
           ),
         ),
+        lsp.current.reconfigure(kernel.services.optional<{ extensions(path: string): CMExtension[] }>("language")?.extensions(handle.path) ?? []),
         syntaxMode.current.reconfigure(
-          handle.text.length > LARGE_DOCUMENT_LENGTH
-            ? []
-            : languageFor(handle.path, kernel),
+          documentSyntax(handle.path, kernel, handle.text.toString()),
         ),
         config.current.reconfigure(
           configured(kernel, handle.path, handle.text.toString()),
@@ -530,7 +580,7 @@ export function CodeEditor({
       {handle.text.length > LARGE_DOCUMENT_LENGTH && (
         <div className="document-banner" role="status">
           {tr(
-            "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.",
+            "Large document: the minimap is paused. Background analysis follows your large-file settings.",
           )}
         </div>
       )}

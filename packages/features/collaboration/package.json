@@ -12,7 +12,8 @@
     "@oxbit/documents": "workspace:*",
     "@oxbit/ui": "workspace:*",
     "yjs": "^13.6.27",
-    "y-protocols": "^1.0.6"
+    "y-protocols": "^1.0.6",
+    "@oxbit/workbench": "workspace:*"
   },
   "license": "MIT",
   "author": {

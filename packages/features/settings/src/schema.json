@@ -1,14 +1,20 @@
 [
   {
+    "id": "workbench.tooltipDelay",
+    "title": "Tooltip Delay",
+    "description": "Delay in milliseconds before showing a tooltip on hover. Keyboard focus shows tooltips immediately.",
+    "type": "number",
+    "default": 400,
+    "min": 0,
+    "max": 5000,
+    "category": "Appearance"
+  },
+  {
     "id": "workbench.colorTheme",
     "title": "Color Theme",
     "description": "Specifies the color theme used in the workbench.",
     "type": "string",
     "default": "Graphite (dark)",
-    "enum": [
-      "Graphite (dark)",
-      "Paper (light)"
-    ],
     "category": "Appearance"
   },
   {
@@ -41,7 +47,7 @@
     "description": "Controls the font family of the editor.",
     "type": "string",
     "default": "'JetBrains Mono', ui-monospace, monospace",
-    "category": "Editor · Typography"
+    "category": "Editor \u00b7 Typography"
   },
   {
     "id": "editor.fontSize",
@@ -51,17 +57,17 @@
     "default": 13,
     "min": 8,
     "max": 32,
-    "category": "Editor · Typography"
+    "category": "Editor \u00b7 Typography"
   },
   {
     "id": "editor.lineHeight",
     "title": "Line Height",
-    "description": "Line height in pixels. 0 uses 1.55 × font size.",
+    "description": "Line height in pixels. 0 uses 1.55 \u00d7 font size.",
     "type": "number",
     "default": 20,
     "min": 0,
     "max": 60,
-    "category": "Editor · Typography"
+    "category": "Editor \u00b7 Typography"
   },
   {
     "id": "editor.fontLigatures",
@@ -69,7 +75,7 @@
     "description": "Enables font ligatures when the font supports them.",
     "type": "boolean",
     "default": false,
-    "category": "Editor · Typography"
+    "category": "Editor \u00b7 Typography"
   },
   {
     "id": "editor.tabSize",
@@ -79,7 +85,7 @@
     "default": 2,
     "min": 1,
     "max": 8,
-    "category": "Editor · Indentation"
+    "category": "Editor \u00b7 Indentation"
   },
   {
     "id": "editor.insertSpaces",
@@ -87,7 +93,7 @@
     "description": "Insert spaces when pressing Tab.",
     "type": "boolean",
     "default": true,
-    "category": "Editor · Indentation"
+    "category": "Editor \u00b7 Indentation"
   },
   {
     "id": "editor.detectIndentation",
@@ -95,7 +101,7 @@
     "description": "Detect Tab Size and Insert Spaces from file contents on open.",
     "type": "boolean",
     "default": true,
-    "category": "Editor · Indentation"
+    "category": "Editor \u00b7 Indentation"
   },
   {
     "id": "editor.renderIndentGuides",
@@ -103,7 +109,7 @@
     "description": "Render vertical guides for each indent level.",
     "type": "boolean",
     "default": true,
-    "category": "Editor · Indentation"
+    "category": "Editor \u00b7 Indentation"
   },
   {
     "id": "editor.wordWrap",
@@ -253,5 +259,197 @@
       "inline"
     ],
     "category": "Source Control"
+  },
+  {
+    "id": "files.associations",
+    "title": "File Associations",
+    "description": "Map filename or workspace-relative glob patterns to language IDs. Explicit associations take precedence over built-in detection.",
+    "type": "object",
+    "default": {},
+    "category": "Files"
+  },
+  {
+    "id": "languageServers",
+    "title": "Language Servers",
+    "description": "Configure enabled state, selectors, rootMarkers, executable, args, env, initializationOptions, settings, and priority by server ID. Servers install on first use in a trusted runtime. License keys belong in the runtime-local credential file.",
+    "type": "object",
+    "default": {},
+    "category": "Language Servers"
+  },
+  {
+    "id": "ui.fontFamily",
+    "title": "UI Font Family",
+    "type": "string",
+    "default": "",
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value."
+  },
+  {
+    "id": "ui.fontSize",
+    "title": "UI Font Size",
+    "type": "number",
+    "default": 12,
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": 8,
+    "max": 72
+  },
+  {
+    "id": "ui.fontWeight",
+    "title": "UI Font Weight",
+    "type": "number",
+    "default": 400,
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": 100,
+    "max": 900
+  },
+  {
+    "id": "ui.fontStyle",
+    "title": "UI Font Style",
+    "type": "string",
+    "default": "normal",
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "enum": [
+      "normal",
+      "italic",
+      "oblique"
+    ]
+  },
+  {
+    "id": "ui.lineHeight",
+    "title": "UI Line Height",
+    "type": "number",
+    "default": 1.4,
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": 1,
+    "max": 3
+  },
+  {
+    "id": "ui.letterSpacing",
+    "title": "UI Letter Spacing",
+    "type": "number",
+    "default": 0,
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": -3,
+    "max": 10
+  },
+  {
+    "id": "ui.fontLigatures",
+    "title": "UI Font Ligatures",
+    "type": "boolean",
+    "default": false,
+    "category": "Appearance",
+    "description": "Overrides theme typography. Reset restores the theme value."
+  },
+  {
+    "id": "terminal.fontFamily",
+    "title": "Terminal Font Family",
+    "type": "string",
+    "default": "",
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value."
+  },
+  {
+    "id": "terminal.fontWeight",
+    "title": "Terminal Font Weight",
+    "type": "number",
+    "default": 400,
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": 100,
+    "max": 900
+  },
+  {
+    "id": "terminal.fontStyle",
+    "title": "Terminal Font Style",
+    "type": "string",
+    "default": "normal",
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "enum": [
+      "normal",
+      "italic",
+      "oblique"
+    ]
+  },
+  {
+    "id": "terminal.lineHeight",
+    "title": "Terminal Line Height",
+    "type": "number",
+    "default": 1,
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": 1,
+    "max": 3
+  },
+  {
+    "id": "terminal.letterSpacing",
+    "title": "Terminal Letter Spacing",
+    "type": "number",
+    "default": 0,
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value.",
+    "min": -3,
+    "max": 10
+  },
+  {
+    "id": "terminal.fontLigatures",
+    "title": "Terminal Font Ligatures",
+    "type": "boolean",
+    "default": false,
+    "category": "Terminal",
+    "description": "Overrides theme typography. Reset restores the theme value."
+  },
+  {
+    "id": "workbench.iconTheme",
+    "title": "File Icon Theme",
+    "description": "Select a locally installed icon theme. Unavailable selections use Oxbit defaults until restored.",
+    "type": "string",
+    "default": "oxbit.default",
+    "category": "Appearance"
+  },
+  {
+    "id": "workbench.productIconTheme",
+    "title": "Product Icon Theme",
+    "description": "Select a locally installed icon theme. Unavailable selections use Oxbit defaults until restored.",
+    "type": "string",
+    "default": "oxbit.default",
+    "category": "Appearance"
+  },
+  {
+    "id": "editor.semanticHighlighting",
+    "title": "Semantic Highlighting",
+    "description": "Color symbols using language server information.",
+    "type": "boolean",
+    "default": true,
+    "category": "Language Servers"
+  },
+  {
+    "id": "editor.inlayHints.types",
+    "title": "Type Inlay Hints",
+    "description": "Show supported type hints in the visible editor.",
+    "type": "boolean",
+    "default": true,
+    "category": "Language Servers"
+  },
+  {
+    "id": "editor.inlayHints.parameters",
+    "title": "Parameter Inlay Hints",
+    "description": "Show supported parameter hints in the visible editor.",
+    "type": "boolean",
+    "default": true,
+    "category": "Language Servers"
+  },
+  {
+    "id": "editor.largeFileIntelligence",
+    "title": "Large File Intelligence",
+    "description": "Allow full semantic highlighting and inlay hints for files larger than 1 MiB.",
+    "type": "boolean",
+    "default": false,
+    "category": "Language Servers"
   }
 ]

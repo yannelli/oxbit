@@ -1,0 +1,44 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 test:themes:browser /Users/ryanyannelli/Development/oxbit
+> playwright test -c tests/browser/themes.config.ts
+
+[WebServer] (node:15927) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:15957) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] The emitted file "assets/standalone-Cayz_KD-.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/estree-DFfjoHvx.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/typescript-cMir0TZb.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/postcss-BGfBeQpW.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/babel-BktJt1uC.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/html-DwgzGnwN.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/markdown-Bd15IfY5.js.map" overwrites a previously emitted file of the same name.
+[WebServer] 
+[WebServer] (!) Some chunks are larger than 1400 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:16292) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:16306) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:16312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:16348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:16467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/themes.spec.ts:92:1 › imports without selection, applies typography, exports, updates, removes and restores across tabs (2.0s)
+  ✓  2 tests/browser/themes.spec.ts:187:1 › mounted editor preserves state, syntax emphasis, selected foreground, and font reset (588ms)
+  ✓  3 tests/browser/themes.spec.ts:257:1 › loads scoped local fonts and reports browser font failure with fallbacks (738ms)
+  ✓  4 tests/browser/themes.spec.ts:321:3 › light, dark and high contrast at desktop size (809ms)
+  ✓  5 tests/browser/themes.spec.ts:321:3 › light, dark and high contrast at tablet size (650ms)
+  ✓  6 tests/browser/themes.spec.ts:321:3 › light, dark and high contrast at phone size (526ms)
+  ✓  7 tests/browser/themes.spec.ts:354:1 › terminal ANSI, selection and typography update without losing history (1.1s)
+  ✓  8 tests/browser/themes.spec.ts:434:1 › rendered Markdown, popovers and keyboard focus use the selected theme (776ms)
+
+  8 passed (38.2s)

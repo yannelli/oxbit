@@ -1,7 +1,7 @@
 ![Oxbit: A code editor in your browser.](apps/web/public/brand/oxbit-github-banner.png)
 
 A web code editor built with React 19 and CodeMirror 6. Use a browser workspace
-on its own, or connect the Node runtime for real files, TypeScript language
+on its own, or connect the Node runtime for real files, managed language
 services, terminals, tasks, Git, and collaboration.
 
 ## Quick start
@@ -57,6 +57,19 @@ same runtime in the foreground. The default host is loopback;
 [runtime configuration](docs/runtime.md) covers ports, allowed origins, state
 storage, and network hosting.
 
+## Desktop
+
+A Tauri desktop host shares the existing editor and bundles Node, ripgrep, PTY,
+and managed language services. Targets are Apple Silicon macOS 26+ and **Ubuntu
+24.04+ x64**. Run `pnpm desktop:dev` or build local installers with
+`pnpm desktop:build`. The existing CLI keeps its browser behavior;
+`oxbit --desktop [path]` opens an installed desktop app.
+
+[Desktop setup, release, and recovery](docs/desktop.md) documents native
+dependencies, project windows, signing, updates, and commands.
+[Desktop acceptance](evidence/desktop-acceptance.md) separates verified local
+behavior from outstanding installed-artifact and signing gates.
+
 ## Workspaces and editing
 
 - **Browser workspace:** files, settings, layout, and recovery drafts persist in
@@ -66,10 +79,14 @@ storage, and network hosting.
 - **Runtime filesystem:** reads and saves real files under the selected root.
   Saves check file revisions; external conflicts preserve local edits for resolution.
 
-The editor supports TypeScript, TSX, JavaScript, JSON, HTML, CSS, and Markdown,
-with split views, multiple cursors, find/replace, formatter selection, and
-Markdown previews. Settings support user, workspace, and language scopes.
-The TypeScript language server needs a connected, trusted runtime.
+The editor supports JavaScript/TypeScript, web components, markup, shell,
+configuration and data formats through a shared [language registry](docs/language-support.md).
+It includes split views, multiple cursors, find/replace, formatter selection and
+Markdown previews. Settings support user, workspace and language scopes.
+Managed servers install pinned versions in a trusted runtime; local format
+providers also work without one. The LSP indicator shows only providers for
+the current document. See the [implementation and acceptance status](docs/language-support.md)
+for feature coverage and remaining rollout gates.
 
 Runtime features include PTY sessions, cancellable tasks, Git changes and
 commits, clone/push/checkout, and authenticated Yjs collaboration. **Share
@@ -143,7 +160,7 @@ builds, and browser journeys. Run a part with `pnpm lint`, `pnpm typecheck`,
 production build and use port 9278 plus isolated temporary workspaces. Tests
 run real processes and create Git repositories and commits.
 
-Current results: 140 of 149 unit/integration tests and 22 of 22 browser journeys passed.
+The recorded desktop integration run passed 202 unit/integration tests and 44 browser journeys. See [desktop acceptance](evidence/desktop-acceptance.md) for native checks, build snapshots, and distribution limits.
 Native directory recovery now passes after a browser refresh.
 [Remaining gap](PHASE-2_REMAINING_GAP.md) records the earlier failure, the
 Chromium 153 crash behind it, and the Playwright pin that closes it.
@@ -166,7 +183,7 @@ reference dimensions in both themes.
 - [Dependency versions and compatibility](docs/dependencies.md)
 - [Language-server contracts](docs/language.md)
 
-Native packaging, React Native integration, certified Paseo 0.7.0 support,
+React Native integration, certified Paseo 0.7.0 support,
 a public marketplace, and further debugging/AI providers remain deferred.
 
 ## License

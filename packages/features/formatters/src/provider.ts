@@ -65,6 +65,7 @@ function providerExtension(
               provider,
               text,
               path,
+              language: options.language,
               tabSize: options.tabSize,
               insertSpaces: options.insertSpaces,
             });

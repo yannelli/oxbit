@@ -10,22 +10,26 @@
     "build": "node ../../scripts/repair-pty.mjs && vite build"
   },
   "dependencies": {
-    "@oxbit/sdk": "workspace:*",
+    "@oxbit/core": "workspace:*",
     "@oxbit/protocol": "workspace:*",
-    "ws": "^8.20.0",
+    "@oxbit/sdk": "workspace:*",
+    "chokidar": "^4.0.3",
     "node-pty": "^1.1.0",
+    "tar": "7.5.9",
+    "typescript": "^5.9.3",
     "typescript-language-server": "^5.0.0",
     "vscode-jsonrpc": "^8.2.1",
-    "yjs": "^13.6.27",
+    "ws": "^8.20.0",
     "y-protocols": "^1.0.6",
-    "chokidar": "^4.0.3",
-    "typescript": "^5.9.3",
-    "@oxbit/core": "workspace:*"
+    "yjs": "^13.6.27"
   },
   "license": "MIT",
   "author": {
     "name": "Ryan Yannelli",
     "email": "ryanyannelli@gmail.com",
     "url": "https://github.com/yannelli"
+  },
+  "devDependencies": {
+    "vscode-languageserver-protocol": "3.17.5"
   }
 }

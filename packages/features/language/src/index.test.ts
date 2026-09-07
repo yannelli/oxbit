@@ -53,6 +53,7 @@ async function setup(shared = true) {
           },
         };
       if (method === "lsp.versions") return { ...versions };
+      if (method === "lsp.stop") return { ok: true };
       if (method === "lsp.notify") {
         if (params?.params?.textDocument?.version !== undefined)
           versions[params.params.textDocument.uri] =
@@ -127,6 +128,22 @@ describe("language document positions", () => {
 });
 
 describe("language edit contracts", () => {
+  it("stays stopped through editor requests until explicitly started", async () => {
+    const { language, request, document } = await setup();
+    await language.start();
+    await language.stop();
+    request.mockClear();
+    document.replace("const answer = 3;\n");
+    expect(language.state).toBe("stopped");
+    expect(language.canUseLsp("index.ts")).toBe(false);
+    await expect(language.at("textDocument/hover", "index.ts", 7)).rejects.toThrow("Language server is stopped");
+    expect(request).not.toHaveBeenCalled();
+    await language.start(true);
+    expect(language.state).toBe("ready");
+    expect(request).toHaveBeenCalledWith("lsp.start", { resume: true });
+    await language.restart();
+    expect(language.state).toBe("ready");
+  });
   it("accepts canonical room versions that differ from local document versions", async () => {
     const { document, language } = await setup();
     document.replace("const answer = 2;\n");
@@ -299,7 +316,8 @@ describe("language edit contracts", () => {
         method: "oxbit/serverState",
         params: { state: "stopped", error: "Process exited" },
       });
-    expect(language.state).toBe("stopped");
+    expect(language.state).toBe("failed");
+    expect(language.error).toBe("Process exited");
     expect(kernel.context.get("lsp")).toBe(false);
     expect(language.supports("textDocument/completion")).toBe(false);
   });

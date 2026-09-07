@@ -1,4 +1,4 @@
-import { translate as tr } from "@oxbit/ui";
+import { translate as tr, FileBadge } from "@oxbit/ui";
 import React, { useEffect, useRef, useState } from "react";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
 import type { SearchMatch, SearchOptions } from "./engine";
@@ -224,6 +224,7 @@ export function createFeature(o: FeatureOptions): Extension {
                   "aria-label": tr("Replace in {0}", { "0": path }),
                   onChange: (e: any) => toggleFile(path, e.target.checked),
                 }),
+              React.createElement(FileBadge, { path, kernel: o.kernel }),
               path,
               " (",
               matches.length,

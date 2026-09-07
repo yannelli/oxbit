@@ -87,7 +87,7 @@ describe("authenticated runtime with real services", () => {
     return value;
   }
   beforeAll(async () => {
-    directory = await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-runtime-"));
+    directory = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-runtime-"));
     root = path.join(directory, "workspace");
     await fs.mkdir(root);
     await fs.writeFile(
@@ -552,6 +552,18 @@ describe("authenticated runtime with real services", () => {
         })
       ).length,
     ).toBeGreaterThan(0);
+    await client.request("lsp.stop");
+    expect(await client.request("lsp.status")).toMatchObject({ state: "stopped", paused: true });
+    await expect(client.request("lsp.request", {
+      method: "textDocument/hover", params: { textDocument: { uri }, position: { line: 0, character: 1 } },
+    })).rejects.toMatchObject({ code: "LSP_STOPPED" });
+    await client.request("lsp.notify", {
+      method: "textDocument/didChange",
+      params: { textDocument: { uri, version: 20 }, contentChanges: [{ text }] },
+    });
+    expect(await client.request("lsp.status")).toMatchObject({ state: "stopped" });
+    await client.request("lsp.start");
+    expect(await client.request("lsp.status")).toMatchObject({ state: "ready", paused: false });
   }, 60000);
   it("recovers collaboration drafts and operation status after runtime restart", async () => {
     for (const c of clients) c.close();

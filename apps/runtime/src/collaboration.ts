@@ -28,7 +28,7 @@ export class Collaboration {
   constructor(
     private files: WorkspaceFiles,
     private storage: string,
-    private lsp: LanguageServer,
+    private lsp: Pick<LanguageServer, "canonical" | "closeCanonical"> & Partial<Pick<LanguageServer, "saved">>,
     private emit: (
       event: string,
       params: Record<string, unknown>,
@@ -287,6 +287,7 @@ export class Collaboration {
         room.doc.getText("content").toString(),
         { expectedRevision, encoding, eol },
       );
+      this.lsp.saved?.(relative, result.text);
       room.revision = result.revision;
       room.savedText = result.text;
       this.persist(room);

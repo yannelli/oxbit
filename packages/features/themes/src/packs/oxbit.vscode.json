@@ -1,0 +1,718 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.vscode",
+  "name": "VS Code",
+  "version": "1.0.0",
+  "attribution": "Adapted from microsoft/vscode, revision 5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1.\n\nMIT License\n\nCopyright (c) 2015 - present Microsoft Corporation\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "themes": [
+    {
+      "id": "vscode-light-modern",
+      "name": "VS Code Light Modern",
+      "mode": "light",
+      "pairedTheme": "vscode-dark-modern",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#F8F8F8",
+        "surface.background": "#F8F8F8",
+        "editor.background": "#FFFFFF",
+        "popover.background": "#F8F8F8",
+        "input.background": "#FFFFFF",
+        "control.hover.background": "#F2F2F2",
+        "control.active.background": "#3B3B3B1f",
+        "list.selection.background": "#E8E8E8",
+        "border.default": "#E5E5E5",
+        "border.strong": "#CECECE",
+        "text.primary": "#3B3B3B",
+        "text.secondary": "#3B3B3B",
+        "text.muted": "#6E7681",
+        "text.disabled": "#7F7F7F",
+        "accent.primary": "#005FB8",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#005FB829",
+        "focus.border": "#005FB8",
+        "diagnostic.error": "#F85149",
+        "diagnostic.warning": "#895503",
+        "diagnostic.info": "#0063B1",
+        "diagnostic.success": "#2EA043",
+        "git.modified": "#005FB8",
+        "git.added": "#2EA043",
+        "git.deleted": "#F85149",
+        "git.conflict": "#AD0707",
+        "diagnostic.error.background": "#F8514924",
+        "diagnostic.warning.background": "#89550324",
+        "diff.added.background": "#2EA04324",
+        "diff.deleted.background": "#F8514924",
+        "diagnostic.info.background": "#0063B124",
+        "editor.activeLine.background": "#3B3B3B0a",
+        "editor.search.background": "#EA5C0033",
+        "editor.search.activeBackground": "#A8AC94",
+        "editor.occurrence.background": "#ADD6FF80",
+        "selection.background": "#ADD6FF",
+        "editor.guide": "#D3D3D3",
+        "overlay.background": "#00000059"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#0000ff"
+        },
+        "string": {
+          "foreground": "#a31515"
+        },
+        "number": {
+          "foreground": "#098658"
+        },
+        "comment": {
+          "foreground": "#008000"
+        },
+        "type": {
+          "foreground": "#267f99"
+        },
+        "function": {
+          "foreground": "#795E26"
+        },
+        "property": {
+          "foreground": "#001080"
+        },
+        "variable": {
+          "foreground": "#001080"
+        },
+        "ident": {
+          "foreground": "#001080"
+        },
+        "text": {
+          "foreground": "#3B3B3B"
+        },
+        "tag": {
+          "foreground": "#800000"
+        },
+        "attr": {
+          "foreground": "#e50000"
+        },
+        "punct": {
+          "foreground": "#3B3B3B"
+        },
+        "operator": {
+          "foreground": "#000000"
+        },
+        "heading": {
+          "foreground": "#800000"
+        },
+        "link": {
+          "foreground": "#005FB8"
+        },
+        "strong": {
+          "foreground": "#000080"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000029"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-light-plus",
+      "name": "VS Code Light+",
+      "mode": "light",
+      "pairedTheme": "vscode-dark-plus",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#DDDDDD",
+        "surface.background": "#F3F3F3",
+        "editor.background": "#FFFFFF",
+        "popover.background": "#F3F3F3",
+        "input.background": "#FFFFFF",
+        "control.hover.background": "#E8E8E8",
+        "control.active.background": "#6161611f",
+        "list.selection.background": "#007ACC29",
+        "border.default": "#d4d4d4",
+        "border.strong": "#d4d4d4",
+        "text.primary": "#616161",
+        "text.secondary": "#616161",
+        "text.muted": "#6E7681",
+        "text.disabled": "#7F7F7F",
+        "accent.primary": "#007ACC",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#007ACC29",
+        "focus.border": "#0090F1",
+        "diagnostic.error": "#A1260D",
+        "diagnostic.warning": "#895503",
+        "diagnostic.info": "#0063B1",
+        "diagnostic.success": "#587C0C",
+        "git.modified": "#895503",
+        "git.added": "#587C0C",
+        "git.deleted": "#AD0707",
+        "git.conflict": "#AD0707",
+        "diagnostic.error.background": "#A1260D24",
+        "diagnostic.warning.background": "#89550324",
+        "diff.added.background": "#587C0C24",
+        "diff.deleted.background": "#AD070724",
+        "diagnostic.info.background": "#0063B124",
+        "editor.activeLine.background": "#6161610a",
+        "editor.search.background": "#EA5C0033",
+        "editor.search.activeBackground": "#A8AC94",
+        "editor.occurrence.background": "#ADD6FF80",
+        "selection.background": "#ADD6FF",
+        "editor.guide": "#D3D3D3",
+        "overlay.background": "#00000059"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#0000ff"
+        },
+        "string": {
+          "foreground": "#a31515"
+        },
+        "number": {
+          "foreground": "#098658"
+        },
+        "comment": {
+          "foreground": "#008000"
+        },
+        "type": {
+          "foreground": "#267f99"
+        },
+        "function": {
+          "foreground": "#795E26"
+        },
+        "property": {
+          "foreground": "#001080"
+        },
+        "variable": {
+          "foreground": "#001080"
+        },
+        "ident": {
+          "foreground": "#001080"
+        },
+        "text": {
+          "foreground": "#000000"
+        },
+        "tag": {
+          "foreground": "#800000"
+        },
+        "attr": {
+          "foreground": "#e50000"
+        },
+        "punct": {
+          "foreground": "#000000"
+        },
+        "operator": {
+          "foreground": "#000000"
+        },
+        "heading": {
+          "foreground": "#800000"
+        },
+        "link": {
+          "foreground": "#006AB1"
+        },
+        "strong": {
+          "foreground": "#000080"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000029"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-2026-light",
+      "name": "VS Code 2026 Light",
+      "mode": "light",
+      "pairedTheme": "vscode-2026-dark",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#FAFAFD",
+        "surface.background": "#FAFAFD",
+        "editor.background": "#FFFFFF",
+        "popover.background": "#FAFAFD",
+        "input.background": "#FFFFFF",
+        "control.hover.background": "#00000014",
+        "control.active.background": "#D6D6D8",
+        "list.selection.background": "#00000025",
+        "border.default": "#F0F1F2FF",
+        "border.strong": "#D8D8D866",
+        "text.primary": "#202020",
+        "text.secondary": "#606060",
+        "text.muted": "#606060",
+        "text.disabled": "#BBBBBB",
+        "accent.primary": "#0069CC",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#0069CC29",
+        "focus.border": "#0069CCFF",
+        "diagnostic.error": "#ad0707",
+        "diagnostic.warning": "#667309",
+        "diagnostic.info": "#0069CC",
+        "diagnostic.success": "#587c0c",
+        "git.modified": "#667309",
+        "git.added": "#587c0c",
+        "git.deleted": "#ad0707",
+        "git.conflict": "#ad0707",
+        "diagnostic.error.background": "#ad070724",
+        "diagnostic.warning.background": "#66730924",
+        "diff.added.background": "#587c0c24",
+        "diff.deleted.background": "#ad070724",
+        "diagnostic.info.background": "#0069CC24",
+        "editor.activeLine.background": "#EAEAEA40",
+        "editor.search.background": "#0069CC1A",
+        "editor.search.activeBackground": "#0069CC40",
+        "editor.occurrence.background": "#0069CC26",
+        "selection.background": "#0069CC40",
+        "editor.guide": "#F7F7F740",
+        "overlay.background": "#00000059"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#cf222e"
+        },
+        "string": {
+          "foreground": "#0a3069"
+        },
+        "number": {
+          "foreground": "#098658"
+        },
+        "comment": {
+          "foreground": "#6e7781"
+        },
+        "type": {
+          "foreground": "#267f99"
+        },
+        "function": {
+          "foreground": "#8250df"
+        },
+        "property": {
+          "foreground": "#001080"
+        },
+        "variable": {
+          "foreground": "#1f2328"
+        },
+        "ident": {
+          "foreground": "#1f2328"
+        },
+        "text": {
+          "foreground": "#202020"
+        },
+        "tag": {
+          "foreground": "#116329"
+        },
+        "attr": {
+          "foreground": "#e50000"
+        },
+        "punct": {
+          "foreground": "#202020"
+        },
+        "operator": {
+          "foreground": "#000000"
+        },
+        "heading": {
+          "foreground": "#0550ae"
+        },
+        "link": {
+          "foreground": "#0069CC"
+        },
+        "strong": {
+          "foreground": "#1f2328"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000029"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-dark-modern",
+      "name": "VS Code Dark Modern",
+      "mode": "dark",
+      "pairedTheme": "vscode-light-modern",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#181818",
+        "surface.background": "#181818",
+        "editor.background": "#1F1F1F",
+        "popover.background": "#202020",
+        "input.background": "#313131",
+        "control.hover.background": "#2A2D2E",
+        "control.active.background": "#CCCCCC1f",
+        "list.selection.background": "#0078D429",
+        "border.default": "#2B2B2B",
+        "border.strong": "#3C3C3C",
+        "text.primary": "#CCCCCC",
+        "text.secondary": "#9D9D9D",
+        "text.muted": "#6E7681",
+        "text.disabled": "#A5A5A5",
+        "accent.primary": "#0078D4",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#0078D429",
+        "focus.border": "#0078D4",
+        "diagnostic.error": "#F85149",
+        "diagnostic.warning": "#CCA700",
+        "diagnostic.info": "#75BEFF",
+        "diagnostic.success": "#2EA043",
+        "git.modified": "#0078D4",
+        "git.added": "#2EA043",
+        "git.deleted": "#F85149",
+        "git.conflict": "#E4676B",
+        "diagnostic.error.background": "#F8514924",
+        "diagnostic.warning.background": "#CCA70024",
+        "diff.added.background": "#2EA04324",
+        "diff.deleted.background": "#F8514924",
+        "diagnostic.info.background": "#75BEFF24",
+        "editor.activeLine.background": "#CCCCCC0a",
+        "editor.search.background": "#EA5C0055",
+        "editor.search.activeBackground": "#9E6A03",
+        "editor.occurrence.background": "#ADD6FF26",
+        "selection.background": "#264F78",
+        "editor.guide": "#404040",
+        "overlay.background": "#00000099"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#569cd6"
+        },
+        "string": {
+          "foreground": "#ce9178"
+        },
+        "number": {
+          "foreground": "#b5cea8"
+        },
+        "comment": {
+          "foreground": "#6A9955"
+        },
+        "type": {
+          "foreground": "#4EC9B0"
+        },
+        "function": {
+          "foreground": "#DCDCAA"
+        },
+        "property": {
+          "foreground": "#9CDCFE"
+        },
+        "variable": {
+          "foreground": "#9CDCFE"
+        },
+        "ident": {
+          "foreground": "#9CDCFE"
+        },
+        "text": {
+          "foreground": "#CCCCCC"
+        },
+        "tag": {
+          "foreground": "#569cd6"
+        },
+        "attr": {
+          "foreground": "#9cdcfe"
+        },
+        "punct": {
+          "foreground": "#CCCCCC"
+        },
+        "operator": {
+          "foreground": "#d4d4d4"
+        },
+        "heading": {
+          "foreground": "#569cd6"
+        },
+        "link": {
+          "foreground": "#4daafc"
+        },
+        "strong": {
+          "foreground": "#569cd6"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000066"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-dark-plus",
+      "name": "VS Code Dark+",
+      "mode": "dark",
+      "pairedTheme": "vscode-light-plus",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#3C3C3C",
+        "surface.background": "#252526",
+        "editor.background": "#1E1E1E",
+        "popover.background": "#252526",
+        "input.background": "#3C3C3C",
+        "control.hover.background": "#2A2D2E",
+        "control.active.background": "#CCCCCC1f",
+        "list.selection.background": "#0E639C29",
+        "border.default": "#303031",
+        "border.strong": "#303031",
+        "text.primary": "#CCCCCC",
+        "text.secondary": "#AAAAAA",
+        "text.muted": "#858585",
+        "text.disabled": "#A5A5A5",
+        "accent.primary": "#0E639C",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#0E639C29",
+        "focus.border": "#007FD4",
+        "diagnostic.error": "#F48771",
+        "diagnostic.warning": "#CCA700",
+        "diagnostic.info": "#75BEFF",
+        "diagnostic.success": "#81B88B",
+        "git.modified": "#E2C08D",
+        "git.added": "#81B88B",
+        "git.deleted": "#C74E39",
+        "git.conflict": "#E4676B",
+        "diagnostic.error.background": "#F4877124",
+        "diagnostic.warning.background": "#CCA70024",
+        "diff.added.background": "#81B88B24",
+        "diff.deleted.background": "#C74E3924",
+        "diagnostic.info.background": "#75BEFF24",
+        "editor.activeLine.background": "#CCCCCC0a",
+        "editor.search.background": "#EA5C0055",
+        "editor.search.activeBackground": "#515C6A",
+        "editor.occurrence.background": "#ADD6FF26",
+        "selection.background": "#264F78",
+        "editor.guide": "#404040",
+        "overlay.background": "#00000099"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#569cd6"
+        },
+        "string": {
+          "foreground": "#ce9178"
+        },
+        "number": {
+          "foreground": "#b5cea8"
+        },
+        "comment": {
+          "foreground": "#6A9955"
+        },
+        "type": {
+          "foreground": "#4EC9B0"
+        },
+        "function": {
+          "foreground": "#DCDCAA"
+        },
+        "property": {
+          "foreground": "#9CDCFE"
+        },
+        "variable": {
+          "foreground": "#9CDCFE"
+        },
+        "ident": {
+          "foreground": "#9CDCFE"
+        },
+        "text": {
+          "foreground": "#D4D4D4"
+        },
+        "tag": {
+          "foreground": "#569cd6"
+        },
+        "attr": {
+          "foreground": "#9cdcfe"
+        },
+        "punct": {
+          "foreground": "#D4D4D4"
+        },
+        "operator": {
+          "foreground": "#d4d4d4"
+        },
+        "heading": {
+          "foreground": "#569cd6"
+        },
+        "link": {
+          "foreground": "#3794FF"
+        },
+        "strong": {
+          "foreground": "#569cd6"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000066"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vscode-2026-dark",
+      "name": "VS Code 2026 Dark",
+      "mode": "dark",
+      "pairedTheme": "vscode-2026-light",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#191A1B",
+        "surface.background": "#191A1B",
+        "editor.background": "#121314",
+        "popover.background": "#202122",
+        "input.background": "#191A1B",
+        "control.hover.background": "#FFFFFF14",
+        "control.active.background": "#FFFFFF33",
+        "list.selection.background": "#FFFFFF22",
+        "border.default": "#2A2B2CFF",
+        "border.strong": "#333536FF",
+        "text.primary": "#bfbfbf",
+        "text.secondary": "#8C8C8C",
+        "text.muted": "#858889",
+        "text.disabled": "#555555",
+        "accent.primary": "#297AA0",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#297AA029",
+        "focus.border": "#3994BCB3",
+        "diagnostic.error": "#f48771",
+        "diagnostic.warning": "#e5ba7d",
+        "diagnostic.info": "#3a94bc",
+        "diagnostic.success": "#73c991",
+        "git.modified": "#e5ba7d",
+        "git.added": "#73c991",
+        "git.deleted": "#f48771",
+        "git.conflict": "#f48771",
+        "diagnostic.error.background": "#f4877124",
+        "diagnostic.warning.background": "#e5ba7d24",
+        "diff.added.background": "#73c99124",
+        "diff.deleted.background": "#f4877124",
+        "diagnostic.info.background": "#3a94bc24",
+        "editor.activeLine.background": "#242526",
+        "editor.search.background": "#27678280",
+        "editor.search.activeBackground": "#27678290",
+        "editor.occurrence.background": "#27678250",
+        "selection.background": "#276782dd",
+        "editor.guide": "#8384854D",
+        "overlay.background": "#00000099"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#ff7b72"
+        },
+        "string": {
+          "foreground": "#a5d6ff"
+        },
+        "number": {
+          "foreground": "#b5cea8"
+        },
+        "comment": {
+          "foreground": "#8b949e"
+        },
+        "type": {
+          "foreground": "#4EC9B0"
+        },
+        "function": {
+          "foreground": "#d2a8ff"
+        },
+        "property": {
+          "foreground": "#9CDCFE"
+        },
+        "variable": {
+          "foreground": "#c9d1d9"
+        },
+        "ident": {
+          "foreground": "#c9d1d9"
+        },
+        "text": {
+          "foreground": "#BBBEBF"
+        },
+        "tag": {
+          "foreground": "#7ee787"
+        },
+        "attr": {
+          "foreground": "#9cdcfe"
+        },
+        "punct": {
+          "foreground": "#BBBEBF"
+        },
+        "operator": {
+          "foreground": "#d4d4d4"
+        },
+        "heading": {
+          "foreground": "#79c0ff"
+        },
+        "link": {
+          "foreground": "#48A0C7"
+        },
+        "strong": {
+          "foreground": "#c9d1d9"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000066"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000026"
+          }
+        ]
+      }
+    }
+  ]
+}

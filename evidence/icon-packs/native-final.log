@@ -1,0 +1,77 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 test:icons:desktop /Users/ryanyannelli/Development/oxbit
+> node scripts/build-icon-native-tests.mjs && node scripts/run-icon-native-tests.mjs
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 447 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-icon-tests/index.html                              0.58 kB │ gzip:     0.35 kB
+dist-icon-tests/assets/worker-CsXkqX-T.js               1.19 kB
+dist-icon-tests/assets/format.worker-Bb1B2kHz.js        6.16 kB
+dist-icon-tests/assets/typescript-HXNn4lJN.js       3,588.95 kB
+dist-icon-tests/assets/index-DIetVXXT.css              84.56 kB │ gzip:    14.92 kB
+dist-icon-tests/assets/preload-helper-BXl3LOEh.js       1.11 kB │ gzip:     0.65 kB
+dist-icon-tests/assets/index-CoAU1yvo.js               16.59 kB │ gzip:     4.65 kB
+dist-icon-tests/assets/addon-image-BxricI7a.js         80.41 kB │ gzip:    25.12 kB
+dist-icon-tests/assets/standalone-Cayz_KD-.js          81.46 kB │ gzip:    27.13 kB
+dist-icon-tests/assets/postcss-BGfBeQpW.js            156.74 kB │ gzip:    44.90 kB
+dist-icon-tests/assets/html-DwgzGnwN.js               160.11 kB │ gzip:    50.60 kB
+dist-icon-tests/assets/addon-ligatures-BOzI2Oy0.js    172.54 kB │ gzip:    51.34 kB
+dist-icon-tests/assets/estree-DFfjoHvx.js             211.14 kB │ gzip:    61.75 kB
+dist-icon-tests/assets/addon-webgl-PbQqCq-D.js        251.80 kB │ gzip:    68.66 kB
+dist-icon-tests/assets/markdown-Bd15IfY5.js           268.44 kB │ gzip:    91.74 kB
+dist-icon-tests/assets/babel-BktJt1uC.js              318.08 kB │ gzip:    82.85 kB
+dist-icon-tests/assets/typescript-cMir0TZb.js         462.30 kB │ gzip:   126.44 kB
+dist-icon-tests/assets/index-BSWCeeel.js            2,762.31 kB │ gzip:   778.63 kB
+dist-icon-tests/assets/typescript-CFVHoU17.js       3,588.37 kB │ gzip: 1,028.07 kB
+
+(!) Some chunks are larger than 1800 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 20.14s
+   Compiling oxbit-desktop v0.1.0 (/Users/ryanyannelli/Development/oxbit/apps/desktop/src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.60s
+
+Execution of 1 workers started at 2026-09-07T09:13:28.655Z
+
+[0-0] RUNNING in undefined - file:///tests/desktop/icon-packs.e2e.mjs
+[0-0] PASSED in undefined - file:///tests/desktop/icon-packs.e2e.mjs
+
+ "spec" Reporter:
+------------------------------------------------------------------
+[webkit 605.1.15 macos #0-0] Running: webkit (v605.1.15) on macos
+[webkit 605.1.15 macos #0-0] Session ID: 8d1ce111-4cef-46fc-8865-b262f7c2bd44
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] » tests/desktop/icon-packs.e2e.mjs
+[webkit 605.1.15 macos #0-0] Native icon packs
+[webkit 605.1.15 macos #0-0]    ✓ imports both upstream packs, renders under native CSP, persists and recovers across project changes
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] 1 passing (2.2s)
+
+
+Spec Files:	 1 passed, 1 total (100% completed) in 00:00:03  
+
+
+Execution of 1 workers started at 2026-09-07T09:13:34.243Z
+
+[0-0] RUNNING in undefined - file:///tests/desktop/icon-packs-restart.e2e.mjs
+[0-0] PASSED in undefined - file:///tests/desktop/icon-packs-restart.e2e.mjs
+
+ "spec" Reporter:
+------------------------------------------------------------------
+[webkit 605.1.15 macos #0-0] Running: webkit (v605.1.15) on macos
+[webkit 605.1.15 macos #0-0] Session ID: 78278f68-a8cf-47a0-9593-7ecd38322683
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] » tests/desktop/icon-packs-restart.e2e.mjs
+[webkit 605.1.15 macos #0-0] Native icon pack restart
+[webkit 605.1.15 macos #0-0]    ✓ restores independently selected themes from the application store after process restart
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] 1 passing (91ms)
+
+
+Spec Files:	 1 passed, 1 total (100% completed) in 00:00:00  
+

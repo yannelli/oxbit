@@ -76,6 +76,9 @@
     },
     {
       "path": "../../packages/features/collaboration"
+    },
+    {
+      "path": "../../packages/app-workbench"
     }
   ]
 }

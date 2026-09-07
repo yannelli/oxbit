@@ -65,21 +65,20 @@ test("Oxbit branding, assets, and storage work on a fresh browser profile", asyn
     void (window as any).__oxbit.kernel.commands.execute("help.about");
   });
   await expect(page.getByRole("dialog")).toContainText("Oxbit");
-  await expect(page.getByRole("dialog")).not.toContainText("Zapp");
   expect(failedAssets).toEqual([]);
 });
 
-test("an existing browser workspace and formatter preference survive the rebrand", async ({
+test("an Oxbit browser workspace and formatter preference persist across reloads", async ({
   page,
 }) => {
-  // Seed the original database on the app's origin before loading its scripts.
+  // Seed the Oxbit database on the app's origin before loading its scripts.
   await page.route("**/branding-seed", (route) =>
     route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Storage setup</title>" }),
   );
   await page.goto("/branding-seed");
   await page.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("zapp", 1);
+      const request = indexedDB.open("oxbit", 1);
       request.onupgradeneeded = () => request.result.createObjectStore("data");
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -104,7 +103,7 @@ test("an existing browser workspace and formatter preference survive the rebrand
       );
       store.put(
         {
-          user: { "editor.defaultFormatter": "zapp.builtin-ts" },
+          user: { "editor.defaultFormatter": "oxbit.builtin-ts" },
           workspace: {},
           userLanguages: {},
           workspaceLanguages: {},
@@ -139,5 +138,5 @@ test("an existing browser workspace and formatter preference survive the rebrand
     await page.evaluate(async () =>
       (await indexedDB.databases()).map((db) => db.name),
     ),
-  ).toEqual(["zapp"]);
+  ).toEqual(["oxbit"]);
 });

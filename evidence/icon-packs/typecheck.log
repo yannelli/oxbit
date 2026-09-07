@@ -1,0 +1,5 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 typecheck /Users/ryanyannelli/Development/oxbit
+> tsc -b
+

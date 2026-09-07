@@ -1,0 +1,31 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 icons:validate /Users/ryanyannelli/Development/oxbit
+> tsx scripts/validate-icon-pack.ts "tests/fixtures/icon-packs/vscode-minimal.zip" "tests/fixtures/icon-packs/material-product-icons.vsix"
+
+{
+  "path": "tests/fixtures/icon-packs/vscode-minimal.zip",
+  "valid": true,
+  "id": "vscode.theme-defaults",
+  "themes": [
+    {
+      "id": "vscode.theme-defaults/vs-minimal",
+      "kind": "fileIconTheme"
+    }
+  ],
+  "warnings": [
+    "Ignored contribution: themes"
+  ]
+}
+{
+  "path": "tests/fixtures/icon-packs/material-product-icons.vsix",
+  "valid": true,
+  "id": "PKief.material-product-icons",
+  "themes": [
+    {
+      "id": "PKief.material-product-icons/material-product-icons",
+      "kind": "productIconTheme"
+    }
+  ],
+  "warnings": []
+}

@@ -12,6 +12,14 @@ const makeKernel = () => {
   kernels.push(kernel);
   return kernel;
 };
+it("allows custom extension origins only when the host explicitly authorizes them", async () => {
+  const browser = makeKernel();
+  await expect(browser.extensions.load("tauri://localhost/extension.js")).rejects.toThrow("trusted");
+  const desktop = createKernel({ additionalExtensionOrigins: ["tauri://localhost"] });
+  kernels.push(desktop);
+  for (const url of ["tauri://other/extension.js", "other://localhost/extension.js", "tauri://user@localhost/extension.js", "data:text/javascript,export default{}"])
+    await expect(desktop.extensions.load(url)).rejects.toThrow("trusted");
+});
 const extension = (
   id: string,
   activate: Extension["activate"],
@@ -323,7 +331,7 @@ describe("kernel contracts", () => {
   });
 });
 
-it("preserves legacy formatter preferences across all configuration layers", () => {
+it("preserves formatter preferences across all configuration layers", () => {
   const kernel = makeKernel();
   kernel.configuration.register({
     id: "editor.defaultFormatter",
@@ -334,15 +342,15 @@ it("preserves legacy formatter preferences across all configuration layers", () 
   });
   kernel.configuration.import({
     user: {
-      "editor.defaultFormatter": "zapp.prettier",
-      "example.text": "zapp.prettier",
+      "editor.defaultFormatter": "oxbit.prettier",
+      "example.text": "oxbit.prettier",
     },
     workspace: { "editor.defaultFormatter": "third-party.formatter" },
     userLanguages: {
-      javascript: { "editor.defaultFormatter": "zapp.prettier" },
+      javascript: { "editor.defaultFormatter": "oxbit.prettier" },
     },
     workspaceLanguages: {
-      typescript: { "editor.defaultFormatter": "zapp.builtin-ts" },
+      typescript: { "editor.defaultFormatter": "oxbit.builtin-ts" },
     },
   });
   expect(
@@ -355,6 +363,6 @@ it("preserves legacy formatter preferences across all configuration layers", () 
     "third-party.formatter",
   );
   expect((kernel.configuration.export() as any).user["example.text"]).toBe(
-    "zapp.prettier",
+    "oxbit.prettier",
   );
 });

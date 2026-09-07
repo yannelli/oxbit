@@ -22,7 +22,8 @@
     "@oxbit/host-browser": "workspace:*",
     "@oxbit/host-runtime": "workspace:*",
     "i18next": "^26.3.0",
-    "react-i18next": "^17.0.8"
+    "react-i18next": "^17.0.8",
+    "@oxbit/themes": "workspace:*"
   },
   "license": "MIT",
   "author": {

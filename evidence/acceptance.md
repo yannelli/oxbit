@@ -11,14 +11,14 @@ the Playwright pin that closes it.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Dependency installation | Passed, offline install using the existing store | [Install log](audit-install.log), [resolved versions](dependency-resolution.json) |
+| Dependency installation | Passed, offline install using the existing store | [Install log](audit-install.log); [current resolved versions](dependency-resolution.json) |
 | Original dependency targets and MIT attribution | Passed: 25 package manifests, 23 installed targets, 16 deferred native dependencies | [Metadata](audit-metadata.json), [license/design artifacts](audit-artifacts.json) |
-| Lint | Passed after correction | [Full lint stage](audit-check-corrected.log), [changed files](audit-corrections-lint.log), [browser test correction](audit-browser-correction-lint.log) |
-| Type checking | Passed | `tsc -b` in the [production build](audit-build.log) |
-| Unit/integration tests | Passed: 123 distinct tests across the recorded runs | [Suite](audit-resume.log), [corrected tests](audit-tests-corrected.log) |
-| Runtime, SDK/example and browser production builds | Passed | [Build log](audit-build.log) |
+| Lint | Passed after correction | Full lint stage (historical log removed), [changed files](audit-corrections-lint.log), [browser test correction](audit-browser-correction-lint.log) |
+| Type checking | Passed | `tsc -b` in the production build (historical log removed) |
+| Unit/integration tests | Passed: 123 distinct tests across the recorded runs | Suite (historical log removed), [corrected tests](audit-tests-corrected.log) |
+| Runtime, SDK/example and browser production builds | Passed | Build log (historical log removed) |
 | Browser Node boundary | Passed: 250 source modules, zero findings | [Bundle audit](browser-bundle.json) |
-| Browser journeys | Passed: 19 passed | [Passing run](audit-browser-directory-fix.log), [earlier failure](audit-browser.log), [retry](audit-directory-browser.log) |
+| Browser journeys | Passed: 19 passed | [Passing run](audit-browser-directory-fix.log), earlier failure (historical log removed), retry (historical log removed) |
 | Documentation links | Passed before the final result update | [Link check](document-links.json) |
 
 [Structured verification](audit-verification.json) records counts and commands.

@@ -22,6 +22,12 @@
     },
     {
       "path": "../../../packages/ui"
+    },
+    {
+      "path": "../../themes"
+    },
+    {
+      "path": "../../workbench"
     }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "name": "@oxbit/themes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/theme-pack.v1.schema.json"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.mjs"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

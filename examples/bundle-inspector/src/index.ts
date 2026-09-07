@@ -158,7 +158,7 @@ export const extension: Extension = {
               return;
             }
             if (entry.kind === "directory") {
-              if (!["node_modules", ".git", ".oxbit", ".zapp"].includes(entry.name))
+              if (!["node_modules", ".git", ".oxbit"].includes(entry.name))
                 await scan(await filesystem.list(entry.path));
               continue;
             }

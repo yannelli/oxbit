@@ -1,8 +1,9 @@
+import { languages, validateFileAssociations, validateLanguageServers } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Extension, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
-import { Icon, IconButton, Dialog } from "@oxbit/ui";
+import { Icon, IconButton, Dialog, Select, IconThemeSelect } from "@oxbit/ui";
 import schema from "./schema.json";
 import { scopedSetting } from "./scopes.js";
 import { normalizeShortcut } from "@oxbit/workbench";
@@ -22,13 +23,8 @@ export function Settings({
   const settings = kernel.configuration.list();
   const languageIds = [
     ...new Set([
-      "typescript",
+      ...languages.map(item => item.id),
       "tsx",
-      "javascript",
-      "json",
-      "css",
-      "html",
-      "markdown",
       ...kernel.contributions
         .list("language")
         .map((item) => (item.data as { id?: string })?.id)
@@ -76,16 +72,8 @@ export function Settings({
           >
             {tr("Workspace")}
           </button>
-          <select
-            aria-label={tr("Language override")}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-          >
-            <option value="">{tr("All languages")}</option>
-            {languageIds.map((l) => (
-              <option key={l}>{l}</option>
-            ))}
-          </select>
+          <Select label={tr("Language override")} value={language} onChange={setLanguage}
+            options={[{ value: "", label: tr("All languages") }, ...languageIds.map(value => ({ value, label: value }))]} />
           <label className="push">
             <input
               type="checkbox"
@@ -118,6 +106,7 @@ export function Settings({
           ))}
         </nav>
         <div className="settings-list">
+          {(category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>Manage Theme Packs</button>}
           {selected.map((s) => (
             <SettingRow
               key={`${s.id}:${scope}:${language}`}
@@ -148,8 +137,8 @@ function SettingRow({
 }) {
   const { value, modified } = scopedSetting(kernel, s, scope, language);
   const [error, setError] = useState(""),
-    [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
+    [draft, setDraft] = useState(typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
+  useEffect(() => setDraft(typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)), [JSON.stringify(value)]);
   const set = (value: unknown) => {
     try {
       kernel.configuration.set(s.id, value, scope, language);
@@ -184,20 +173,19 @@ function SettingRow({
           />
           {tr(s.title)}
         </label>
+      ) : s.type === "object" || s.type === "array" ? (
+        <textarea aria-label={tr(s.title)} aria-invalid={!!error} value={draft} rows={8} spellCheck={false} onChange={event => {
+          setDraft(event.target.value);
+          try { set(JSON.parse(event.target.value)); } catch (error) { setError(String(error)); }
+        }} />
+      ) : s.id === "workbench.colorTheme" ? (
+        <Select label={tr(s.title)} value={String(value)} onChange={set} options={kernel.contributions.list("theme").map(item => ({value: (item.data as {stableId?:string})?.stableId ?? item.id, label: `${item.title} · ${(item.data as {packName?:string})?.packName ?? item.owner ?? item.id}`}))} />
+      ) : s.id === "workbench.iconTheme" || s.id === "workbench.productIconTheme" ? (
+        <><IconThemeSelect kernel={kernel} kind={s.id === "workbench.iconTheme" ? "fileIconTheme" : "productIconTheme"} value={String(value)} onChange={set} /><button className="button" onClick={() => void workbench.run("iconPacks.import")}>Import Icon Pack…</button></>
       ) : s.enum ? (
-        <select
-          aria-label={tr(s.title)}
-          value={String(value)}
-          onChange={(e) =>
-            set(s.type === "number" ? Number(e.target.value) : e.target.value)
-          }
-        >
-          {s.enum.map((v) => (
-            <option key={String(v)} value={String(v)}>
-              {typeof v === "string" ? tr(v) : v}
-            </option>
-          ))}
-        </select>
+        <Select label={tr(s.title)} value={String(value)}
+          onChange={value => set(s.type === "number" ? Number(value) : value)}
+          options={s.enum.map(value => ({ value: String(value), label: typeof value === "string" ? tr(value) : String(value) }))} />
       ) : (
         <input
           aria-label={tr(s.title)}
@@ -411,7 +399,7 @@ export function createFeature({
       activation: ["*"],
       capabilities: [],
       configuration: [
-        ...(schema as Setting[]),
+        ...(schema as Setting[]).map(s => ({ ...s, validate: s.id === "files.associations" ? validateFileAssociations : s.id === "languageServers" ? validateLanguageServers : undefined })),
         {
           id: "workbench.locale",
           title: "Display Language",
@@ -447,17 +435,6 @@ export function createFeature({
         }),
       );
       const refreshOptions = () => {
-        const theme = kernel.configuration
-          .list()
-          .find((setting) => setting.id === "workbench.colorTheme");
-        if (theme)
-          theme.enum = [
-            ...new Set([
-              "Graphite (dark)",
-              "Paper (light)",
-              ...kernel.contributions.list("theme").map((item) => item.title),
-            ]),
-          ];
         const format = kernel.configuration
           .list()
           .find((setting) => setting.id === "editor.defaultFormatter");

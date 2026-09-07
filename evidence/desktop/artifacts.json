@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-09-07T08:29:38.381882+00:00",
+  "baseCommit": "83da72d5e78edfa94288fb2d4c66711131c85b32",
+  "source": "Dirty checkout with concurrent browser, branding, and language edits; build logs record the verification snapshots.",
+  "version": "0.1.0",
+  "minimumPlatforms": {
+    "macOS": "13.5 arm64",
+    "Ubuntu": "24.04 x64"
+  },
+  "productionSignaturesAccepted": false,
+  "notarizationAccepted": false,
+  "signedUpdateAccepted": false,
+  "remoteCIRun": false,
+  "linuxVerification": "Ubuntu 24.04 x64 containers under emulation; actual x64 release acceptance remains open.",
+  "artifacts": [
+    {
+      "name": "Oxbit_0.1.0_aarch64.dmg",
+      "bytes": 60683920,
+      "sha256": "e9f2ae583b2ad716b75a042cb6e40e73f21ead7b006c7a8e75cb2a61d5d0f01a",
+      "path": "apps/desktop/artifacts/Oxbit_0.1.0_aarch64.dmg"
+    },
+    {
+      "name": "Oxbit_0.1.0_amd64.AppImage",
+      "bytes": 140085752,
+      "sha256": "f46cc564f6233753157fe2ee2facd869d832ccd90696ed543d194c711259089d",
+      "path": "apps/desktop/artifacts/Oxbit_0.1.0_amd64.AppImage"
+    },
+    {
+      "name": "Oxbit_0.1.0_amd64.deb",
+      "bytes": 73722622,
+      "sha256": "64a2d648c47ae55fd00777626a104242aac5bb1642c117b2748ea8da797c5bbc",
+      "path": "apps/desktop/artifacts/Oxbit_0.1.0_amd64.deb"
+    }
+  ]
+}

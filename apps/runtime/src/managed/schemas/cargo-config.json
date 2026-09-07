@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cargo configuration",
+  "description": "Cargo configuration, distinct from a package manifest. https://doc.rust-lang.org/cargo/reference/config.html",
+  "type": "object",
+  "properties": {
+    "alias": {"type":"object","additionalProperties":{"type":["string","array"]}},
+    "build": {"type":"object","properties":{"jobs":{"type":"integer"},"target":{"type":["string","array"]},"target-dir":{"type":"string"},"rustflags":{"type":["string","array"]},"rustdocflags":{"type":["string","array"]},"incremental":{"type":"boolean"}}},
+    "env": {"type":"object","additionalProperties":{"type":["string","object"]}},
+    "http": {"type":"object","properties":{"proxy":{"type":"string"},"timeout":{"type":"integer"},"check-revoke":{"type":"boolean"},"ssl-verify":{"type":"boolean"}}},
+    "net": {"type":"object","properties":{"retry":{"type":"integer"},"offline":{"type":"boolean"},"git-fetch-with-cli":{"type":"boolean"}}},
+    "registries": {"type":"object"},
+    "registry": {"type":"object"},
+    "source": {"type":"object"},
+    "target": {"type":"object"},
+    "term": {"type":"object","properties":{"quiet":{"type":"boolean"},"verbose":{"type":"boolean"},"color":{"enum":["auto","always","never"]}}}
+  }
+}

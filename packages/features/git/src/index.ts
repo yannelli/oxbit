@@ -1,4 +1,4 @@
-import { translate as tr } from "@oxbit/ui";
+import { Icon, IconButton, Select, FileBadge, translate as tr } from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
 type Change = { path: string; index: string; working: string };
@@ -149,12 +149,15 @@ export function createFeature(o: FeatureOptions): Extension {
     await refresh();
     o.workbench.notify("Commit created");
   };
+  let branchOpenRequest = 0;
   const checkout = async (branch?: string) => {
     await refresh();
-    branch ??= await o.workbench.prompt(
-      "Existing branch: " + status.branches.join(", "),
-      status.branch,
-    );
+    if (!branch) {
+      branchOpenRequest++;
+      o.workbench.openPanel("scm");
+      changed();
+      return;
+    }
     if (!branch) return;
     if (!status.branches.includes(branch))
       throw new Error("Choose an existing local branch");
@@ -308,7 +311,7 @@ export function createFeature(o: FeatureOptions): Extension {
                       ? "var(--del-soft)"
                       : "var(--add-soft)",
                   fontFamily: "var(--font-mono)",
-                  fontSize: 12,
+                  fontSize: "var(--font-mono-font-size)",
                 },
               },
               ...(inline ? text.split("\n").map((line,index)=>React.createElement("span",{key:index,style:{display:"block",background:line.startsWith("+")&&!line.startsWith("+++")?"var(--add-soft)":line.startsWith("-")&&!line.startsWith("---")?"var(--del-soft)":"transparent"}},line||" ")) : [text]),
@@ -370,8 +373,13 @@ export function createFeature(o: FeatureOptions): Extension {
       );
   };
   function Panel() {
-    const [, render] = useState(0),
-      [message, setMessage] = useState("");
+    const [, render] = useState(0);
+    const [message, setMessage] = useState("");
+    const [view, setView] = useState(() =>
+      localStorage.getItem("oxbit.scm.view") === "tree" ? "tree" : "list",
+    );
+    const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+    const [pending, setPending] = useState(false);
     useEffect(() => {
       const listener = () => render((value) => value + 1);
       listeners.add(listener);
@@ -380,218 +388,327 @@ export function createFeature(o: FeatureOptions): Extension {
         listeners.delete(listener);
       };
     }, []);
-    return React.createElement(
+    const h = React.createElement;
+    const run = (action: () => Promise<unknown>) => {
+      if (pending) return;
+      setPending(true);
+      report(async () => {
+        try {
+          await action();
+        } finally {
+          setPending(false);
+        }
+      });
+    };
+    const toggle = (key: string) =>
+      setCollapsed((previous) => {
+        const next = new Set(previous);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    const hasStaged = status.changes.some(staged);
+    const canCommit = hasStaged && !!message.trim() && !pending;
+    const submit = () => {
+      if (canCommit) run(() => commit(message).then(() => setMessage("")));
+    };
+    const file = (change: Change, group: string, depth = 0) => {
+      const isStaged = group === "staged";
+      const name = change.path.split("/").at(-1)!;
+      const directory = change.path.includes("/")
+        ? change.path.slice(0, -(name.length + 1))
+        : "";
+      const dirty = o.documents.get(change.path)?.dirty;
+      return h(
+        "div",
+        {
+          key: change.path,
+          className: "scm-file",
+          style: { paddingLeft: 8 + depth * 12 },
+        },
+        h(
+          "button",
+          {
+            className: "scm-file-open",
+            title: change.path,
+            "aria-label": change.path,
+            onClick: () => diff(change.path, isStaged),
+          },
+          h(FileBadge, { path: change.path }),
+          h("span", { className: "scm-filename" }, name),
+          view === "list" &&
+            directory &&
+            h("span", { className: "scm-directory" }, directory),
+          dirty &&
+            h("span", { className: "dirty-dot", title: tr("Unsaved changes") }),
+        ),
+        h(
+          "span",
+          {
+            className: "scm-status",
+            "data-status": isStaged ? change.index : change.working,
+          },
+          isStaged ? change.index : change.working,
+        ),
+        h(
+          "div",
+          { className: "scm-file-actions" },
+          h(IconButton, {
+            icon: isStaged ? "minus" : "plus",
+            label: (isStaged ? "Unstage " : "Stage ") + change.path,
+            disabled: pending,
+            onClick: () =>
+              run(() =>
+                isStaged
+                  ? request("unstage", { path: change.path }).then(refresh)
+                  : stage(change.path),
+              ),
+          }),
+          !isStaged &&
+            h(IconButton, {
+              icon: "refresh",
+              label: "Discard " + change.path,
+              disabled: pending,
+              onClick: () => run(() => discard(change.path)),
+            }),
+          dirty &&
+            h(IconButton, {
+              icon: "save",
+              label: "Save and Stage " + change.path,
+              disabled: pending,
+              onClick: () => run(() => stage(change.path, true)),
+            }),
+        ),
+      );
+    };
+    const tree = (
+      changes: Change[],
+      group: string,
+      prefix = "",
+      depth = 0,
+    ): React.ReactNode[] => {
+      const folders = new Map<string, Change[]>();
+      const files: Change[] = [];
+      for (const change of changes) {
+        const rest = change.path.slice(prefix.length);
+        const slash = rest.indexOf("/");
+        if (slash < 0) files.push(change);
+        else {
+          const folder = rest.slice(0, slash);
+          if (!folders.has(folder)) folders.set(folder, []);
+          folders.get(folder)!.push(change);
+        }
+      }
+      return [
+        ...[...folders]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, children]) => {
+            const path = prefix + name + "/",
+              key = group + ":" + path,
+              expanded = !collapsed.has(key);
+            return h(
+              "div",
+              { key },
+              h(
+                "button",
+                {
+                  className: "scm-folder",
+                  title: path,
+                  "aria-expanded": expanded,
+                  style: { paddingLeft: 8 + depth * 12 },
+                  onClick: () => toggle(key),
+                },
+                h(Icon, { name: expanded ? "chevD" : "chevR", size: 12 }),
+                h(Icon, { name: expanded ? "folderOpen" : "folder", size: 14 }),
+                h("span", null, name),
+                h("small", null, children.length),
+              ),
+              expanded && tree(children, group, path, depth + 1),
+            );
+          }),
+        ...files
+          .sort((a, b) => a.path.localeCompare(b.path))
+          .map((change) => file(change, group, depth)),
+      ];
+    };
+    return h(
       "div",
       {
         className: "scm-panel",
-        onContextMenu:(event:React.MouseEvent)=>{event.preventDefault();o.workbench.showContextMenu("scm",event.clientX,event.clientY);},
-        style: {
-          height: "100%",
-          padding: 12,
-          overflow: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+        onContextMenu: (event: React.MouseEvent) => {
+          event.preventDefault();
+          o.workbench.showContextMenu("scm", event.clientX, event.clientY);
         },
       },
-      React.createElement(
+      h(
         "div",
-        {
-          className: "scm-actions",
-          style: { display: "flex", gap: 6, flexWrap: "wrap" },
-        },
-        React.createElement(
-          "button",
-          { onClick: () => report(refresh) },
-          tr("Refresh"),
+        { className: "scm-compose" },
+        h(
+          "div",
+          { className: "scm-toolbar" },
+          h("span", { className: "scm-repository-label" }, tr("Repository")),
+          h(IconButton, {
+            icon: "refresh",
+            label: "Refresh",
+            disabled: pending,
+            onClick: () => run(refresh),
+          }),
+          h(IconButton, {
+            icon: "arrowUp",
+            label: "Push",
+            disabled: pending || !status.branch,
+            onClick: () => run(() => request("push").then(refresh)),
+          }),
+          h(IconButton, {
+            icon: "copy",
+            label: "Clone",
+            disabled: pending,
+            onClick: () => run(clone),
+          }),
+          h(IconButton, {
+            icon: view === "list" ? "folder" : "menu",
+            label:
+              view === "list" ? "Switch to tree view" : "Switch to list view",
+            onClick: () => {
+              const next = view === "list" ? "tree" : "list";
+              setView(next);
+              localStorage.setItem("oxbit.scm.view", next);
+            },
+          }),
         ),
-        React.createElement(
-          "button",
-          {
-            onClick: () =>
-              report(async () => {
-                await request("init");
-                await refresh();
-              }),
-          },
-          tr("Initialize"),
-        ),
-        React.createElement(
-          "button",
-          { onClick: () => report(() => request("push").then(refresh)) },
-          tr("Push"),
-        ),
-        React.createElement(
-          "button",
-          { onClick: () => report(clone) },
-          tr("Clone"),
-        ),
-      ),
-      React.createElement(
-        "select",
-        {
-          "aria-label": tr("Git branch"),
+        h(Select, {
+          className: "scm-branch",
+          label: tr("Git branch"),
+          icon: "git",
           value: status.branch,
-          onChange: (event: any) => report(() => checkout(event.target.value)),
-        },
-        ...[...new Set([status.branch, ...status.branches])].map((branch) =>
-          React.createElement(
-            "option",
-            { key: branch, value: branch },
-            branch || tr("No repository"),
-          ),
-        ),
-      ),
-      React.createElement("textarea", {
-        className: "scm-message",
-        "aria-label": tr("Commit message"),
-        rows: 3,
-        placeholder: tr("Message (Ctrl+Enter to commit)"),
-        value: message,
-        onChange: (event: any) => setMessage(event.target.value),
-        onKeyDown: (event: any) => {
-          if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-            event.preventDefault();
-            report(() => commit(message).then(() => setMessage("")));
-          }
-        },
-      }),
-      React.createElement(
-        "button",
-        {
-          className: "btn primary",
-          disabled: !status.changes.some(staged),
-          onClick: () =>
-            report(() => commit(message).then(() => setMessage(""))),
-        },
-        tr("Commit staged changes"),
-      ),
-      error &&
-        React.createElement(
-          "p",
-          { role: "alert", style: { fontSize: 12, whiteSpace: "pre-wrap" } },
-          error,
-        ),
-      progress &&
-        React.createElement(
-          "pre",
-          {
-            role: "status",
-            style: {
-              fontSize: 11,
-              whiteSpace: "pre-wrap",
-              maxHeight: 120,
-              overflow: "auto",
-            },
+          disabled: pending || !status.branch,
+          openRequest: branchOpenRequest,
+          onOpen: () => {
+            branchOpenRequest = 0;
+            void refresh().catch(() => {});
           },
-          progress,
-        ),
-      cloning &&
-        React.createElement(
-          "button",
-          { onClick: () => cloneController?.abort() },
-          tr("Cancel Clone"),
-        ),
-      ...(["staged", "unstaged"] as const).map((group) => {
-        const changes = status.changes.filter(
-          group === "staged" ? staged : unstaged,
-        );
-        return React.createElement(
-          "section",
-          { key: group, className: "scm-group" },
-          React.createElement(
-            "h4",
+          options: [...new Set([status.branch, ...status.branches])].map(
+            (branch) => ({
+              value: branch,
+              label: branch || tr("No repository"),
+              disabled: !status.branches.includes(branch),
+            }),
+          ),
+          onChange: (branch) => {
+            if (branch !== status.branch) run(() => checkout(branch));
+          },
+        }),
+        !status.branch &&
+          h(
+            "button",
             {
-              style: {
-                fontSize: 11,
-                textTransform: "uppercase",
-                letterSpacing: ".04em",
-                display: "flex",
-                justifyContent: "space-between",
-              },
+              className: "button",
+              disabled: pending,
+              onClick: () => run(() => request("init").then(refresh)),
             },
-            group === "staged" ? tr("Staged changes") : tr("Changes"),
-            React.createElement("span", null, changes.length),
+            h(Icon, { name: "plus" }),
+            tr("Initialize Repository"),
           ),
-          ...changes.map((change) =>
-            React.createElement(
-              "div",
-              {
-                key: change.path,
-                className: "scm-file",
-                style: {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  minHeight: 28,
-                },
-              },
-              React.createElement(
-                "button",
-                {
-                  style: {
-                    flex: 1,
-                    textAlign: "left",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  },
-                  onClick: () => diff(change.path, group === "staged"),
-                },
-                change.path + (o.documents.get(change.path)?.dirty ? " ●" : ""),
-              ),
-              React.createElement(
-                "span",
-                {
-                  style: {
-                    fontFamily: "var(--font-mono)",
-                    color:
-                      change.working === "?" ? "var(--add)" : "var(--accent)",
-                  },
-                },
-                group === "staged" ? change.index : change.working,
-              ),
-              React.createElement(
-                "button",
-                {
-                  "aria-label":
-                    (group === "staged" ? "Unstage " : "Stage ") + change.path,
-                  onClick: () =>
-                    report(() =>
-                      group === "staged"
-                        ? request("unstage", { path: change.path }).then(
-                            refresh,
-                          )
-                        : stage(change.path),
-                    ),
-                },
-                group === "staged" ? "−" : "+",
-              ),
-              group === "unstaged" &&
-                React.createElement(
-                  "button",
-                  {
-                    "aria-label": "Discard " + change.path,
-                    onClick: () => report(() => discard(change.path)),
-                  },
-                  "↶",
-                ),
-              o.documents.get(change.path)?.dirty &&
-                React.createElement(
-                  "button",
-                  { onClick: () => report(() => stage(change.path, true)) },
-                  tr("Save and Stage"),
-                ),
-            ),
-          ),
-        );
-      }),
-      !status.changes.length &&
-        !error &&
-        React.createElement(
-          "p",
-          { style: { fontSize: 12, color: "var(--fg-muted)" } },
-          tr("No disk changes"),
+        h("textarea", {
+          className: "scm-message",
+          "aria-label": tr("Commit message"),
+          rows: 3,
+          placeholder: tr("Message (Ctrl+Enter to commit)"),
+          value: message,
+          onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+            setMessage(event.target.value),
+          onKeyDown: (event: React.KeyboardEvent) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+              event.preventDefault();
+              submit();
+            }
+          },
+        }),
+        h(
+          "button",
+          {
+            className: "button primary scm-commit",
+            disabled: !canCommit,
+            onClick: submit,
+          },
+          h(Icon, { name: "check" }),
+          tr("Commit staged changes"),
         ),
+        error &&
+          h("p", { className: "scm-feedback error-text", role: "alert" }, error),
+        progress &&
+          h("p", { className: "scm-feedback", role: "status" }, progress),
+        cloning &&
+          h(
+            "button",
+            { className: "button", onClick: () => cloneController?.abort() },
+            tr("Cancel Clone"),
+          ),
+      ),
+      h(
+        "div",
+        { className: "scm-changes" },
+        ...(["staged", "unstaged"] as const).map((group) => {
+          const changes = status.changes.filter(
+            group === "staged" ? staged : unstaged,
+          );
+          const expanded = !collapsed.has(group);
+          return h(
+            "section",
+            {
+              key: group,
+              className: "scm-group",
+              "aria-label":
+                group === "staged" ? tr("Staged changes") : tr("Changes"),
+            },
+            h(
+              "div",
+              { className: "scm-group-header" },
+              h(
+                "button",
+                {
+                  className: "scm-group-toggle",
+                  "aria-expanded": expanded,
+                  onClick: () => toggle(group),
+                },
+                h(Icon, { name: expanded ? "chevD" : "chevR", size: 12 }),
+                h(
+                  "span",
+                  null,
+                  group === "staged" ? tr("Staged changes") : tr("Changes"),
+                ),
+                h("span", { className: "scm-count" }, changes.length),
+              ),
+              h(IconButton, {
+                icon: group === "staged" ? "minus" : "plus",
+                label:
+                  group === "staged"
+                    ? "Unstage All Changes"
+                    : "Stage All Changes",
+                disabled: !changes.length || pending,
+                onClick: () =>
+                  run(() =>
+                    o.kernel.commands.execute(
+                      group === "staged" ? "git.unstageAll" : "git.stageAll",
+                    ),
+                  ),
+              }),
+            ),
+            expanded &&
+              (view === "tree"
+                ? tree(changes, group)
+                : changes.map((change) => file(change, group))),
+          );
+        }),
+        !status.changes.length &&
+          !error &&
+          h(
+            "div",
+            { className: "scm-empty" },
+            h(Icon, { name: "okCircle", size: 24 }),
+            h("span", null, tr("No disk changes")),
+          ),
+      ),
     );
   }
   return {

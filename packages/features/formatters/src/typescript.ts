@@ -1,3 +1,4 @@
+import { resolveLanguage } from "@oxbit/sdk";
 import type { Formatter } from "@oxbit/sdk";
 
 export const formatTypeScript: Formatter["format"] = async (
@@ -6,12 +7,14 @@ export const formatTypeScript: Formatter["format"] = async (
   options,
 ) => {
   options.signal?.throwIfAborted();
-  if (!/\.(?:[cm]?tsx?|[cm]?jsx?|json)$/i.test(path))
+  const language = options.language ?? resolveLanguage(path).id;
+  if (!["typescript", "typescriptreact", "javascript", "javascriptreact", "json"].includes(language))
     throw new Error(`TypeScript formatter does not support ${path}`);
   const ts = await import("typescript");
   const service = ts.createLanguageService({
     getScriptFileNames: () => [path],
     getScriptVersion: () => "1",
+    getScriptKind: () => ({ typescript: ts.ScriptKind.TS, typescriptreact: ts.ScriptKind.TSX, javascript: ts.ScriptKind.JS, javascriptreact: ts.ScriptKind.JSX, json: ts.ScriptKind.JSON })[language] ?? ts.ScriptKind.Unknown,
     getScriptSnapshot: (file) =>
       file === path ? ts.ScriptSnapshot.fromString(text) : undefined,
     getCurrentDirectory: () => "",

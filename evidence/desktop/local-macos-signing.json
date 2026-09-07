@@ -1,0 +1,73 @@
+{
+  "recordedAt": "2026-09-07T08:55:37.926252+00:00",
+  "version": "0.1.0",
+  "snapshot": "Existing unsigned desktop installer; later concurrent working-tree edits are not included.",
+  "xcode": {
+    "version": "27.0",
+    "build": "27A5194q",
+    "developerDirectory": "/Applications/Xcode-beta.app/Contents/Developer",
+    "globalSelectionChanged": false
+  },
+  "identity": "Developer ID Application: Ryan Yannelli (2P58V89SR7)",
+  "identitySHA1": "3BBDCC0627FDF29581877804EC3D107A0AD7137C",
+  "teamID": "2P58V89SR7",
+  "newCredentialsGenerated": false,
+  "xcodeDistributionID": "E6C008BB-D5C5-4ED4-ADFB-5716490D155D",
+  "checks": {
+    "dmgSignature": {
+      "exitCode": 0,
+      "output": "/Users/ryanyannelli/Development/oxbit/apps/desktop/artifacts/Oxbit_0.1.0_aarch64_local-signed.dmg: valid on disk\n/Users/ryanyannelli/Development/oxbit/apps/desktop/artifacts/Oxbit_0.1.0_aarch64_local-signed.dmg: satisfies its Designated Requirement"
+    },
+    "dmgTicket": {
+      "exitCode": 65,
+      "output": "Processing: /Users/ryanyannelli/Development/oxbit/apps/desktop/artifacts/Oxbit_0.1.0_aarch64_local-signed.dmg\nOxbit_0.1.0_aarch64_local-signed.dmg does not have a ticket stapled to it."
+    },
+    "dmgGatekeeper": {
+      "exitCode": 3,
+      "output": "/Users/ryanyannelli/Development/oxbit/apps/desktop/artifacts/Oxbit_0.1.0_aarch64_local-signed.dmg: rejected\nsource=Unnotarized Developer ID"
+    },
+    "packagedAppSignature": {
+      "exitCode": 0,
+      "output": "/tmp/oxbit-local-signing-20260907/signed-mount/Oxbit.app: valid on disk\n/tmp/oxbit-local-signing-20260907/signed-mount/Oxbit.app: satisfies its Designated Requirement"
+    },
+    "packagedAppTicket": {
+      "exitCode": 0,
+      "output": "Processing: /tmp/oxbit-local-signing-20260907/signed-mount/Oxbit.app\nThe validate action worked!"
+    },
+    "packagedAppGatekeeper": {
+      "exitCode": 0,
+      "output": "/tmp/oxbit-local-signing-20260907/signed-mount/Oxbit.app: accepted\nsource=Notarized Developer ID"
+    },
+    "bundledNode": {
+      "exitCode": 0,
+      "output": "v24.20.0"
+    },
+    "bundledRipgrep": {
+      "exitCode": 0,
+      "output": "ripgrep 15.1.0 (rev af60c2de9d)\n\nfeatures:+pcre2\nsimd(compile):+NEON\nsimd(runtime):+NEON\n\nPCRE2 10.45 is available (JIT is available)"
+    }
+  },
+  "artifact": {
+    "path": "apps/desktop/artifacts/Oxbit_0.1.0_aarch64_local-signed.dmg",
+    "bytes": 69503732,
+    "sha256": "c39d2e77661a38769ac0341f56a8c478f9ac511cd0be2a74c2dbb3f4754e5716"
+  },
+  "appNotarizationAccepted": true,
+  "appTicketStapled": true,
+  "dmgNotarizationAccepted": false,
+  "dmgTicketStapled": false,
+  "dmgSubmissionBlockedBy": "No notarytool Keychain profile configured; Xcode account upload notarized the app only.",
+  "downloadedArtifactOnSeparateMacAccepted": false,
+  "signedUpdateAccepted": false,
+  "signedRuntimeSmoke": {
+    "result": "passed",
+    "log": "evidence/desktop/local-macos-signed-runtime.log"
+  },
+  "scriptValidation": {
+    "syntax": "passed",
+    "eslint": "passed",
+    "help": "passed",
+    "worksheetShellSyntax": "5 blocks passed",
+    "worksheetLocalLinks": "passed"
+  }
+}

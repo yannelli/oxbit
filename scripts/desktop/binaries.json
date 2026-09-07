@@ -1,0 +1,53 @@
+{
+  "nodeVersion": "24.20.0",
+  "ripgrepVersion": "15.1.0",
+  "darwin-arm64": {
+    "target": "aarch64-apple-darwin",
+    "node": {
+      "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-darwin-arm64.tar.gz",
+      "sha256": "40e5607e5ecb3db9192723776da2d75d966260fc74a7a9e731c1bd67dda96bc8"
+    },
+    "rg": {
+      "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-apple-darwin.tar.gz",
+      "sha256": "378e973289176ca0c6054054ee7f631a065874a352bf43f0fa60ef079b6ba715"
+    }
+  },
+  "linux-x64": {
+    "target": "x86_64-unknown-linux-gnu",
+    "node": {
+      "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.gz",
+      "sha256": "855d581f8a4eb1a8117e3426de25fe02770592febcfb31369aee1ffbfee9e8ec"
+    },
+    "rg": {
+      "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-unknown-linux-musl.tar.gz",
+      "sha256": "1c9297be4a084eea7ecaedf93eb03d058d6faae29bbc57ecdaf5063921491599"
+    }
+  },
+  "linuxBundleTools": [
+    {
+      "file": "AppRun-x86_64",
+      "url": "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64",
+      "sha256": "f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f"
+    },
+    {
+      "file": "linuxdeploy-x86_64.AppImage",
+      "url": "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-x86_64.AppImage",
+      "sha256": "20eebde3c18ae2e44279bd624fc72482503aece216d5d77f10932235342f71c1"
+    },
+    {
+      "file": "linuxdeploy-plugin-gtk.sh",
+      "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/b5eb8d05b4c0ed40107fe2158c5d8527f94568ef/linuxdeploy-plugin-gtk.sh",
+      "sha256": "cb379f9b0733e9ad9f8bd78f8c2fa038aef2478523bb7d4c8e64ff6a1ea3501a"
+    },
+    {
+      "file": "linuxdeploy-plugin-gstreamer.sh",
+      "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gstreamer/2a2e67491c32995a3f279ad0ecbe77abd512b42a/linuxdeploy-plugin-gstreamer.sh",
+      "sha256": "c107b49d84edbffc6ab226ed1007e0626a4f7aa2c3a36b7782bef62351d49e94"
+    },
+    {
+      "file": "linuxdeploy-plugin-appimage.AppImage",
+      "url": "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage",
+      "sha256": "0441769ab38009504d2678c38cd7e526955388dd30a215b4a20afaa5471652f2"
+    }
+  ]
+}

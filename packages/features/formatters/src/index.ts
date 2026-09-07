@@ -1,5 +1,6 @@
 import {
-  languageIdForPath,
+  languageForKernel,
+  canonicalLanguageId,
   type Contribution,
   type Extension,
   type FeatureOptions,
@@ -44,13 +45,13 @@ export class FormatterService {
         throw new Error(`Duplicate formatter ${provider.id}`);
       providers.set(provider.id, provider);
     }
-    const language = path ? languageIdForPath(path) : undefined;
+    const language = path ? languageForKernel(this.options.kernel, path).id : undefined;
     return [...providers.values()].filter(
-      (provider) => !language || provider.languages.includes(language),
+      (provider) => !language || provider.languages.some(id => canonicalLanguageId(id) === language || id === "javascript" && language === "javascriptreact"),
     );
   }
   selected(path: string): Formatter {
-    const language = languageIdForPath(path);
+    const language = languageForKernel(this.options.kernel, path).id;
     const id =
       this.options.kernel.configuration.get<string>(
         "editor.defaultFormatter",
@@ -78,9 +79,10 @@ export class FormatterService {
     signal?: AbortSignal,
   ): Promise<string> {
     signal?.throwIfAborted();
-    const language = languageIdForPath(path);
+    const language = languageForKernel(this.options.kernel, path).id;
     const formatter = this.selected(path);
     const result = await formatter.format(text, path, {
+      language,
       tabSize:
         this.options.kernel.configuration.get<number>(
           "editor.tabSize",
@@ -157,7 +159,7 @@ export function createFeature(options: FeatureOptions): Extension {
       ctx.hooks.beforeSave(
         "formatters.save",
         async ({ path, text, signal }) => {
-          const language = languageIdForPath(path);
+          const language = languageForKernel(options.kernel, path).id;
           if (ctx.configuration.get("editor.formatOnSave", language))
             text = await service.format(text, path, signal);
           signal.throwIfAborted();

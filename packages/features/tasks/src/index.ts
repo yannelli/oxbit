@@ -1,4 +1,4 @@
-import { translate as tr } from "@oxbit/ui";
+import { Select, translate as tr } from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
 export type Task = {
@@ -172,7 +172,7 @@ export function createFeature(o: FeatureOptions): Extension {
           whiteSpace: "pre-wrap",
           margin: 0,
           fontFamily: "var(--font-mono)",
-          fontSize: 12,
+          fontSize: "var(--font-mono-font-size)",
         },
       },
       ...text.split("\n").map((line, index) => {
@@ -291,17 +291,11 @@ export function createFeature(o: FeatureOptions): Extension {
         className: "output-panel",
         style: { padding: 12, height: "100%", overflow: "auto" },
       },
-      React.createElement(
-        "select",
-        {
-          "aria-label": tr("Output channel"),
-          value: selected,
-          onChange: (event: any) => setChannel(event.target.value),
-        },
-        ...names.map((name) =>
-          React.createElement("option", { key: name }, name),
-        ),
-      ),
+      React.createElement(Select, {
+        label: tr("Output channel"), value: selected, icon: "terminal",
+        options: names.map(name => ({ value: name, label: name })),
+        onChange: setChannel,
+      }),
       React.createElement(Lines, {
         text: channels.get(selected) ?? data?.lines?.join("\n") ?? "",
       }),
@@ -407,6 +401,12 @@ export function createFeature(o: FeatureOptions): Extension {
             }
           }),
         );
+        ctx.subscribe(o.runtime.subscribe("runtime.terminated", () => {
+          for (const task of tasks.values()) if (task.exitCode === undefined) {
+            task.exitCode = -1; task.state = "terminated (runtime stopped)";
+          }
+          changed();
+        }));
         void recover();
       }
       ctx.subscribe(() => {

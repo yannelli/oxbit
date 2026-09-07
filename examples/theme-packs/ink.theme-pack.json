@@ -1,0 +1,45 @@
+{
+  "$schema": "../../packages/themes/src/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "example.ink",
+  "name": "Ink",
+  "version": "1.0.0",
+  "themes": [
+    {
+      "id": "night",
+      "name": "Ink at Night",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "pairedTheme": "day",
+      "colors": {
+        "editor.background": "#151021",
+        "button.primary.background": "#cfa7ff"
+      },
+      "typography": {
+        "editor": {
+          "family": [
+            "JetBrains Mono",
+            "monospace"
+          ],
+          "size": 15
+        }
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#cfa7ff",
+          "weight": 700
+        }
+      }
+    },
+    {
+      "id": "day",
+      "name": "Ink by Day",
+      "mode": "light",
+      "base": "builtin:light",
+      "pairedTheme": "night",
+      "colors": {
+        "editor.background": "#fff8f1"
+      }
+    }
+  ]
+}

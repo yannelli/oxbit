@@ -1,53 +1,25 @@
+import { languageForKernel } from "@oxbit/sdk";
 import type {
   CodeActionProvider,
   CompletionProvider,
   Contribution,
   DiagnosticsProvider,
   FeatureOptions,
-  LanguageDefinition,
   ProviderCodeAction,
   ProviderCompletion,
   ProviderDiagnostic,
   ProviderDocument,
+  SemanticTokensProvider, InlayHintsProvider, NavigationProvider, NavigationKind, LanguageRange, ProviderInlayHint,
 } from "@oxbit/sdk";
 
 export function documentLanguage(o: FeatureOptions, path: string): string {
-  const definitions = o.kernel.contributions
-    .list("language")
-    .map((item) => item.data as LanguageDefinition)
-    .filter(
-      (item) =>
-        item && typeof item.id === "string" && Array.isArray(item.extensions),
-    );
-  for (const definition of definitions)
-    if (
-      definition.extensions.some((extension) =>
-        path.endsWith(extension.startsWith(".") ? extension : "." + extension),
-      )
-    )
-      return definition.id;
-  const extension = path.split(".").at(-1)?.toLowerCase();
-  return (
-    (
-      {
-        ts: "typescript",
-        tsx: "typescriptreact",
-        mts: "typescript",
-        cts: "typescript",
-        js: "javascript",
-        jsx: "javascriptreact",
-        mjs: "javascript",
-        cjs: "javascript",
-        json: "json",
-        html: "html",
-        css: "css",
-        md: "markdown",
-        markdown: "markdown",
-      } as Record<string, string>
-    )[extension ?? ""] ?? "plaintext"
-  );
+  const document = o.documents.get(path);
+  return languageForKernel(o.kernel, path, document?.text.toString().split("\n", 1)[0]).id;
 }
+
 export class LanguageProviders {
+  private completionOwners = new WeakMap<object, { contribution: Contribution; path: string; version: number }>();
+  private hints = new WeakMap<object, { path: string; contribution: Contribution }>();
   private known = new Map<string, unknown>();
   private actions = new WeakMap<
     ProviderCodeAction,
@@ -123,7 +95,7 @@ export class LanguageProviders {
       this.o.kernel.contributions
         .list()
         .filter((item) =>
-          ["transport", "diagnostics", "completion", "codeAction"].includes(
+          ["transport", "diagnostics", "completion", "codeAction", "semanticTokens", "inlayHints", "navigation"].includes(
             item.kind,
           ),
         )
@@ -208,6 +180,32 @@ export class LanguageProviders {
       this.requests.delete(id);
     }
   }
+  async semanticTokens(path: string, range: LanguageRange | undefined, signal?: AbortSignal) {
+    const contribution = this.matching("semanticTokens", path)[0];
+    if (!contribution) return undefined;
+    const document = await this.document(path), provider = contribution.data as SemanticTokensProvider;
+    return this.run(contribution, document, signal, signal => provider.provideSemanticTokens(document, range, signal));
+  }
+  async inlayHints(path: string, range: LanguageRange, signal?: AbortSignal) {
+    const contribution = this.matching("inlayHints", path)[0];
+    if (!contribution) return [];
+    const document = await this.document(path), provider = contribution.data as InlayHintsProvider;
+    const values = await this.run(contribution, document, signal, signal => provider.provideInlayHints(document, range, signal));
+    for (const hint of values) this.hints.set(hint, { path, contribution });
+    return values;
+  }
+  async resolveHint(hint: ProviderInlayHint, signal?: AbortSignal) {
+    const source = this.hints.get(hint);
+    if (!source || this.known.get(source.contribution.id) !== source.contribution.data) throw new Error("Inlay hint provider was removed");
+    const document = await this.document(source.path), provider = source.contribution.data as InlayHintsProvider;
+    const resolved = await this.run(source.contribution, document, signal, signal => provider.resolveInlayHint?.(hint, signal) ?? hint);
+    this.hints.set(resolved, source); return resolved;
+  }
+  async locations(path: string, offset: number, operation: NavigationKind, signal?: AbortSignal) {
+    const document = await this.document(path);
+    const values = await Promise.all(this.matching("navigation", path).filter(item => (item.data as NavigationProvider).operations.includes(operation)).map(contribution => this.run(contribution, document, signal, signal => (contribution.data as NavigationProvider).provideLocations(document, offset, operation, signal))));
+    return values.flat();
+  }
   async diagnose(path: string) {
     if (this.disposed || !this.o.documents.get(path)) return;
     const document = await this.document(path);
@@ -253,6 +251,10 @@ export class LanguageProviders {
         result.set(path, [...(result.get(path) ?? []), ...items]);
     return result;
   }
+  ownsCompletion(item: ProviderCompletion) {
+    const source = this.completionOwners.get(item);
+    return Boolean(source && this.known.get(source.contribution.id) === source.contribution.data && this.o.documents.get(source.path)?.version === source.version);
+  }
   async completions(
     path: string,
     offset: number,
@@ -284,7 +286,7 @@ export class LanguageProviders {
               item.to === value.to,
           )
         )
-          result.push(value);
+          { const item = { ...value }; this.completionOwners.set(item, { contribution, path, version: document.version }); result.push(item); }
     }
     return result;
   }

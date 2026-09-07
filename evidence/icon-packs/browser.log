@@ -1,0 +1,32 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 test:icons:browser /Users/ryanyannelli/Development/oxbit
+> playwright test --config tests/browser/icon-packs.config.ts
+
+[WebServer] (node:24753) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:24757) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:24770) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] The emitted file "assets/standalone-Cayz_KD-.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/html-DwgzGnwN.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/postcss-BGfBeQpW.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/estree-DFfjoHvx.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/babel-BktJt1uC.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/markdown-Bd15IfY5.js.map" overwrites a previously emitted file of the same name.
+[WebServer] The emitted file "assets/typescript-cMir0TZb.js.map" overwrites a previously emitted file of the same name.
+[WebServer] 
+[WebServer] (!) Some chunks are larger than 1400 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+Running 2 tests using 1 worker
+
+(node:24985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/icon-packs.spec.ts:17:1 › imports real file and product packs independently, persists offline, survives lifecycle and multiple windows (2.1s)
+  ✓  2 tests/browser/icon-packs.spec.ts:55:1 › keyboard selection, isolated SVGs, color variants, font alignment and invalid replacement recovery (1.1s)
+
+  2 passed (31.0s)

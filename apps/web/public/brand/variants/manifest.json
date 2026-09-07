@@ -1,0 +1,1218 @@
+{
+  "squareSizes": [
+    16,
+    24,
+    32,
+    48,
+    64,
+    96,
+    128,
+    144,
+    152,
+    180,
+    192,
+    256,
+    384,
+    512,
+    1024,
+    2048
+  ],
+  "modes": [
+    {
+      "id": "dark",
+      "label": "Dark",
+      "background": "#14161a",
+      "mark": "#8bd5ca",
+      "text": "#f2f3ef"
+    },
+    {
+      "id": "light",
+      "label": "Light",
+      "background": "#f2f3ef",
+      "mark": "#0f7b6c",
+      "text": "#14161a"
+    },
+    {
+      "id": "dark-transparent",
+      "label": "Dark (Transparent BG)",
+      "background": "#14161a",
+      "mark": "#8bd5ca",
+      "text": "#f2f3ef",
+      "transparent": true
+    },
+    {
+      "id": "light-transparent",
+      "label": "Light (Transparent BG)",
+      "background": "#f2f3ef",
+      "mark": "#0f7b6c",
+      "text": "#14161a",
+      "transparent": true
+    }
+  ],
+  "assets": [
+    {
+      "path": "dark/full-logo/oxbit-full-logo.svg"
+    },
+    {
+      "path": "dark/full-logo/oxbit-full-logo.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/oxbit-full-logo-560x160.png",
+      "width": 560,
+      "height": 160,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/oxbit-full-logo-1120x320.png",
+      "width": 1120,
+      "height": 320,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/oxbit-full-logo-2240x640.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/oxbit-full-logo-4480x1280.png",
+      "width": 4480,
+      "height": 1280,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-square.svg"
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "dark/full-logo/square/oxbit-full-logo-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark.svg"
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "dark/logo-mark/oxbit-logo-mark-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/favicon.svg"
+    },
+    {
+      "path": "dark/browser/favicon-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/favicon-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/favicon-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/favicon.ico"
+    },
+    {
+      "path": "dark/browser/apple-touch-icon-120x120.png",
+      "width": 120,
+      "height": 120,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/apple-touch-icon-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/apple-touch-icon-167x167.png",
+      "width": 167,
+      "height": 167,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/apple-touch-icon-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "dark/browser/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo.svg"
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo-560x160.png",
+      "width": 560,
+      "height": 160,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo-1120x320.png",
+      "width": 1120,
+      "height": 320,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo-2240x640.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/oxbit-full-logo-4480x1280.png",
+      "width": 4480,
+      "height": 1280,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-square.svg"
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "light/full-logo/square/oxbit-full-logo-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark.svg"
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": false
+    },
+    {
+      "path": "light/logo-mark/oxbit-logo-mark-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/favicon.svg"
+    },
+    {
+      "path": "light/browser/favicon-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/favicon-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/favicon-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/favicon.ico"
+    },
+    {
+      "path": "light/browser/apple-touch-icon-120x120.png",
+      "width": 120,
+      "height": 120,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/apple-touch-icon-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/apple-touch-icon-167x167.png",
+      "width": 167,
+      "height": 167,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/apple-touch-icon-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light/browser/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo.svg"
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo-560x160.png",
+      "width": 560,
+      "height": 160,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo-1120x320.png",
+      "width": 1120,
+      "height": 320,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo-2240x640.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/oxbit-full-logo-4480x1280.png",
+      "width": 4480,
+      "height": 1280,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-square.svg"
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/full-logo/square/oxbit-full-logo-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark.svg"
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/logo-mark/oxbit-logo-mark-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/browser/favicon.svg"
+    },
+    {
+      "path": "dark-transparent/browser/favicon-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/browser/favicon-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/browser/favicon-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "dark-transparent/browser/favicon.ico"
+    },
+    {
+      "path": "dark-transparent/browser/apple-touch-icon-120x120.png",
+      "width": 120,
+      "height": 120,
+      "transparent": false
+    },
+    {
+      "path": "dark-transparent/browser/apple-touch-icon-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "dark-transparent/browser/apple-touch-icon-167x167.png",
+      "width": 167,
+      "height": 167,
+      "transparent": false
+    },
+    {
+      "path": "dark-transparent/browser/apple-touch-icon-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "dark-transparent/browser/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo.svg"
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo-560x160.png",
+      "width": 560,
+      "height": 160,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo-1120x320.png",
+      "width": 1120,
+      "height": 320,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo-2240x640.png",
+      "width": 2240,
+      "height": 640,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/oxbit-full-logo-4480x1280.png",
+      "width": 4480,
+      "height": 1280,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-square.svg"
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/full-logo/square/oxbit-full-logo-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark.svg"
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-24x24.png",
+      "width": 24,
+      "height": 24,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-64x64.png",
+      "width": 64,
+      "height": 64,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-96x96.png",
+      "width": 96,
+      "height": 96,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-128x128.png",
+      "width": 128,
+      "height": 128,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-144x144.png",
+      "width": 144,
+      "height": 144,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-192x192.png",
+      "width": 192,
+      "height": 192,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-256x256.png",
+      "width": 256,
+      "height": 256,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-384x384.png",
+      "width": 384,
+      "height": 384,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-512x512.png",
+      "width": 512,
+      "height": 512,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-1024x1024.png",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/logo-mark/oxbit-logo-mark-2048x2048.png",
+      "width": 2048,
+      "height": 2048,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/browser/favicon.svg"
+    },
+    {
+      "path": "light-transparent/browser/favicon-16x16.png",
+      "width": 16,
+      "height": 16,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/browser/favicon-32x32.png",
+      "width": 32,
+      "height": 32,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/browser/favicon-48x48.png",
+      "width": 48,
+      "height": 48,
+      "transparent": true
+    },
+    {
+      "path": "light-transparent/browser/favicon.ico"
+    },
+    {
+      "path": "light-transparent/browser/apple-touch-icon-120x120.png",
+      "width": 120,
+      "height": 120,
+      "transparent": false
+    },
+    {
+      "path": "light-transparent/browser/apple-touch-icon-152x152.png",
+      "width": 152,
+      "height": 152,
+      "transparent": false
+    },
+    {
+      "path": "light-transparent/browser/apple-touch-icon-167x167.png",
+      "width": 167,
+      "height": 167,
+      "transparent": false
+    },
+    {
+      "path": "light-transparent/browser/apple-touch-icon-180x180.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    },
+    {
+      "path": "light-transparent/browser/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "transparent": false
+    }
+  ]
+}

@@ -77,6 +77,7 @@ export interface WorkbenchState {
   recent: string[];
   keybindings: Record<string, string>;
   chord?: string;
+  aboutOpen?: boolean;
   dialog?: {
     title: string;
     message?: string;

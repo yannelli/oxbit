@@ -14,6 +14,11 @@ type Pending = {
   cleanup: () => void;
   method: string;
 };
+export interface RuntimeClientOptions {
+  token?: string;
+  /** Desktop credentials never touch WebView storage. Browser pairing keeps its default. */
+  persistToken?: boolean;
+}
 export class RuntimeClient implements RpcClient {
   private socket?: WebSocket;
   private token?: string;
@@ -40,20 +45,20 @@ export class RuntimeClient implements RpcClient {
   constructor(
     url = globalThis.location?.origin ?? "http://localhost:9277",
     public workspaceId = "default",
+    private readonly options: RuntimeClientOptions = {},
   ) {
     this.url = url.replace(/\/$/, "");
-    this.token =
-      globalThis.sessionStorage?.getItem("oxbit.runtime.token:" + this.url) ??
-      globalThis.sessionStorage?.getItem("zapp.runtime.token:" + this.url) ??
-      undefined;
+    this.token = options.token ?? (options.persistToken === false ? undefined :
+      globalThis.sessionStorage?.getItem("oxbit.runtime.token:" + this.url) ?? undefined);
+  }
+  private rememberToken(token: string) {
+    this.token = token;
+    if (this.options.persistToken !== false)
+      globalThis.sessionStorage?.setItem("oxbit.runtime.token:" + this.url, token);
   }
   async pair(code: string) {
     if (code.startsWith("grant:")) {
-      this.token = code.slice(6);
-      globalThis.sessionStorage?.setItem(
-        "oxbit.runtime.token:" + this.url,
-        this.token,
-      );
+      this.rememberToken(code.slice(6));
       await this.connect();
       return this.session;
     }
@@ -67,11 +72,7 @@ export class RuntimeClient implements RpcClient {
     if (!r.ok)
       throw new Error(data.error?.message ?? data.error ?? "Pairing failed");
     this.session = data;
-    this.token = data.token;
-    globalThis.sessionStorage?.setItem(
-      "oxbit.runtime.token:" + this.url,
-      data.token,
-    );
+    this.rememberToken(data.token);
     return data;
   }
   async connect(): Promise<void> {
@@ -315,6 +316,11 @@ export class RuntimeClient implements RpcClient {
     for (const [id, pending] of this.pending) { if ((operationMethods as readonly string[]).includes(pending.method)) this.uncertain.set(id, pending.method); pending.cleanup(); pending.reject(new RpcError("CONNECTION_LOST", "Runtime disconnected", {id,method:pending.method})); }
     this.pending.clear();
   }
+  /** The desktop supervisor observed process death, so tools cannot be reattached. */
+  terminated() {
+    this.disconnect();
+    this.emit("runtime.terminated", {});
+  }
   dispose() {
     this.disconnect();
     this.listeners.clear();
@@ -334,13 +340,13 @@ export class RuntimeFileSystem implements FileSystem {
       conflict?: boolean;
     }
   >();
-  constructor(public readonly client: RpcClient) {
+  constructor(public readonly client: RpcClient, stableIdentity?: string) {
     this.id =
-      "runtime:" +
+      stableIdentity ?? ("runtime:" +
       ("url" in client ? client.url : "") +
       ":" +
       ((client as RuntimeClient).session?.workspaceKey ??
-        ("workspaceId" in client ? client.workspaceId : "default"));
+        ("workspaceId" in client ? client.workspaceId : "default")));
   }
   list(path = "") {
     return this.client.request<FileEntry[]>("fs.list", { path });

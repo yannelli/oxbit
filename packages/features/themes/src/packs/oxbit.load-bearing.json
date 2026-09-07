@@ -1,0 +1,245 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.load-bearing",
+  "name": "Load Bearing",
+  "version": "1.0.0",
+  "themes": [
+    {
+      "id": "load-bearing-light",
+      "name": "Load Bearing (light)",
+      "mode": "light",
+      "pairedTheme": "load-bearing-dark",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#eeeae2",
+        "surface.background": "#f5f2eb",
+        "editor.background": "#faf9f5",
+        "popover.background": "#fffdf8",
+        "input.background": "#fffdf8",
+        "control.hover.background": "#3d342b0d",
+        "control.active.background": "#3d342b17",
+        "list.selection.background": "#a94e321c",
+        "border.default": "#dcd6cb",
+        "border.strong": "#b8aea0",
+        "text.primary": "#292720",
+        "text.secondary": "#5f594f",
+        "text.muted": "#71685d",
+        "text.disabled": "#afa598",
+        "accent.primary": "#a94e32",
+        "accent.foreground": "#fffdf8",
+        "accent.background": "#a94e321f",
+        "focus.border": "#a94e32",
+        "diagnostic.error": "#b43b3b",
+        "diagnostic.warning": "#896017",
+        "diagnostic.info": "#416984",
+        "diagnostic.success": "#526b40",
+        "git.modified": "#896017",
+        "git.added": "#526b40",
+        "git.deleted": "#b43b3b",
+        "git.conflict": "#a34f29",
+        "diagnostic.error.background": "#b43b3b1a",
+        "diagnostic.warning.background": "#8960171f",
+        "diff.added.background": "#526b401f",
+        "diff.deleted.background": "#b43b3b1a",
+        "diagnostic.info.background": "#4169841a",
+        "editor.activeLine.background": "#3d342b09",
+        "editor.search.background": "#bd8c3d38",
+        "editor.search.activeBackground": "#bd8c3d66",
+        "editor.occurrence.background": "#3d342b14",
+        "selection.background": "#a94e322e",
+        "editor.guide": "#e7e0d5",
+        "overlay.background": "#29272052"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#8d4837"
+        },
+        "string": {
+          "foreground": "#526b40"
+        },
+        "number": {
+          "foreground": "#8b5b20"
+        },
+        "comment": {
+          "foreground": "#746b5f"
+        },
+        "type": {
+          "foreground": "#716087"
+        },
+        "function": {
+          "foreground": "#3c6682"
+        },
+        "property": {
+          "foreground": "#5f594f"
+        },
+        "variable": {
+          "foreground": "#292720"
+        },
+        "ident": {
+          "foreground": "#292720"
+        },
+        "text": {
+          "foreground": "#292720"
+        },
+        "tag": {
+          "foreground": "#a94e32"
+        },
+        "attr": {
+          "foreground": "#8b5b20"
+        },
+        "punct": {
+          "foreground": "#746b5f"
+        },
+        "operator": {
+          "foreground": "#5f594f"
+        },
+        "heading": {
+          "foreground": "#8d4837"
+        },
+        "link": {
+          "foreground": "#3c6682"
+        },
+        "strong": {
+          "foreground": "#292720"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#352b1f26"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#352b1f1a"
+          }
+        ]
+      }
+    },
+    {
+      "id": "load-bearing-dark",
+      "name": "Load Bearing (dark)",
+      "mode": "dark",
+      "pairedTheme": "load-bearing-light",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#201e1b",
+        "surface.background": "#272420",
+        "editor.background": "#2b2824",
+        "popover.background": "#34302b",
+        "input.background": "#23211e",
+        "control.hover.background": "#f5efe50e",
+        "control.active.background": "#f5efe517",
+        "list.selection.background": "#df896726",
+        "border.default": "#413b34",
+        "border.strong": "#655a4e",
+        "text.primary": "#f2ede4",
+        "text.secondary": "#c4baac",
+        "text.muted": "#aba092",
+        "text.disabled": "#756a5d",
+        "accent.primary": "#df8967",
+        "accent.foreground": "#201e1b",
+        "accent.background": "#df896729",
+        "focus.border": "#e69a7c",
+        "diagnostic.error": "#e68b82",
+        "diagnostic.warning": "#d9b56e",
+        "diagnostic.info": "#9eb7cc",
+        "diagnostic.success": "#a6b78d",
+        "git.modified": "#d9b56e",
+        "git.added": "#a6b78d",
+        "git.deleted": "#e68b82",
+        "git.conflict": "#e3a078",
+        "diagnostic.error.background": "#e68b8224",
+        "diagnostic.warning.background": "#d9b56e24",
+        "diff.added.background": "#a6b78d24",
+        "diff.deleted.background": "#e68b8224",
+        "diagnostic.info.background": "#9eb7cc24",
+        "editor.activeLine.background": "#f5efe509",
+        "editor.search.background": "#d9b56e33",
+        "editor.search.activeBackground": "#d9b56e5c",
+        "editor.occurrence.background": "#f5efe514",
+        "selection.background": "#df89673b",
+        "editor.guide": "#3c362f",
+        "overlay.background": "#100d0a8c"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#e69a7c"
+        },
+        "string": {
+          "foreground": "#a6b78d"
+        },
+        "number": {
+          "foreground": "#d9b56e"
+        },
+        "comment": {
+          "foreground": "#aba092"
+        },
+        "type": {
+          "foreground": "#c3a4ce"
+        },
+        "function": {
+          "foreground": "#9eb7cc"
+        },
+        "property": {
+          "foreground": "#d5cabc"
+        },
+        "variable": {
+          "foreground": "#f2ede4"
+        },
+        "ident": {
+          "foreground": "#f2ede4"
+        },
+        "text": {
+          "foreground": "#f2ede4"
+        },
+        "tag": {
+          "foreground": "#e69a7c"
+        },
+        "attr": {
+          "foreground": "#d9b56e"
+        },
+        "punct": {
+          "foreground": "#aba092"
+        },
+        "operator": {
+          "foreground": "#c4baac"
+        },
+        "heading": {
+          "foreground": "#e69a7c"
+        },
+        "link": {
+          "foreground": "#9eb7cc"
+        },
+        "strong": {
+          "foreground": "#f2ede4"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#100d0a73"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#100d0a59"
+          }
+        ]
+      }
+    }
+  ]
+}

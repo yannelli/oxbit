@@ -35,6 +35,7 @@ already serving it, then opens the paired editor in the default browser.
 Options
   -p, --port <number>  Port to serve on (default: $PORT or ${DEFAULT_PORT})
       --host <address> Address to bind (default: $HOST or ${DEFAULT_HOST})
+      --desktop        Open in the installed Oxbit desktop application
       --no-open        Leave the browser closed
   -f, --foreground     Serve in this terminal and stay attached
       --stop           Stop the runtime serving the workspace
@@ -49,7 +50,7 @@ export interface Invocation {
   host: string;
   open: boolean;
   foreground: boolean;
-  action: "open" | "stop" | "status" | "help" | "version";
+  action: "open" | "stop" | "status" | "help" | "version" | "desktop";
 }
 export interface Target {
   root: string;
@@ -62,6 +63,7 @@ function tokenize(argv: string[]) {
       args: argv,
       allowPositionals: true,
       options: {
+        desktop: { type: "boolean" },
         port: { type: "string", short: "p" },
         host: { type: "string" },
         "no-open": { type: "boolean" },
@@ -90,6 +92,8 @@ export function parse(
     return {
       error: `Expected at most one path, received ${positionals.length}`,
     };
+  if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host))
+    return { error: "--desktop cannot be combined with browser runtime options" };
   const requested = text(values.port) ?? env.PORT;
   const port = requested === undefined ? undefined : Number(requested);
   if (
@@ -113,7 +117,7 @@ export function parse(
           ? "stop"
           : values.status
             ? "status"
-            : "open",
+            : values.desktop ? "desktop" : "open",
   };
 }
 
@@ -201,7 +205,6 @@ async function detach(
   delete env.PORT;
   delete env.HOST;
   delete env.OXBIT_WORKSPACE;
-  delete env.ZAPP_WORKSPACE;
   const child = spawn(process.execPath, args, {
     detached: true,
     stdio: ["ignore", log.fd, log.fd],
@@ -309,6 +312,7 @@ export async function run(
     process.stderr.write(`${(error as Error).message}\n`);
     return 1;
   }
+  if (invocation.action === "desktop") return launchDesktop(target.file ? path.join(target.root, target.file) : target.root);
   const dataDir = dataDirFor(target.root, env);
   if (invocation.action === "stop") return stop(dataDir, target.root);
   if (invocation.action === "status") return status(dataDir, target.root);
@@ -327,4 +331,19 @@ export async function run(
   process.stdout.write(`${daemon.root}\n${url}\n`);
   if (invocation.open) launchBrowser(url);
   return 0;
+}
+
+export function desktopCommand(target: string, platform = process.platform): [string, string[]] {
+  if (platform === "darwin") return ["/usr/bin/open", ["-b", "com.yannelli.oxbit", target]];
+  if (platform === "linux") return ["oxbit-desktop", [target]];
+  throw new Error("Oxbit desktop supports Apple Silicon macOS and Linux x64");
+}
+async function launchDesktop(target: string): Promise<number> {
+  const [command, args] = desktopCommand(target);
+  return new Promise(resolve => {
+    const child = spawn(command, args, { detached: true, stdio: "ignore" });
+    child.once("error", () => { process.stderr.write("Oxbit desktop is not installed. Install it from https://github.com/yannelli/oxbit/releases.\n"); resolve(1); });
+    if (process.platform === "darwin") child.once("exit", code => { if (code) process.stderr.write("Install Oxbit.app before using --desktop.\n"); resolve(code ? 1 : 0); });
+    else child.once("spawn", () => { child.unref(); resolve(0); });
+  });
 }

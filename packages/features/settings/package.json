@@ -11,7 +11,8 @@
     "react-dom": "19.1.0",
     "@oxbit/documents": "workspace:*",
     "@oxbit/ui": "workspace:*",
-    "@oxbit/workbench": "workspace:*"
+    "@oxbit/workbench": "workspace:*",
+    "@oxbit/themes": "workspace:*"
   },
   "license": "MIT",
   "author": {

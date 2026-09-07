@@ -1,8 +1,9 @@
+import { IconPackManager } from "./icon-packs.js";
 import { translate as tr } from "@oxbit/ui";
 import { useState, useSyncExternalStore } from "react";
 import type { Extension, Kernel } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
-import { Icon, IconButton } from "@oxbit/ui";
+import { Icon, IconButton, OxbitMark } from "@oxbit/ui";
 export function Extensions({
   kernel,
   workbench,
@@ -28,6 +29,7 @@ export function Extensions({
           onClick={() => void workbench.run("extensions.install")}
         />
       </div>
+      <div className="section-label">Icon Packs <button className="button push" onClick={() => void workbench.run("iconPacks.manage")}>Manage Icon Packs</button></div>
       <div className="section-label">
         {tr("Installed")} <span className="push">{extensions.length}</span>
       </div>
@@ -55,7 +57,11 @@ export function Extensions({
             }
           >
             <span className="extension-icon">
-              <Icon name="package" size={24} />
+              {e.manifest.id.startsWith("oxbit.") ? (
+                <OxbitMark decorative />
+              ) : (
+                <Icon name="package" size={24} />
+              )}
             </span>
             <span>
               <strong>{e.manifest.name}</strong>
@@ -116,7 +122,11 @@ export function ExtensionDetails({
     <div className="extension-details">
       <div className="extension-hero">
         <div className="extension-icon">
-          <Icon name="package" size={44} />
+          {record.manifest.id.startsWith("oxbit.") ? (
+            <OxbitMark decorative />
+          ) : (
+            <Icon name="package" size={44} />
+          )}
         </div>
         <div>
           <h1>{record.manifest.name}</h1>
@@ -321,6 +331,13 @@ export function createFeature({
       capabilities: ["extensions"],
     },
     activate(ctx) {
+      for (const [id, title, selectKind, importPack] of [
+        ["iconPacks.manage", "Manage Icon Packs", undefined, false],
+        ["iconPacks.import", "Import Icon Pack…", undefined, true],
+        ["iconTheme.select", "File Icon Theme…", "fileIconTheme", false],
+        ["productIconTheme.select", "Product Icon Theme…", "productIconTheme", false],
+      ] as const) ctx.own(ctx.commands.register({ id, title, category: "Preferences", run: () => workbench.openView("icon-packs", "Icon Packs", IconPackManager, { kernel, workbench, selectKind, selectRequest: Date.now(), importRequest: importPack ? Date.now() : 0 }) }));
+
       ctx.own(
         ctx.contributions.register({
           id: "extensions.details",

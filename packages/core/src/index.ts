@@ -1,7 +1,7 @@
+import { validateJson, canonicalLanguageId, languages, languageForKernel } from "@oxbit/sdk";
 import { satisfies, valid, validRange } from "semver";
 import {
   SDK_VERSION,
-  languageIdForPath,
   type Command,
   type ConfigurationService,
   type ContextValues,
@@ -121,7 +121,20 @@ function evaluate(expression: string, values: ContextValues): boolean {
 export function createKernel({
   environment = "browser",
   persistence,
-}: { environment?: Environment; persistence?: Persistence } = {}): Kernel {
+  additionalExtensionOrigins = [],
+}: {
+  environment?: Environment;
+  persistence?: Persistence;
+  additionalExtensionOrigins?: readonly string[];
+} = {}): Kernel {
+  // URL.origin is "null" for custom schemes in some engines. Compare their
+  // normalized scheme and authority so unrelated opaque origins never match.
+  const extensionOrigins = new Set(
+    additionalExtensionOrigins.map((origin) => {
+      const parsed = new URL(origin);
+      return `${parsed.protocol}//${parsed.host}`;
+    }),
+  );
   let batchDepth = 0;
   const pendingNotifications = new Set<Set<Listener>>();
   const publish = (listeners: Set<Listener>) => {
@@ -203,10 +216,12 @@ export function createKernel({
     const setting = settings.get(id);
     if (!setting) throw new Error(`Unknown setting: ${id}`);
     if (
-      typeof value !== setting.type ||
+      (setting.type === "array" ? !Array.isArray(value) : setting.type === "object" ? !value || typeof value !== "object" || Array.isArray(value) : typeof value !== setting.type) ||
       (typeof value === "number" && !Number.isFinite(value))
     )
       throw new Error(`${id} requires ${setting.type}`);
+    validateJson(value);
+    setting.validate?.(value);
     if (setting.enum && !setting.enum.includes(value as string | number))
       throw new Error(`${id} requires one of ${setting.enum.join(", ")}`);
     if (
@@ -232,6 +247,7 @@ export function createKernel({
     return languages[language]!;
   };
   const configuration: ConfigurationService = {
+    flush: () => configWrite,
     register(setting) {
       ensureAlive();
       if (settings.has(setting.id))
@@ -250,10 +266,12 @@ export function createKernel({
         publish(configListeners);
       });
     },
-    get<T>(id: string, language?: string): T {
+    get<T>(id: string, language?: string): T { return configuration.inspect<T>(id, language).value; },
+    inspect<T>(id: string, language?: string) {
+      const scopes = language ? [...new Set([language, canonicalLanguageId(language), ...(languages.find(item => item.id === canonicalLanguageId(language))?.settingsAliases ?? [])])] : [];
       const ordered = [
-        language && configurationData.workspaceLanguages[language],
-        language && configurationData.userLanguages[language],
+        ...scopes.map(id => configurationData.workspaceLanguages[id]),
+        ...scopes.map(id => configurationData.userLanguages[id]),
         configurationData.workspace,
         configurationData.user,
       ];
@@ -261,17 +279,17 @@ export function createKernel({
         if (source && Object.hasOwn(source, id)) {
           try {
             validate(id, source[id]);
-            return source[id] as T;
+            return { value: structuredClone(source[id]) as T, explicit: true, scope: (source === configurationData.workspace || scopes.some(key => source === configurationData.workspaceLanguages[key]) ? "workspace" : "user") as "workspace" | "user", language: scopes.find(key => source === configurationData.workspaceLanguages[key] || source === configurationData.userLanguages[key]), defaultValue: structuredClone(settings.get(id)?.default) as T };
           } catch {
             /* Invalid persisted values use the next valid layer. */
           }
         }
       }
-      return settings.get(id)?.default as T;
+      return { value: structuredClone(settings.get(id)?.default) as T, explicit: false, defaultValue: structuredClone(settings.get(id)?.default) as T };
     },
     set(id, value, scope = "user", language) {
       validate(id, value);
-      layer(scope, language)[id] = value;
+      layer(scope, language)[id] = structuredClone(value);
       configChanged();
     },
     reset(id, scope = "user", language) {
@@ -296,15 +314,7 @@ export function createKernel({
       const input = data as Partial<ConfigurationData>;
       const record = (value: unknown): Layer =>
         value && typeof value === "object" && !Array.isArray(value)
-          ? Object.fromEntries(
-              Object.entries(value).map(([key, entry]) => [
-                key,
-                key === "editor.defaultFormatter" &&
-                (entry === "zapp.prettier" || entry === "zapp.builtin-ts")
-                  ? entry.replace(/^zapp\./, "oxbit.")
-                  : entry,
-              ]),
-            )
+          ? { ...value }
           : {};
       configurationData = {
         user: record(input.user),
@@ -824,7 +834,7 @@ export function createKernel({
         if (event === "document.open") {
           const document = value as EventMap["document.open"];
           void kernel.extensions
-            .trigger(`onLanguage:${languageIdForPath(document.path)}`)
+            .trigger(`onLanguage:${languageForKernel(kernel, document.path).id}`)
             .catch((error) => console.error(error));
         } else if (
           event === "workspace.change" &&
@@ -1036,9 +1046,13 @@ export function createKernel({
       },
       async load(url, options) {
         const parsed = new URL(url, globalThis.location?.href ?? "file:///");
-        if (!["http:", "https:", "file:"].includes(parsed.protocol))
+        if (
+          !["http:", "https:", "file:"].includes(parsed.protocol) &&
+          (!extensionOrigins.has(`${parsed.protocol}//${parsed.host}`) ||
+            parsed.username || parsed.password)
+        )
           throw new Error(
-            "Extensions require a trusted HTTP(S) or file ESM artifact",
+            "Extensions require a trusted HTTP(S), file, or application ESM artifact",
           );
         const module = await import(/* @vite-ignore */ parsed.href);
         const extension = (module.default ?? module.extension) as Extension;

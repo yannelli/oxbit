@@ -1,3 +1,4 @@
+import { resolveLanguage } from "@oxbit/sdk";
 import type { Formatter } from "@oxbit/sdk";
 
 export const formatPrettier: Formatter["format"] = async (
@@ -7,18 +8,18 @@ export const formatPrettier: Formatter["format"] = async (
 ) => {
   options.signal?.throwIfAborted();
   const engine = await import("prettier/standalone");
-  const extension = path.split(".").pop()?.toLowerCase();
+  const language = options.language ?? resolveLanguage(path).id;
   let parser: string;
   let plugins: import("prettier").Plugin[];
   if (
-    ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "json"].includes(
-      extension ?? "",
+    ["typescript", "typescriptreact", "javascript", "javascriptreact", "json"].includes(
+      language,
     )
   ) {
     parser =
-      extension === "json"
+      language === "json"
         ? "json"
-        : ["js", "jsx", "mjs", "cjs"].includes(extension ?? "")
+        : ["javascript", "javascriptreact"].includes(language)
           ? "babel"
           : "typescript";
     plugins = [
@@ -26,13 +27,13 @@ export const formatPrettier: Formatter["format"] = async (
       await import("prettier/plugins/babel"),
       await import("prettier/plugins/estree"),
     ];
-  } else if (extension === "css") {
+  } else if (language === "css") {
     parser = "css";
     plugins = [await import("prettier/plugins/postcss")];
-  } else if (["html", "htm"].includes(extension ?? "")) {
+  } else if (["html"].includes(language)) {
     parser = "html";
     plugins = [await import("prettier/plugins/html")];
-  } else if (["md", "markdown"].includes(extension ?? "")) {
+  } else if (["markdown"].includes(language)) {
     parser = "markdown";
     plugins = [await import("prettier/plugins/markdown")];
   } else throw new Error(`Prettier does not support ${path}`);

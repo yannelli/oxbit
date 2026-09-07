@@ -1,0 +1,73 @@
+{
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/package.json",
+      "sha256": "0cf1c785d3a561e2a7c22032aaa1435e1f99baff5db16c4c487020fa76317867"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/vs_minimal-icon-theme.json",
+      "sha256": "99f17c1595202e77f89909ed267daca87c9cdad97d316a6d2173c25a70051c40"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/document-dark.svg",
+      "sha256": "3474bd9226be00d329ba651057444f2fc0f0df5ede26f176f51bead50083124d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/document-light.svg",
+      "sha256": "fe60a7c8bbc276600bf8697605d7c5542a6997e7ba0443682ad573d139b9eda4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/folder-dark.svg",
+      "sha256": "6365d927127541e6cd98b13df65980685eef899b7eb611fbe79fd1ccb02dfa4d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/folder-light.svg",
+      "sha256": "fbe648051eacd0a815ffb1d9003e86d433e996b1eb42d881801441d235cb0b19"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/folder-open-dark.svg",
+      "sha256": "d46ae85658b5aaf5a580a03dc045a930daa990ed1da372397e9034be4ab3dadd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/folder-open-light.svg",
+      "sha256": "55ca135078b564760fd88af41b8e51570d2af1c7bdfc48903e65a2ce30a67231"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/root-folder-dark.svg",
+      "sha256": "b9446aeab9a9bb5bba35fa8006c0a21df10d3bed81b562c9e76375587771fb76"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/root-folder-light.svg",
+      "sha256": "2f1ba95f67dc8276dc8278c5d25ffe52c38c124c6baa1f4e6215e282d9e1e0c2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/root-folder-open-dark.svg",
+      "sha256": "977c34af793459042b0542d4d09581b507c186d1dae097b4bb78e751df89241c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/extensions/theme-defaults/fileicons/images/root-folder-open-light.svg",
+      "sha256": "0a90227998066677b2a7df08042652099ae915fd1fee3b4ae025d6ad669a6dcf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/19e0f9e681ecb8e5c09d8784acaa601316ca4571/LICENSE.txt",
+      "sha256": "9480271317925265e806a9a196aaa33410a962fa9d4d1e248a4a5187bc8c9df9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/material-extensions/vscode-material-product-icons/46ba756bc8016862b4748c6a94719ce9642119da/package.json",
+      "sha256": "705384883fb1b10be4665e4f547b23bbe7ce109466b96d10fd78c3bf0b19cd7a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/material-extensions/vscode-material-product-icons/46ba756bc8016862b4748c6a94719ce9642119da/theme/material-icons.woff",
+      "sha256": "b9b5d60e77a8b57df11778eed7a08e4233a718dee1da4cb23f957e3679913b4c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/material-extensions/vscode-material-product-icons/46ba756bc8016862b4748c6a94719ce9642119da/theme/material.product-icon-theme.json",
+      "sha256": "b02e348123b795e3668cf182ce866fb546ce897978c5791f82d1a80710198b07"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/material-extensions/vscode-material-product-icons/46ba756bc8016862b4748c6a94719ce9642119da/LICENSE.md",
+      "sha256": "cd3a70ac04da4a1390ff3f2279c1c09e5751a2b4666b5bc5c93e7ed72b32e993"
+    }
+  ],
+  "notes": "VS Code 1.100.0 and Material Product Icons v1.7.1. Declarative subsets with original manifests, theme files and assets; VS Code localization labels resolved for fixture display. MIT licenses inside each archive."
+}

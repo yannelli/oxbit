@@ -1,0 +1,16 @@
+{
+  "identifier": "com.yannelli.oxbit.native-test",
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "capabilities": [
+        "desktop",
+        {
+          "identifier": "native-tests",
+          "windows": ["main", "project-*"],
+          "permissions": ["wdio:default"]
+        }
+      ]
+    }
+  }
+}

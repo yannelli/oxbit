@@ -1,8 +1,11 @@
+import { killProcess } from "./process-lifecycle.js";
+import { trackChild, trackProcess } from "./owned-processes.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import * as pty from "node-pty";
 import { RpcError, MAX_BUFFER_BYTES } from "@oxbit/protocol";
+import { resolveTerminalShell } from "./terminal-shell.js";
 
 export interface Chunk {
   seq: number;
@@ -36,26 +39,7 @@ interface Task {
   bytes: number;
   seq: number;
 }
-export function killProcess(child: ChildProcess) {
-  if (child.exitCode !== null) return;
-  try {
-    if (process.platform !== "win32" && child.pid)
-      process.kill(-child.pid, "SIGTERM");
-    else child.kill("SIGTERM");
-  } catch {
-    child.kill("SIGTERM");
-  }
-  const timer = setTimeout(() => {
-    try {
-      if (process.platform !== "win32" && child.pid)
-        process.kill(-child.pid, "SIGKILL");
-      else child.kill("SIGKILL");
-    } catch {
-      /* Process has exited. */
-    }
-  }, 1500);
-  timer.unref();
-}
+export { killProcess } from "./process-lifecycle.js";
 export async function runCommand(
   command: string,
   args: string[],
@@ -76,6 +60,7 @@ export async function runCommand(
       detached: process.platform !== "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });
+    trackChild(child);
     let stdout = "",
       stderr = "",
       bytes = 0,
@@ -135,16 +120,15 @@ export class Processes {
     )
       throw new RpcError("LIMIT", "Maximum 16 terminal sessions");
     const id = randomUUID(),
-      shell =
-        process.env.SHELL ||
-        (process.platform === "win32" ? "powershell.exe" : "/bin/bash");
-    const terminal = pty.spawn(shell, [], {
+      { shell, args } = resolveTerminalShell();
+    const terminal = pty.spawn(shell, args, {
       name: "xterm-256color",
       cols: this.dimension(cols, 1000),
       rows: this.dimension(rows, 500),
       cwd: this.root,
-      env: { ...process.env, TERM: "xterm-256color" },
+      env: { ...process.env, SHELL: shell, TERM: "xterm-256color" },
     });
+    trackProcess(terminal.pid, (done) => terminal.onExit(done));
     const session: Terminal = {
       id,
       owner,
@@ -271,6 +255,7 @@ export class Processes {
         detached: process.platform !== "win32",
         stdio: ["ignore", "pipe", "pipe"],
       });
+    trackChild(child);
     const task: Task = {
       id,
       owner,

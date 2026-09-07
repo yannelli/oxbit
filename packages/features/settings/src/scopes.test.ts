@@ -66,3 +66,12 @@ describe("settings scope editing", () => {
     });
   });
 });
+
+it('shows theme defaults in user scope independently of workspace font overrides',()=>{
+ const kernel=createKernel();kernels.push(kernel);
+ const setting={id:'editor.fontSize',title:'Font size',type:'number' as const,default:13};
+ kernel.configuration.register(setting);kernel.configuration.register({id:'workbench.colorTheme',title:'Theme',type:'string',default:'Graphite (dark)'});
+ kernel.configuration.set('editor.fontSize',22,'workspace');
+ expect(scopedSetting(kernel,setting,'user')).toEqual({value:13,modified:false});
+ expect(scopedSetting(kernel,setting,'workspace')).toEqual({value:22,modified:true});
+});

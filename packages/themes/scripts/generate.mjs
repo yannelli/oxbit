@@ -1,0 +1,267 @@
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import Ajv2020 from "ajv/dist/2020.js";
+import standalone from "ajv/dist/standalone/index.js";
+import { compile } from "json-schema-to-typescript";
+const root = new URL("../src/", import.meta.url);
+const catalog = JSON.parse(
+  await readFile(new URL("catalog.json", root), "utf8"),
+);
+const object = (properties, required = []) => ({
+  type: "object",
+  additionalProperties: false,
+  properties,
+  ...(required.length ? { required } : {}),
+});
+const string = { type: "string", minLength: 1, maxLength: 200 };
+const id = { ...string, maxLength: 100, pattern: "^[a-z0-9][a-z0-9._-]*$" };
+const color = {
+  type: "string",
+  pattern:
+    "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+  description: "Hexadecimal sRGB color, optional alpha, or transparent.",
+  examples: ["#112233", "#11223380", "transparent"],
+};
+const number = (minimum, maximum) => ({ type: "number", minimum, maximum });
+const family = {
+  type: "array",
+  minItems: 1,
+  maxItems: 12,
+  items: { ...string, pattern: "^[a-zA-Z0-9 _.-]+$" },
+  description:
+    "Local font ID or installed family followed by fallback families. No CSS or URLs.",
+};
+const typography = object({
+  family,
+  size: number(8, 72),
+  weight: { type: "integer", minimum: 100, maximum: 900 },
+  style: { enum: ["normal", "italic", "oblique"] },
+  lineHeight: number(1, 3),
+  letterSpacing: number(-3, 10),
+  ligatures: { type: "boolean" },
+  axes: {
+    type: "object",
+    maxProperties: 16,
+    propertyNames: { pattern: "^[A-Za-z0-9]{4}$" },
+    additionalProperties: number(-10000, 10000),
+  },
+});
+const syntax = object({
+  foreground: color,
+  background: color,
+  weight: { type: "integer", minimum: 100, maximum: 900 },
+  italic: { type: "boolean" },
+  underline: { type: "boolean" },
+});
+const shadow = object(
+  {
+    x: number(-100, 100),
+    y: number(-100, 100),
+    blur: number(0, 200),
+    spread: number(-100, 100),
+    color,
+  },
+  ["x", "y", "blur", "spread", "color"],
+);
+const tokens = (group, type) =>
+  object(
+    Object.fromEntries(
+      Object.entries(group).map(([key, value]) => [
+        key,
+        { ...type, description: value.description },
+      ]),
+    ),
+  );
+const theme = object(
+  {
+    id,
+    name: string,
+    mode: { enum: ["light", "dark"] },
+    highContrast: { type: "boolean" },
+    pairedTheme: id,
+    base: {
+      ...string,
+      description:
+        "builtin:light, builtin:dark, or a local theme ID in this pack.",
+    },
+    colors: tokens(catalog.colors, color),
+    syntax: tokens(catalog.syntax, syntax),
+    typography: tokens(catalog.typography, typography),
+    effects: object({
+      shadow: {
+        type: "array",
+        maxItems: 8,
+        items: shadow,
+        description: "Structured shadows; an empty array disables elevation.",
+      },
+    }),
+  },
+  ["id", "name", "mode"],
+);
+const schema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://oxbit.dev/schemas/theme-pack.v1.schema.json",
+  title: "ThemePack",
+  description:
+    "Oxbit version 1 local theme pack. Appearance only; arbitrary CSS and remote assets are not supported.",
+  ...object(
+    {
+      $schema: { ...string },
+      schemaVersion: { const: 1 },
+      id,
+      name: string,
+      version: {
+        ...string,
+        pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$",
+      },
+      attribution: { type: "string", maxLength: 10000 },
+      fonts: {
+        type: "array",
+        maxItems: 32,
+        items: object(
+          {
+            id,
+            path: {
+              ...string,
+              maxLength: 240,
+              pattern:
+                "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[a-zA-Z0-9_./ -]+\\.(woff2|woff|ttf|otf)$",
+            },
+            weight: { type: "integer", minimum: 100, maximum: 900 },
+            style: { enum: ["normal", "italic", "oblique"] },
+          },
+          ["id", "path"],
+        ),
+      },
+      themes: { type: "array", minItems: 1, maxItems: 128, items: theme },
+    },
+    ["schemaVersion", "id", "name", "version", "themes"],
+  ),
+  examples: [
+    {
+      schemaVersion: 1,
+      id: "example.night",
+      name: "Night",
+      version: "1.0.0",
+      themes: [
+        {
+          id: "night",
+          name: "Night",
+          mode: "dark",
+          colors: { "editor.background": "#101020" },
+        },
+      ],
+    },
+  ],
+};
+const json = JSON.stringify(schema, null, 2) + "\n";
+await writeFile(new URL("theme-pack.v1.schema.json", root), json);
+const pub = new URL("../../../apps/web/public/schemas/", import.meta.url);
+await mkdir(pub, { recursive: true });
+await writeFile(new URL("theme-pack.v1.schema.json", pub), json);
+await writeFile(
+  new URL("theme-pack.generated.ts", root),
+  await compile(schema, "ThemePack", {
+    bannerComment: "/* Generated by scripts/generate.mjs. Do not edit. */",
+    additionalProperties: false,
+  }),
+);
+const ajv = new Ajv2020({
+  allErrors: true,
+  code: { source: true, esm: true },
+  unicodeRegExp: false,
+});
+await writeFile(
+  new URL("validate.generated.js", root),
+  "/* eslint-disable */\n// @ts-nocheck\n// Generated; no runtime code generation.\n" +
+    standalone(ajv, ajv.compile(schema)).replace(
+      /const func\d+ = require\("ajv\/dist\/runtime\/ucs2length"\).default;/g,
+      (match) =>
+        match.replace(/require\("[^"]+"\).default/, "(s => [...s].length)"),
+    ) +
+    "\n",
+);
+await writeFile(
+  new URL("tokens.generated.ts", root),
+  "// Generated from catalog.json.\n" +
+    Object.entries(catalog)
+      .filter(([key]) => key !== "effects")
+      .map(
+        ([key, value]) =>
+          `export type ${key[0].toUpperCase() + key.slice(1)}Token = ${Object.keys(value).map(JSON.stringify).join(" | ")};`,
+      )
+      .join("\n") +
+    "\n",
+);
+const defaults = (mode) => {
+  const variables = {};
+  for (const entry of Object.values(catalog.colors))
+    variables[entry.css] = entry[mode];
+  for (const [key, entry] of Object.entries(catalog.syntax)) {
+    variables[entry.css] = entry[mode];
+    variables[entry.css + "-background"] = "transparent";
+    variables[entry.css + "-weight"] =
+      key === "strong" || key === "heading" ? "700" : "400";
+    variables[entry.css + "-style"] = key === "emphasis" ? "italic" : "normal";
+    variables[entry.css + "-decoration"] = "none";
+  }
+  for (const [role, { default: font }] of Object.entries(catalog.typography)) {
+    const family = font.family
+      .map((f) =>
+        [
+          "serif",
+          "sans-serif",
+          "system-ui",
+          "monospace",
+          "ui-monospace",
+        ].includes(f)
+          ? f
+          : JSON.stringify(f),
+      )
+      .join(",");
+    for (const [key, value] of Object.entries({
+      "font-family": family,
+      "font-size": font.size + "px",
+      "font-weight": font.weight,
+      "font-style": font.style,
+      "line-height": font.lineHeight,
+      "letter-spacing": font.letterSpacing + "px",
+      "font-variant-ligatures": font.ligatures ? "normal" : "none",
+      "font-variation-settings": "normal",
+    }))
+      variables[`--font-${role}-${key}`] = value;
+    if (role === "mono") variables["--font-mono"] = family;
+  }
+  variables["--shadow"] =
+    catalog.effects.shadow[mode]
+      .map((s) => `${s.x}px ${s.y}px ${s.blur}px ${s.spread}px ${s.color}`)
+      .join(",") || "none";
+  return Object.entries(variables)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(";");
+};
+await writeFile(
+  new URL("../../ui/src/theme-defaults.generated.css", import.meta.url),
+  '/* Generated from @oxbit/themes catalog. */\n:root,[data-theme="dark"]{' +
+    defaults("dark") +
+    '}\n[data-theme="light"]{' +
+    defaults("light") +
+    "}\n",
+);
+let reference =
+  "# Theme token reference\n\nGenerated from `packages/themes/src/catalog.json`. Every resolved theme has every listed role.\n";
+for (const [group, entries] of Object.entries(catalog)) {
+  reference +=
+    "\n## " +
+    group +
+    "\n\n| Token | Description | Default |\n| --- | --- | --- |\n";
+  for (const [key, entry] of Object.entries(entries)) {
+    const value = ["colors", "syntax"].includes(group)
+      ? `dark: ${entry.dark}; light: ${entry.light}`
+      : JSON.stringify(entry.default ?? entry);
+    reference += `| \`${key}\` | ${entry.description} | \`${value}\` |\n`;
+  }
+}
+await writeFile(
+  new URL("../../../docs/themes/tokens.md", import.meta.url),
+  reference,
+);

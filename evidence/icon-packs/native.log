@@ -1,0 +1,21 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+Execution of 1 workers started at 2026-09-07T09:06:50.403Z
+
+[0-0] RUNNING in undefined - file:///tests/desktop/icon-packs.e2e.mjs
+[0-0] PASSED in undefined - file:///tests/desktop/icon-packs.e2e.mjs
+
+ "spec" Reporter:
+------------------------------------------------------------------
+[webkit 605.1.15 macos #0-0] Running: webkit (v605.1.15) on macos
+[webkit 605.1.15 macos #0-0] Session ID: cbb19716-a434-470a-a726-6350b5a7e18a
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] » tests/desktop/icon-packs.e2e.mjs
+[webkit 605.1.15 macos #0-0] Native icon packs
+[webkit 605.1.15 macos #0-0]    ✓ imports both upstream packs, renders under native CSP, persists and recovers across project changes
+[webkit 605.1.15 macos #0-0]
+[webkit 605.1.15 macos #0-0] 1 passing (2.2s)
+
+
+Spec Files:	 1 passed, 1 total (100% completed) in 00:00:03  
+
