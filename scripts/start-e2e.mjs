@@ -8,7 +8,7 @@ const child = spawn("pnpm", ["--filter", "@zapp/runtime", "start"], {
   stdio: "inherit",
   env: {
     ...process.env,
-    PORT: "4318",
+    PORT: "9278",
     ZAPP_WORKSPACE: root,
     ZAPP_DATA_DIR: dataDir,
     ZAPP_PAIRING_CODE: "zapp-acceptance-2026",

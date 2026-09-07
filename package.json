@@ -7,7 +7,12 @@
   "engines": {
     "node": ">=24 <25"
   },
+  "bin": {
+    "zapp": "apps/runtime/dist/index.js"
+  },
   "scripts": {
+    "postinstall": "node scripts/repair-pty.mjs",
+    "repair:pty": "node scripts/repair-pty.mjs",
     "dev": "pnpm --filter @zapp/runtime dev",
     "dev:web": "pnpm --filter @zapp/web dev",
     "build": "tsc -b && pnpm --filter @zapp/runtime build && pnpm build:example && pnpm --filter @zapp/web build",
@@ -18,7 +23,8 @@
     "start": "pnpm --filter @zapp/runtime start",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser",
     "build:example": "pnpm build:sdk && pnpm --filter @zapp/bundle-inspector exec vite build && node scripts/copy-example.mjs",
-    "build:sdk": "node scripts/build-sdk.mjs"
+    "build:sdk": "node scripts/build-sdk.mjs",
+    "install:global": "pnpm build && npm install -g ."
   },
   "devDependencies": {
     "typescript": "^5.9.3",

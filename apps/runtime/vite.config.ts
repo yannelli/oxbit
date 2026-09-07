@@ -7,5 +7,6 @@ export default defineConfig({
     target: "node24",
     sourcemap: true,
     minify: false,
+    rollupOptions: { output: { banner: "#!/usr/bin/env node" } },
   },
 });

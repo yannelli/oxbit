@@ -133,6 +133,22 @@ test("the printed pairing link opens the runtime workspace on first launch", asy
   ).toContain("acceptance.ts");
 });
 
+test("the zapp command opens the named file in the runtime workspace", async ({
+  page,
+}) => {
+  await page.goto("/#pair=zapp-acceptance-2026&open=acceptance.ts");
+  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await expect(page.locator(".cm-editor").first()).toBeVisible();
+  expect(
+    await page.evaluate(() => ({
+      connected: !!(window as any).__zapp.runtime?.connected,
+      activePath: (window as any).__zapp.workbench.activePath(),
+      hash: location.hash,
+    })),
+  ).toEqual({ connected: true, activePath: "acceptance.ts", hash: "" });
+  expect(await text(page, "acceptance.ts")).toContain("export const greeting");
+});
+
 test("runtime filesystem, revision checked save, refresh and failed save recovery", async ({
   page,
 }) => {

@@ -3,11 +3,136 @@ import { createKernel } from "@zapp/core";
 import { DocumentService } from "@zapp/documents";
 import { BrowserFileSystem, MemoryPersistence } from "@zapp/host-browser";
 import { WorkbenchController } from "./controller.js";
+import type { FileEntry } from "@zapp/sdk";
 const disposables: { dispose(): void }[] = [];
 afterEach(() => {
   for (const disposable of disposables.splice(0).reverse())
     disposable.dispose();
   vi.unstubAllGlobals();
+});
+
+describe("on-demand explorer listings", () => {
+  const entry = (
+    path: string,
+    kind: FileEntry["kind"] = "file",
+  ): FileEntry => ({ path, name: path.split("/").at(-1)!, kind });
+  const tree: Record<string, FileEntry[]> = {
+    "": [
+      entry("src", "directory"),
+      entry("vendor", "directory"),
+      entry("README.md"),
+    ],
+    src: [entry("src/components", "directory"), entry("src/app.ts")],
+    "src/components": [entry("src/components/button.ts")],
+    vendor: [entry("vendor/deep", "directory")],
+  };
+  async function explorer() {
+    const value = await setup();
+    const list = vi
+      .spyOn(value.filesystem, "list")
+      .mockImplementation(async (path = "") => {
+        if (!(path in tree)) throw new Error(`Unexpected traversal: ${path}`);
+        return tree[path]!;
+      });
+    return { ...value, list };
+  }
+  it("loads only the root initially and fetches each newly expanded folder", async () => {
+    const { workbench, list } = await explorer();
+    await workbench.refreshFiles();
+    expect(list.mock.calls).toEqual([[""]]);
+    workbench.set({ expanded: ["src"] });
+    await vi.waitFor(() =>
+      expect(
+        workbench.state.files.some((file) => file.path === "src/app.ts"),
+      ).toBe(true),
+    );
+    expect(list.mock.calls).toEqual([[""], ["src"]]);
+    workbench.set({ expanded: ["src", "src/components"] });
+    await vi.waitFor(() =>
+      expect(
+        workbench.state.files.some(
+          (file) => file.path === "src/components/button.ts",
+        ),
+      ).toBe(true),
+    );
+    expect(list.mock.calls).toEqual([[""], ["src"], ["src/components"]]);
+  });
+  it("restores only reachable expansions and skips collapsed descendants on refresh", async () => {
+    const { workbench, persistence, list } = await explorer();
+    await persistence.set(`layout:${workbench.filesystem.id}`, {
+      groups: [{ id: "g1", tabs: [] }],
+      expanded: ["src/components", "missing"],
+    });
+    await workbench.restore();
+    expect(list.mock.calls).toEqual([[""]]);
+    workbench.set({ expanded: ["src", "src/components"] });
+    await workbench.refreshFiles();
+    workbench.set({ expanded: ["src/components"] });
+    list.mockClear();
+    await workbench.refreshFiles();
+    expect(list.mock.calls).toEqual([[""]]);
+    expect(workbench.state.files).toEqual(tree[""]);
+  });
+  it("refreshes the changed visible directory without scanning unopened branches", async () => {
+    const { workbench, list } = await explorer();
+    workbench.set({ expanded: ["src"] });
+    await workbench.refreshFiles();
+    list.mockClear();
+    workbench.scheduleRefreshFiles({
+      path: "vendor/deep/hidden.ts",
+      kind: "created",
+    });
+    workbench.scheduleRefreshFiles({ path: "src/new.ts", kind: "created" });
+    await vi.waitFor(() => expect(list.mock.calls).toEqual([["src"]]));
+  });
+  it("does not truncate an opened directory at 20,000 entries", async () => {
+    const { workbench, list } = await explorer();
+    const files = Array.from({ length: 20001 }, (_, index) =>
+      entry(`file-${index}.ts`),
+    );
+    list.mockResolvedValue(files);
+    await workbench.refreshFiles();
+    expect(workbench.state.files).toHaveLength(20001);
+    expect(workbench.state.notifications).toEqual([]);
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+  it("ignores a listing that finishes after its folder is collapsed", async () => {
+    const { workbench, list } = await explorer();
+    await workbench.refreshFiles();
+    let finish!: (entries: FileEntry[]) => void;
+    list.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    workbench.set({ expanded: ["src"] });
+    const expanding = workbench.refreshFiles(false);
+    workbench.set({ expanded: [] });
+    await workbench.refreshFiles(false);
+    finish(tree.src!);
+    await expanding;
+    expect(workbench.state.files).toEqual(tree[""]);
+    list.mockClear();
+    workbench.set({ expanded: ["src"] });
+    await workbench.refreshFiles(false);
+    expect(list.mock.calls).toEqual([["src"]]);
+  });
+  it("reveals only a file's ancestors and isolates inaccessible folder errors", async () => {
+    const { workbench, list } = await explorer();
+    workbench.revealFile("src/components/button.ts");
+    await workbench.refreshFiles();
+    expect(list.mock.calls).toEqual([[""], ["src"], ["src/components"]]);
+    list.mockImplementation(async (path = "") => {
+      if (path === "src") throw new Error("Permission denied");
+      return tree[path]!;
+    });
+    await workbench.refreshFiles();
+    expect(workbench.state.files).toContainEqual(entry("vendor", "directory"));
+    expect(workbench.state.notifications.at(-1)?.message).toContain(
+      "Permission denied",
+    );
+  });
 });
 async function setup() {
   vi.stubGlobal("requestAnimationFrame", () => 0);

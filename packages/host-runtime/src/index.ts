@@ -38,7 +38,7 @@ export class RuntimeClient implements RpcClient {
   };
   readonly url: string;
   constructor(
-    url = globalThis.location?.origin ?? "http://localhost:4317",
+    url = globalThis.location?.origin ?? "http://localhost:9277",
     public workspaceId = "default",
   ) {
     this.url = url.replace(/\/$/, "");

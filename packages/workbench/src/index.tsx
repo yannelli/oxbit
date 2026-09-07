@@ -1,4 +1,5 @@
 import { translate as tr, setLocale } from "@zapp/ui";
+import { findWorkspaceFiles } from "./files.js";
 import {
   Component,
   Fragment,
@@ -40,6 +41,7 @@ import {
   displayShortcut,
 } from "./shortcuts.js";
 export * from "./controller.js";
+export { workspaceEntries } from "./files.js";
 export { normalizeShortcut, displayShortcut } from "./shortcuts.js";
 export function useWorkbench(workbench: WorkbenchController) {
   return useSyncExternalStore(workbench.subscribe, workbench.snapshot);
@@ -1698,6 +1700,10 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     palette = s.palette!;
   const [index, setIndex] = useState(0),
     [symbols, setSymbols] = useState<any[]>([]);
+  const [fileResults, setFileResults] = useState<{
+    query: string;
+    paths: string[];
+  }>({ query: "", paths: [] });
   const ref = useRef<HTMLInputElement>(null),
     prior = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -1720,6 +1726,24 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     .replace(/^[>›@:]/, "")
     .trim()
     .toLowerCase();
+  useEffect(() => {
+    if (mode !== "files" || !term) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void findWorkspaceFiles(workbench.filesystem, term, controller.signal)
+        .then((paths) => {
+          if (!controller.signal.aborted) setFileResults({ query: term, paths });
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted)
+            workbench.notify(String(error), "error");
+        });
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [mode, term, workbench]);
   useEffect(() => {
     setIndex(0);
   }, [query]);
@@ -1815,7 +1839,15 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
             ]
           : (mode === "recent"
               ? s.recent
-              : s.files.filter((f) => f.kind === "file").map((f) => f.path)
+              : [
+                  ...new Set([
+                    ...s.recent,
+                    ...s.files.filter((f) => f.kind === "file").map((f) => f.path),
+                    ...(mode === "files" && term && fileResults.query === term
+                      ? fileResults.paths
+                      : []),
+                  ]),
+                ]
             )
               .filter((p) => score(p) > 0)
               .sort((a, b) => score(b) - score(a))

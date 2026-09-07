@@ -442,10 +442,7 @@ export function createFeature({
             const path = (dir ? dir + "/" : "") + name;
             if (folder) await filesystem.mkdir(path);
             else await filesystem.write(path, "", { expectedRevision: null });
-            if (dir)
-              workbench.set({
-                expanded: [...new Set([...workbench.state.expanded, dir])],
-              });
+            workbench.revealFile(path);
             await workbench.refreshFiles();
             if (!folder) await workbench.openFile(path);
           },
@@ -542,7 +539,13 @@ export function createFeature({
                   : g.active,
             })),
             selectedPath: args.to,
+            expanded: workbench.state.expanded.map((path) =>
+              path === args.from || path.startsWith(args.from + "/")
+                ? args.to + path.slice(args.from.length)
+                : path,
+            ),
           });
+          workbench.revealFile(args.to);
           await workbench.refreshFiles();
         },
       );
@@ -560,6 +563,9 @@ export function createFeature({
           return;
         await documents.applyEdits([], [{ kind: "delete", path }]);
         workbench.set({
+          expanded: workbench.state.expanded.filter(
+            (directory) => directory !== path && !directory.startsWith(path + "/"),
+          ),
           groups: workbench.state.groups.map((g) => {
             const tabs = g.tabs.filter(
               (t) => t.path !== path && !t.path?.startsWith(path + "/"),
@@ -586,21 +592,13 @@ export function createFeature({
       );
       cmd("file.reveal", "Reveal Active File in Explorer", () => {
         const path = workbench.activePath();
-        if (path)
+        if (path) {
+          workbench.revealFile(path);
           workbench.set({
-            selectedPath: path,
             sidebar: true,
             sidebarId: "explorer",
-            expanded: [
-              ...new Set([
-                ...workbench.state.expanded,
-                ...path
-                  .split("/")
-                  .slice(0, -1)
-                  .map((_, i, a) => a.slice(0, i + 1).join("/")),
-              ]),
-            ],
           });
+        }
       });
       ctx.own(filesystem.watch(workbench.scheduleRefreshFiles));
     },

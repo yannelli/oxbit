@@ -15,6 +15,7 @@ import {
   Workbench,
   WorkbenchController,
   createWorkbenchFeature,
+  workspaceEntries,
 } from "@zapp/workbench";
 import { Dialog, Icon } from "@zapp/ui";
 import {
@@ -58,12 +59,15 @@ const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();
 const browserFilesystem = new BrowserFileSystem(persistence, "browser");
-// The runtime prints its URL with the owner pairing code in the fragment. Consume the code once so a
-// reload does not mint a second owner session, and so it stops trailing the address bar.
-function takePairingCode() {
-  const code = new URLSearchParams(location.hash.replace(/^#/, "")).get("pair");
-  if (code) history.replaceState(null, "", location.pathname + location.search);
-  return code || undefined;
+// The zapp command opens a URL carrying the owner pairing code and the file to focus. Consume them once
+// so a reload does not mint a second owner session, and so they stop trailing the address bar.
+function takeLaunchParams() {
+  const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const pair = params.get("pair") || undefined;
+  const open = params.get("open") || undefined;
+  if (pair || open)
+    history.replaceState(null, "", location.pathname + location.search);
+  return { pair, open };
 }
 async function openRuntime(url: string, pairingCode?: string) {
   const existing = new RuntimeClient(url);
@@ -469,7 +473,7 @@ function App() {
   useEffect(() => {
     let stopped = false;
     const start = async () => {
-      const pairingCode = takePairingCode();
+      const { pair: pairingCode, open: launchPath } = takeLaunchParams();
       let saved = await persistence.get<any>("last-host");
       let runtime: RuntimeClient | undefined;
       let pairingError = "";
@@ -527,6 +531,18 @@ function App() {
             ),
           );
       }
+      if (launchPath)
+        try {
+          await next.workbench.openFile(launchPath, { preview: false });
+        } catch (failure) {
+          next.workbench.notify(
+            tr("Could not open {0}: {1}", {
+              0: launchPath,
+              1: String(failure),
+            }),
+            "error",
+          );
+        }
       if (!stopped) installSession(next);
     };
     void start().catch((e) => {
@@ -566,7 +582,7 @@ function App() {
       add("workspace.export", "Export Browser Workspace", async () => {
         const files = [];
         const directories = [];
-        for (const entry of session.workbench.state.files)
+        for await (const entry of workspaceEntries(session.filesystem))
           if (entry.kind === "file") {
             const doc = session.documents.get(entry.path);
             const snap = doc

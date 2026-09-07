@@ -5,9 +5,9 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "vite build"
+    "dev": "node ../../scripts/repair-pty.mjs && tsx watch src/index.ts --foreground",
+    "start": "node ../../scripts/repair-pty.mjs && node dist/index.js --foreground --no-open",
+    "build": "node ../../scripts/repair-pty.mjs && vite build"
   },
   "dependencies": {
     "@zapp/sdk": "workspace:*",

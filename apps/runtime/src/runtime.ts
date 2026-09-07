@@ -85,6 +85,8 @@ const durableMethods = new Set<string>([
 ]);
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+export const workspaceDataDir = (root: string) =>
+  path.join(os.homedir(), ".zapp", "workspaces", hash(root).slice(0, 24));
 const errorShape = (error: unknown) => {
   if (error instanceof RpcError)
     return {
@@ -110,10 +112,7 @@ export function importMapHashes(html: string) {
 export async function createRuntime(options: RuntimeOptions) {
   const root = await fs.realpath(options.root),
     host = options.host ?? "127.0.0.1";
-  const dataDir = path.resolve(
-    options.dataDir ??
-      path.join(os.homedir(), ".zapp", "workspaces", hash(root).slice(0, 24)),
-  );
+  const dataDir = path.resolve(options.dataDir ?? workspaceDataDir(root));
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 });
   const stateFile = path.join(dataDir, "runtime.json");
   const files = new WorkspaceFiles(root, dataDir),
@@ -160,7 +159,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   await persist();
   const pairingCode = options.pairingCode ?? randomBytes(6).toString("hex");
-  let port = options.port ?? 4317;
+  let port = options.port ?? 9277;
   const allowedOrigins = () =>
     new Set([
       `http://127.0.0.1:${port}`,

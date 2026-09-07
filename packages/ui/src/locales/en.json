@@ -531,7 +531,6 @@
   "Open {0}": "Open {0}",
   "More views": "More views",
   "File {0}.": "File {0}.",
-  "Explorer shows the first 20,000 entries. Use file search to find other paths.": "Explorer shows the first 20,000 entries. Use file search to find other paths.",
   "Reload disk?": "Reload disk?",
   "{0} Preview": "{0} Preview",
   "Invalid link encoding": "Invalid link encoding",
@@ -550,5 +549,6 @@
   "Git status: {0}": "Git status: {0}",
   "Runtime disconnected. Edits remain stored locally.": "Runtime disconnected. Edits remain stored locally.",
   "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.": "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.",
-  "Runtime pairing failed: {0}": "Runtime pairing failed: {0}"
+  "Runtime pairing failed: {0}": "Runtime pairing failed: {0}",
+  "Could not open {0}: {1}": "Could not open {0}: {1}"
 }

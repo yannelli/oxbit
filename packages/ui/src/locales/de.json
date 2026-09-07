@@ -531,7 +531,6 @@
   "Open {0}": "{0} öffnen",
   "More views": "Weitere Ansichten",
   "File {0}.": "Datei {0}.",
-  "Explorer shows the first 20,000 entries. Use file search to find other paths.": "Der Explorer zeigt die ersten 20.000 Einträge. Verwenden Sie die Dateisuche für weitere Pfade.",
   "Reload disk?": "Vom Datenträger neu laden?",
   "{0} Preview": "Vorschau für {0}",
   "Invalid link encoding": "Ungültige Linkkodierung",
@@ -550,5 +549,6 @@
   "Git status: {0}": "Git-Status: {0}",
   "Runtime disconnected. Edits remain stored locally.": "Runtime getrennt. Änderungen bleiben lokal gespeichert.",
   "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.": "Großes Dokument: Syntax, Minikarte und Sprachdienste sind oberhalb von 1.048.576 UTF-16-Codeeinheiten pausiert.",
-  "Runtime pairing failed: {0}": "Kopplung mit der Laufzeitumgebung fehlgeschlagen: {0}"
+  "Runtime pairing failed: {0}": "Kopplung mit der Laufzeitumgebung fehlgeschlagen: {0}",
+  "Could not open {0}: {1}": "{0} konnte nicht geöffnet werden: {1}"
 }
