@@ -15,8 +15,9 @@ if (
     origins: process.env.ZAPP_ORIGINS?.split(",").filter(Boolean),
     webRoot: process.env.ZAPP_WEB_ROOT,
   });
+  const origin = `http://${process.env.HOST ?? "127.0.0.1"}:${runtime.port}`;
   process.stdout.write(
-    `Zapp runtime: http://${process.env.HOST ?? "127.0.0.1"}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\n`,
+    `Zapp runtime: ${origin}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nOpen: ${origin}/#pair=${encodeURIComponent(runtime.pairingCode)}\n`,
   );
   const stop = () => {
     void runtime.close().then(() => process.exit(0));

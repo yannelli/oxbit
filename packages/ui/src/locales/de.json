@@ -549,5 +549,6 @@
   "File has diagnostics": "Datei enthält Diagnosemeldungen",
   "Git status: {0}": "Git-Status: {0}",
   "Runtime disconnected. Edits remain stored locally.": "Runtime getrennt. Änderungen bleiben lokal gespeichert.",
-  "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.": "Großes Dokument: Syntax, Minikarte und Sprachdienste sind oberhalb von 1.048.576 UTF-16-Codeeinheiten pausiert."
+  "Large document: syntax, minimap, and language services are paused above 1,048,576 UTF-16 code units.": "Großes Dokument: Syntax, Minikarte und Sprachdienste sind oberhalb von 1.048.576 UTF-16-Codeeinheiten pausiert.",
+  "Runtime pairing failed: {0}": "Kopplung mit der Laufzeitumgebung fehlgeschlagen: {0}"
 }

@@ -103,7 +103,7 @@ const initial = (): WorkbenchState => ({
   notifications: [],
   notificationCenter: false,
   workspaceOpen: true,
-  projectName: "orbit-dash",
+  projectName: "Workspace",
   revision: 0,
   recent: [],
   keybindings: {},

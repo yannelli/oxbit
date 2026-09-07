@@ -102,6 +102,37 @@ test("localized settings persist and fit the phone viewport", async ({
   await expect(page.getByPlaceholder("Search settings")).toBeVisible();
 });
 
+test("the printed pairing link opens the runtime workspace on first launch", async ({
+  page,
+}) => {
+  const { root } = JSON.parse(
+    await readFile("evidence/e2e-workspace.json", "utf8"),
+  );
+  await page.goto("/#pair=zapp-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__zapp?.ready === true);
+  await expect(page.locator(".cm-editor").first()).toBeVisible();
+  expect(
+    await page.evaluate(() => ({
+      connected: !!(window as any).__zapp.runtime?.connected,
+      filesystem: (window as any).__zapp.filesystem.id,
+      projectName: (window as any).__zapp.workbench.state.projectName,
+      hash: location.hash,
+    })),
+  ).toEqual({
+    connected: true,
+    filesystem: expect.stringContaining("runtime:"),
+    projectName: path.basename(root),
+    hash: "",
+  });
+  expect(
+    await page.evaluate(async () =>
+      (await (window as any).__zapp.filesystem.list()).map(
+        (entry: { path: string }) => entry.path,
+      ),
+    ),
+  ).toContain("acceptance.ts");
+});
+
 test("runtime filesystem, revision checked save, refresh and failed save recovery", async ({
   page,
 }) => {

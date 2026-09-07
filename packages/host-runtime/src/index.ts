@@ -32,7 +32,9 @@ export class RuntimeClient implements RpcClient {
     workspaceId: string;
     capabilities: string[];
     trusted: boolean;
+    owner: boolean;
     workspaceKey?: string;
+    workspaceName?: string;
   };
   readonly url: string;
   constructor(
@@ -106,9 +108,14 @@ export class RuntimeClient implements RpcClient {
                   )
                 : [],
               trusted: session.trusted === true,
+              owner: session.owner === true,
               workspaceKey:
                 typeof session.workspaceKey === "string"
                   ? session.workspaceKey
+                  : undefined,
+              workspaceName:
+                typeof session.workspaceName === "string"
+                  ? session.workspaceName
                   : undefined,
             };
             this.emit("connection.change", { state: "connected" });

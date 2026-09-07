@@ -17,12 +17,17 @@ pnpm build
 ZAPP_WORKSPACE=/absolute/path/to/your/project pnpm start
 ```
 
-Open **http://127.0.0.1:4317**. The first launch opens the `orbit-dash` sample
-workspace in IndexedDB. To edit the runtime's project:
+Open the pairing URL printed in the terminal
+(`http://127.0.0.1:4317/#pair=<code>`). It pairs the browser with the runtime and
+opens `ZAPP_WORKSPACE`. The code is consumed on load and removed from the address
+bar. Then:
 
-1. Open **Runtime connection** and enter the owner pairing code printed in the terminal.
-2. Connect, then select **Trust workspace tools** to enable terminals, tasks, Git, and language services.
-3. Open a file in Explorer. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
+1. Select **Trust workspace tools** in **Runtime connection** to enable terminals, tasks, Git, and language services.
+2. Open a file in Explorer. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
+
+Opening **http://127.0.0.1:4317** without the fragment starts the `orbit-dash`
+sample workspace in IndexedDB instead; pair from **Runtime connection** with the
+printed code to reach the runtime's project.
 
 `ZAPP_WORKSPACE` selects the root exposed by this runtime. Stop the server with
 `Ctrl+C`. The default host is loopback; [runtime configuration](docs/runtime.md)
