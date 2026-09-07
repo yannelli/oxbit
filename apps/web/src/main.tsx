@@ -615,7 +615,9 @@ function App() {
     return (
       <div className="workbench" data-theme="dark" data-density="compact">
         <div className="empty-state" style={{ height: "100%" }}>
-          <div className="welcome-logo">Z</div>
+          <div className="welcome-logo" role="img" aria-label="Oxbit">
+            <span className="oxbit-mark" aria-hidden="true" />
+          </div>
           <strong>
             {loading
               ? tr("Opening workspace…")
