@@ -1,4 +1,4 @@
-import type { Command, Kernel } from "@zapp/sdk";
+import type { Command, Kernel } from "@oxbit/sdk";
 import catalog from "./catalog.json";
 export function normalizeShortcut(value: string): string {
   return value

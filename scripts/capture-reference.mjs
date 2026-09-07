@@ -42,14 +42,14 @@ try {
         deviceScaleFactor: 1,
       });
       await page.goto(
-        `http://127.0.0.1:${server.address().port}/Zapp%20Workbench.dc.html`,
+        `http://127.0.0.1:${server.address().port}/Oxbit%20Workbench.dc.html`,
       );
-      await page.waitForFunction(() => window.__zapp?.F, { timeout: 30000 });
+      await page.waitForFunction(() => window.__oxbit?.F, { timeout: 30000 });
       await page.evaluate(
         ({ viewport, theme }) =>
-          window.__zapp.setState(
+          window.__oxbit.setState(
             { viewport, theme, review: { open: false }, kbd: false },
-            () => window.__zapp.measure(),
+            () => window.__oxbit.measure(),
           ),
         { viewport, theme },
       );

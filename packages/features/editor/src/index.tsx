@@ -1,4 +1,4 @@
-import { translate as tr, getPhrases } from "@zapp/ui";
+import { translate as tr, getPhrases } from "@oxbit/ui";
 import { useEffect, useRef, useState } from "react";
 import {
   Compartment,
@@ -56,8 +56,8 @@ import { html } from "@codemirror/lang-html";
 import { markdown } from "@codemirror/lang-markdown";
 import { tags } from "@lezer/highlight";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
-import type { DocumentHandle } from "@zapp/documents";
-import type { LanguageDefinition, Extension, Kernel } from "@zapp/sdk";
+import type { DocumentHandle } from "@oxbit/documents";
+import type { LanguageDefinition, Extension, Kernel } from "@oxbit/sdk";
 import { contributedLanguage, editorLanguageId } from "./languages.js";
 import { contributedDecorations } from "./decorations.js";
 import {
@@ -66,7 +66,7 @@ import {
   LARGE_DOCUMENT_LENGTH,
   detectedIndentation,
 } from "./view-state.js";
-import type { WorkbenchController } from "@zapp/workbench";
+import type { WorkbenchController } from "@oxbit/workbench";
 const syntax = HighlightStyle.define([
   { tag: tags.keyword, color: "var(--tok-keyword)" },
   { tag: [tags.string, tags.special(tags.string)], color: "var(--tok-string)" },
@@ -114,7 +114,7 @@ function visualWhitespace(
                   line.from,
                   line.from,
                   Decoration.line({
-                    attributes: { style: `--zapp-indent-width:${columns}ch` },
+                    attributes: { style: `--oxbit-indent-width:${columns}ch` },
                   }),
                 );
               if (mode === "boundary" || mode === "selection") {
@@ -130,7 +130,7 @@ function visualWhitespace(
                       builder.add(
                         from,
                         end,
-                        Decoration.mark({ class: "zapp-whitespace" }),
+                        Decoration.mark({ class: "oxbit-whitespace" }),
                       );
                   } else
                     for (const selection of view.state.selection.ranges) {
@@ -140,7 +140,7 @@ function visualWhitespace(
                         builder.add(
                           a,
                           b,
-                          Decoration.mark({ class: "zapp-whitespace" }),
+                          Decoration.mark({ class: "oxbit-whitespace" }),
                         );
                     }
                 }
@@ -265,7 +265,7 @@ function configured(
           ...(get("editor.renderIndentGuides", true)
             ? {
                 backgroundImage: `repeating-linear-gradient(to right,transparent 0,transparent calc(${size}ch - 1px),var(--guide) calc(${size}ch - 1px),var(--guide) ${size}ch)`,
-                backgroundSize: "var(--zapp-indent-width,0) 100%",
+                backgroundSize: "var(--oxbit-indent-width,0) 100%",
                 backgroundRepeat: "no-repeat",
               }
             : {}),
@@ -442,7 +442,7 @@ export function CodeEditor({
               workbench.keepOpen();
               const start = performance.now();
               requestAnimationFrame(() => {
-                performance.measure("zapp.keystroke-to-paint", {
+                performance.measure("oxbit.keystroke-to-paint", {
                   start,
                   end: performance.now(),
                 });
@@ -606,7 +606,7 @@ export function createFeature({
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.editor",
+      id: "oxbit.editor",
       name: "Code Editor",
       version: "1.0.0",
       sdk: "^1.0.0",
@@ -619,7 +619,7 @@ export function createFeature({
     activate(ctx) {
       ctx.own(
         ctx.contributions.register({
-          id: "zapp.editor.document",
+          id: "oxbit.editor.document",
           kind: "documentView",
           title: "Text Editor",
           order: 0,

@@ -1,6 +1,6 @@
 {
-  "durationMs": 120305,
-  "rounds": 192,
+  "durationMs": 120204,
+  "rounds": 196,
   "refreshRecovery": true,
   "kind": "automated two-minute session"
 }

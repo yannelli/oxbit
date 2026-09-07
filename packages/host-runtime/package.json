@@ -1,13 +1,13 @@
 {
-  "name": "@zapp/host-runtime",
+  "name": "@oxbit/host-runtime",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {},
   "dependencies": {
-    "@zapp/sdk": "workspace:*",
-    "@zapp/protocol": "workspace:*"
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/protocol": "workspace:*"
   },
   "license": "MIT",
   "author": {

@@ -1,7 +1,8 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import os from "node:os";
+import { setting, workspaceDataDir } from "./branding.js";
+export { workspaceDataDir } from "./branding.js";
 import {
   randomBytes,
   createHash,
@@ -11,7 +12,7 @@ import {
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar from "chokidar";
-import type { Capability, Encoding, Eol } from "@zapp/sdk";
+import type { Capability, Encoding, Eol } from "@oxbit/sdk";
 import {
   RpcError,
   parseClientMessage,
@@ -20,7 +21,7 @@ import {
   MAX_BUFFER_BYTES,
   operationMethods,
   type ServerMessage,
-} from "@zapp/protocol";
+} from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { Processes, runCommand } from "./processes.js";
 import { Git } from "./git.js";
@@ -110,10 +111,7 @@ export function importMapHashes(html: string) {
 export async function createRuntime(options: RuntimeOptions) {
   const root = await fs.realpath(options.root),
     host = options.host ?? "127.0.0.1";
-  const dataDir = path.resolve(
-    options.dataDir ??
-      path.join(os.homedir(), ".zapp", "workspaces", hash(root).slice(0, 24)),
-  );
+  const dataDir = path.resolve(options.dataDir ?? workspaceDataDir(root));
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 });
   const stateFile = path.join(dataDir, "runtime.json");
   const files = new WorkspaceFiles(root, dataDir),
@@ -160,7 +158,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   await persist();
   const pairingCode = options.pairingCode ?? randomBytes(6).toString("hex");
-  let port = options.port ?? 4317;
+  let port = options.port ?? 9277;
   const allowedOrigins = () =>
     new Set([
       `http://127.0.0.1:${port}`,
@@ -366,12 +364,13 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("INVALID_PARAMS", "Invalid JSON request");
     }
   };
-  const cookies = (request: IncomingMessage) =>
-    request.headers.cookie
-      ?.split(";")
-      .map((x) => x.trim())
-      .find((x) => x.startsWith("zapp_session="))
-      ?.slice("zapp_session=".length);
+  const cookies = (request: IncomingMessage) => {
+    const entries = request.headers.cookie?.split(";").map((x) => x.trim());
+    return (
+      entries?.find((x) => x.startsWith("oxbit_session="))?.slice("oxbit_session=".length) ??
+      entries?.find((x) => x.startsWith("zapp_session="))?.slice("zapp_session=".length)
+    );
+  };
   const httpSession = (request: IncomingMessage) => {
     const token =
       request.headers.authorization?.replace(/^Bearer /, "") ??
@@ -420,7 +419,7 @@ export async function createRuntime(options: RuntimeOptions) {
         const result = await createSession(true, [...allCapabilities]);
         response.setHeader(
           "Set-Cookie",
-          `zapp_session=${result.token}; HttpOnly; SameSite=Strict; Path=/`,
+          `oxbit_session=${result.token}; HttpOnly; SameSite=Strict; Path=/`,
         );
         httpJson(response, 200, result);
         return;
@@ -1153,7 +1152,7 @@ export async function createRuntime(options: RuntimeOptions) {
               (segment) =>
                 segment === ".git" ||
                 segment === "node_modules" ||
-                segment.startsWith(".zapp-tmp-"),
+                segment.startsWith(".oxbit-tmp-"),
             ) ||
           file === dataDir ||
           file.startsWith(dataDir + path.sep)
@@ -1193,8 +1192,8 @@ export async function createRuntime(options: RuntimeOptions) {
     current.add(root);
   };
   startWatcher(
-    process.env.ZAPP_WATCH_POLLING === "1" ||
-      process.env.ZAPP_WATCH_POLLING === "true",
+    setting("WATCH_POLLING") === "1" ||
+      setting("WATCH_POLLING") === "true",
   );
   await watcherReady;
   await new Promise<void>((resolve, reject) => {

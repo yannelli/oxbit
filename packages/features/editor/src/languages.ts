@@ -2,7 +2,7 @@ import {
   languageIdForPath,
   type Kernel,
   type LanguageDefinition,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 export function contributedLanguage(kernel: Kernel, path: string) {
   return kernel.contributions.list("language").find((contribution) => {
     const data = contribution.data as LanguageDefinition;

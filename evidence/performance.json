@@ -1,22 +1,22 @@
 {
   "hardware": {
-    "cpus": 8,
-    "model": "unknown",
+    "cpus": 10,
+    "model": "Apple M1 Max",
     "architecture": "arm64",
-    "memory": 32981413888
+    "memory": 68719476736
   },
   "browser": "chromium",
-  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
   "dataset": "orbit-dash design fixture; README typing and cached App.tsx/README switching",
   "method": "keydown to second requestAnimationFrame; workbench openFile to following animation frame",
   "typing": {
     "samples": 60,
-    "p95": 31.69999998807907,
+    "p95": 16.399999976158142,
     "target": 50
   },
   "switching": {
     "samples": 30,
-    "p95": 21.30000001192093,
+    "p95": 15,
     "target": 100
   }
 }

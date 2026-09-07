@@ -1,51 +1,52 @@
-import { translate as tr, setLocale } from "@zapp/ui";
+import { translate as tr, setLocale } from "@oxbit/ui";
 import * as ReactHost from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
-import { createKernel } from "@zapp/core";
-import { DocumentService } from "@zapp/documents";
+import { createKernel } from "@oxbit/core";
+import { DocumentService } from "@oxbit/documents";
 import {
   BrowserFileSystem,
   IndexedDBPersistence,
   pickDirectory,
   restoreDirectory,
-} from "@zapp/host-browser";
-import { RuntimeClient, RuntimeFileSystem } from "@zapp/host-runtime";
+} from "@oxbit/host-browser";
+import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 import {
   Workbench,
   WorkbenchController,
   createWorkbenchFeature,
-} from "@zapp/workbench";
-import { Dialog, Icon } from "@zapp/ui";
+  workspaceEntries,
+} from "@oxbit/workbench";
+import { Dialog, Icon } from "@oxbit/ui";
 import {
   languageIdForPath,
   type FileSystem,
   type FileSystemProvider,
   type Kernel,
-} from "@zapp/sdk";
-import { createFeature as editorFeature } from "@zapp/feature-editor";
-import { createFeature as explorerFeature } from "@zapp/feature-explorer";
-import { createFeature as settingsFeature } from "@zapp/feature-settings";
-import { createFeature as extensionsFeature } from "@zapp/feature-extensions";
-import { createFeature as themesFeature } from "@zapp/feature-themes";
-import { createFeature as languageFeature } from "@zapp/feature-language";
-import { createFeature as searchFeature } from "@zapp/feature-search";
-import { createFeature as previewsFeature } from "@zapp/feature-previews";
+} from "@oxbit/sdk";
+import { createFeature as editorFeature } from "@oxbit/feature-editor";
+import { createFeature as explorerFeature } from "@oxbit/feature-explorer";
+import { createFeature as settingsFeature } from "@oxbit/feature-settings";
+import { createFeature as extensionsFeature } from "@oxbit/feature-extensions";
+import { createFeature as themesFeature } from "@oxbit/feature-themes";
+import { createFeature as languageFeature } from "@oxbit/feature-language";
+import { createFeature as searchFeature } from "@oxbit/feature-search";
+import { createFeature as previewsFeature } from "@oxbit/feature-previews";
 import {
   createFeature as formattersFeature,
   createPrettierFeature,
   createTypeScriptFormatterFeature,
-} from "@zapp/feature-formatters";
-import { createFeature as terminalFeature } from "@zapp/feature-terminal";
-import { createFeature as tasksFeature } from "@zapp/feature-tasks";
-import { createFeature as gitFeature } from "@zapp/feature-git";
-import { createFeature as collaborationFeature } from "@zapp/feature-collaboration";
-import bundleInspector from "@zapp/bundle-inspector";
+} from "@oxbit/feature-formatters";
+import { createFeature as terminalFeature } from "@oxbit/feature-terminal";
+import { createFeature as tasksFeature } from "@oxbit/feature-tasks";
+import { createFeature as gitFeature } from "@oxbit/feature-git";
+import { createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
+import bundleInspector from "@oxbit/bundle-inspector";
 import seed from "./seed.json";
 import { ScopedConfigurationPersistence } from "./configuration.js";
-import "@zapp/ui/tokens.css";
-import "@zapp/ui/workbench.css";
-(globalThis as any).__ZAPP_REACT__ = ReactHost;
+import "@oxbit/ui/tokens.css";
+import "@oxbit/ui/workbench.css";
+(globalThis as any).__OXBIT_REACT__ = ReactHost;
 interface Session {
   kernel: Kernel;
   documents: DocumentService;
@@ -58,12 +59,15 @@ const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();
 const browserFilesystem = new BrowserFileSystem(persistence, "browser");
-// The runtime prints its URL with the owner pairing code in the fragment. Consume the code once so a
-// reload does not mint a second owner session, and so it stops trailing the address bar.
-function takePairingCode() {
-  const code = new URLSearchParams(location.hash.replace(/^#/, "")).get("pair");
-  if (code) history.replaceState(null, "", location.pathname + location.search);
-  return code || undefined;
+// The oxbit command opens a URL carrying the owner pairing code and the file to focus. Consume them once
+// so a reload does not mint a second owner session, and so they stop trailing the address bar.
+function takeLaunchParams() {
+  const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const pair = params.get("pair") || undefined;
+  const open = params.get("open") || undefined;
+  if (pair || open)
+    history.replaceState(null, "", location.pathname + location.search);
+  return { pair, open };
 }
 async function openRuntime(url: string, pairingCode?: string) {
   const existing = new RuntimeClient(url);
@@ -109,8 +113,8 @@ async function openSession(
     await previous.documents.persist();
     await previous.workbench.persist();
   }
-  const previousAPI = (globalThis as any).__zapp;
-  (globalThis as any).__zapp = { ready: false };
+  const previousAPI = (globalThis as any).__oxbit;
+  (globalThis as any).__oxbit = { ready: false };
   const configurationPersistence = new ScopedConfigurationPersistence(
     persistence,
     filesystem,
@@ -411,7 +415,7 @@ async function openSession(
     runtime?.dispose();
     if (filesystem !== browserFilesystem && filesystem !== previous?.filesystem)
       filesystem.dispose?.();
-    (globalThis as any).__zapp = previousAPI;
+    (globalThis as any).__oxbit = previousAPI;
     throw error;
   }
 }
@@ -423,7 +427,7 @@ function App() {
   const installSession = useCallback((s: Session) => {
     setSession(s);
     setLoading(false);
-    (globalThis as any).__zapp = {
+    (globalThis as any).__oxbit = {
       ...s,
       ready: true,
       connectRuntime,
@@ -469,7 +473,7 @@ function App() {
   useEffect(() => {
     let stopped = false;
     const start = async () => {
-      const pairingCode = takePairingCode();
+      const { pair: pairingCode, open: launchPath } = takeLaunchParams();
       let saved = await persistence.get<any>("last-host");
       let runtime: RuntimeClient | undefined;
       let pairingError = "";
@@ -527,6 +531,18 @@ function App() {
             ),
           );
       }
+      if (launchPath)
+        try {
+          await next.workbench.openFile(launchPath, { preview: false });
+        } catch (failure) {
+          next.workbench.notify(
+            tr("Could not open {0}: {1}", {
+              0: launchPath,
+              1: String(failure),
+            }),
+            "error",
+          );
+        }
       if (!stopped) installSession(next);
     };
     void start().catch((e) => {
@@ -566,7 +582,7 @@ function App() {
       add("workspace.export", "Export Browser Workspace", async () => {
         const files = [];
         const directories = [];
-        for (const entry of session.workbench.state.files)
+        for await (const entry of workspaceEntries(session.filesystem))
           if (entry.kind === "file") {
             const doc = session.documents.get(entry.path);
             const snap = doc
@@ -587,7 +603,7 @@ function App() {
         const url = URL.createObjectURL(blob),
           a = document.createElement("a");
         a.href = url;
-        a.download = "zapp-workspace.json";
+        a.download = "oxbit-workspace.json";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }),

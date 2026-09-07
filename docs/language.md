@@ -10,7 +10,7 @@ Rename, code actions and formatting capture local document versions, disk revisi
 
 Code actions apply returned edits, resolved edits, or advertised server commands. Server-initiated `workspace/applyEdit` requests route to the browser that initiated the action. That browser checks captured document versions and permissions, applies edits through the document service, and acknowledges success or failure. The supported TypeScript remove-unused-imports action also returns edits directly. Error messages appear in the workbench.
 
-Workspace edit snapshots stop at 10,000 entries and exclude `.git`, `.zapp` and `node_modules`. Binary files without text revisions are excluded from snapshots; an edit that targets an uncaptured file fails.
+Workspace edit snapshots stop at 10,000 entries and exclude `.git`, `.oxbit` and `node_modules`. Binary files without text revisions are excluded from snapshots; an edit that targets an uncaptured file fails.
 
 Contributed transports, diagnostics, completions, and code actions use public
 SDK provider contracts. Providers match document languages; their results

@@ -1,4 +1,4 @@
-import type { Contribution, Kernel } from "@zapp/sdk";
+import type { Contribution, Kernel } from "@oxbit/sdk";
 export function documentViewFor(
   kernel: Kernel,
   path: string,

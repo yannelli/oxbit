@@ -1,17 +1,17 @@
 {
-  "name": "@zapp/feature-settings",
+  "name": "@oxbit/feature-settings",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.tsx",
   "scripts": {},
   "dependencies": {
-    "@zapp/sdk": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "@zapp/documents": "workspace:*",
-    "@zapp/ui": "workspace:*",
-    "@zapp/workbench": "workspace:*"
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*"
   },
   "license": "MIT",
   "author": {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createKernel } from "@zapp/core";
+import { createKernel } from "@oxbit/core";
 import {
   normalizeShortcut,
   resolveWorkbenchShortcut,

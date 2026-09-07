@@ -11,11 +11,11 @@ import type {
   Persistence,
   ResourceEdit,
   TextEdit,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 
-export const LOCAL_ORIGIN = Symbol("zapp.local");
-export const DISK_ORIGIN = Symbol("zapp.disk");
-export const REMOTE_ORIGIN = Symbol("zapp.remote");
+export const LOCAL_ORIGIN = Symbol("oxbit.local");
+export const DISK_ORIGIN = Symbol("oxbit.disk");
+export const REMOTE_ORIGIN = Symbol("oxbit.remote");
 export interface DocumentViewState {
   anchor: number;
   head: number;

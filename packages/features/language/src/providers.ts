@@ -9,7 +9,7 @@ import type {
   ProviderCompletion,
   ProviderDiagnostic,
   ProviderDocument,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 
 export function documentLanguage(o: FeatureOptions, path: string): string {
   const definitions = o.kernel.contributions

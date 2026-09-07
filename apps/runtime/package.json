@@ -1,17 +1,17 @@
 {
-  "name": "@zapp/runtime",
+  "name": "@oxbit/runtime",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "vite build"
+    "dev": "node ../../scripts/repair-pty.mjs && tsx watch src/index.ts --foreground",
+    "start": "node ../../scripts/repair-pty.mjs && node dist/index.js --foreground --no-open",
+    "build": "node ../../scripts/repair-pty.mjs && vite build"
   },
   "dependencies": {
-    "@zapp/sdk": "workspace:*",
-    "@zapp/protocol": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/protocol": "workspace:*",
     "ws": "^8.20.0",
     "node-pty": "^1.1.0",
     "typescript-language-server": "^5.0.0",
@@ -20,7 +20,7 @@
     "y-protocols": "^1.0.6",
     "chokidar": "^4.0.3",
     "typescript": "^5.9.3",
-    "@zapp/core": "workspace:*"
+    "@oxbit/core": "workspace:*"
   },
   "license": "MIT",
   "author": {

@@ -1,16 +1,17 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import type { ComponentType } from "react";
 import type { EditorView } from "@codemirror/view";
-import type { DocumentService } from "@zapp/documents";
+import type { DocumentService } from "@oxbit/documents";
 import { documentViewFor } from "./contributions.js";
 import type {
   FileEntry,
+  FileChange,
   FileSystem,
   Kernel,
   Persistence,
   OpenViewOptions,
   NotifyOptions,
-} from "@zapp/sdk";
+} from "@oxbit/sdk";
 export interface OpenOptions {
   line?: number;
   col?: number;
@@ -99,7 +100,7 @@ const initial = (): WorkbenchState => ({
   direction: "row",
   focus: false,
   files: [],
-  expanded: ["src", "src/components", "src/hooks", "src/lib"],
+  expanded: [],
   notifications: [],
   notificationCenter: false,
   workspaceOpen: true,
@@ -118,6 +119,7 @@ export class WorkbenchController {
   private contributionTabs = new Set<string>();
   private refreshGeneration = 0;
   private refreshTimer?: ReturnType<typeof setTimeout>;
+  private directories = new Map<string, FileEntry[]>();
   constructor(
     readonly kernel: Kernel,
     readonly documents: DocumentService,
@@ -132,7 +134,17 @@ export class WorkbenchController {
   };
   snapshot = () => this.state;
   set(patch: Partial<WorkbenchState>) {
+    const expansionChanged =
+      patch.expanded !== undefined &&
+      patch.expanded.join("\0") !== this.state.expanded.join("\0");
     this.state = { ...this.state, ...patch, revision: this.state.revision + 1 };
+    if (expansionChanged && !this.disposed) {
+      for (const directory of this.directories.keys())
+        if (!this.directoryVisible(directory))
+          this.directories.delete(directory);
+      ++this.refreshGeneration;
+      this.queueFilesRefresh();
+    }
     if (
       patch.groups ||
       patch.activeGroup ||
@@ -399,49 +411,77 @@ export class WorkbenchController {
     }
     await this.refreshFiles();
   }
-  scheduleRefreshFiles = () => {
+  private directoryVisible(path: string) {
+    return (
+      !path ||
+      path
+        .split("/")
+        .every((_, index, parts) =>
+          this.state.expanded.includes(parts.slice(0, index + 1).join("/")),
+        )
+    );
+  }
+  private queueFilesRefresh() {
     clearTimeout(this.refreshTimer);
-    this.refreshTimer = setTimeout(() => void this.refreshFiles(), 80);
+    this.refreshTimer = setTimeout(() => void this.refreshFiles(false), 80);
+  }
+  scheduleRefreshFiles = (change?: FileChange) => {
+    if (this.disposed) return;
+    if (change) {
+      const parent = change.path.split("/").slice(0, -1).join("/");
+      if (!this.directoryVisible(parent)) return;
+      this.directories.delete(parent);
+      for (const directory of this.directories.keys())
+        if (
+          directory === change.path ||
+          directory.startsWith(change.path + "/")
+        )
+          this.directories.delete(directory);
+    } else this.directories.clear();
+    ++this.refreshGeneration;
+    this.queueFilesRefresh();
   };
-  async refreshFiles() {
+  async refreshFiles(invalidate = true) {
+    clearTimeout(this.refreshTimer);
+    if (this.disposed) return;
+    if (invalidate) this.directories.clear();
     const generation = ++this.refreshGeneration;
     const all: FileEntry[] = [];
-    const walk = async (path = "") => {
-      for (const e of await this.filesystem.list(path)) {
-        if (
-          generation !== this.refreshGeneration ||
-          this.disposed ||
-          all.length >= 20000
-        )
-          return;
-        all.push(e);
-        if (e.kind === "directory") await walk(e.path);
+    const pending = [""];
+    while (pending.length) {
+      if (generation !== this.refreshGeneration || this.disposed) return;
+      const directory = pending.pop()!;
+      try {
+        const entries =
+          this.directories.get(directory) ??
+          (await this.filesystem.list(directory));
+        if (generation !== this.refreshGeneration || this.disposed) return;
+        this.directories.set(directory, entries);
+        for (const entry of entries) {
+          all.push(entry);
+          if (entry.kind === "directory" && this.directoryVisible(entry.path))
+            pending.push(entry.path);
+        }
+      } catch (error) {
+        if (generation !== this.refreshGeneration || this.disposed) return;
+        this.notify(
+          `${directory || this.state.projectName}: ${String(error)}`,
+          "error",
+        );
       }
-    };
-    try {
-      await walk();
-      if (generation === this.refreshGeneration && !this.disposed) {
-        this.set({ files: all });
-        if (
-          all.length >= 20000 &&
-          !this.state.notifications.some(
-            (notification) =>
-              notification.message ===
-              tr(
-                "Explorer shows the first 20,000 entries. Use file search to find other paths.",
-              ),
-          )
-        )
-          this.notify(
-            tr(
-              "Explorer shows the first 20,000 entries. Use file search to find other paths.",
-            ),
-            "warning",
-          );
-      }
-    } catch (error) {
-      this.notify(String(error), "error");
     }
+    if (generation === this.refreshGeneration && !this.disposed)
+      this.set({ files: all });
+  }
+  revealFile(path: string) {
+    const parents = path
+      .split("/")
+      .slice(0, -1)
+      .map((_, index, parts) => parts.slice(0, index + 1).join("/"));
+    this.set({
+      selectedPath: path,
+      expanded: [...new Set([...this.state.expanded, ...parents])],
+    });
   }
   activeTab() {
     const g = this.state.groups.find((g) => g.id === this.state.activeGroup);
@@ -471,6 +511,7 @@ export class WorkbenchController {
       failure = error instanceof Error ? error.message : String(error);
     }
     if (this.disposed) return;
+    this.revealFile(path);
     const gid = options.groupId || this.state.activeGroup;
     if (!this.state.groups.some((group) => group.id === gid))
       throw new Error("Editor group does not exist");
@@ -579,7 +620,7 @@ export class WorkbenchController {
         });
       }
       view?.focus();
-      performance.measure("zapp.file-switch", {
+      performance.measure("oxbit.file-switch", {
         start,
         end: performance.now(),
       });

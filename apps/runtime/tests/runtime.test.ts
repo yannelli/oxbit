@@ -7,7 +7,7 @@ import { WebSocket } from "ws";
 import * as Y from "yjs";
 import { createRuntime } from "../src/runtime.js";
 import { DocumentService } from "../../../packages/documents/src/index.js";
-import type { FileSystem, Persistence } from "@zapp/sdk";
+import type { FileSystem, Persistence } from "@oxbit/sdk";
 import { runCommand } from "../src/processes.js";
 import { encode, decode, WorkspaceFiles } from "../src/filesystem.js";
 
@@ -87,7 +87,7 @@ describe("authenticated runtime with real services", () => {
     return value;
   }
   beforeAll(async () => {
-    directory = await fs.mkdtemp(path.join(os.tmpdir(), "zapp-runtime-"));
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-runtime-"));
     root = path.join(directory, "workspace");
     await fs.mkdir(root);
     await fs.writeFile(
@@ -272,11 +272,11 @@ describe("authenticated runtime with real services", () => {
     });
     await client.request("terminal.input", {
       id: terminal.id,
-      data: "printf 'ZAPP_PTY_\\u2713\\n'\r",
+      data: "printf 'OXBIT_PTY_\\u2713\\n'\r",
     });
     await client.event(
       "terminal.data",
-      (p) => p.id === terminal.id && p.data.includes("ZAPP_PTY_"),
+      (p) => p.id === terminal.id && p.data.includes("OXBIT_PTY_"),
     );
     const peer = await connect();
     const replay = await peer.request("terminal.attach", {
@@ -303,10 +303,10 @@ describe("authenticated runtime with real services", () => {
   }, 20000);
   it("makes a real commit and deduplicates non-idempotent requests", async () => {
     await client.request("git.init");
-    await runCommand("git", ["config", "user.name", "Zapp Test"], {
+    await runCommand("git", ["config", "user.name", "Oxbit Test"], {
       cwd: root,
     });
-    await runCommand("git", ["config", "user.email", "zapp@example.test"], {
+    await runCommand("git", ["config", "user.email", "oxbit@example.test"], {
       cwd: root,
     });
     await client.request("git.stage", { path: "hello.ts" });
@@ -396,7 +396,7 @@ describe("authenticated runtime with real services", () => {
   }, 15000);
   it("uses a real TypeScript server for completion, diagnostics, navigation, rename and code actions", async () => {
     const text =
-      'import { helper } from "./helper";\nexport function greet(name: string) { return name.toUpperCase(); }\nconst message: string = 42;\nconst result = greet("Zapp");\nconsole.log(result);\n';
+      'import { helper } from "./helper";\nexport function greet(name: string) { return name.toUpperCase(); }\nconst message: string = 42;\nconst result = greet("Oxbit");\nconsole.log(result);\n';
     await fs.writeFile(
       path.join(root, "helper.ts"),
       "export const helper = 1;\n",

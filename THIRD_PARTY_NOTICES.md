@@ -1,6 +1,6 @@
 # Third-party notices
 
-Zapp's source is [MIT licensed](LICENSE), copyright 2026 Ryan Yannelli
+Oxbit's source is [MIT licensed](LICENSE), copyright 2026 Ryan Yannelli
 <ryanyannelli@gmail.com> ([yannelli](https://github.com/yannelli)).
 
 Dependencies keep their own licenses. Their package contents and

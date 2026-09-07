@@ -1,8 +1,9 @@
+import { setting } from "./branding.js";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { RpcError } from "@zapp/protocol";
+import { RpcError } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./processes.js";
 interface Pending {
@@ -134,8 +135,8 @@ export class LanguageServer {
     }
   }
   private async launch() {
-    const command = process.env.ZAPP_LSP_COMMAND || process.execPath;
-    const args = process.env.ZAPP_LSP_COMMAND
+    const command = setting("LSP_COMMAND") || process.execPath;
+    const args = setting("LSP_COMMAND")
       ? ["--stdio"]
       : [
           path.join(
@@ -229,7 +230,7 @@ export class LanguageServer {
           },
         },
       },
-      clientInfo: { name: "Zapp", version: "0.1.0" },
+      clientInfo: { name: "Oxbit", version: "0.1.0" },
     });
     this.capabilities = initialized.capabilities;
     this.send({ jsonrpc: "2.0", method: "initialized", params: {} });
@@ -246,7 +247,7 @@ export class LanguageServer {
           },
         },
       });
-    this.emit("zapp/serverState", { state: "running" });
+    this.emit("oxbit/serverState", { state: "running" });
     return { capabilities: this.capabilities, rootUri: this.uri("") };
   }
   private receive(message: any) {
@@ -297,7 +298,7 @@ export class LanguageServer {
     this.pending.clear();
     this.child = undefined;
     this.capabilities = undefined;
-    this.emit("zapp/serverState", { state: "stopped", error: error.message });
+    this.emit("oxbit/serverState", { state: "stopped", error: error.message });
   }
   async request(method: string, params: unknown, signal?: AbortSignal, applyEdit?: (edit:unknown,label?:string)=>Promise<{applied:boolean;failureReason?:string}>) {
     await this.validate(params); await this.start();

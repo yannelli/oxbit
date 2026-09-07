@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {RuntimeClient,RuntimeFileSystem} from './index.js';
-import type {RpcClient} from '@zapp/sdk';
+import type {RpcClient} from '@oxbit/sdk';
 
 class Socket {
   static OPEN=1;static instances:Socket[]=[];readyState=0;bufferedAmount=0;sent:any[]=[];onopen?:()=>void;onmessage?:(event:{data:string})=>void;onclose?:(event:{code:number})=>void;onerror?:()=>void;

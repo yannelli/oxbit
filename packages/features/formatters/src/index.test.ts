@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { FeatureOptions, Formatter, Kernel } from "@zapp/sdk";
+import type { FeatureOptions, Formatter, Kernel } from "@oxbit/sdk";
 import { createKernel } from "../../../core/src/index";
 import {
   createFeature,
@@ -20,7 +20,7 @@ async function setup() {
       id: "editor.defaultFormatter",
       title: "Formatter",
       type: "string",
-      default: "zapp.prettier",
+      default: "oxbit.prettier",
     },
     { id: "editor.tabSize", title: "Tab Size", type: "number", default: 2 },
     {
@@ -52,25 +52,25 @@ describe("formatter providers", () => {
   it("runs independently registered Prettier and TypeScript implementations", async () => {
     const { kernel, service } = await setup();
     expect(service.list("index.ts").map((provider) => provider.id)).toEqual(
-      expect.arrayContaining(["zapp.prettier", "zapp.builtin-ts"]),
+      expect.arrayContaining(["oxbit.prettier", "oxbit.builtin-ts"]),
     );
     expect(await service.format("const answer=1", "index.ts")).toBe(
       "const answer = 1;\n",
     );
     kernel.configuration.set(
       "editor.defaultFormatter",
-      "zapp.builtin-ts",
+      "oxbit.builtin-ts",
       "workspace",
       "typescript",
     );
     expect(await service.format("const answer=1", "index.ts")).toBe(
       "const answer = 1",
     );
-    await kernel.extensions.disable("zapp.builtin-ts");
+    await kernel.extensions.disable("oxbit.builtin-ts");
     await expect(service.format("const answer=1", "index.ts")).rejects.toThrow(
       "unavailable",
     );
-    await kernel.extensions.activate("zapp.builtin-ts");
+    await kernel.extensions.activate("oxbit.builtin-ts");
     expect(service.list("index.ts")).toHaveLength(2);
   });
   it("consumes external contributions and language-scoped formatter options", async () => {
@@ -101,6 +101,6 @@ describe("formatter providers", () => {
       "markdown",
     );
     expect(await service.format("Hello", "README.md")).toBe("4:false:Hello");
-    expect(service.selected("index.ts").id).toBe("zapp.prettier");
+    expect(service.selected("index.ts").id).toBe("oxbit.prettier");
   });
 });

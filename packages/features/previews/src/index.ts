@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
-import { translate as tr } from "@zapp/ui";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
+import { translate as tr } from "@oxbit/ui";
 import { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
 export { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
 const renderer = new MarkdownIt({
@@ -208,7 +208,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.previews",
+      id: "oxbit.previews",
       name: "Markdown Preview",
       version: "1.0.0",
       sdk: "^1.0.0",

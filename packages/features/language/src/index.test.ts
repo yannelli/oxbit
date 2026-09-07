@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { FeatureOptions, RpcClient } from "@zapp/sdk";
+import type { FeatureOptions, RpcClient } from "@oxbit/sdk";
 import { createKernel } from "../../../core/src/index";
 import { DocumentService } from "../../../documents/src/index";
 import {
@@ -296,7 +296,7 @@ describe("language edit contracts", () => {
     await rejected;
     for (const listener of subscribers.get("lsp.notification") ?? [])
       listener({
-        method: "zapp/serverState",
+        method: "oxbit/serverState",
         params: { state: "stopped", error: "Process exited" },
       });
     expect(language.state).toBe("stopped");

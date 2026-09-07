@@ -1,5 +1,5 @@
 {
-  "name": "zapp",
+  "name": "oxbit",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,18 +7,24 @@
   "engines": {
     "node": ">=24 <25"
   },
+  "bin": {
+    "oxbit": "apps/runtime/dist/index.js"
+  },
   "scripts": {
-    "dev": "pnpm --filter @zapp/runtime dev",
-    "dev:web": "pnpm --filter @zapp/web dev",
-    "build": "tsc -b && pnpm --filter @zapp/runtime build && pnpm build:example && pnpm --filter @zapp/web build",
+    "postinstall": "node scripts/repair-pty.mjs",
+    "repair:pty": "node scripts/repair-pty.mjs",
+    "dev": "pnpm --filter @oxbit/runtime dev",
+    "dev:web": "pnpm --filter @oxbit/web dev",
+    "build": "tsc -b && pnpm --filter @oxbit/runtime build && pnpm build:example && pnpm --filter @oxbit/web build",
     "typecheck": "tsc -b",
     "lint": "eslint apps packages examples tests scripts --no-warn-ignored",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "start": "pnpm --filter @zapp/runtime start",
+    "start": "pnpm --filter @oxbit/runtime start",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser",
-    "build:example": "pnpm build:sdk && pnpm --filter @zapp/bundle-inspector exec vite build && node scripts/copy-example.mjs",
-    "build:sdk": "node scripts/build-sdk.mjs"
+    "build:example": "pnpm build:sdk && pnpm --filter @oxbit/bundle-inspector exec vite build && node scripts/copy-example.mjs",
+    "build:sdk": "node scripts/build-sdk.mjs",
+    "install:global": "pnpm build && npm install -g ."
   },
   "devDependencies": {
     "typescript": "^5.9.3",

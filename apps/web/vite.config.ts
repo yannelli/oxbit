@@ -5,10 +5,10 @@ export default defineConfig({
   css: { transformer: "lightningcss" },
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    port: 9279,
     proxy: {
-      "/api": "http://127.0.0.1:4317",
-      "/ws": { target: "ws://127.0.0.1:4317", ws: true },
+      "/api": "http://127.0.0.1:9277",
+      "/ws": { target: "ws://127.0.0.1:9277", ws: true },
     },
   },
   build: {

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import type { RpcClient, Kernel } from "@zapp/sdk";
+import type { RpcClient, Kernel } from "@oxbit/sdk";
 import {
   BrowserFileSystem,
   MemoryPersistence,
@@ -12,8 +12,8 @@ afterEach(() => {
 const setup = async () => {
   const storage = new MemoryPersistence();
   const filesystem = new BrowserFileSystem(storage, "settings-test");
-  await filesystem.mkdir(".zapp");
-  await filesystem.write(".zapp/settings.json", '{"editor.fontSize":13}\n', {
+  await filesystem.mkdir(".oxbit");
+  await filesystem.write(".oxbit/settings.json", '{"editor.fontSize":13}\n', {
     expectedRevision: null,
   });
   const runtime = {
@@ -54,7 +54,7 @@ it("recovers pending workspace settings after refresh and writes their saved rev
   ).toBe(18);
   await vi.waitFor(async () =>
     expect(
-      JSON.parse((await filesystem.read(".zapp/settings.json")).text)[
+      JSON.parse((await filesystem.read(".oxbit/settings.json")).text)[
         "editor.fontSize"
       ],
     ).toBe(18),
@@ -69,7 +69,7 @@ it("keeps recovered settings when their disk revision changed while offline", as
   layers.workspace["editor.fontSize"] = 18;
   await first.set("settings", layers);
   first.dispose();
-  const disk = await filesystem.read(".zapp/settings.json");
+  const disk = await filesystem.read(".oxbit/settings.json");
   await filesystem.write(disk.path, '{"editor.fontSize":22}', {
     expectedRevision: disk.revision,
   });
@@ -105,7 +105,7 @@ it("removes workspace overrides when the disk settings file is deleted", async (
     } as unknown as Kernel,
     vi.fn(),
   );
-  await filesystem.delete(".zapp/settings.json");
+  await filesystem.delete(".oxbit/settings.json");
   await vi.waitFor(() =>
     expect(imported).toHaveBeenCalledWith(
       expect.objectContaining({ workspace: {}, workspaceLanguages: {} }),
@@ -125,7 +125,7 @@ it("resolves recovered setting conflicts through an explicit local save", async 
   runtime.connected = false;
   layers.workspace["editor.fontSize"] = 18;
   await settings.set("settings", layers);
-  const disk = await filesystem.read(".zapp/settings.json");
+  const disk = await filesystem.read(".oxbit/settings.json");
   await filesystem.write(disk.path, '{"editor.fontSize":22}', {
     expectedRevision: disk.revision,
   });
@@ -134,4 +134,29 @@ it("resolves recovered setting conflicts through an explicit local save", async 
   expect(
     JSON.parse((await filesystem.read(disk.path)).text)["editor.fontSize"],
   ).toBe(18);
+});
+
+it("keeps existing Zapp workspace settings editable and prefers an Oxbit settings file", async () => {
+  const { filesystem, create } = await setup();
+  await filesystem.mkdir(".zapp");
+  await filesystem.write(".zapp/settings.json", '{"editor.fontSize":21}\n', {
+    expectedRevision: null,
+  });
+  const current = create();
+  expect(
+    (await current.get<any>("settings"))!.workspace["editor.fontSize"],
+  ).toBe(13);
+  current.dispose();
+  await filesystem.delete(".oxbit/settings.json");
+  const legacy = create();
+  const layers = (await legacy.get<any>("settings"))!;
+  expect(layers.workspace["editor.fontSize"]).toBe(21);
+  layers.workspace["editor.fontSize"] = 22;
+  await legacy.set("settings", layers);
+  expect(
+    JSON.parse((await filesystem.read(".zapp/settings.json")).text)[
+      "editor.fontSize"
+    ],
+  ).toBe(22);
+  await expect(filesystem.read(".oxbit/settings.json")).rejects.toThrow();
 });

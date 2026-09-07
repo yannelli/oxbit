@@ -1,6 +1,6 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useEffect, useRef, useState } from "react";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
 import type { SearchMatch, SearchOptions } from "./engine";
 import { SearchService } from "./service";
 export * from "./engine";
@@ -262,7 +262,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.search",
+      id: "oxbit.search",
       name: "Workspace Search",
       version: "1.0.0",
       sdk: "^1.0.0",

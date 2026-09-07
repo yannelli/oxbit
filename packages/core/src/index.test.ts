@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Extension, ExtensionContext, Kernel } from "@zapp/sdk";
+import type { Extension, ExtensionContext, Kernel } from "@oxbit/sdk";
 import { createKernel } from "./index";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -273,7 +273,7 @@ describe("kernel contracts", () => {
   });
   it("loads an external ESM artifact through the public extension contract", async () => {
     const kernel = makeKernel();
-    const directory = await mkdtemp(join(tmpdir(), "zapp-extension-"));
+    const directory = await mkdtemp(join(tmpdir(), "oxbit-extension-"));
     const path = join(directory, "extension.mjs");
     try {
       await writeFile(
@@ -303,7 +303,7 @@ describe("kernel contracts", () => {
   });
   it("rolls back a deliberately failing external ESM activation", async () => {
     const kernel = makeKernel();
-    const directory = await mkdtemp(join(tmpdir(), "zapp-extension-failure-"));
+    const directory = await mkdtemp(join(tmpdir(), "oxbit-extension-failure-"));
     const path = join(directory, "failure.mjs");
     try {
       await writeFile(
@@ -321,4 +321,40 @@ describe("kernel contracts", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+});
+
+it("preserves legacy formatter preferences across all configuration layers", () => {
+  const kernel = makeKernel();
+  kernel.configuration.register({
+    id: "editor.defaultFormatter",
+    title: "Formatter",
+    type: "string",
+    default: "oxbit.prettier",
+    enum: ["oxbit.prettier", "oxbit.builtin-ts", "third-party.formatter"],
+  });
+  kernel.configuration.import({
+    user: {
+      "editor.defaultFormatter": "zapp.prettier",
+      "example.text": "zapp.prettier",
+    },
+    workspace: { "editor.defaultFormatter": "third-party.formatter" },
+    userLanguages: {
+      javascript: { "editor.defaultFormatter": "zapp.prettier" },
+    },
+    workspaceLanguages: {
+      typescript: { "editor.defaultFormatter": "zapp.builtin-ts" },
+    },
+  });
+  expect(
+    kernel.configuration.get("editor.defaultFormatter", "typescript"),
+  ).toBe("oxbit.builtin-ts");
+  expect(
+    kernel.configuration.get("editor.defaultFormatter", "javascript"),
+  ).toBe("oxbit.prettier");
+  expect(kernel.configuration.get("editor.defaultFormatter")).toBe(
+    "third-party.formatter",
+  );
+  expect((kernel.configuration.export() as any).user["example.text"]).toBe(
+    "zapp.prettier",
+  );
 });

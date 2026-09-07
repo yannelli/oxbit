@@ -1,8 +1,8 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import { useState, useSyncExternalStore } from "react";
-import type { Extension, Kernel } from "@zapp/sdk";
-import type { WorkbenchController } from "@zapp/workbench";
-import { Icon, IconButton } from "@zapp/ui";
+import type { Extension, Kernel } from "@oxbit/sdk";
+import type { WorkbenchController } from "@oxbit/workbench";
+import { Icon, IconButton } from "@oxbit/ui";
 export function Extensions({
   kernel,
   workbench,
@@ -312,7 +312,7 @@ export function createFeature({
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.extensions",
+      id: "oxbit.extensions",
       name: "Extension Management",
       version: "1.0.0",
       sdk: "^1.0.0",

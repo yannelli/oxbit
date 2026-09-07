@@ -1,12 +1,12 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
 import * as Y from "yjs";
 import {
   encodeAwarenessUpdate,
   applyAwarenessUpdate,
 } from "y-protocols/awareness";
-import { REMOTE_ORIGIN } from "@zapp/documents";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
+import { REMOTE_ORIGIN } from "@oxbit/documents";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
 const encode = (bytes: Uint8Array) => {
   let s = "";
   for (let i = 0; i < bytes.length; i += 8192)
@@ -113,6 +113,7 @@ export class CollaborationService {
         REMOTE_ORIGIN,
       );
     const user =
+      localStorage.getItem("oxbit.presence.name") ??
       localStorage.getItem("zapp.presence.name") ??
       "Guest " + String(doc.ydoc.clientID).slice(-4);
     doc.awareness.setLocalStateField("user", {
@@ -287,10 +288,11 @@ export function createFeature(o: FeatureOptions): Extension {
           onClick: async () => {
             const name = await o.workbench.prompt(
               tr("Display name"),
+              localStorage.getItem("oxbit.presence.name") ??
               localStorage.getItem("zapp.presence.name") ?? "Guest",
             );
             if (name) {
-              localStorage.setItem("zapp.presence.name", name);
+              localStorage.setItem("oxbit.presence.name", name);
               for (const doc of o.documents.documents.values())
                 doc.awareness.setLocalStateField("user", {
                   name,
@@ -331,7 +333,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.collaboration",
+      id: "oxbit.collaboration",
       name: "Collaboration",
       version: "1.0.0",
       sdk: "^1.0.0",

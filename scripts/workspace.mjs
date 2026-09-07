@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
-const common = { "@zapp/sdk": "workspace:*" };
+const common = { "@oxbit/sdk": "workspace:*" };
 const react = { react: "19.1.0", "react-dom": "19.1.0" };
 const cm = {
   "@codemirror/commands": "6.10.4",
@@ -32,7 +32,7 @@ const entries = {
   "packages/host-browser": ["host-browser", common],
   "packages/host-runtime": [
     "host-runtime",
-    { ...common, "@zapp/protocol": "workspace:*" },
+    { ...common, "@oxbit/protocol": "workspace:*" },
   ],
   "packages/ui": ["ui", { ...common, ...react }],
   "packages/workbench": [
@@ -41,11 +41,11 @@ const entries = {
       ...common,
       ...react,
       ...cm,
-      "@zapp/core": "workspace:*",
-      "@zapp/documents": "workspace:*",
-      "@zapp/ui": "workspace:*",
-      "@zapp/host-browser": "workspace:*",
-      "@zapp/host-runtime": "workspace:*",
+      "@oxbit/core": "workspace:*",
+      "@oxbit/documents": "workspace:*",
+      "@oxbit/ui": "workspace:*",
+      "@oxbit/host-browser": "workspace:*",
+      "@oxbit/host-runtime": "workspace:*",
       i18next: "^26.3.0",
       "react-i18next": "^17.0.8",
     },
@@ -55,8 +55,8 @@ const entries = {
     "runtime",
     {
       ...common,
-      "@zapp/core": "workspace:*",
-      "@zapp/protocol": "workspace:*",
+      "@oxbit/core": "workspace:*",
+      "@oxbit/protocol": "workspace:*",
       ws: "^8.20.0",
       "node-pty": "^1.1.0",
       "typescript-language-server": "^5.0.0",
@@ -87,8 +87,8 @@ for (const name of features) {
   let d = {
     ...common,
     ...react,
-    "@zapp/documents": "workspace:*",
-    "@zapp/ui": "workspace:*",
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/ui": "workspace:*",
   };
   if (name === "editor")
     Object.assign(d, cm, {
@@ -115,21 +115,21 @@ for (const name of features) {
   entries["packages/features/" + name] = ["feature-" + name, d];
 }
 for (const name of ["editor", "explorer", "settings", "extensions"])
-  entries["packages/features/" + name][1]["@zapp/workbench"] = "workspace:*";
+  entries["packages/features/" + name][1]["@oxbit/workbench"] = "workspace:*";
 entries["apps/web"] = [
   "web",
   {
     ...common,
     ...react,
-    "@zapp/core": "workspace:*",
-    "@zapp/documents": "workspace:*",
-    "@zapp/ui": "workspace:*",
-    "@zapp/workbench": "workspace:*",
-    "@zapp/host-browser": "workspace:*",
-    "@zapp/host-runtime": "workspace:*",
-    "@zapp/bundle-inspector": "workspace:*",
+    "@oxbit/core": "workspace:*",
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
+    "@oxbit/host-browser": "workspace:*",
+    "@oxbit/host-runtime": "workspace:*",
+    "@oxbit/bundle-inspector": "workspace:*",
     ...Object.fromEntries(
-      features.map((n) => ["@zapp/feature-" + n, "workspace:*"]),
+      features.map((n) => ["@oxbit/feature-" + n, "workspace:*"]),
     ),
     i18next: "^26.3.0",
     "react-i18next": "^17.0.8",
@@ -154,7 +154,7 @@ for (const [path, [name, dependencies]] of Object.entries(entries)) {
     path + "/package.json",
     JSON.stringify(
       {
-        name: "@zapp/" + name,
+        name: "@oxbit/" + name,
         version: "1.0.0",
         license: "MIT",
         author: {
@@ -180,7 +180,7 @@ for (const [path, [name, dependencies]] of Object.entries(entries)) {
     ) + "\n",
   );
   const refs = Object.keys(dependencies)
-    .filter((d) => d.startsWith("@zapp/"))
+    .filter((d) => d.startsWith("@oxbit/"))
     .map((d) => Object.keys(entries).find((k) => entries[k][0] === d.slice(6)))
     .filter(Boolean);
   const depth = path.split("/").length;

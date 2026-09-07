@@ -1,6 +1,6 @@
-import { translate as tr } from "@zapp/ui";
+import { translate as tr } from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
-import type { Extension, FeatureOptions } from "@zapp/sdk";
+import type { Extension, FeatureOptions } from "@oxbit/sdk";
 type Change = { path: string; index: string; working: string };
 type Status = { branch: string; branches: string[]; changes: Change[] };
 export function resolveConflict(
@@ -597,7 +597,7 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "zapp.git",
+      id: "oxbit.git",
       name: "Source Control",
       version: "1.0.0",
       sdk: "^1.0.0",

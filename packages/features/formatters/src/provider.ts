@@ -1,4 +1,4 @@
-import type { Extension, Formatter } from "@zapp/sdk";
+import type { Extension, Formatter } from "@oxbit/sdk";
 import { formatPrettier } from "./prettier";
 import { formatTypeScript } from "./typescript";
 
@@ -16,7 +16,7 @@ function providerExtension(
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
-      dependencies: { "zapp.formatters": "^1.0.0" },
+      dependencies: { "oxbit.formatters": "^1.0.0" },
       activation: ["*"],
       capabilities: [],
     },
@@ -82,7 +82,7 @@ function providerExtension(
 }
 
 export const createPrettierFeature = (): Extension =>
-  providerExtension("zapp.prettier", "Prettier", "prettier", [
+  providerExtension("oxbit.prettier", "Prettier", "prettier", [
     "typescript",
     "tsx",
     "javascript",
@@ -92,7 +92,7 @@ export const createPrettierFeature = (): Extension =>
     "markdown",
   ]);
 export const createTypeScriptFormatterFeature = (): Extension =>
-  providerExtension("zapp.builtin-ts", "TypeScript formatter", "typescript", [
+  providerExtension("oxbit.builtin-ts", "TypeScript formatter", "typescript", [
     "typescript",
     "tsx",
     "javascript",

@@ -1,4 +1,4 @@
-import type { Kernel, Setting } from "@zapp/sdk";
+import type { Kernel, Setting } from "@oxbit/sdk";
 type Layers = {
   user: Record<string, unknown>;
   workspace: Record<string, unknown>;

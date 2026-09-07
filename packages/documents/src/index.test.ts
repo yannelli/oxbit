@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import type { FileSnapshot } from "@zapp/sdk";
+import type { FileSnapshot } from "@oxbit/sdk";
 import { createKernel } from "../../core/src/index";
 import {
   BrowserFileSystem,

@@ -1,4 +1,4 @@
-# Zapp — extension surfaces
+# Oxbit — extension surfaces
 
 Named contribution locations for plugins, with placement rules, sizing constraints, context availability and appearance requirements. The sample extension **Bundle Inspector** (`orbitlabs.bundle-inspector`) exercises `panel`, `command`, `statusItem`, `outputChannel` and `documentView`; disabling it removes every contribution atomically.
 

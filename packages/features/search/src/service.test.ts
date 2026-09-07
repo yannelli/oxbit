@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import type { FeatureOptions } from "@zapp/sdk";
-import { DocumentService } from "@zapp/documents";
+import type { FeatureOptions } from "@oxbit/sdk";
+import { DocumentService } from "@oxbit/documents";
 import {
   BrowserFileSystem,
   MemoryPersistence,

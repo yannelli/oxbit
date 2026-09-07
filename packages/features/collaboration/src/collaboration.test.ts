@@ -4,7 +4,7 @@ import {createKernel} from '../../../core/src/index.js';
 import {DocumentService} from '../../../documents/src/index.js';
 import {RuntimeFileSystem} from '../../../host-runtime/src/index.js';
 import {CollaborationService} from './index.js';
-import type {FeatureOptions,Persistence,RpcClient} from '@zapp/sdk';
+import type {FeatureOptions,Persistence,RpcClient} from '@oxbit/sdk';
 
 afterEach(()=>vi.unstubAllGlobals());
 describe('shared document lifecycle',()=>{

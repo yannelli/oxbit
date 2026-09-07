@@ -1,4 +1,4 @@
-# Zapp
+# Oxbit
 
 A web code editor built with React 19 and CodeMirror 6. Use a browser workspace
 on its own, or connect the Node runtime for real files, TypeScript language
@@ -13,25 +13,49 @@ From the repository root:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm build
-ZAPP_WORKSPACE=/absolute/path/to/your/project pnpm start
+pnpm install:global
 ```
 
-Open the pairing URL printed in the terminal
-(`http://127.0.0.1:4317/#pair=<code>`). It pairs the browser with the runtime and
-opens `ZAPP_WORKSPACE`. The code is consumed on load and removed from the address
-bar. Then:
+That builds the workspace and puts `oxbit` on your `PATH`:
+
+```sh
+oxbit                     # open the current directory
+oxbit ~/code/my-project   # open a directory
+oxbit src/main.ts         # open the current directory with that file focused
+```
+
+`oxbit` starts a runtime for the workspace, opens the paired editor in your
+browser, and returns to the shell. A workspace already being served is reused,
+so running `oxbit` again in the same project reopens the same runtime. Then:
 
 1. Select **Trust workspace tools** in **Runtime connection** to enable terminals, tasks, Git, and language services.
-2. Open a file in Explorer. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
+2. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
 
-Opening **http://127.0.0.1:4317** without the fragment starts the `orbit-dash`
-sample workspace in IndexedDB instead; pair from **Runtime connection** with the
-printed code to reach the runtime's project.
+`pnpm install:global` links the checkout rather than copying it, so `oxbit` follows
+the repository in place. Rerun `pnpm build` after pulling; `npm uninstall -g oxbit`
+removes the command.
 
-`ZAPP_WORKSPACE` selects the root exposed by this runtime. Stop the server with
-`Ctrl+C`. The default host is loopback; [runtime configuration](docs/runtime.md)
-covers ports, allowed origins, state storage, and network hosting.
+| Command            | Effect                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `oxbit --status`    | Report the runtime serving the workspace                                               |
+| `oxbit --stop`      | Stop it                                                                                |
+| `oxbit -f`          | Serve in the terminal and stay attached                                                |
+| `oxbit --no-open`   | Leave the browser closed                                                               |
+| `oxbit --port 9300` | Serve on a chosen port; applies when starting, so `--stop` first to move a running one |
+| `oxbit --help`      | Full usage                                                                             |
+
+The first workspace takes port **9277**; later ones take a free port, recorded in
+`~/.oxbit/workspaces/<id>/daemon.json` alongside the log. The URL `oxbit` prints
+carries the owner pairing code and the file to focus in its fragment; both are
+consumed on load and removed from the address bar. Opening
+**http://127.0.0.1:9277** without the fragment starts the `orbit-dash` sample
+workspace in IndexedDB instead; pair from **Runtime connection** with the printed
+code to reach the runtime's project.
+
+Without a global install, `OXBIT_WORKSPACE=/absolute/path pnpm start` serves the
+same runtime in the foreground. The default host is loopback;
+[runtime configuration](docs/runtime.md) covers ports, allowed origins, state
+storage, and network hosting.
 
 ## Workspaces and editing
 
@@ -64,8 +88,8 @@ Run these in separate terminals from the repository root:
 
 ```sh
 # Runtime, with access from the Vite development origin
-ZAPP_WORKSPACE=/absolute/path/to/your/project \
-ZAPP_ORIGINS=http://localhost:5173,http://127.0.0.1:5173 pnpm dev
+OXBIT_WORKSPACE=/absolute/path/to/your/project \
+OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
 ```
 
 ```sh
@@ -73,19 +97,19 @@ ZAPP_ORIGINS=http://localhost:5173,http://127.0.0.1:5173 pnpm dev
 pnpm dev:web
 ```
 
-Open **http://localhost:5173** and pair with runtime URL
-**http://127.0.0.1:4317**. On systems that exhaust filesystem watchers, start
-the runtime with `ZAPP_WATCH_POLLING=1`. A production build is the fallback
+Open **http://localhost:9279** and pair with runtime URL
+**http://127.0.0.1:9277**. On systems that exhaust filesystem watchers, start
+the runtime with `OXBIT_WATCH_POLLING=1`. A production build is the fallback
 when development process watching also fails.
 
-| Location | Responsibility |
-| --- | --- |
-| `apps/web`, `apps/runtime` | Browser entry point and authorized Node services |
+| Location                                             | Responsibility                                   |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| `apps/web`, `apps/runtime`                           | Browser entry point and authorized Node services |
 | `packages/core`, `packages/sdk`, `packages/protocol` | Coordination, public contracts, runtime messages |
-| `packages/documents`, `packages/host-*` | Shared documents, persistence, host adapters |
-| `packages/ui`, `packages/workbench` | Components, layout, contribution surfaces |
-| `packages/features/*` | Independently registered editor features |
-| `examples/bundle-inspector` | External SDK extension example |
+| `packages/documents`, `packages/host-*`              | Shared documents, persistence, host adapters     |
+| `packages/ui`, `packages/workbench`                  | Components, layout, contribution surfaces        |
+| `packages/features/*`                                | Independently registered editor features         |
+| `examples/bundle-inspector`                          | External SDK extension example                   |
 
 ## Extensions
 
@@ -116,10 +140,10 @@ pnpm check
 `pnpm check` runs lint, TypeScript checks, unit/integration tests, production
 builds, and browser journeys. Run a part with `pnpm lint`, `pnpm typecheck`,
 `pnpm test`, `pnpm build`, or `pnpm test:browser`. Browser journeys require a
-production build and use port 4318 plus isolated temporary workspaces. Tests
+production build and use port 9278 plus isolated temporary workspaces. Tests
 run real processes and create Git repositories and commits.
 
-Current results: 123 unit/integration tests and 19 browser journeys passed.
+Current results: 140 of 149 unit/integration tests and 22 of 22 browser journeys passed.
 Native directory recovery now passes after a browser refresh.
 [Remaining gap](PHASE-2_REMAINING_GAP.md) records the earlier failure, the
 Chromium 153 crash behind it, and the Playwright pin that closes it.
@@ -132,7 +156,7 @@ verification limits, and deferred work.
 ## Design and technical references
 
 The original Phase 1 ZIP is preserved under `design/reference/`, including
-its HTML and supplied screenshots. Open `Zapp Workbench.dc.html` for the
+its HTML and supplied screenshots. Open `Oxbit Workbench.dc.html` for the
 original mockup. `design/baselines/` adds full-size captures at all four
 reference dimensions in both themes.
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Extension, Kernel } from "@zapp/sdk";
+import type { Extension, Kernel } from "@oxbit/sdk";
 import { createKernel } from "./index";
 
 const kernels: Kernel[] = [];

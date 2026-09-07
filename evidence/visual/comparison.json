@@ -4,71 +4,71 @@
     "theme": "dark",
     "width": 1440,
     "height": 900,
-    "changedPixels": 107272,
+    "changedPixels": 104046,
     "totalPixels": 1296000,
-    "ratio": 0.08277160493827161
+    "ratio": 0.08028240740740741
   },
   {
     "name": "desktop",
     "theme": "light",
     "width": 1440,
     "height": 900,
-    "changedPixels": 124118,
+    "changedPixels": 129591,
     "totalPixels": 1296000,
-    "ratio": 0.09577006172839506
+    "ratio": 0.09999305555555556
   },
   {
     "name": "tablet-landscape",
     "theme": "dark",
     "width": 1024,
     "height": 768,
-    "changedPixels": 64269,
+    "changedPixels": 66450,
     "totalPixels": 786432,
-    "ratio": 0.08172225952148438
+    "ratio": 0.08449554443359375
   },
   {
     "name": "tablet-landscape",
     "theme": "light",
     "width": 1024,
     "height": 768,
-    "changedPixels": 72732,
+    "changedPixels": 74614,
     "totalPixels": 786432,
-    "ratio": 0.0924835205078125
+    "ratio": 0.09487660725911458
   },
   {
     "name": "tablet-portrait",
     "theme": "dark",
     "width": 768,
     "height": 1024,
-    "changedPixels": 73142,
+    "changedPixels": 75350,
     "totalPixels": 786432,
-    "ratio": 0.09300486246744792
+    "ratio": 0.09581247965494792
   },
   {
     "name": "tablet-portrait",
     "theme": "light",
     "width": 768,
     "height": 1024,
-    "changedPixels": 82084,
+    "changedPixels": 84018,
     "totalPixels": 786432,
-    "ratio": 0.10437520345052083
+    "ratio": 0.10683441162109375
   },
   {
     "name": "phone",
     "theme": "dark",
     "width": 390,
     "height": 844,
-    "changedPixels": 64206,
+    "changedPixels": 57920,
     "totalPixels": 329160,
-    "ratio": 0.19506015311702515
+    "ratio": 0.17596305747964516
   },
   {
     "name": "phone",
     "theme": "light",
     "width": 390,
     "height": 844,
-    "changedPixels": 71767,
+    "changedPixels": 66555,
     "totalPixels": 329160,
-    "ratio": 0.21803074492647953
+    "ratio": 0.20219650018228216
   }
 ]

@@ -1,4 +1,4 @@
-import type { FeatureOptions, DocumentEdit } from "@zapp/sdk";
+import type { FeatureOptions, DocumentEdit } from "@oxbit/sdk";
 import {
   matcher,
   replaceMatch,
