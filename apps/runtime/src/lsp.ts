@@ -20,6 +20,33 @@ import { createRequire } from "node:module";
 import { RpcError } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
+
+/** LSP data is server-owned metadata, including virtual document URIs for embedded languages.
+ * Exclude only protocol-defined opaque fields from path validation; send the original params.
+ */
+function requestParamsForValidation(method: string, params: any) {
+  const withoutData = (item: any) => item && typeof item === "object" && !Array.isArray(item) ? { ...item, data: undefined } : item;
+  const diagnostics = (items: any) => Array.isArray(items) ? items.map(withoutData) : items;
+  switch (method) {
+    case "completionItem/resolve":
+    case "inlayHint/resolve":
+    case "documentLink/resolve":
+    case "workspaceSymbol/resolve":
+      return withoutData(params);
+    case "codeAction/resolve":
+      return { ...withoutData(params), diagnostics: diagnostics(params?.diagnostics) };
+    case "textDocument/codeAction":
+      return { ...params, context: { ...params?.context, diagnostics: diagnostics(params?.context?.diagnostics) } };
+    case "callHierarchy/incomingCalls":
+    case "callHierarchy/outgoingCalls":
+    case "typeHierarchy/supertypes":
+    case "typeHierarchy/subtypes":
+      return { ...params, item: withoutData(params?.item) };
+    default:
+      return params;
+  }
+}
+
 export class LanguageServer {
   readonly external = new ExternalSources();
   private child?: ChildProcessWithoutNullStreams;
@@ -325,6 +352,15 @@ export class LanguageServer {
   private receive(message: any) {
     if (setting("LSP_TRACE")) this.emit("window/logMessage", { type: 4, message: `${this.serverName}: ${message.method ?? "response"}` });
     if (message.id !== undefined && message.method) {
+      if (message.method === "vscode/content" && this.launchSpec?.schemaContent) {
+        const connection = this.rpc;
+        const uri = Array.isArray(message.params) && message.params.length === 1 ? message.params[0] : message.params;
+        void this.launchSpec.schemaContent(uri).then(
+          result => { if (this.rpc === connection) this.send({ id: message.id, result }); },
+          error => { if (this.rpc === connection) this.send({ id: message.id, error: { code: -32603, message: String(error) } }); },
+        );
+        return;
+      }
       if (["workspace/semanticTokens/refresh", "workspace/inlayHint/refresh"].includes(message.method)) {
         this.emit("oxbit/refresh", { method: message.method }); this.send({ id: message.id, result: null }); return;
       }
@@ -440,7 +476,7 @@ export class LanguageServer {
     return this.rawRequest(method, params, signal);
   }
   async request(method: string, params: unknown, signal?: AbortSignal, applyEdit?: (edit:unknown,label?:string)=>Promise<{applied:boolean;failureReason?:string}>): Promise<any> {
-    await this.start(); await this.validate(params, /^(callHierarchy|typeHierarchy)\//.test(method));
+    await this.start(); await this.validate(requestParamsForValidation(method, params), /^(callHierarchy|typeHierarchy)\//.test(method));
     if (method !== "workspace/executeCommand") {
       const uri = (params as any)?.textDocument?.uri, doc = this.documents.get(uri), version = doc?.version, generation = this.generation;
       const capability = lspCapabilityKeys[method];
@@ -457,6 +493,9 @@ export class LanguageServer {
       try { const result=await this.rawRequest(method,params,signal); if (rejected) throw new RpcError("LSP_EDIT_REJECTED",rejected); return result; } finally { this.applyEdit=undefined; }
     });
     this.commandQueue=operation; return operation;
+  }
+  schemaChanged(uri: string) {
+    if (this.capabilities) this.send({ method: "json/schemaContent", params: uri });
   }
   async notify(method: string, params: any) {
     await this.validate(params);

@@ -11,6 +11,8 @@ const child = spawn("pnpm", ["--filter", "@oxbit/runtime", "start"], {
     PORT: "9278",
     OXBIT_WORKSPACE: root,
     OXBIT_DATA_DIR: dataDir,
+    OXBIT_SETTINGS_FILE: dataDir + "/settings.json",
+    OXBIT_PROJECTS_DIR: dataDir + "/projects",
     OXBIT_PAIRING_CODE: "oxbit-acceptance-2026",
   },
 });

@@ -1,152 +1,50 @@
-import { afterEach, expect, it, vi } from "vitest";
-import type { RpcClient, Kernel } from "@oxbit/sdk";
-import {
-  BrowserFileSystem,
-  MemoryPersistence,
-} from "../../../packages/host-browser/src/index";
+import { expect, it, vi } from "vitest";
+import type { RpcClient } from "@oxbit/sdk";
+import { settingsLayers } from "@oxbit/sdk";
+import { BrowserFileSystem, MemoryPersistence } from "../../../packages/host-browser/src/index";
 import { ScopedConfigurationPersistence } from "./configuration";
-const cleanup: (() => void)[] = [];
-afterEach(() => {
-  for (const dispose of cleanup.splice(0)) dispose();
-});
-const setup = async () => {
-  const storage = new MemoryPersistence();
-  const filesystem = new BrowserFileSystem(storage, "settings-test");
-  await filesystem.mkdir(".oxbit");
-  await filesystem.write(".oxbit/settings.json", '{"editor.fontSize":13}\n', {
-    expectedRevision: null,
-  });
-  const runtime = {
-    connected: true,
-    async request(method: string, args: any) {
-      if (!this.connected) throw new Error("Offline");
-      if (method === "fs.read") return filesystem.read(args.path);
-      if (method === "fs.mkdir") return filesystem.mkdir(args.path);
-      if (method === "fs.write")
-        return filesystem.write(args.path, args.text, args);
-      throw new Error(method);
-    },
-    subscribe: () => () => {},
-  } as unknown as RpcClient;
-  const create = () => {
-    const settings = new ScopedConfigurationPersistence(
-      storage,
-      filesystem,
-      runtime,
-    );
-    cleanup.push(() => settings.dispose());
-    return settings;
-  };
-  return { storage, filesystem, runtime, create };
-};
-it("recovers pending workspace settings after refresh and writes their saved revision", async () => {
-  const { storage, filesystem, runtime, create } = await setup();
-  const first = create();
-  const layers = (await first.get<any>("settings"))!;
-  runtime.connected = false;
-  layers.workspace["editor.fontSize"] = 18;
-  await first.set("settings", layers);
-  first.dispose();
-  runtime.connected = true;
-  const second = create();
-  expect(
-    (await second.get<any>("settings"))?.workspace["editor.fontSize"],
-  ).toBe(18);
-  await vi.waitFor(async () =>
-    expect(
-      JSON.parse((await filesystem.read(".oxbit/settings.json")).text)[
-        "editor.fontSize"
-      ],
-    ).toBe(18),
-  );
-  expect(await storage.get(second.key + ":pending")).toBeUndefined();
-});
-it("keeps recovered settings when their disk revision changed while offline", async () => {
-  const { storage, filesystem, runtime, create } = await setup();
-  const first = create();
-  const layers = (await first.get<any>("settings"))!;
-  runtime.connected = false;
-  layers.workspace["editor.fontSize"] = 18;
-  await first.set("settings", layers);
-  first.dispose();
-  const disk = await filesystem.read(".oxbit/settings.json");
-  await filesystem.write(disk.path, '{"editor.fontSize":22}', {
-    expectedRevision: disk.revision,
-  });
-  runtime.connected = true;
-  const second = create();
-  expect(
-    (await second.get<any>("settings"))?.workspace["editor.fontSize"],
-  ).toBe(18);
-  expect(
-    JSON.parse((await filesystem.read(disk.path)).text)["editor.fontSize"],
-  ).toBe(22);
-  expect(await storage.get(second.key + ":pending")).toBeDefined();
-});
-it("clears stale offline writes when a setting is reset to saved content", async () => {
-  const { storage, runtime, create } = await setup();
-  const settings = create();
-  const layers = (await settings.get<any>("settings"))!;
-  runtime.connected = false;
-  layers.workspace["editor.fontSize"] = 18;
-  await settings.set("settings", layers);
-  layers.workspace["editor.fontSize"] = 13;
-  await settings.set("settings", layers);
-  expect(await storage.get(settings.key + ":pending")).toBeUndefined();
-});
-it("removes workspace overrides when the disk settings file is deleted", async () => {
-  const { filesystem, create } = await setup();
-  const settings = create();
-  const layers = (await settings.get<any>("settings"))!;
-  const imported = vi.fn();
-  settings.attach(
-    {
-      configuration: { export: () => layers, import: imported },
-    } as unknown as Kernel,
-    vi.fn(),
-  );
-  await filesystem.delete(".oxbit/settings.json");
-  await vi.waitFor(() =>
-    expect(imported).toHaveBeenCalledWith(
-      expect.objectContaining({ workspace: {}, workspaceLanguages: {} }),
-    ),
-  );
-});
-it("resolves recovered setting conflicts through an explicit local save", async () => {
-  const { filesystem, runtime, create } = await setup();
-  const settings = create();
-  const layers = (await settings.get<any>("settings"))!;
-  settings.attach(
-    {
-      configuration: { export: () => layers, import: vi.fn() },
-    } as unknown as Kernel,
-    vi.fn(),
-  );
-  runtime.connected = false;
-  layers.workspace["editor.fontSize"] = 18;
-  await settings.set("settings", layers);
-  const disk = await filesystem.read(".oxbit/settings.json");
-  await filesystem.write(disk.path, '{"editor.fontSize":22}', {
-    expectedRevision: disk.revision,
-  });
-  runtime.connected = true;
-  await settings.resolveWorkspaceSettings("local");
-  expect(
-    JSON.parse((await filesystem.read(disk.path)).text)["editor.fontSize"],
-  ).toBe(18);
-});
 
-it("creates an Oxbit settings file when the workspace has none", async () => {
-  const { filesystem, create } = await setup();
-  await filesystem.delete(".oxbit/settings.json");
-  const settings = create();
+it("retains browser-only profiles and workspace language settings without creating repository files", async () => {
+  const storage = new MemoryPersistence(), filesystem = new BrowserFileSystem(storage, "browser");
+  const first = new ScopedConfigurationPersistence(storage, filesystem);
+  await first.get("settings");
+  const layers = settingsLayers({ "editor.fontSize": 18 }, { "[mdx]": { "editor.tabSize": 4 } });
+  await first.set("settings", layers); await first.dispose();
+  const second = new ScopedConfigurationPersistence(storage, filesystem);
+  expect(await second.get("settings")).toEqual(layers);
+  expect(await filesystem.list("")).toEqual([]);
+  await second.dispose();
+});
+it("keeps guest preferences in client storage without reading the owner's private files", async () => {
+  const storage = new MemoryPersistence(), filesystem = new BrowserFileSystem(storage, "guest");
+  const request = vi.fn(), runtime = { connected: true, session: { owner: false }, request, subscribe: () => () => {} } as RpcClient;
+  const settings = new ScopedConfigurationPersistence(storage, filesystem, runtime);
+  await settings.get("settings"); await settings.set("settings", settingsLayers({ "editor.fontSize": 18 }, {}));
+  expect(request).not.toHaveBeenCalled();
+  expect(await storage.get("profile-settings")).toMatchObject({ user: { "editor.fontSize": 18 } });
+  await settings.dispose();
+});
+it("retains edits made before the first runtime connection and does not expose mutable persistence snapshots", async () => {
+  const storage = new MemoryPersistence(), filesystem = new BrowserFileSystem(storage, "offline");
+  const runtime = { connected: false, request: async () => { throw new Error("Offline"); }, subscribe: () => () => {} } as RpcClient;
+  const first = new ScopedConfigurationPersistence(storage, filesystem, runtime);
+  const layers = (await first.get<any>("settings"))!;
+  layers.workspace["editor.fontSize"] = 18;
+  await first.set("settings", layers); await first.dispose();
+  const second = new ScopedConfigurationPersistence(storage, filesystem, runtime);
+  expect((await second.get<any>("settings"))?.workspace["editor.fontSize"]).toBe(18);
+  expect((await storage.get<any>(second.key + ":files")).pending).toEqual([{ scope: "workspace", path: ["editor.fontSize"], value: 18 }]);
+  await second.dispose();
+});
+it("clears pending offline changes when settings return to the last saved contents", async () => {
+  const storage = new MemoryPersistence(), filesystem = new BrowserFileSystem(storage, "reset");
+  const saved = settingsLayers({}, { "editor.fontSize": 13 });
+  await storage.set("settings", saved);
+  const runtime = { connected: false, request: async () => { throw new Error("Offline"); }, subscribe: () => () => {} } as RpcClient;
+  const settings = new ScopedConfigurationPersistence(storage, filesystem, runtime);
   const layers = (await settings.get<any>("settings"))!;
-  expect(layers.workspace).toEqual({});
-  layers.workspace["editor.fontSize"] = 22;
-  await settings.set("settings", layers);
-  expect(
-    JSON.parse((await filesystem.read(".oxbit/settings.json")).text)[
-      "editor.fontSize"
-    ],
-  ).toBe(22);
+  layers.workspace["editor.fontSize"] = 18; await settings.set("settings", layers);
+  layers.workspace["editor.fontSize"] = 13; await settings.set("settings", layers);
+  expect((await storage.get<any>(settings.key + ":files")).pending).toEqual([]);
+  await settings.dispose();
 });

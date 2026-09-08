@@ -29,6 +29,8 @@ evidence/language-milestone1/bundles/
 evidence/language-milestone1/smoke.mjs
 evidence/language-milestone1/browser-artifacts/
 evidence/language-milestone1/intelligence.mjs
+evidence/language-milestone1/project-intelligence.mjs
+evidence/project-intelligence/browser-artifacts/
 
 **/dist-language-tests/
 evidence/language-milestone1/native/*.log
@@ -39,3 +41,5 @@ evidence/language-milestone1/native/*.log
 .opencode/
 .playwright-mcp/
 .claude/
+
+evidence/settings-files/browser-artifacts/

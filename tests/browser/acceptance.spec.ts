@@ -754,6 +754,8 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
     root,
     port: 0,
     dataDir: root + "-state",
+    settingsFile: path.join(root + "-state", "settings.json"),
+    projectsDir: path.join(root + "-state", "projects"),
     pairingCode: "recovery-pair",
   });
   const port = server.port;
@@ -783,6 +785,8 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
       root,
       port,
       dataDir: root + "-state",
+      settingsFile: path.join(root + "-state", "settings.json"),
+      projectsDir: path.join(root + "-state", "projects"),
       pairingCode: "recovery-pair",
     });
     await expect

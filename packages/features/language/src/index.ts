@@ -30,6 +30,7 @@ import type { DocumentHandle } from "@oxbit/documents";
 import { hoverDOM } from "./hover.js";
 import { LanguageStatus } from "./status.js";
 import { documentSymbols } from "./symbols.js";
+import { ProjectIntelligenceView } from "./project.js";
 export interface EditSnapshot {
   version?: number;
   revision: string;
@@ -228,6 +229,9 @@ export class LanguageService {
   private extensionCache = new Map<string, CMExtension[]>();
   private overlays = new Map<string, LanguageOverlays>();
   private managedServices = new Map<string, LanguageService>();
+  private laravelProjects = new Map<string, boolean>();
+  private laravelLookups = new Set<string>();
+  private laravelGeneration = 0;
   projectRootUri = "";
   installedVersion = "";
   output: string[] = [];
@@ -344,6 +348,13 @@ export class LanguageService {
         }),
       );
     if (!this.providerContext) {
+      this.subscriptions.push(o.filesystem.watch(change => {
+        if (change.path.split("/").at(-1) === "artisan") {
+          this.laravelGeneration++; this.laravelProjects.clear(); this.laravelLookups.clear();
+          for (const [key, service] of this.managedServices) if (service.transport instanceof RuntimeLanguageTransport && service.transport.definitionId === "laravel") { service.dispose(); this.managedServices.delete(key); }
+          this.providersChanged();
+        }
+      }).dispose);
       this.providers = new LanguageProviders(o, () => this.providersChanged());
       this.subscriptions.push(
         o.kernel.contributions.subscribe(() => this.reconcileTransports()),
@@ -471,7 +482,26 @@ export class LanguageService {
   private managedCandidates(path: string) {
     const definition = languageForKernel(this.o.kernel, path, this.o.documents.get(path)?.text.toString().split("\n", 1)[0]);
     const settings = this.o.kernel.configuration.get<LanguageServerSettings>("languageServers", definition.id) ?? {};
-    const presets = languages.find(item => item.id === definition.id)?.providers.filter(id => id !== "local") ?? [];
+    let presets = languages.find(item => item.id === definition.id)?.providers.filter(id => id !== "local") ?? [];
+    if (presets.includes("laravel")) {
+      const directory = path.split("/").slice(0, -1).join("/");
+      if (!this.laravelProjects.has(directory) && !this.laravelLookups.has(directory)) {
+        const generation = this.laravelGeneration;
+        this.laravelLookups.add(directory);
+        void (async () => {
+          let current = directory, found = false;
+          for (;;) {
+            if ((await this.o.filesystem.list(current)).some(entry => entry.name === "artisan" && entry.kind === "file")) { found = true; break; }
+            if (!current) break; current = current.split("/").slice(0, -1).join("/");
+          }
+          return found;
+        })().catch(() => false).then(found => {
+          if (this.disposed || generation !== this.laravelGeneration) return;
+          this.laravelProjects.set(directory, found); this.laravelLookups.delete(directory); this.providersChanged();
+        });
+      }
+      if (!this.laravelProjects.get(directory)) presets = presets.filter(id => id !== "laravel");
+    }
     const ids = new Set([...presets, ...Object.keys(settings)]);
     return [...ids].filter(id => {
       const configured = settings[id];
@@ -1829,6 +1859,7 @@ export function createFeature(o: FeatureOptions): Extension {
       command("editor.navigateBack", "Go Back", () => language.navigateHistory(-1));
       command("editor.navigateForward", "Go Forward", () => language.navigateHistory(1));
       command("editor.workspaceSymbols", "Workspace Symbols", () => { language.rememberNavigationOrigin(); o.workbench.openView("workspace-symbols", "Workspace Symbols", WorkspaceSymbols, { service: language }); });
+      if (o.runtime) command("project.intelligence", "Project Intelligence", () => o.workbench.openView("project-intelligence", "Project Intelligence", ProjectIntelligenceView, { options: o, path: o.workbench.activePath() }));
       for (const [id, prepare, method, title] of [
         ["editor.incomingCalls", "textDocument/prepareCallHierarchy", "callHierarchy/incomingCalls", "Incoming Calls"],
         ["editor.outgoingCalls", "textDocument/prepareCallHierarchy", "callHierarchy/outgoingCalls", "Outgoing Calls"],

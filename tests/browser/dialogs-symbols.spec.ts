@@ -202,6 +202,8 @@ test("real TypeScript symbols populate Outline and Quick Open, navigate, and fol
   const runtime = await createRuntime({
     root,
     dataDir: join(root, ".runtime"),
+    settingsFile: join(root, ".runtime/settings.json"),
+    projectsDir: join(root, ".runtime/projects"),
     host: "127.0.0.1",
     port: 0,
     pairingCode: "symbols-browser-test",

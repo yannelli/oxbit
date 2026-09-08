@@ -14,7 +14,8 @@ async function fixture(sync: unknown) {
   const source = `const {createMessageConnection,StreamMessageReader,StreamMessageWriter}=require(${JSON.stringify(createRequire(import.meta.url).resolve("vscode-jsonrpc/node.js"))});
 const connection=createMessageConnection(new StreamMessageReader(process.stdin),new StreamMessageWriter(process.stdout));
 const events=[];connection.onNotification((method,params)=>events.push({method,params}));
-connection.onRequest('initialize',()=>({capabilities:{textDocumentSync:${JSON.stringify(sync)},hoverProvider:true}}));
+connection.onRequest('initialize',()=>({capabilities:{textDocumentSync:${JSON.stringify(sync)},hoverProvider:true,codeActionProvider:true}}));
+connection.onRequest((_method,params)=>params);
 connection.onRequest('fixture/events',()=>events);
 connection.onRequest('fixture/register',async params=>{try{await connection.sendRequest('client/registerCapability',params);return true}catch{return false}});
 connection.onRequest('fixture/unregister',params=>connection.sendRequest('client/unregisterCapability',params));
@@ -29,6 +30,36 @@ connection.onRequest('shutdown',()=>null);connection.onNotification('exit',()=>p
   return server;
 }
 describe("negotiated language protocol", () => {
+  it("round-trips opaque embedded-language data for resolution, diagnostics and hierarchy requests", async () => {
+    const server = await fixture(2);
+    const uri = server.uri("index.astro"), range = { start: { line: 1, character: 6 }, end: { line: 1, character: 13 } };
+    const data = { uri, original: { data: { uri: "volar-embedded-content://tsx/astro-document" } }, embeddedDocumentUri: "volar-embedded-content://tsx/astro-document" };
+    const diagnostic = { range, message: "Unknown name", data };
+    for (const method of ["completionItem/resolve", "codeAction/resolve", "inlayHint/resolve", "documentLink/resolve", "workspaceSymbol/resolve"]) {
+      const item = { label: "message", data, diagnostics: method === "codeAction/resolve" ? [diagnostic] : undefined };
+      const expected = JSON.parse(JSON.stringify(item));
+      expect(await server.request(method, item)).toEqual(expected);
+    }
+    const action = { textDocument: { uri }, range, context: { diagnostics: [diagnostic] } };
+    expect(await server.request("textDocument/codeAction", action)).toEqual(action);
+    for (const method of ["callHierarchy/incomingCalls", "callHierarchy/outgoingCalls", "typeHierarchy/supertypes", "typeHierarchy/subtypes"]) {
+      const params = { item: { name: "message", kind: 12, uri, range, selectionRange: range, data } };
+      expect(await server.request(method, params)).toEqual(params);
+    }
+  });
+  it("still validates protocol document, location and edit URIs outside opaque data", async () => {
+    const server = await fixture(2), uri = "volar-embedded-content://tsx/astro-document";
+    const range = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+    for (const [method, params] of [
+      ["textDocument/hover", { textDocument: { uri }, position: range.start }],
+      ["codeAction/resolve", { data: { uri }, edit: { documentChanges: [{ textDocument: { uri }, edits: [] }] } }],
+      ["textDocument/codeAction", { textDocument: { uri: server.uri("main.ts") }, range, context: { diagnostics: [{ range, message: "test", data: { uri }, relatedInformation: [{ location: { uri, range }, message: "test" }] }] } }],
+      ["inlayHint/resolve", { data: { uri }, label: [{ value: "type", location: { uri, range } }] }],
+      ["callHierarchy/incomingCalls", { item: { uri, data: { uri } } }],
+      ["workspace/executeCommand", { command: "example", arguments: [{ data: { uri } }] }],
+    ] as const) await expect(server.request(method, params)).rejects.toMatchObject({ code: "PATH_DENIED" });
+    await expect(server.request("codeAction/resolve", { data: { uri }, edit: { documentChanges: [{ kind: "rename", oldUri: server.uri("main.ts"), newUri: server.uri("../outside.ts") }] } })).rejects.toMatchObject({ code: "PATH_DENIED" });
+  });
   it.each([0, 1, 2])("honors sync kind %s, save text, ordered changes and restart replay", async kind => {
     const server = await fixture({ openClose: true, change: kind, save: { includeText: true } });
     server.canonical("main.ts", "const emoji = '😎';\r\nvalue\r\n", "typescript");

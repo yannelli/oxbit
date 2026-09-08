@@ -91,6 +91,7 @@ export const createPrettierFeature = (): Extension =>
     "html",
     "css",
     "markdown",
+    "mdx",
   ]);
 export const createTypeScriptFormatterFeature = (): Extension =>
   providerExtension("oxbit.builtin-ts", "TypeScript formatter", "typescript", [

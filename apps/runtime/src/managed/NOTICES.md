@@ -10,6 +10,8 @@ Managed servers are separately installed dependencies. Their versions, upstream 
 | VS Code language servers extracted | MIT | https://github.com/hrsh7th/vscode-langservers-extracted |
 | Vue language server and TypeScript plugin | MIT | https://github.com/vuejs/language-tools |
 | Astro language server | MIT | https://github.com/withastro/astro |
+| MDX language server | MIT | https://github.com/mdx-js/mdx-analyzer |
+| Laravel language server | MIT; standalone binary includes its upstream runtime/dependencies | https://github.com/laravel/lsp/releases/tag/v0.0.31 |
 | Dockerfile Language Server | MIT | https://github.com/rcjsuen/dockerfile-language-server |
 | Bash Language Server | MIT | https://github.com/bash-lsp/bash-language-server |
 | ShellCheck | GPL-3.0-or-later | https://github.com/koalaman/shellcheck/tree/v0.11.0 |

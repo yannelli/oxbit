@@ -33,9 +33,9 @@ export const formatPrettier: Formatter["format"] = async (
   } else if (["html"].includes(language)) {
     parser = "html";
     plugins = [await import("prettier/plugins/html")];
-  } else if (["markdown"].includes(language)) {
-    parser = "markdown";
-    plugins = [await import("prettier/plugins/markdown")];
+  } else if (["markdown", "mdx"].includes(language)) {
+    parser = language;
+    plugins = [await import("prettier/plugins/markdown"), await import("prettier/plugins/babel"), await import("prettier/plugins/estree")];
   } else throw new Error(`Prettier does not support ${path}`);
   const result = await engine.format(text, {
     parser,

@@ -1,0 +1,69 @@
+{
+  "checkedAt": "2026-09-08T03:12:53.903011+00:00",
+  "platform": "darwin-arm64",
+  "initializedPresets": [
+    "typescript",
+    "marksman",
+    "mdx",
+    "laravel",
+    "html",
+    "vue",
+    "astro",
+    "dockerfile",
+    "bash",
+    "json",
+    "taplo",
+    "intelephense",
+    "lemminx"
+  ],
+  "existingRealIntelligenceChecks": [
+    "HTML tag completion",
+    "JSON schema completion",
+    "PHP free signature help",
+    "TypeScript signatures",
+    "TypeScript semantic tokens",
+    "TypeScript type and parameter inlay hints",
+    "Read-only bundled TypeScript SDK navigation",
+    "TypeScript resolved auto-import edits",
+    "Vue TypeScript bridge completion",
+    "Vue resolved auto-import edits",
+    "Astro frontmatter completion, resolution and hover",
+    "Astro template expression completion, resolution and hover",
+    "Astro script completion, resolution and hover",
+    "Astro HTML completion, resolution and hover",
+    "Astro CSS completion, resolution and hover",
+    "Astro cross-region navigation, rename and diagnostics",
+    "Astro mappings after unsaved CRLF edits",
+    "Astro mixed-language restart replay",
+    "Astro resolved auto-import edits stay inside frontmatter",
+    "Separate Cargo manifest/config schemas and unassociated lockfile"
+  ],
+  "focusedRuntimeTests": {
+    "passed": 25,
+    "failed": 0
+  },
+  "browserTests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "scopedTypecheck": "passed",
+  "lint": "passed",
+  "runtimeBuild": "passed",
+  "webBuild": "passed",
+  "fullUnitSuite": {
+    "passed": 509,
+    "failed": 1,
+    "failure": "Existing theme font coverage in packages/ui/src/workbench.css; no changes to this file in this task"
+  },
+  "nativeUI": "not run",
+  "linuxExecution": "not run",
+  "ci": "not run",
+  "cachedStartupWithoutPATH": {
+    "passed": 13,
+    "failed": 0
+  },
+  "repositoryTypecheck": {
+    "status": "failed",
+    "failure": "Unrelated packages/features/themes/src/classicos98/index.ts cannot resolve @oxbit/icon-themes"
+  }
+}

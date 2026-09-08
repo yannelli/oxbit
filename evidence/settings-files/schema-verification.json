@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-09-08T05:55:37.846Z",
+  "generatedSchema": "packages/sdk/src/settings.schema.json",
+  "publicSchema": "apps/web/public/schemas/settings.v1.schema.json",
+  "installedSchema": "~/.oxbit/schemas/settings.v1.schema.json",
+  "privateSettingsReferencesInstalled": true,
+  "tests": {
+    "passed": 566,
+    "failed": 0,
+    "success": true
+  },
+  "realJsonLanguageServer": {
+    "checks": 12,
+    "schemaDownloads": 0,
+    "passed": true
+  },
+  "browser": {
+    "passed": 2,
+    "failed": 0
+  },
+  "schemaFreshness": "passed",
+  "lint": "passed",
+  "typecheck": "passed",
+  "sdkBuild": "passed",
+  "runtimeBuild": "passed",
+  "webBuild": "passed",
+  "limits": [
+    "Native desktop execution and CI were not run.",
+    "The canonical oxbit.dev schema URL is bundled locally; no hosted deployment was performed."
+  ]
+}

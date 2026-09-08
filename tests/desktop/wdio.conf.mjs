@@ -9,6 +9,8 @@ const fixture =
   inheritedFixture ||
   (await fs.mkdtemp(path.join(os.tmpdir(), "Oxbit native café ")));
 process.env.OXBIT_DESKTOP_TEST_DATA = path.join(fixture, "Application state");
+process.env.OXBIT_SETTINGS_FILE = path.join(fixture, "settings.json");
+process.env.OXBIT_PROJECTS_DIR = path.join(fixture, "projects");
 process.env.OXBIT_NATIVE_FIXTURES = fixture;
 if (!inheritedFixture)
   for (const name of ["Alpha project", "Beta 项目", "Gamma project"]) {
