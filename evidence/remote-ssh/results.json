@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "remote": "Linux x64 Debian bookworm, isolated Docker SSH server",
+  "checks": [
+    "SSH-only target, no Node/npm, no outbound network",
+    "automatic verified installation, remote file target, authenticated tunnel, trust gate, concurrent owner rejection",
+    "remote read/write, optimistic save conflicts, path boundary, bundled ripgrep search",
+    "remote configured service, automatic task port tunnel, HTTP link, assigned variables and force stop",
+    "remote Git, real PTY and resize, bundled TypeScript completion, remote PID isolation",
+    "token rotation and stale credential rejection, shutdown reaps remote runtime and tools",
+    "cached offline reconnect, persisted files and trust, no stale terminals",
+    "SSH transport loss detected and remote processes reaped"
+  ]
+}

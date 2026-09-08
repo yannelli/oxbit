@@ -24,8 +24,12 @@ import {
 } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { Processes, runCommand } from "./processes.js";
+import { TaskConfigStore } from "./tasks/config.js";
+import { TaskRunner } from "./tasks/runner.js";
+import { TaskWorktrees } from "./tasks/worktrees.js";
 import { Git } from "./git.js";
-import { LanguageServer } from "./lsp.js";
+import { LanguageServerManager } from "./lsp-manager.js";
+import os from "node:os";
 import { Collaboration } from "./collaboration.js";
 import { RuntimeExtensions } from "./extensions.js";
 
@@ -35,8 +39,14 @@ export interface RuntimeOptions {
   host?: string;
   dataDir?: string;
   pairingCode?: string;
+  /** Override the home containing .oxbit/projects (for isolated embedders/tests). */
+  tasksHome?: string;
+  /** Private desktop SSH bridge: return the local forwarded port for an owned service. */
+  forwardTaskPort?: (host: string, port: number) => Promise<number>;
   origins?: string[];
   webRoot?: string;
+  /** Desktop has a private parent channel and never serves frontend assets or pairs over HTTP. */
+  desktop?: { token: string; workspaceKey: string; rgPath: string; gitPath?: string };
 }
 interface Session {
   id: string;
@@ -141,6 +151,14 @@ export async function createRuntime(options: RuntimeOptions) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT")
       throw new Error(`Cannot recover runtime state: ${String(error)}`);
   }
+  if (options.desktop) {
+    if (options.desktop.token.length < 32) throw new Error("Invalid desktop credential");
+    for (const [key, session] of sessions) if (session.id === "desktop-owner") sessions.delete(key);
+    sessions.set(hash(options.desktop.token), {
+      id: "desktop-owner", hash: hash(options.desktop.token), owner: true,
+      capabilities: [...allCapabilities], revoked: false, createdAt: Date.now(),
+    });
+  }
   let persistence = Promise.resolve();
   const persist = () => {
     const payload = JSON.stringify({
@@ -161,9 +179,7 @@ export async function createRuntime(options: RuntimeOptions) {
   let port = options.port ?? 9277;
   const allowedOrigins = () =>
     new Set([
-      `http://127.0.0.1:${port}`,
-      `http://localhost:${port}`,
-      `http://${host}:${port}`,
+      ...(options.desktop ? [] : [`http://127.0.0.1:${port}`, `http://localhost:${port}`, `http://${host}:${port}`]),
       ...(options.origins ?? []),
     ]);
   const originAllowed = (request: IncomingMessage, required = false) => {
@@ -218,31 +234,27 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
-  const processes = new Processes(
-    root,
-    ({ event: name, params, stream, seq }, ownerId) => {
-      const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
-      for (const c of connections.values()) {
-        const session = c.session;
-        if (
-          session &&
-          session.id === ownerId &&
-          !session.revoked &&
-          session.capabilities.includes(cap)
-        )
-          event(c, name, params, stream, seq);
-      }
-    },
-  );
-  const lsp = new LanguageServer(files, (method, params) => {
+  const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
+    const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
+    for (const c of connections.values()) {
+      const session = c.session;
+      if (session && session.id === ownerId && !session.revoked && session.capabilities.includes(cap)) event(c, name, params, stream, seq);
+    }
+  };
+  const processes = new Processes(root, processEvent);
+  const taskStore = await TaskConfigStore.create(root, { home: options.tasksHome ?? setting("TASKS_HOME"), gitPath: options.desktop?.gitPath });
+  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort);
+  const worktrees = new TaskWorktrees(taskStore, tasks);
+  const lsp = new LanguageServerManager(files, setting("LSP_CACHE") ?? path.join(os.homedir(), ".oxbit", "language-servers"), (method, params, instanceId) => {
     for (const c of connections.values())
       if (
         c.language &&
+        (!instanceId || lsp.isAttached(c.id, instanceId)) &&
         c.session &&
         !c.session.revoked &&
         c.session.capabilities.includes("lsp")
       )
-        event(c, "lsp.notification", { method, params });
+        { event(c, "lsp.notification", { method, params, instanceId }); if (method === "oxbit/serverRequest") break; }
   });
   const collaboration = new Collaboration(
     files,
@@ -260,7 +272,7 @@ export async function createRuntime(options: RuntimeOptions) {
       }
     },
   );
-  const git = new Git(files);
+  const git = new Git(files, options.desktop?.gitPath);
   const extensions = new RuntimeExtensions(files, {
     "runtime.git": {
       status: (signal?: AbortSignal) => git.status(signal),
@@ -293,7 +305,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   const sessionInfo = (session: Session) => ({
     workspaceId: "default",
-    workspaceKey: hash(root).slice(0, 24),
+    workspaceKey: options.desktop?.workspaceKey ?? hash(root).slice(0, 24),
     workspaceName: path.basename(root),
     capabilities: session.capabilities,
     owner: session.owner,
@@ -322,6 +334,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (!session) throw new RpcError("NOT_FOUND", "Grant does not exist");
     session.revoked = true;
     processes.revoke(session.id);
+    tasks.revoke(session.id);
     for (const c of connections.values())
       if (c.session?.id === id) {
         for (const controller of c.pending.values()) controller.abort();
@@ -366,10 +379,9 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   const cookies = (request: IncomingMessage) => {
     const entries = request.headers.cookie?.split(";").map((x) => x.trim());
-    return (
-      entries?.find((x) => x.startsWith("oxbit_session="))?.slice("oxbit_session=".length) ??
-      entries?.find((x) => x.startsWith("zapp_session="))?.slice("zapp_session=".length)
-    );
+    return entries
+      ?.find((x) => x.startsWith("oxbit_session="))
+      ?.slice("oxbit_session=".length);
   };
   const httpSession = (request: IncomingMessage) => {
     const token =
@@ -394,6 +406,10 @@ export async function createRuntime(options: RuntimeOptions) {
         return;
       }
       if (url.pathname === "/api/pair" && request.method === "POST") {
+        if (options.desktop) {
+          httpJson(response, 403, { error: "Desktop pairing requires the parent channel" });
+          return;
+        }
         const address = request.socket.remoteAddress ?? "unknown",
           entry = attempts.get(address) ?? {
             count: 0,
@@ -481,6 +497,7 @@ export async function createRuntime(options: RuntimeOptions) {
         httpJson(response, 400, { error: "Invalid path" });
         return;
       }
+      if (options.desktop) { httpJson(response, 404, { error: "Not found" }); return; }
       let target = path.resolve(webRoot, "." + relative);
       if (target !== webRoot && !target.startsWith(webRoot + path.sep)) {
         httpJson(response, 403, { error: "Path denied" });
@@ -569,7 +586,7 @@ export async function createRuntime(options: RuntimeOptions) {
       };
     if (method.startsWith("search.")) return { cap: "filesystem.read" };
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
-    if (method.startsWith("tasks.")) return { cap: "tasks", trust: true };
+    if (method.startsWith("tasks.")) return { cap: "tasks", trust: !["tasks.catalog", "tasks.list", "tasks.attach", "tasks.worktrees"].includes(method) };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
@@ -616,8 +633,8 @@ export async function createRuntime(options: RuntimeOptions) {
         if (!trusted) {
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
-          for (const s of sessions.values()) processes.revoke(s.id);
-          await lsp.stop();
+          for (const s of sessions.values()) { processes.revoke(s.id); tasks.revoke(s.id); }
+          await lsp.suspend();
         }
         await persist();
         for (const c of connections.values())
@@ -650,8 +667,8 @@ export async function createRuntime(options: RuntimeOptions) {
           requireString(params, "path"),
           params.encoding as Encoding | undefined,
         );
-      case "fs.write":
-        return files.write(
+      case "fs.write": {
+        const snapshot = await files.write(
           requireString(params, "path"),
           requireString(params, "text", 20 * 1024 * 1024),
           {
@@ -660,6 +677,9 @@ export async function createRuntime(options: RuntimeOptions) {
             eol: params.eol as Eol | undefined,
           },
         );
+        lsp.saved(requireString(params, "path"), snapshot.text);
+        return snapshot;
+      }
       case "fs.mkdir":
         await files.mkdir(requireString(params, "path"));
         return { ok: true };
@@ -720,22 +740,43 @@ export async function createRuntime(options: RuntimeOptions) {
           Number(params.seq),
         );
         return { ok: true };
+      case "tasks.catalog":
+        return taskStore.catalog();
+      case "tasks.save":
+        owner(connection);
+        return taskStore.save({ sourceId: requireString(params, "sourceId"), name: requireString(params, "name"), task: params.task, sourceCommand: params.sourceCommand as string | undefined, expectedRevision: params.expectedRevision, create: params.create === true });
+      case "tasks.settings":
+        owner(connection);
+        return taskStore.saveSettings({ sourceId: requireString(params, "sourceId"), worktree: params.worktree, env: params.env, expectedRevision: params.expectedRevision });
+      case "tasks.share":
+        owner(connection);
+        if (!params.expectedRevisions || typeof params.expectedRevisions !== "object" || Array.isArray(params.expectedRevisions)) throw new RpcError("INVALID_PARAMS", "Source revisions are required");
+        return taskStore.share(params.expectedRevisions as Record<string, string | null>);
+      case "tasks.start":
+        return tasks.start(session.id, requireString(params, "taskId"), signal);
       case "tasks.run":
-        return processes.runTask(
-          session.id,
-          requireString(params, "command", 32768),
-        );
+        return tasks.run(session.id, requireString(params, "command", 32768), signal);
       case "tasks.cancel":
-        processes.cancelTask(requireString(params, "id"), session.id);
-        return { ok: true };
+      case "tasks.stop":
+        return tasks.stop(requireString(params, "id"), session.id, params.force === true);
+      case "tasks.restart":
+        return tasks.restart(requireString(params, "id"), session.id, signal);
       case "tasks.list":
-        return processes.listTasks(session.id);
+        return tasks.list(session.id);
       case "tasks.attach":
-        return processes.attachTask(
-          requireString(params, "id"),
-          session.id,
-          Number(params.afterSeq ?? 0),
-        );
+        return tasks.attach(requireString(params, "id"), session.id, Number(params.afterSeq ?? 0));
+      case "tasks.worktrees":
+        owner(connection);
+        return worktrees.list();
+      case "tasks.worktreeCreate":
+        owner(connection);
+        return worktrees.create(session.id, requireString(params, "branch"), typeof params.base === "string" ? params.base : "HEAD", signal);
+      case "tasks.worktreeInit":
+        owner(connection);
+        return worktrees.retryInit(session.id, requireString(params, "id"), signal);
+      case "tasks.worktreeRemove":
+        owner(connection);
+        return worktrees.remove(session.id, requireString(params, "id"), signal);
       case "git.status":
         return git.status(signal);
       case "git.diff":
@@ -769,11 +810,34 @@ export async function createRuntime(options: RuntimeOptions) {
         return extensions.activate(requireString(params, "id"));
       case "extensions.remove":
         return extensions.remove(requireString(params, "id"));
+      case "lsp.attach":
+        connection.language = true;
+        return lsp.attach(requireString(params, "path"), connection.id, params.configuration ?? {}, params.associations ?? {}, typeof params.definitionId === "string" ? params.definitionId : undefined);
+      case "lsp.detach":
+        lsp.detach(connection.id, typeof params.path === "string" ? params.path : undefined, typeof params.instanceId === "string" ? params.instanceId : undefined);
+        return { ok: true };
+      case "lsp.instances":
+        return lsp.list();
       case "lsp.versions":
-        return lsp.versions();
+        return lsp.versions(typeof params.instanceId === "string" ? params.instanceId : undefined);
+      case "lsp.status":
+        connection.language = true;
+        return lsp.status(typeof params.instanceId === "string" ? params.instanceId : undefined);
       case "lsp.start":
         connection.language = true;
-        return lsp.start();
+        return lsp.start(params?.resume !== false, typeof params.instanceId === "string" ? params.instanceId : undefined);
+      case "lsp.external.authorize":
+      case "lsp.external.read": {
+        const instanceId = requireString(params, "instanceId");
+        if (!session.capabilities.includes("filesystem.read")) throw new RpcError("FORBIDDEN", "External sources require filesystem read access");
+        if (!lsp.isAttached(connection.id, instanceId)) throw new RpcError("FORBIDDEN", "Language instance is not attached");
+        return method.endsWith("authorize") ? lsp.authorizeExternal(requireString(params, "uri"), instanceId) : lsp.readExternal(requireString(params, "handle"), instanceId);
+      }
+      case "lsp.serverResponse": {
+        if (typeof params.id !== "number" || !Number.isInteger(params.id) || params.id >= 0) throw new RpcError("INVALID_PARAMS", "Invalid server request id");
+        if (typeof params.instanceId === "string" && !lsp.isAttached(connection.id, params.instanceId)) throw new RpcError("FORBIDDEN", "Language instance is not attached");
+        lsp.respond(params.id, params.result ?? null, typeof params.instanceId === "string" ? params.instanceId : undefined); return { ok: true };
+      }
       case "lsp.applyEditResult": {
         const id=requireString(params,"id"), pending=connection.edits.get(id);
         if (!pending) throw new RpcError("NOT_FOUND","Language workspace edit expired");
@@ -794,18 +858,19 @@ export async function createRuntime(options: RuntimeOptions) {
               const timer=setTimeout(()=>finish({applied:false,failureReason:"Document client did not acknowledge the workspace edit"}),15000);
               const cleanup=()=>{clearTimeout(timer);signal.removeEventListener("abort",abort);};
               connection.edits.set(id,{resolve,cleanup});signal.addEventListener("abort",abort,{once:true});
-              if(signal.aborted) abort(); else event(connection,"lsp.applyEdit",{id,edit,label});
+              if(signal.aborted) abort(); else event(connection,"lsp.applyEdit",{id,edit,label,instanceId:params.instanceId});
             });
           },
+          typeof params.instanceId === "string" ? params.instanceId : undefined,
         );
       case "lsp.notify":
-        await lsp.notify(requireString(params, "method"), params.params ?? {});
+        await lsp.notify(requireString(params, "method"), params.params ?? {}, typeof params.instanceId === "string" ? params.instanceId : undefined);
         return { ok: true };
       case "lsp.restart":
         connection.language = true;
-        return lsp.restart();
+        return lsp.restart(typeof params.instanceId === "string" ? params.instanceId : undefined);
       case "lsp.stop":
-        await lsp.stop();
+        await lsp.stop(true, typeof params.instanceId === "string" ? params.instanceId : undefined);
         return { ok: true };
       case "collab.join":
         authorized(connection, "filesystem.read");
@@ -874,7 +939,7 @@ export async function createRuntime(options: RuntimeOptions) {
           }
         }
         args.push("--", query, ".");
-        const result = await runCommand("rg", args, {
+        const result = await runCommand(options.desktop?.rgPath ?? "rg", args, {
           cwd: root,
           signal,
           maxBytes: 8 * MAX_BUFFER_BYTES,
@@ -1083,6 +1148,7 @@ export async function createRuntime(options: RuntimeOptions) {
     ws.on("error", () => {});
     ws.on("close", () => {
       clearTimeout(authDeadline);
+      lsp.detach(connection.id);
       connections.delete(connection.id);
       for (const pending of connection.edits.values()) {pending.cleanup();pending.resolve({applied:false,failureReason:"Document client disconnected"});} connection.edits.clear();
       processes.disconnect(connection.id);
@@ -1103,8 +1169,9 @@ export async function createRuntime(options: RuntimeOptions) {
     watcherReadyResolve = resolve;
     watcherReadyReject = reject;
   });
+  let fileChangeQueue: Promise<void> = Promise.resolve();
   const watchedChange = (kind: string, full: string) => {
-    void (async () => {
+    fileChangeQueue = fileChangeQueue.catch(() => {}).then(async () => {
       const relative = path.relative(root, full).split(path.sep).join("/");
       try {
         await files.resolve(relative, true);
@@ -1120,6 +1187,8 @@ export async function createRuntime(options: RuntimeOptions) {
               ? "created"
               : "changed",
       };
+      if (kind !== "addDir" && kind !== "unlinkDir") await collaboration.changed(relative);
+      await lsp.watched(relative, change.kind === "created" ? 1 : change.kind === "deleted" ? 3 : 2);
       for (const c of connections.values())
         if (
           c.watching &&
@@ -1132,9 +1201,7 @@ export async function createRuntime(options: RuntimeOptions) {
         ...change,
         kind: change.kind as "created" | "changed" | "deleted",
       });
-      if (kind !== "addDir" && kind !== "unlinkDir")
-        await collaboration.changed(relative);
-    })().catch(() => {});
+    }).catch(() => {});
   };
   const startWatcher = (usePolling: boolean) => {
     const current = chokidar.watch([], {
@@ -1211,18 +1278,31 @@ export async function createRuntime(options: RuntimeOptions) {
     pairingCode,
     root,
     dataDir,
+    async rotateDesktopToken(token: string) {
+      if (!options.desktop || token.length < 32) throw new Error("Invalid desktop rotation");
+      const previous = [...sessions.entries()].find(([, session]) => session.id === "desktop-owner");
+      if (!previous) throw new Error("Desktop owner is unavailable");
+      sessions.delete(previous[0]);
+      previous[1].hash = hash(token);
+      sessions.set(previous[1].hash, previous[1]);
+      await persist();
+      for (const connection of connections.values())
+        if (connection.session?.id === "desktop-owner") connection.ws.close(4003, "Project ownership transferred");
+    },
     async close() {
       if (closed) return;
       closed = true;
       await watcherTransition;
       await watcher?.close();
+      await fileChangeQueue;
       for (const c of connections.values()) {
         for (const controller of c.pending.values()) controller.abort();
         c.ws.terminate();
       }
       extensions.dispose();
       processes.close();
-      await lsp.stop();
+      await tasks.close();
+      await lsp.dispose();
       await Promise.allSettled([...inflight.values()]);
       await collaboration.close();
       await persistence;

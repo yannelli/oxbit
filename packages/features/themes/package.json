@@ -6,11 +6,14 @@
   "exports": "./src/index.ts",
   "scripts": {},
   "dependencies": {
+    "@oxbit/documents": "workspace:*",
     "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "fflate": "^0.8.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "@oxbit/documents": "workspace:*",
-    "@oxbit/ui": "workspace:*"
+    "@oxbit/themes": "workspace:*",
+    "@oxbit/workbench": "workspace:*"
   },
   "license": "MIT",
   "author": {

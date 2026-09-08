@@ -1,0 +1,385 @@
+{
+  "type": "object",
+  "required": [
+    "iconDefinitions"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "iconDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "iconPath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "fontCharacter": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8
+          },
+          "fontId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[a-zA-Z0-9_.-]+$"
+          },
+          "fontColor": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{3,8}$"
+          },
+          "fontSize": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]?|[12][0-9]{2}|300)%$"
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "iconPath"
+            ]
+          },
+          {
+            "required": [
+              "fontCharacter"
+            ]
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "fonts": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "src"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[a-zA-Z0-9_.-]+$"
+          },
+          "src": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "format"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "format": {
+                  "enum": [
+                    "woff",
+                    "woff2",
+                    "truetype",
+                    "opentype"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "size": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]?|[12][0-9]{2}|300)%$"
+          },
+          "weight": {
+            "type": "string",
+            "pattern": "^(normal|bold|[1-9]00)$"
+          },
+          "style": {
+            "enum": [
+              "normal",
+              "italic",
+              "oblique"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "file": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "folder": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "folderExpanded": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "rootFolder": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "rootFolderExpanded": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "fileNames": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "fileExtensions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "languageIds": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "folderNames": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "folderNamesExpanded": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "rootFolderNames": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "rootFolderNamesExpanded": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "light": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "folder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "folderExpanded": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rootFolder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rootFolderExpanded": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "fileNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "fileExtensions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "languageIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "folderNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "folderNamesExpanded": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "rootFolderNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "rootFolderNamesExpanded": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "highContrast": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "folder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "folderExpanded": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rootFolder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rootFolderExpanded": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "fileNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "fileExtensions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "languageIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "folderNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "folderNamesExpanded": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "rootFolderNames": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "rootFolderNamesExpanded": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "hidesExplorerArrows": {
+      "type": "boolean"
+    },
+    "showLanguageModeIcons": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oxbit.dev/schemas/icon-file.v1.schema.json"
+}

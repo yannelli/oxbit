@@ -1,0 +1,49 @@
+name: Managed language servers
+on:
+  pull_request:
+    paths:
+      - 'apps/runtime/src/lsp*'
+      - 'apps/runtime/src/managed/**'
+      - 'packages/features/language/**'
+      - 'packages/sdk/src/language*'
+      - 'scripts/language/**'
+      - '.github/workflows/language-servers.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  presets:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    env:
+      OXBIT_LSP_CACHE: ${{ runner.temp }}/oxbit-language-cache
+      OXBIT_LSP_REPORT: evidence/language-milestone1/real-servers.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.16.0'
+      - run: npm install --global pnpm@9.15.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run apps/runtime/tests/lsp-manager.test.ts apps/runtime/tests/lsp-protocol.test.ts apps/runtime/tests/external-sources.test.ts packages/sdk/src/languages.test.ts packages/sdk/src/lsp-glob.test.ts packages/features/language/src/local.test.ts packages/features/language/src/completion.test.ts packages/features/language/src/overlays.test.ts
+      - run: node scripts/language/bundle-smoke.mjs
+      - name: First use in clean cache
+        run: node evidence/language-milestone1/smoke.mjs
+      - name: Real completion, signatures, semantic tokens and external navigation
+        run: node evidence/language-milestone1/intelligence.mjs
+        env:
+          OXBIT_LSP_REPORT: evidence/language-milestone1/real-intelligence.json
+      - name: Cached startup without package managers in PATH
+        run: |
+          NODE="$(command -v node)"
+          env PATH=/nonexistent "$NODE" evidence/language-milestone1/smoke.mjs
+      - name: Reproducible open source dependency trees
+        run: pnpm exec tsx scripts/language/package.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: language-servers-${{ runner.os }}-${{ runner.arch }}
+          path: evidence/language-milestone1

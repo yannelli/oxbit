@@ -1,0 +1,8 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 typecheck /Users/ryanyannelli/Development/oxbit
+> tsc -b
+
+packages/themes/src/index.ts(21,41): error TS2339: Property 'errors' does not exist on type 'typeof validate20'.
+packages/themes/src/index.ts(33,37): error TS7022: 'base' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+ ELIFECYCLE  Command failed with exit code 2.

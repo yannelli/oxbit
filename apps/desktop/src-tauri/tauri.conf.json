@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Oxbit",
+  "version": "../../../package.json",
+  "identifier": "com.yannelli.oxbit",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:9280",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:*; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'",
+      "capabilities": [
+        "desktop"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "A desktop code editor",
+    "longDescription": "Oxbit code editor with real files, terminals, Git, and TypeScript language services.",
+    "copyright": "Copyright \u00a9 2026 Ryan Yannelli",
+    "resources": {
+      "resources/runtime/": "runtime/"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "26.0",
+      "entitlements": "Entitlements.plist",
+      "infoPlist": "Info.plist",
+      "hardenedRuntime": true
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libc6 (>= 2.39)",
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1"
+        ],
+        "desktopTemplate": "oxbit.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": ""
+    }
+  }
+}

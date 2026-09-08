@@ -1,0 +1,2364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oxbit.dev/schemas/theme-pack.v1.schema.json",
+  "title": "ThemePack",
+  "description": "Oxbit version 1 local theme pack. Appearance only; arbitrary CSS and remote assets are not supported.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$"
+    },
+    "attribution": {
+      "type": "string",
+      "maxLength": 10000
+    },
+    "fonts": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[a-zA-Z0-9_./ -]+\\.(woff2|woff|ttf|otf)$"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 900
+          },
+          "style": {
+            "enum": [
+              "normal",
+              "italic",
+              "oblique"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "path"
+        ]
+      }
+    },
+    "themes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "mode": {
+            "enum": [
+              "light",
+              "dark"
+            ]
+          },
+          "highContrast": {
+            "type": "boolean"
+          },
+          "pairedTheme": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "base": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "builtin:light, builtin:dark, or a local theme ID in this pack."
+          },
+          "colors": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "workbench.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "workbench background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "surface.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "surface background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "popover.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "popover background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "input.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "input background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "control.hover.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "control hover background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "control.active.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "control active background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "list.selection.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "list selection background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "border.default": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "border default",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "border.strong": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "border strong",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "text.primary": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "text primary",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "text.secondary": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "text secondary",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "text.muted": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "text muted",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "text.disabled": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "text disabled",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "accent.primary": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "accent primary",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "accent.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "accent foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "accent.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "accent background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "focus.border": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "focus border",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.error": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic error",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.warning": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic warning",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.info": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic info",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.success": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic success",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "git.modified": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "git modified",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "git.added": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "git added",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "git.deleted": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "git deleted",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "git.conflict": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "git conflict",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.error.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic error background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.warning.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic warning background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diff.added.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diff added background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diff.deleted.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diff deleted background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "diagnostic.info.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "diagnostic info background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.activeLine.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor activeLine background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.search.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor search background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.search.activeBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor search activeBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.occurrence.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor occurrence background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "selection.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "selection background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.guide": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor guide",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "overlay.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "overlay background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "button.primary.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "button primary background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "button.primary.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "button primary foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "button.primary.hoverBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "button primary hoverBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "link.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "link foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "link.hoverForeground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "link hoverForeground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "selection.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "selection foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.selection.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor selection background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.selection.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor selection foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.selection.inactiveBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor selection inactiveBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.cursor": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor cursor",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.gutter.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor gutter background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "editor.gutter.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "editor gutter foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "popover.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "popover foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "input.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "input foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "input.placeholder": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "input placeholder",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "control.disabled.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "control disabled foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "tab.active.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "tab active foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "tab.inactive.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "tab inactive foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "tab.hover.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "tab hover background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "preview.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "preview background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "preview.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "preview foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "collaboration.cursor": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "collaboration cursor",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "collaboration.selection": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "collaboration selection",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.cursor": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal cursor",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.cursorAccent": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal cursorAccent",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.selectionBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal selectionBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.selectionForeground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal selectionForeground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.selectionInactiveBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal selectionInactiveBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.search.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal search background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.search.activeBackground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal search activeBackground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.search.border": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "terminal search border",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.black": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI black",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.red": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI red",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.green": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI green",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.yellow": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI yellow",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.blue": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI blue",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.magenta": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI magenta",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.cyan": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI cyan",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.white": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI white",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightBlack": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightBlack",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightRed": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightRed",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightGreen": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightGreen",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightYellow": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightYellow",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightBlue": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightBlue",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightMagenta": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightMagenta",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightCyan": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightCyan",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "terminal.brightWhite": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "Terminal ANSI brightWhite",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.default.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge default foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.default.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge default background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.typescript.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge typescript foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.typescript.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge typescript background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.javascript.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge javascript foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.javascript.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge javascript background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.css.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge css foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.css.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge css background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.html.foreground": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge html foreground",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              },
+              "fileBadge.html.background": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                "description": "File badge html background",
+                "examples": [
+                  "#112233",
+                  "#11223380",
+                  "transparent"
+                ]
+              }
+            }
+          },
+          "syntax": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "keyword": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category keyword"
+              },
+              "string": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category string"
+              },
+              "number": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category number"
+              },
+              "comment": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category comment"
+              },
+              "type": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category type"
+              },
+              "function": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category function"
+              },
+              "property": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category property"
+              },
+              "variable": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category variable"
+              },
+              "ident": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category ident"
+              },
+              "text": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category text"
+              },
+              "tag": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category tag"
+              },
+              "attr": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category attr"
+              },
+              "punct": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category punct"
+              },
+              "operator": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category operator"
+              },
+              "heading": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category heading"
+              },
+              "link": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category link"
+              },
+              "strong": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Parser category strong"
+              },
+              "emphasis": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "foreground": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                    "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                    "examples": [
+                      "#112233",
+                      "#11223380",
+                      "transparent"
+                    ]
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  },
+                  "underline": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Markdown emphasis"
+              }
+            }
+          },
+          "typography": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for body"
+              },
+              "heading": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for heading"
+              },
+              "label": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for label"
+              },
+              "small": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for small"
+              },
+              "mono": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for mono"
+              },
+              "editor": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for editor"
+              },
+              "terminal": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for terminal"
+              },
+              "document": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "pattern": "^[a-zA-Z0-9 _.-]+$"
+                    },
+                    "description": "Local font ID or installed family followed by fallback families. No CSS or URLs."
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 8,
+                    "maximum": 72
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 900
+                  },
+                  "style": {
+                    "enum": [
+                      "normal",
+                      "italic",
+                      "oblique"
+                    ]
+                  },
+                  "lineHeight": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "letterSpacing": {
+                    "type": "number",
+                    "minimum": -3,
+                    "maximum": 10
+                  },
+                  "ligatures": {
+                    "type": "boolean"
+                  },
+                  "axes": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "propertyNames": {
+                      "pattern": "^[A-Za-z0-9]{4}$"
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": -10000,
+                      "maximum": 10000
+                    }
+                  }
+                },
+                "description": "Typography for document"
+              }
+            }
+          },
+          "effects": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "shadow": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": -100,
+                      "maximum": 100
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": -100,
+                      "maximum": 100
+                    },
+                    "blur": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 200
+                    },
+                    "spread": {
+                      "type": "number",
+                      "minimum": -100,
+                      "maximum": 100
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|transparent)$",
+                      "description": "Hexadecimal sRGB color, optional alpha, or transparent.",
+                      "examples": [
+                        "#112233",
+                        "#11223380",
+                        "transparent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "blur",
+                    "spread",
+                    "color"
+                  ]
+                },
+                "description": "Structured shadows; an empty array disables elevation."
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "themes"
+  ],
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "id": "example.night",
+      "name": "Night",
+      "version": "1.0.0",
+      "themes": [
+        {
+          "id": "night",
+          "name": "Night",
+          "mode": "dark",
+          "colors": {
+            "editor.background": "#101020"
+          }
+        }
+      ]
+    }
+  ]
+}

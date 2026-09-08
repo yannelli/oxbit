@@ -1,0 +1,42 @@
+{
+  "recordedAt": "2026-09-07T14:26:42Z",
+  "version": "0.1.0",
+  "snapshot": "Current working tree, including the theme, icon-pack, and managed-language work added after the 04:53 snapshot.",
+  "toolchain": {
+    "commandLineToolsSDK": "27.0",
+    "host": "macOS 27.0 (26A5425a) arm64",
+    "xcodeRequired": false,
+    "session": "Aqua login session; codesign cannot reach the login Keychain from a Background session",
+    "buildHostNode": "26.4.0 (repo pins 24.20.0; login shell did not apply .node-version)"
+  },
+  "identity": "Developer ID Application: Ryan Yannelli (2P58V89SR7)",
+  "identitySHA1": "3BBDCC0627FDF29581877804EC3D107A0AD7137C",
+  "teamID": "2P58V89SR7",
+  "newCredentialsGenerated": false,
+  "minimumSystemVersion": "26.0",
+  "executableMinOS": "26.0",
+  "dmgBundlingNote": "bundle_dmg.sh exits 64 on this host because its Finder AppleScript times out (-1712) without Automation permission; CI=1 passes --skip-jenkins and skips that cosmetic step.",
+  "checks": {
+    "appSignature": "valid on disk; satisfies its Designated Requirement",
+    "appHardenedRuntime": "flags=0x10000(runtime)",
+    "appGatekeeper": "rejected; source=Unnotarized Developer ID",
+    "nestedBinaries": {
+      "runtime/bin/node": "Developer ID Application: Ryan Yannelli (2P58V89SR7), flags=0x10000(runtime)",
+      "runtime/bin/rg": "Developer ID Application: Ryan Yannelli (2P58V89SR7), flags=0x10000(runtime)",
+      "runtime/node_modules/node-pty/prebuilds/darwin-arm64/pty.node": "Developer ID Application: Ryan Yannelli (2P58V89SR7), flags=0x10000(runtime)"
+    },
+    "dmgSignature": "valid on disk; satisfies its Designated Requirement",
+    "installedCopy": "/Applications/Oxbit.app verified with codesign --verify --deep --strict; LSMinimumSystemVersion 26.0",
+    "packageValidator": "scripts/desktop/validate.mjs passed as part of the build"
+  },
+  "artifact": {
+    "path": "apps/desktop/artifacts/Oxbit_0.1.0_aarch64_signed.dmg",
+    "bytes": 61798025,
+    "sha256": "c1db082de14095de91100bbd303429b48fd7c1d475e971d9e4d63ae3801f0fd6"
+  },
+  "appNotarizationAccepted": false,
+  "dmgNotarizationAccepted": false,
+  "notarizationBlockedBy": "No notarytool Keychain profile and no app-specific password or App Store Connect issuer ID provided.",
+  "launchVerified": false,
+  "launchNote": "open -n /Applications/Oxbit.app forwarded to the 04:01 instance still running from the replaced target bundle; tauri-plugin-single-instance exits the second copy. Quit that instance to launch this build."
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Oxbit
+Comment=Code editor
+Exec=oxbit-desktop %F
+Icon=oxbit-desktop
+Terminal=false
+Categories=Development;IDE;TextEditor;
+MimeType=inode/directory;text/plain;
+StartupNotify=true

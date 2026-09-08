@@ -1,0 +1,20 @@
+{
+  "name": "@oxbit/icon-themes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./import": "./src/import.ts"
+  },
+  "dependencies": {
+    "@oxbit/sdk": "workspace:*",
+    "@zip.js/zip.js": "^2.8.2",
+    "jsonc-parser": "^3.3.1",
+    "saxes": "^6.0.0"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "fontkit": "^2.0.4"
+  }
+}

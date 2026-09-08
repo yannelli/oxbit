@@ -1,0 +1,11 @@
+2026-09-07T09:13:34.932Z WARN tauri-service:service: Failed to clear mock store: Error: A sessionId is required for this command
+    at FetchRequest.createOptions (file:///Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/webdriver@9.31.6/node_modules/webdriver/build/node.js:2215:15)
+    at FetchRequest.createOptions (file:///Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/webdriver@9.31.6/node_modules/webdriver/build/node.js:2382:49)
+    at FetchRequest.makeRequest (file:///Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/webdriver@9.31.6/node_modules/webdriver/build/node.js:2187:48)
+    at Browser.protocolCommand (file:///Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/webdriver@9.31.6/node_modules/webdriver/build/node.js:1714:20)
+    at Browser.wrapCommandFn (/Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/@wdio+utils@9.31.6/node_modules/@wdio/utils/build/index.js:1077:32)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async Browser.wrapCommandFn (/Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/@wdio+utils@9.31.6/node_modules/@wdio/utils/build/index.js:1077:23)
+    at async Object.restoreAllMocks (/Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/@wdio+tauri-service@1.4.0_expect-webdriverio@6.0.10_tsx@4.23.13_webdriverio@9.31.6/node_modules/@wdio/tauri-service/dist/esm/index.js:3848:5)
+    at async TauriWorkerService.afterSession (/Users/ryanyannelli/Development/oxbit/node_modules/.pnpm/@wdio+tauri-service@1.4.0_expect-webdriverio@6.0.10_tsx@4.23.13_webdriverio@9.31.6/node_modules/@wdio/tauri-service/dist/esm/index.js:4127:17)
+    at async Promise.all (index 0)

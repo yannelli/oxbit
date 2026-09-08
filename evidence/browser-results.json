@@ -1,13 +1,12 @@
 {
   "config": {
     "argv": [
-      "/opt/homebrew/Cellar/node/26.4.0/bin/node",
-      "/Users/ryanyannelli/Development/zapp/node_modules/@playwright/test/cli.js",
-      "test",
-      "tests/browser/branding.spec.ts"
+      "/Users/ryanyannelli/Development/oxbit/apps/desktop/src-tauri/resources/runtime/bin/node",
+      "/Users/ryanyannelli/Development/oxbit/node_modules/@playwright/test/cli.js",
+      "test"
     ],
-    "configFile": "/Users/ryanyannelli/Development/zapp/playwright.config.ts",
-    "rootDir": "/Users/ryanyannelli/Development/zapp/tests/browser",
+    "configFile": "/Users/ryanyannelli/Development/oxbit/playwright.config.ts",
+    "rootDir": "/Users/ryanyannelli/Development/oxbit/tests/browser",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
@@ -23,7 +22,7 @@
     "preserveOutput": "always",
     "projects": [
       {
-        "outputDir": "/Users/ryanyannelli/Development/zapp/test-results",
+        "outputDir": "/Users/ryanyannelli/Development/oxbit/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -31,7 +30,7 @@
         },
         "id": "",
         "name": "",
-        "testDir": "/Users/ryanyannelli/Development/zapp/tests/browser",
+        "testDir": "/Users/ryanyannelli/Development/oxbit/tests/browser",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -71,11 +70,767 @@
   },
   "suites": [
     {
+      "title": "acceptance.spec.ts",
+      "file": "acceptance.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "browser workspace edits, saves, splits and recovers Unicode drafts and view state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1029,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:18.748Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-6aa282c09cbe2525c024",
+          "file": "acceptance.spec.ts",
+          "line": 44,
+          "column": 1
+        },
+        {
+          "title": "localized settings persist and fit the phone viewport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 573,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:20.041Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-923ab184a9d0a257250b",
+          "file": "acceptance.spec.ts",
+          "line": 77,
+          "column": 1
+        },
+        {
+          "title": "the printed pairing link opens the runtime workspace on first launch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 417,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:20.622Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-6ab47604cfab5db2df2c",
+          "file": "acceptance.spec.ts",
+          "line": 105,
+          "column": 1
+        },
+        {
+          "title": "the oxbit command opens the named file in the runtime workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 378,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:21.045Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-be06a54a139f1bd2f208",
+          "file": "acceptance.spec.ts",
+          "line": 136,
+          "column": 1
+        },
+        {
+          "title": "runtime filesystem, revision checked save, refresh and failed save recovery",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 781,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:21.429Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-df8574ebffdce24b4ecb",
+          "file": "acceptance.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "real language responses, diagnostics, rename edits and supported code action",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2327,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:22.216Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-58d8bbe9abf6c6f53c37",
+          "file": "acceptance.spec.ts",
+          "line": 216,
+          "column": 1
+        },
+        {
+          "title": "workspace search previews replacements against unsaved versions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 994,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:24.558Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-18b5bc7c195b92d18267",
+          "file": "acceptance.spec.ts",
+          "line": 288,
+          "column": 1
+        },
+        {
+          "title": "real terminal, resize, task status and cancellation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:25.568Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-135ac13fbd2190e3a105",
+          "file": "acceptance.spec.ts",
+          "line": 316,
+          "column": 1
+        },
+        {
+          "title": "stage and commit actual Git changes without repeating a request",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 749,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:26.420Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-35391d7f81d177c1c6c8",
+          "file": "acceptance.spec.ts",
+          "line": 379,
+          "column": 1
+        },
+        {
+          "title": "two independent browsers converge concurrent offline edits and keep per-user undo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1207,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:27.174Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-3c0388cf0b2d4c195b96",
+          "file": "acceptance.spec.ts",
+          "line": 413,
+          "column": 1
+        },
+        {
+          "title": "external SDK extension lifecycle removes contributions and survives failed activation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 832,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:28.392Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-d07c766da137267d2066",
+          "file": "acceptance.spec.ts",
+          "line": 463,
+          "column": 1
+        },
+        {
+          "title": "both themes render at all four reference viewports with visual comparison artifacts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4444,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:29.229Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-c6901097e809bd535e9a",
+          "file": "acceptance.spec.ts",
+          "line": 535,
+          "column": 1
+        },
+        {
+          "title": "Unicode, synthetic composition, multiple cursors and local paint latency",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4088,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:33.678Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-e31a7b9b02a86a28316c",
+          "file": "acceptance.spec.ts",
+          "line": 618,
+          "column": 1
+        },
+        {
+          "title": "sustained editing and repeated switching keep document and extension state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 121177,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:11:37.771Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-8b1a3fa63a7a6d29f973",
+          "file": "acceptance.spec.ts",
+          "line": 706,
+          "column": 1
+        },
+        {
+          "title": "runtime process loss preserves browser drafts and reports lost PTYs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2500,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:38.964Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-dc084a4f872d58cc86d4",
+          "file": "acceptance.spec.ts",
+          "line": 745,
+          "column": 1
+        },
+        {
+          "title": "replacement preview groups files and keeps deselected files available",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 762,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:41.474Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-b12eabe517b1f5eb6303",
+          "file": "acceptance.spec.ts",
+          "line": 819,
+          "column": 1
+        },
+        {
+          "title": "formatter workers obey language scope and Markdown preview opens beside its source",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 801,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:42.242Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-8ebe969c6be5f10c3cf1",
+          "file": "acceptance.spec.ts",
+          "line": 866,
+          "column": 1
+        },
+        {
+          "title": "native browser directory handles retain identity, encoded saves and drafts after refresh",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 800,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:43.049Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-5101a2b97bfab348660a",
+          "file": "acceptance.spec.ts",
+          "line": 916,
+          "column": 1
+        },
+        {
+          "title": "browser IME composition commits and cancels without duplicate text",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 444,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:43.853Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-43d318c0cdc4df49b47f",
+          "file": "acceptance.spec.ts",
+          "line": 973,
+          "column": 1
+        },
+        {
+          "title": "phone touch navigation and reduced motion preserve focus and layout",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 536,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:44.302Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-520dc521a059626249af",
+          "file": "acceptance.spec.ts",
+          "line": 1010,
+          "column": 1
+        },
+        {
+          "title": "a contributed filesystem opens through the workspace UI and survives provider teardown",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 698,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:44.843Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6bf654160f377cf56a60-93607d3e864837c1987c",
+          "file": "acceptance.spec.ts",
+          "line": 1050,
+          "column": 1
+        }
+      ]
+    },
+    {
       "title": "branding.spec.ts",
       "file": "branding.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [
+        {
+          "title": "brand preview switches themes under the runtime content security policy",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 225,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:45.553Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c7f19e806919ac620bf8-006a6aa21638b385abeb",
+          "file": "branding.spec.ts",
+          "line": 3,
+          "column": 1
+        },
         {
           "title": "Oxbit branding, assets, and storage work on a fresh browser profile",
           "ok": true,
@@ -92,12 +847,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 398,
+                  "duration": 484,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-07T02:10:43.482Z",
+                  "startTime": "2026-09-07T08:13:45.784Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -107,11 +862,11 @@
           ],
           "id": "c7f19e806919ac620bf8-5e031b9839d679d1de59",
           "file": "branding.spec.ts",
-          "line": 3,
+          "line": 16,
           "column": 1
         },
         {
-          "title": "an existing browser workspace and formatter preference survive the rebrand",
+          "title": "an Oxbit browser workspace and formatter preference persist across reloads",
           "ok": true,
           "tags": [],
           "tests": [
@@ -126,12 +881,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 420,
+                  "duration": 455,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-07T02:10:44.008Z",
+                  "startTime": "2026-09-07T08:13:46.273Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -139,9 +894,733 @@
               "status": "expected"
             }
           ],
-          "id": "c7f19e806919ac620bf8-595c20b13a60bc14c3b9",
+          "id": "c7f19e806919ac620bf8-de7eddfccba76b34a976",
           "file": "branding.spec.ts",
-          "line": 27,
+          "line": 71,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "dialogs-symbols.spec.ts",
+      "file": "dialogs-symbols.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "failed symbol initialization stays visible without repeatedly restarting the server",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1338,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:46.740Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "290492cce58bcc6f02e8-36b9cc3acb40ca609aae",
+          "file": "dialogs-symbols.spec.ts",
+          "line": 19,
+          "column": 1
+        },
+        {
+          "title": "workspace and About dialogs follow every theme on desktop and phone",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4682,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:48.082Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "290492cce58bcc6f02e8-744d45f99588a3e09722",
+          "file": "dialogs-symbols.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "dialog keyboard actions trap focus and preserve workspace actions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 913,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:52.772Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "290492cce58bcc6f02e8-f15e656395a05d85bdcd",
+          "file": "dialogs-symbols.spec.ts",
+          "line": 145,
+          "column": 1
+        },
+        {
+          "title": "symbols explain when the browser workspace has no language server",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 901,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:53.691Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "290492cce58bcc6f02e8-b96e73a94fbfd0412338",
+          "file": "dialogs-symbols.spec.ts",
+          "line": 172,
+          "column": 1
+        },
+        {
+          "title": "real TypeScript symbols populate Outline and Quick Open, navigate, and follow edits and file changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2472,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:54.596Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "290492cce58bcc6f02e8-5e0fb8a3605849d1e8f2",
+          "file": "dialogs-symbols.spec.ts",
+          "line": 187,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "explorer.spec.ts",
+      "file": "explorer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "explorer loads expanded folders, reveals search results, and exports collapsed folders",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1520,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:57.079Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3409f8ab2ee04d46f500-77816075971c6d44258d",
+          "file": "explorer.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "language-design.spec.ts",
+      "file": "language-design.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "live language server controls and formatted hover survive a stop/start cycle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3448,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:13:58.609Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ed84077a691ade5eed64-96e735a79563c9356875",
+          "file": "language-design.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "long documentation and status controls fit small viewports and support dismissal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1165,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:02.062Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ed84077a691ade5eed64-09e3b6877b6d4f8b9031",
+          "file": "language-design.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "contributed servers appear individually and expose startup failures",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:03.232Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ed84077a691ade5eed64-dd170911ffacd0be1809",
+          "file": "language-design.spec.ts",
+          "line": 109,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "panel-design.spec.ts",
+      "file": "panel-design.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "custom selects, styled checkboxes, presence spacing and fold alignment",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1164,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:03.807Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b5535e7bbe41898aacdd-272a4ac2bd0d48860c92",
+          "file": "panel-design.spec.ts",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "source control keeps its form visible and supports real branches, trees, and staging",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1763,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:04.977Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b5535e7bbe41898aacdd-4b5c12be722755c09cdb",
+          "file": "panel-design.spec.ts",
+          "line": 136,
+          "column": 1
+        },
+        {
+          "title": "terminal tabs switch, rename, search and split the selected session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1406,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:06.747Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b5535e7bbe41898aacdd-b87d2d494a0b436b2cf6",
+          "file": "panel-design.spec.ts",
+          "line": 246,
+          "column": 1
+        },
+        {
+          "title": "tooltip delay is configurable and explorer rows use a pointer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2501,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:08.163Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b5535e7bbe41898aacdd-5866fe1597c7442be8c3",
+          "file": "panel-design.spec.ts",
+          "line": 312,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "tooltips.spec.ts",
+      "file": "tooltips.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "icon tooltips cover toolbars, activity views, and tab actions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6607,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:10.675Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-4107aab69143a8d788f7",
+          "file": "tooltips.spec.ts",
+          "line": 9,
+          "column": 1
+        },
+        {
+          "title": "keyboard focus reveals help and Escape dismisses only the tooltip",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 453,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:17.288Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-e3a818062468256c9235",
+          "file": "tooltips.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "tooltips stay hoverable and recover after a dismissed or interrupted hover",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3532,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:17.746Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-dbf9574a09feb91b84e1",
+          "file": "tooltips.spec.ts",
+          "line": 60,
+          "column": 1
+        },
+        {
+          "title": "clicks, scrolling, and disappearing controls clear tooltips",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3003,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:21.283Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-fc743a498db2dde39045",
+          "file": "tooltips.spec.ts",
+          "line": 89,
+          "column": 1
+        },
+        {
+          "title": "tooltip colors follow all themes and stay inside desktop and phone edges",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7744,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:24.292Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-51b43c3af5037f90bcd9",
+          "file": "tooltips.spec.ts",
+          "line": 123,
+          "column": 1
+        },
+        {
+          "title": "touch taps do not leave a hover tooltip open",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 917,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:32.040Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-7ba9c55033f7a8893a38",
+          "file": "tooltips.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "dialog icons have one tooltip and dismiss it before closing the dialog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1472,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-07T08:14:32.963Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e2b5dbe8dc8c1dcffddc-3bb335b929b04b51aa30",
+          "file": "tooltips.spec.ts",
+          "line": 199,
           "column": 1
         }
       ]
@@ -149,9 +1628,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-07T02:10:41.266Z",
-    "duration": 5182.476000000001,
-    "expected": 2,
+    "startTime": "2026-09-07T08:11:17.227Z",
+    "duration": 197389.818,
+    "expected": 44,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

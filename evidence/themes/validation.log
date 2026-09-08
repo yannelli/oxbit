@@ -1,0 +1,11 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 themes:validate /Users/ryanyannelli/Development/oxbit
+> tsx scripts/validate-theme-pack.ts "examples/theme-packs/ink.theme-pack.json" "packages/features/themes/src/packs/oxbit.core.json" "packages/features/themes/src/packs/oxbit.load-bearing.json" "packages/features/themes/src/packs/oxbit.binx.json" "packages/features/themes/src/packs/oxbit.vscode.json" "packages/features/themes/src/packs/oxbit.vscode-hc.json"
+
+examples/theme-packs/ink.theme-pack.json: valid (2 themes)
+packages/features/themes/src/packs/oxbit.core.json: valid (2 themes)
+packages/features/themes/src/packs/oxbit.load-bearing.json: valid (2 themes)
+packages/features/themes/src/packs/oxbit.binx.json: valid (3 themes)
+packages/features/themes/src/packs/oxbit.vscode.json: valid (6 themes)
+packages/features/themes/src/packs/oxbit.vscode-hc.json: valid (2 themes)

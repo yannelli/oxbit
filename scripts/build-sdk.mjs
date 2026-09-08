@@ -1,12 +1,16 @@
-import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
-import ts from "typescript";
-const source = await readFile("packages/sdk/src/index.ts", "utf8");
-const output = ts.transpileModule(source, {
-  compilerOptions: {
-    target: ts.ScriptTarget.ES2023,
-    module: ts.ModuleKind.ESNext,
-  },
-}).outputText;
+import { copyFile, mkdir } from "node:fs/promises";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { build } = createRequire(require.resolve("vite"))("esbuild");
 await mkdir("apps/web/public/sdk", { recursive: true });
-await writeFile("apps/web/public/sdk/index.js", output);
+// index.ts re-exports sibling modules, so the browser entry has to be bundled.
+await build({
+  entryPoints: ["packages/sdk/src/index.ts"],
+  outfile: "apps/web/public/sdk/index.js",
+  bundle: true,
+  format: "esm",
+  target: "es2023",
+  platform: "browser",
+  external: ["react", "react-dom"],
+});
 await copyFile("LICENSE", "apps/web/public/LICENSE.txt");

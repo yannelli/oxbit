@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { constants } from "node:fs";
+import { constants, realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import type {
@@ -104,7 +104,11 @@ export class WorkspaceFiles {
   constructor(
     readonly root: string,
     readonly privateRoot?: string,
-  ) {}
+  ) {
+    // macOS /var and /tmp aliases must share the same security boundary as their real paths.
+    this.root = realpathSync(root);
+    if (privateRoot) this.privateRoot = realpathSync(privateRoot);
+  }
   inside(candidate: string): boolean {
     const rel = path.relative(this.root, candidate);
     return (

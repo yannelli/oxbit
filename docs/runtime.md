@@ -8,7 +8,7 @@ On macOS, dependency installation and the runtime's `build`, `dev`, and `start` 
 
 `POST /api/pair` accepts `{code}` and returns a random session token with the current workspace capabilities and trust state. It also sets an HttpOnly, SameSite=Strict cookie. WebSocket `/ws` validates the exact Origin, caps frames at 2 MiB, and requires `auth.authenticate {token}` within 10 seconds. The cookie substitutes for an omitted token. Pairing attempts are bounded per address. Persisted session records contain token hashes.
 
-Owners issue grants through `workspace.grant {capabilities}` or `POST /api/grants`. Revocation through `workspace.revoke {id}` or `DELETE /api/grants/:id` closes sessions, cancels pending requests and terminates owned processes. Capability grants separate filesystem read/write, terminals, tasks, Git, LSP, collaboration and extensions. Only owners change trust or grants. `workspace.trust {trusted:true}` authorizes tool execution. Revoking trust terminates processes and the language server. One runtime instance exposes one authorized root, identified as `default`.
+Owners issue grants through `workspace.grant {capabilities}` or `POST /api/grants`. Revocation through `workspace.revoke {id}` or `DELETE /api/grants/:id` closes sessions, cancels pending requests and terminates owned processes. Capability grants separate filesystem read/write, terminals, tasks, Git, LSP, collaboration and extensions. Only owners change trust or grants. `workspace.trust {trusted:true}` authorizes tool execution. Revoking trust terminates processes and all language server instances. One runtime instance exposes one authorized root, identified as `default`.
 
 The runtime checks relative paths, ancestors and resolved symlink targets before filesystem operations. Its persisted authentication and collaboration state is excluded from file APIs and watching. Atomic saves serialize by resolved path, compare SHA-256 revisions of raw bytes and rename temporary files after encoding succeeds. Supported encodings are UTF-8, UTF-8 with BOM, UTF-16LE with BOM and Latin-1; LF and CRLF are explicit. Decoding errors, unpaired surrogates and characters outside Latin-1 produce errors. Files above 20 MiB produce an explicit size error. This boundary protects browser RPC access; workspace processes and trusted extension code run with the operating-system privileges of the runtime account. It does not sandbox those processes or defend against another operating-system process replacing directory entries during a filesystem syscall sequence.
 
@@ -20,7 +20,7 @@ Terminal PTYs survive socket loss while the runtime is running. `terminal.attach
 
 Git operations invoke argument arrays with credential prompting disabled. The runtime environment and Git credential helpers supply credentials. Commit request IDs prevent duplicate commits. Existing-branch checkout relies on Git's working-tree protection and reports errors without force/reset. Discard requires `confirm:true`. Clone accepts HTTPS, SSH and file URLs, creates a fresh workspace-relative destination, streams progress, and removes its incomplete destination on failure or cancellation. Runtime search uses ripgrep JSON output, supports case/word/regex/glob filters and cancellation, bounds output and result counts, and converts byte ranges to JavaScript UTF-16 positions.
 
-The TypeScript language server runs through Content-Length JSON-RPC. Startup negotiates capabilities and document synchronization. Requests time out at 30 seconds and forward cancellation. Restart reopens tracked documents. URI validation restricts filesystem URIs to the workspace. Server-initiated workspace edits route to the browser that initiated the language action. The browser applies them through the shared document service after permission and revision checks, then acknowledges the result. Requests without an owning browser are declined. Shared Yjs rooms own one canonical runtime LSP document stream. Browser didOpen/didChange/didClose notifications for these URIs are ignored.
+Language servers run through `vscode-jsonrpc` Content-Length streams. Managed instances are keyed by preset, bounded project root and effective configuration. Lifecycle and request RPCs accept an optional `instanceId`; legacy requests still address the default TypeScript instance. `lsp.attach`/`lsp.detach` maintain per-client document attachments. Startup negotiates capabilities and document synchronization. Requests time out at 30 seconds and forward cancellation. Restart reopens tracked documents. URI validation restricts edits to the workspace. Read-only external navigation uses `lsp.external.authorize` and `lsp.external.read` handles for roots registered by trusted presets; arbitrary external paths remain denied. Server-initiated workspace edits route to the browser that initiated the language action. The browser applies them through the shared document service after permission and revision checks, then acknowledges the result. Requests without an owning browser are declined. Shared Yjs rooms own one canonical runtime document stream per attached LSP instance. Browser didOpen/didChange/didClose notifications for these URIs are ignored.
 
 Collaboration rooms use Y.Text `content`. `collab.join {path}` returns the authoritative Yjs update, saved disk revision and saved text. Clients hydrate an empty Y.Doc with that update, then upload pending local changes. `collab.update`, `collab.awareness` and `collab.save` require room membership; text updates and saves also require filesystem write. Updates are persisted independently of file saves in the private runtime data directory. Only the runtime writes shared documents to disk. Clean disk changes enter the Yjs document. Dirty shared content produces `collab.conflict` when disk changes. Per-user undo belongs to the client binding's tracked local transaction origin. Presence client IDs are bound to their active connection and removed on disconnect. Persisted rooms preserve unsaved content across runtime restart.
 
@@ -42,19 +42,10 @@ collaboration blocks stale shared saves; enabling it resynchronizes pending
 drafts before saving. Terminal lifecycle changes also reach the public SDK's
 event service.
 
-## Upgrading from Zapp
+## Runtime storage
 
-The command is now `oxbit`, packages use `@oxbit/*`, and runtime variables use
-`OXBIT_*`. The old `ZAPP_*` variables remain fallbacks; an `OXBIT_*` value takes
-precedence. After updating, run `pnpm install` and `pnpm install:global` to rebuild
-and register the new command. An older global link can be removed with
-`npm uninstall -g zapp`.
-
-New runtime workspaces store their data in `~/.oxbit/workspaces/<id>`. If that
-workspace already exists under `~/.zapp`, Oxbit reuses it in place, including its
-daemon record, sessions, and collaboration data. Existing browser storage and
-recovery drafts are also reused. New workspace settings use
-`.oxbit/settings.json`; existing `.zapp/settings.json` files remain editable in
-place when no new settings file exists. Existing built-in formatter preferences
-are translated to their Oxbit identifiers. Restart an already running runtime
-after rebuilding to load the renamed app.
+Runtime variables use `OXBIT_*`. Private workspace data, including daemon records,
+sessions, and collaboration data, lives in `~/.oxbit/workspaces/<id>` unless
+`OXBIT_DATA_DIR` is set. Browser workspaces and recovery drafts use the `oxbit`
+IndexedDB database. Workspace settings use `.oxbit/settings.json`, and built-in
+formatter IDs are `oxbit.prettier` and `oxbit.builtin-ts`.

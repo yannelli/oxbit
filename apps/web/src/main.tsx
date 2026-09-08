@@ -2,8 +2,6 @@ import { translate as tr, setLocale } from "@oxbit/ui";
 import * as ReactHost from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
-import { createKernel } from "@oxbit/core";
-import { DocumentService } from "@oxbit/documents";
 import {
   BrowserFileSystem,
   IndexedDBPersistence,
@@ -14,47 +12,21 @@ import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 import {
   Workbench,
   WorkbenchController,
-  createWorkbenchFeature,
   workspaceEntries,
+  themeMode,
+  themeVariables,
 } from "@oxbit/workbench";
-import { Dialog, Icon } from "@oxbit/ui";
+import { Dialog, OxbitLogo } from "@oxbit/ui";
 import {
-  languageIdForPath,
   type FileSystem,
   type FileSystemProvider,
-  type Kernel,
 } from "@oxbit/sdk";
-import { createFeature as editorFeature } from "@oxbit/feature-editor";
-import { createFeature as explorerFeature } from "@oxbit/feature-explorer";
-import { createFeature as settingsFeature } from "@oxbit/feature-settings";
-import { createFeature as extensionsFeature } from "@oxbit/feature-extensions";
-import { createFeature as themesFeature } from "@oxbit/feature-themes";
-import { createFeature as languageFeature } from "@oxbit/feature-language";
-import { createFeature as searchFeature } from "@oxbit/feature-search";
-import { createFeature as previewsFeature } from "@oxbit/feature-previews";
-import {
-  createFeature as formattersFeature,
-  createPrettierFeature,
-  createTypeScriptFormatterFeature,
-} from "@oxbit/feature-formatters";
-import { createFeature as terminalFeature } from "@oxbit/feature-terminal";
-import { createFeature as tasksFeature } from "@oxbit/feature-tasks";
-import { createFeature as gitFeature } from "@oxbit/feature-git";
-import { createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
-import bundleInspector from "@oxbit/bundle-inspector";
 import seed from "./seed.json";
-import { ScopedConfigurationPersistence } from "./configuration.js";
+import { WorkspaceDialog } from "./workspace-dialog";
+import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
-interface Session {
-  kernel: Kernel;
-  documents: DocumentService;
-  workbench: WorkbenchController;
-  filesystem: FileSystem;
-  runtime?: RuntimeClient;
-  dispose(): Promise<void>;
-}
 const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();
@@ -104,321 +76,14 @@ function boot(
   );
   return next;
 }
-async function openSession(
-  filesystem: FileSystem,
-  runtime?: RuntimeClient,
-): Promise<Session> {
-  const previous = live;
-  if (previous) {
-    await previous.documents.persist();
-    await previous.workbench.persist();
-  }
-  const previousAPI = (globalThis as any).__oxbit;
-  (globalThis as any).__oxbit = { ready: false };
-  const configurationPersistence = new ScopedConfigurationPersistence(
-    persistence,
-    filesystem,
-    runtime,
-  );
-  await configurationPersistence.get("settings");
-  const kernel = createKernel({
-    environment: "browser",
-    persistence: configurationPersistence,
-  });
-  const documents = new DocumentService(filesystem, persistence, kernel);
-  const workbench = new WorkbenchController(
-    kernel,
-    documents,
-    filesystem,
-    persistence,
-  );
-  configurationPersistence.attach(kernel, (message, type) =>
-    workbench.notify(message, type),
-  );
-  if (runtime) {
-    kernel.commands.register({
-      id: "settings.reloadWorkspace",
-      title: "Reload Workspace Settings from Disk",
-      run: async () => {
-        if (
-          (await workbench.ask(
-            tr("Reload workspace settings?"),
-            tr("Replace local workspace settings with the disk file?"),
-            [tr("Reload"), tr("Cancel")],
-          )) === tr("Reload")
-        )
-          await configurationPersistence.resolveWorkspaceSettings("disk");
-      },
-    });
-    kernel.commands.register({
-      id: "settings.saveWorkspace",
-      title: "Save Workspace Settings to Disk",
-      run: async () => {
-        if (
-          (await workbench.ask(
-            tr("Save workspace settings?"),
-            tr("Replace the disk settings file with local workspace settings?"),
-            [tr("Save"), tr("Cancel")],
-          )) === tr("Save")
-        )
-          await configurationPersistence.resolveWorkspaceSettings("local");
-      },
-    });
-  }
-  kernel.services.register("workbench", workbench);
-  kernel.services.register("documents", documents);
-  kernel.services.register("filesystem", filesystem);
-  kernel.services.register("persistence", persistence);
-  if (runtime) kernel.services.register("runtime", runtime);
-  kernel.context.set("workspace", true);
-  kernel.context.set("connected", !!runtime?.connected);
-  kernel.context.set("editor", false);
-  try {
-    await documents.restore();
-    const options = { kernel, documents, filesystem, runtime, workbench };
-    const connection = runtime?.subscribe("connection.change", ({ state }) => {
-      kernel.context.set("connected", state === "connected");
-      kernel.context.set(
-        "trusted",
-        state === "connected" && !!runtime.session?.trusted,
-      );
-      kernel.events.emit("connection.change", { state });
-    });
-    const features = [
-      settingsFeature(options),
-      themesFeature(options),
-      createWorkbenchFeature(workbench),
-      editorFeature(options),
-      explorerFeature(options),
-      extensionsFeature(options),
-      formattersFeature(options),
-      createPrettierFeature(),
-      createTypeScriptFormatterFeature(),
-      languageFeature(options),
-      searchFeature(options),
-      previewsFeature(options),
-      terminalFeature(options),
-      tasksFeature(options),
-      gitFeature(options),
-      collaborationFeature(options),
-      bundleInspector,
-    ];
-    for (const feature of features) kernel.extensions.register(feature);
-    const disabled =
-      (await persistence.get<string[]>("extension-disabled")) || [];
-    for (const feature of features)
-      if (disabled.includes(feature.manifest.id))
-        await kernel.extensions.disable(feature.manifest.id);
-    for (const [savedId, url] of Object.entries(
-      (await persistence.get<Record<string, string>>("extension-artifacts")) ||
-        {},
-    ))
-      try {
-        if (kernel.extensions.list().some((e) => e.manifest.id === savedId)) {
-          const mod = await import(/* @vite-ignore */ url);
-          await kernel.extensions.update(mod.default || mod.extension);
-        } else await kernel.extensions.load(url, { activate: false });
-        if (disabled.includes(savedId))
-          await kernel.extensions.disable(savedId);
-      } catch (error) {
-        workbench.notify(
-          `Extension recovery failed: ${String(error)}`,
-          "error",
-        );
-      }
-    await kernel.extensions.trigger("onStartup");
-    await kernel.extensions.trigger("onWorkspace");
-    for (const doc of documents.documents.values())
-      await kernel.extensions.trigger(
-        "onLanguage:" + languageIdForPath(doc.path),
-      );
-    for (const record of kernel.extensions.list())
-      if (record.state === "failed")
-        workbench.notify(`${record.manifest.name}: ${record.error}`, "error");
-    const documentChange = documents.subscribe(workbench.documentChanged);
-    await workbench.restore();
-    const sampleWorkspace = filesystem.id === "browser";
-    workbench.set({
-      projectName: runtime
-        ? (runtime.session?.workspaceName ?? "Runtime workspace")
-        : sampleWorkspace
-          ? "orbit-dash"
-          : "Directory workspace",
-    });
-    if (!workbench.state.groups.some((g) => g.tabs.length)) {
-      const paths = !sampleWorkspace
-        ? ([
-            workbench.state.files.find(
-              (f) => f.kind === "file" && /\.(tsx?|jsx?|md)$/.test(f.path),
-            )?.path,
-          ].filter(Boolean) as string[])
-        : [
-            "src/hooks/useTelemetry.ts",
-            "src/App.tsx",
-            "src/components/Chart.tsx",
-            "README.md",
-          ];
-      for (const path of paths)
-        try {
-          await workbench.openFile(path, { preview: false });
-        } catch (error) {
-          workbench.notify(String(error), "error");
-        }
-      if (sampleWorkspace) {
-        workbench.set({
-          groups: workbench.state.groups.map((g) => ({
-            ...g,
-            tabs: g.tabs.map((t) =>
-              t.path === "src/App.tsx" ? { ...t, pinned: true } : t,
-            ),
-          })),
-          panel: true,
-          panelId: "terminal",
-        });
-        await workbench.openFile("src/hooks/useTelemetry.ts");
-      }
-    }
-    const timers = new Map<string, ReturnType<typeof setTimeout>>();
-    const save = async (path: string) => {
-      try {
-        if (documents.get(path)?.dirty) await documents.save(path);
-      } catch (error) {
-        workbench.notify(String(error), "error");
-      }
-    };
-    const change = kernel.events.on("document.change", ({ id }) => {
-      const doc = [...documents.documents.values()].find((d) => d.id === id);
-      if (!doc) return;
-      clearTimeout(timers.get(doc.path));
-      if (
-        kernel.configuration.get(
-          "files.autoSave",
-          languageIdForPath(doc.path),
-        ) === "afterDelay"
-      ) {
-        timers.set(
-          doc.path,
-          setTimeout(
-            () => void save(doc.path),
-            kernel.configuration.get<number>(
-              "files.autoSaveDelay",
-              languageIdForPath(doc.path),
-            ) ?? 1000,
-          ),
-        );
-      }
-    });
-    const configurationChange = kernel.configuration.subscribe(() => {
-      for (const timer of timers.values()) clearTimeout(timer);
-      timers.clear();
-      for (const doc of documents.documents.values())
-        if (
-          doc.dirty &&
-          kernel.configuration.get(
-            "files.autoSave",
-            languageIdForPath(doc.path),
-          ) === "afterDelay"
-        )
-          timers.set(
-            doc.path,
-            setTimeout(
-              () => void save(doc.path),
-              kernel.configuration.get<number>(
-                "files.autoSaveDelay",
-                languageIdForPath(doc.path),
-              ) ?? 1000,
-            ),
-          );
-    });
-    const focus = (e: FocusEvent) => {
-      const editor = (e.target as HTMLElement)?.closest(".cm-editor");
-      if (
-        !editor ||
-        (e.relatedTarget instanceof Node && editor.contains(e.relatedTarget))
-      )
-        return;
-      for (const doc of documents.documents.values())
-        if (
-          kernel.configuration.get(
-            "files.autoSave",
-            languageIdForPath(doc.path),
-          ) === "onFocusChange"
-        )
-          void save(doc.path);
-    };
-    const windowBlur = () => {
-      for (const doc of documents.documents.values())
-        if (
-          kernel.configuration.get(
-            "files.autoSave",
-            languageIdForPath(doc.path),
-          ) === "onWindowChange"
-        )
-          void save(doc.path);
-    };
-    const persist = () => {
-      void documents.persist();
-      void workbench.persist();
-    };
-    const protect = (e: BeforeUnloadEvent) => {
-      persist();
-      if ([...documents.documents.values()].some((d) => d.dirty)) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    document.addEventListener("focusout", focus);
-    window.addEventListener("blur", windowBlur);
-    window.addEventListener("pagehide", persist);
-    window.addEventListener("beforeunload", protect);
-    const session: Session = {
-      kernel,
-      documents,
-      filesystem,
-      workbench,
-      runtime,
-      async dispose() {
-        document.removeEventListener("focusout", focus);
-        window.removeEventListener("blur", windowBlur);
-        window.removeEventListener("pagehide", persist);
-        window.removeEventListener("beforeunload", protect);
-        for (const timer of timers.values()) clearTimeout(timer);
-        change.dispose();
-        configurationChange();
-        connection?.();
-        documentChange();
-        await documents.persist();
-        await workbench.persist();
-        configurationPersistence.dispose();
-        workbench.dispose();
-        kernel.dispose();
-        documents.dispose();
-        runtime?.dispose();
-        if (filesystem !== browserFilesystem) filesystem.dispose?.();
-      },
-    };
-    await previous?.dispose();
-    live = session;
-    kernel.events.emit("workspace.change", {
-      id: filesystem.id,
-      state: "opened",
-    });
-    kernel.events.emit("connection.change", {
-      state: runtime?.connected ? "connected" : "disconnected",
-    });
-    return session;
-  } catch (error) {
-    configurationPersistence.dispose();
-    workbench.dispose();
-    kernel.dispose();
-    documents.dispose();
-    runtime?.dispose();
-    if (filesystem !== browserFilesystem && filesystem !== previous?.filesystem)
-      filesystem.dispose?.();
-    (globalThis as any).__oxbit = previousAPI;
-    throw error;
-  }
+async function openSession(filesystem: FileSystem, runtime?: RuntimeClient): Promise<Session> {
+  await live?.persist();
+  const next = await createWorkbenchSession({ filesystem, runtime, persistence, preserveFilesystem: filesystem === browserFilesystem });
+  await live?.dispose();
+  live = next;
+  return next;
 }
+
 function App() {
   const [session, setSession] = useState<Session>(),
     [error, setError] = useState(""),
@@ -615,9 +280,7 @@ function App() {
     return (
       <div className="workbench" data-theme="dark" data-density="compact">
         <div className="empty-state" style={{ height: "100%" }}>
-          <div className="welcome-logo" role="img" aria-label="Oxbit">
-            <span className="oxbit-mark" aria-hidden="true" />
-          </div>
+          <OxbitLogo />
           <strong>
             {loading
               ? tr("Opening workspace…")
@@ -712,11 +375,7 @@ function SessionView({
 }) {
   useSyncExternalStore(session.workbench.subscribe, session.workbench.snapshot);
   setLocale(session.kernel.configuration.get<string>("workbench.locale"));
-  const theme = session.kernel.configuration
-    .get<string>("workbench.colorTheme")
-    ?.includes("light")
-    ? "light"
-    : "dark";
+  const theme = themeMode(session.kernel);
   return (
     <>
       <Workbench
@@ -731,9 +390,10 @@ function SessionView({
           data-theme={theme}
           data-density="compact"
           style={{
+            ...themeVariables(session.kernel),
             color: "var(--fg)",
-            fontFamily: "'Instrument Sans',sans-serif",
-            fontSize: 13,
+            fontFamily: "var(--font-body-font-family)",
+            fontSize: "var(--font-body-font-size)",
           }}
         >
           {overlay === "connection" ? (
@@ -744,86 +404,15 @@ function SessionView({
               workbench={session.workbench}
             />
           ) : (
-            <Dialog title={tr("Open Workspace")} onClose={close}>
-              <div className="workspace-options">
-                <button
-                  className="button"
-                  onClick={() => void useBrowserWorkspace()}
-                >
-                  <Icon name="folder" />
-                  {tr("Browser workspace")}
-                  <span className="muted">{tr("Persisted in IndexedDB")}</span>
-                </button>
-                <button className="button" onClick={() => void openDirectory()}>
-                  <Icon name="folderOpen" />
-                  {tr("Open directory")}
-                  <span className="muted">
-                    {"showDirectoryPicker" in window
-                      ? tr("Browser directory access")
-                      : tr("Persisted fallback")}
-                  </span>
-                </button>
-                <button className="button" onClick={onConnect}>
-                  <Icon name="cloud" />
-                  {tr("Runtime filesystem")}
-                  <span className="muted">{tr("Pair with Node runtime")}</span>
-                </button>
-                {session.kernel.contributions
-                  .list("filesystem")
-                  .map((provider) => (
-                    <button
-                      key={provider.id}
-                      className="button"
-                      onClick={() => void openProvider(provider.id)}
-                    >
-                      <Icon name="folderOpen" />
-                      {tr(provider.title)}
-                    </button>
-                  ))}
-                <label className="button">
-                  <Icon name="plus" />
-                  {tr("Import workspace JSON")}
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    hidden
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void importWorkspace(file);
-                    }}
-                  />
-                </label>
-                <button
-                  className="button"
-                  onClick={() => {
-                    void session.workbench.run("workspace.export");
-                    close();
-                  }}
-                >
-                  <Icon name="save" />
-                  {tr("Export workspace")}
-                </button>
-                <button
-                  className="button"
-                  onClick={() => {
-                    void session.workbench.run("git.clone");
-                    close();
-                  }}
-                >
-                  <Icon name="git" />
-                  {tr("Clone Repository…")}
-                </button>
-                <button
-                  className="button"
-                  onClick={() => {
-                    void session.workbench.run("workspace.close");
-                    close();
-                  }}
-                >
-                  {tr("Close Workspace")}
-                </button>
-              </div>
-            </Dialog>
+            <WorkspaceDialog
+              session={session}
+              close={close}
+              useBrowserWorkspace={useBrowserWorkspace}
+              openDirectory={openDirectory}
+              onConnect={onConnect}
+              openProvider={openProvider}
+              importWorkspace={importWorkspace}
+            />
           )}
         </div>
       )}

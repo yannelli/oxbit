@@ -1,0 +1,104 @@
+.desktop-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  color: var(--fg);
+  font-family: var(--font-body-font-family);
+  font-size: var(--font-body-font-size);
+  line-height: var(--font-body-line-height);
+  font-weight: var(--font-body-font-weight);
+  position: relative;
+}
+.desktop-projects {
+  min-height: 42px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bd);
+  flex-wrap: wrap;
+}
+.desktop-projects > select {
+  min-width: 150px;
+  max-width: 260px;
+}
+.desktop-projects label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.desktop-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.desktop-content > .workbench {
+  height: 100%;
+}
+.desktop-welcome {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  max-width: 800px;
+  padding: 40px;
+  margin: auto;
+}
+.desktop-welcome h1 {
+  margin-top: 12px;
+}
+.desktop-welcome p {
+  color: var(--fg-3);
+}
+.desktop-welcome section {
+  margin-top: 24px;
+  max-width: 100%;
+  overflow: auto;
+}
+.desktop-welcome .recent-item {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desktop-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--warn);
+  flex-wrap: wrap;
+}
+.desktop-alert > span {
+  flex: 1;
+}
+.desktop-dirty-list {
+  max-height: 200px;
+  overflow: auto;
+}
+.desktop-shell .dialog code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.desktop-shell > .modal-scrim {
+  z-index: 200;
+}
+@media (max-width: 1000px) {
+  .desktop-projects > .push {
+    margin-left: 0;
+  }
+  .desktop-projects .button {
+    padding: 4px 7px;
+  }
+}
+.ssh-form { display: flex; flex-direction: column; gap: 14px; }
+.ssh-form label { display: flex; flex-direction: column; gap: 6px; }
+.ssh-form input { width: 100%; box-sizing: border-box; }
+.ssh-form p { margin: 0; color: var(--fg-3); }
+.ssh-form [role="alert"] { color: var(--error); }

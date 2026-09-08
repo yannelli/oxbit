@@ -1,0 +1,13 @@
+Packaged notices for 93 frontend and 414 Rust packages
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling oxbit-desktop v0.1.0 (/work/apps/desktop/src-tauri)
+    Finished `release` profile [optimized] target(s) in 2m 03s
+       Built application at: /work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/oxbit-desktop
+        Info Patching /work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/oxbit-desktop with bundle type information: deb
+    Bundling Oxbit_0.1.0_amd64.deb (/work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/Oxbit_0.1.0_amd64.deb)
+        Info Patching /work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/oxbit-desktop with bundle type information: appimage
+    Bundling Oxbit_0.1.0_amd64.AppImage (/work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/Oxbit_0.1.0_amd64.AppImage)
+    Finished 2 bundles at:
+        /work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/Oxbit_0.1.0_amd64.deb
+        /work/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/Oxbit_0.1.0_amd64.AppImage
+

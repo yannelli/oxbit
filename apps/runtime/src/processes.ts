@@ -1,4 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { killProcess } from "./process-lifecycle.js";
+import { trackChild, trackProcess } from "./owned-processes.js";
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import * as pty from "node-pty";
@@ -27,36 +29,7 @@ interface Terminal {
   subscribers: Map<string, { sent: number; acked: number }>;
   paused: boolean;
 }
-interface Task {
-  id: string;
-  owner: string;
-  command: string;
-  process: ChildProcess;
-  exitCode?: number;
-  chunks: Chunk[];
-  bytes: number;
-  seq: number;
-}
-export function killProcess(child: ChildProcess) {
-  if (child.exitCode !== null) return;
-  try {
-    if (process.platform !== "win32" && child.pid)
-      process.kill(-child.pid, "SIGTERM");
-    else child.kill("SIGTERM");
-  } catch {
-    child.kill("SIGTERM");
-  }
-  const timer = setTimeout(() => {
-    try {
-      if (process.platform !== "win32" && child.pid)
-        process.kill(-child.pid, "SIGKILL");
-      else child.kill("SIGKILL");
-    } catch {
-      /* Process has exited. */
-    }
-  }, 1500);
-  timer.unref();
-}
+export { killProcess } from "./process-lifecycle.js";
 export async function runCommand(
   command: string,
   args: string[],
@@ -77,6 +50,7 @@ export async function runCommand(
       detached: process.platform !== "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });
+    trackChild(child);
     let stdout = "",
       stderr = "",
       bytes = 0,
@@ -117,7 +91,6 @@ export async function runCommand(
 }
 export class Processes {
   private terminals = new Map<string, Terminal>();
-  private tasks = new Map<string, Task>();
   constructor(
     private root: string,
     private emit: Emit,
@@ -144,6 +117,7 @@ export class Processes {
       cwd: this.root,
       env: { ...process.env, SHELL: shell, TERM: "xterm-256color" },
     });
+    trackProcess(terminal.pid, (done) => terminal.onExit(done));
     const session: Terminal = {
       id,
       owner,
@@ -255,100 +229,12 @@ export class Processes {
       this.flow(t);
     }
   }
-  runTask(owner: string, command: string) {
-    for (const [id, task] of this.tasks) if (this.tasks.size >= 128 && task.exitCode !== undefined) this.tasks.delete(id);
-    if (
-      [...this.tasks.values()].filter((t) => t.exitCode === undefined).length >=
-      16
-    )
-      throw new RpcError("LIMIT", "Maximum 16 running tasks");
-    const id = randomUUID(),
-      child = spawn(command, {
-        cwd: this.root,
-        env: process.env,
-        shell: true,
-        detached: process.platform !== "win32",
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-    const task: Task = {
-      id,
-      owner,
-      command,
-      process: child,
-      chunks: [],
-      bytes: 0,
-      seq: 0,
-    };
-    this.tasks.set(id, task);
-    const stdoutDecoder = new StringDecoder("utf8"), stderrDecoder = new StringDecoder("utf8");
-    const onData = (data: string) => {
-      if (!data) return;
-      const chunk = { seq: ++task.seq, data };
-      task.chunks.push(chunk);
-      task.bytes += Buffer.byteLength(data);
-      while (task.bytes > MAX_BUFFER_BYTES && task.chunks.length > 1)
-        task.bytes -= Buffer.byteLength(task.chunks.shift()!.data);
-      this.emit(
-        {
-          event: "tasks.data",
-          params: { id, ...chunk },
-          stream: `task:${id}`,
-          seq: chunk.seq,
-        },
-        owner,
-      );
-    };
-    child.stdout!.on("data", (data:Buffer) => onData(stdoutDecoder.write(data)));
-    child.stderr!.on("data", (data:Buffer) => onData(stderrDecoder.write(data)));
-    child.on("error", (error) => onData(error.message));
-    child.on("close", (code) => {
-      onData(stdoutDecoder.end()); onData(stderrDecoder.end());
-      task.exitCode = code ?? -1;
-      this.emit(
-        { event: "tasks.exit", params: { id, exitCode: task.exitCode } },
-        owner,
-      );
-    });
-    return { id };
-  }
-  cancelTask(id: string, owner: string) {
-    const task = this.tasks.get(id);
-    if (!task || task.owner !== owner)
-      throw new RpcError("NOT_FOUND", "Task was not found");
-    killProcess(task.process);
-  }
-  listTasks(owner: string) {
-    return [...this.tasks.values()]
-      .filter((t) => t.owner === owner)
-      .map((t) => ({
-        id: t.id,
-        command: t.command,
-        exitCode: t.exitCode,
-        seq: t.seq,
-      }));
-  }
-  attachTask(id: string, owner: string, afterSeq = 0) {
-    const t = this.tasks.get(id);
-    if (!t || t.owner !== owner)
-      throw new RpcError("NOT_FOUND", "Task was not found");
-    if (!Number.isSafeInteger(afterSeq) || afterSeq < 0 || afterSeq > t.seq) throw new RpcError("INVALID_PARAMS", "Invalid task sequence");
-    return {
-      id,
-      chunks: t.chunks.filter((c) => c.seq > afterSeq),
-      seq: t.seq,
-      exitCode: t.exitCode,
-      truncated: afterSeq < (t.chunks[0]?.seq ?? 1) - 1,
-    };
-  }
   revoke(owner: string) {
     for (const t of this.terminals.values())
       if (t.owner === owner && t.exitCode === undefined) t.pty.kill();
-    for (const t of this.tasks.values())
-      if (t.owner === owner) killProcess(t.process);
   }
   close() {
     for (const t of this.terminals.values())
       if (t.exitCode === undefined) t.pty.kill();
-    for (const t of this.tasks.values()) killProcess(t.process);
   }
 }

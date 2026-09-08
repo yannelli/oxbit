@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "identifier": "com.yannelli.oxbit",
+  "version": "0.1.0",
+  "minimumSystemVersion": "13.5",
+  "nativeTestCommandsPresent": false,
+  "minimumExecutableOS": "13.5",
+  "buildSDK": "27.0"
+}

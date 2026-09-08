@@ -1,4 +1,5 @@
-import { translate as tr } from "@oxbit/ui";
+import { currentTheme } from "@oxbit/workbench";
+import { Icon, translate as tr } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
 import * as Y from "yjs";
 import {
@@ -114,12 +115,11 @@ export class CollaborationService {
       );
     const user =
       localStorage.getItem("oxbit.presence.name") ??
-      localStorage.getItem("zapp.presence.name") ??
       "Guest " + String(doc.ydoc.clientID).slice(-4);
     doc.awareness.setLocalStateField("user", {
       name: user,
-      color: "#8bd5ca",
-      colorLight: "#8bd5ca44",
+      color: currentTheme(this.o.kernel).colors["collaboration.cursor"],
+      colorLight: currentTheme(this.o.kernel).colors["collaboration.selection"],
     });
     const update = (bytes: Uint8Array, origin: unknown) => {
       if (origin === REMOTE_ORIGIN) return;
@@ -280,24 +280,34 @@ export function createFeature(o: FeatureOptions): Extension {
     useEffect(() => service.subscribe(() => render((x) => x + 1)), []);
     return React.createElement(
       "div",
-      { style: { padding: 12 } },
-      React.createElement("strong", null, "Collaboration · " + service.state),
+      { className: "presence-panel" },
+      React.createElement("div", { className: "presence-heading" },
+        React.createElement(Icon, { name: "users", size: 20 }),
+        React.createElement("strong", null, tr("Collaboration")),
+        React.createElement("span", { className: "presence-status", "data-state": service.state }, service.state)),
+      React.createElement("p", { className: "presence-description" }, service.state === "disconnected"
+        ? tr("Connect to a shared workspace to collaborate.")
+        : tr("Select a participant to follow their active file.")),
+      React.createElement("div", { className: "presence-identity" },
+        React.createElement("span", { className: "presence-avatar" }, (localStorage.getItem("oxbit.presence.name") || "Guest").slice(0, 1).toUpperCase()),
+        React.createElement("span", null, localStorage.getItem("oxbit.presence.name") || "Guest"),
+        React.createElement("span", { className: "muted" }, tr("You"))),
       React.createElement(
         "button",
-        {
+        { className: "button presence-rename",
           onClick: async () => {
             const name = await o.workbench.prompt(
               tr("Display name"),
-              localStorage.getItem("oxbit.presence.name") ??
-              localStorage.getItem("zapp.presence.name") ?? "Guest",
+              localStorage.getItem("oxbit.presence.name") ?? "Guest",
             );
             if (name) {
               localStorage.setItem("oxbit.presence.name", name);
+              render(x => x + 1);
               for (const doc of o.documents.documents.values())
                 doc.awareness.setLocalStateField("user", {
                   name,
-                  color: "#8bd5ca",
-                  colorLight: "#8bd5ca44",
+                  color: currentTheme(o.kernel).colors["collaboration.cursor"],
+                  colorLight: currentTheme(o.kernel).colors["collaboration.selection"],
                 });
             }
           },
@@ -309,9 +319,11 @@ export function createFeature(o: FeatureOptions): Extension {
           "button",
           {
             key: user.id,
-            style: { display: "block", color: user.color },
+            className: "button presence-participant",
+            "aria-pressed": service.following === user.id,
             onClick: () => {
               service.following = user.id;
+              render(x => x + 1);
               void o.workbench.openFile(user.path);
             },
           },
@@ -321,9 +333,10 @@ export function createFeature(o: FeatureOptions): Extension {
       service.following !== undefined &&
         React.createElement(
           "button",
-          {
+          { className: "button",
             onClick: () => {
               service.following = undefined;
+              render(x => x + 1);
             },
           },
           tr("Stop following"),
@@ -343,6 +356,9 @@ export function createFeature(o: FeatureOptions): Extension {
     },
     activate(ctx) {
       service = new CollaborationService(o);
+      const updateColors = () => {const theme=currentTheme(o.kernel);for(const doc of o.documents.documents.values()){const user=doc.awareness.getLocalState()?.user;if(user)doc.awareness.setLocalStateField('user',{...user,color:theme.colors['collaboration.cursor'],colorLight:theme.colors['collaboration.selection']});}};
+      ctx.subscribe(o.kernel.configuration.subscribe(updateColors));
+      ctx.subscribe(o.kernel.contributions.subscribe(updateColors));
       ctx.own(service);
       ctx.own(ctx.services.register("collaboration", service));
       ctx.own(

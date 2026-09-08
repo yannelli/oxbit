@@ -1,0 +1,3 @@
+#!/bin/sh
+# Optional macOS command-line launcher; does not install or replace the oxbit CLI.
+exec /usr/bin/open -b com.yannelli.oxbit "$@"

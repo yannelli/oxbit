@@ -1,3 +1,11 @@
+import {
+  builtinBase,
+  cssVariables,
+  legacyTheme,
+  type ResolvedTheme,
+  type Typography,
+  type TypographyToken,
+} from "@oxbit/themes";
 import type { Contribution, Kernel } from "@oxbit/sdk";
 export function documentViewFor(
   kernel: Kernel,
@@ -48,19 +56,96 @@ export function menuContributions(
       : true;
   });
 }
-export function themeVariables(kernel: Kernel): Record<string, string> {
-  const theme = kernel.contributions
+const lastModes = new WeakMap<Kernel, Map<string, "light" | "dark">>();
+export function currentTheme(kernel: Kernel): ResolvedTheme {
+  const id = kernel.configuration.get<string>("workbench.colorTheme");
+  const selected = kernel.contributions
     .list("theme")
     .find(
-      (item) => item.title === kernel.configuration.get("workbench.colorTheme"),
+      (t) =>
+        t.id === id ||
+        t.title === id ||
+        (t.data as { stableId?: string })?.stableId === id,
     );
-  const variables = (
-    theme?.data as { variables?: Record<string, unknown> } | undefined
-  )?.variables;
-  return Object.fromEntries(
-    Object.entries(variables || {}).filter(
-      (entry): entry is [string, string] =>
-        /^--[\w-]+$/.test(entry[0]) && typeof entry[1] === "string",
-    ),
+  const data = selected?.data as
+    | {
+        resolved?: ResolvedTheme;
+        mode?: "light" | "dark";
+        variables?: Record<string, unknown>;
+      }
+    | undefined;
+  const modes = lastModes.get(kernel) ?? new Map();
+  lastModes.set(kernel, modes);
+  const mode =
+    data?.mode ??
+    kernel.services
+      .optional<{ mode(id: string): "light" | "dark" | undefined }>(
+        "themePacks",
+      )
+      ?.mode(id) ??
+    modes.get(id) ??
+    "dark";
+  modes.set(id, mode);
+  return (
+    data?.resolved ??
+    (data?.variables ? legacyTheme(mode, data.variables) : builtinBase(mode))
   );
+}
+export function themeMode(kernel: Kernel) {
+  return currentTheme(kernel).mode;
+}
+export function themeTypography(
+  kernel: Kernel,
+  role: TypographyToken,
+  language?: string,
+): Typography {
+  const theme = currentTheme(kernel);
+  const font = structuredClone(theme.typography[role]);
+  const prefix = role === "body" ? "ui" : role;
+  const properties = {
+    fontFamily: "family",
+    fontSize: "size",
+    fontWeight: "weight",
+    fontStyle: "style",
+    lineHeight: "lineHeight",
+    letterSpacing: "letterSpacing",
+    fontLigatures: "ligatures",
+    fontVariations: "axes",
+  } as const;
+  for (const [setting, property] of Object.entries(properties)) {
+    const value = kernel.configuration.inspect(
+      `${prefix}.${setting}`,
+      language,
+    );
+    if (value.explicit) {
+      if (
+        property === "family" &&
+        typeof value.value === "string" &&
+        value.value.trim()
+      )
+        font.family = value.value
+          .split(",")
+          .map((f) => f.trim().replace(/^['"]|['"]$/g, ""));
+      else if (property !== "family") (font as any)[property] = value.value;
+    }
+  }
+  if (
+    role === "editor" &&
+    kernel.configuration.inspect("editor.lineHeight", language).explicit
+  )
+    font.lineHeight =
+      (Number(kernel.configuration.get("editor.lineHeight", language)) ||
+        font.size * 1.55) / font.size;
+  if (
+    role === "terminal" &&
+    !kernel.configuration.inspect("terminal.fontFamily").explicit &&
+    !theme.terminalFamilyExplicit
+  )
+    font.family = themeTypography(kernel, "editor").family;
+  return font;
+}
+export function themeVariables(kernel: Kernel): Record<string, string> {
+  const theme = structuredClone(currentTheme(kernel));
+  theme.typography.body = themeTypography(kernel, "body");
+  return cssVariables(theme);
 }

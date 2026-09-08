@@ -1,6 +1,11 @@
-import { translate as tr } from "@oxbit/ui";
-import React, { useEffect, useState } from "react";
-import type { Extension, FeatureOptions } from "@oxbit/sdk";
+import type {
+  Extension,
+  FeatureOptions,
+  TaskCatalog,
+  TaskRun,
+  TaskWorktree,
+} from "@oxbit/sdk";
+import { createTaskViews, type TaskModel } from "./views.js";
 export type Task = {
   id: string;
   command: string;
@@ -10,7 +15,7 @@ export type Task = {
   exitCode?: number;
   cancelRequested?: boolean;
   truncated?: boolean;
-};
+} & Partial<Omit<TaskRun, "id" | "command" | "state" | "seq" | "exitCode">>;
 export function appendTaskChunk(
   task: Task,
   chunk: { seq?: number; data: string },
@@ -20,24 +25,47 @@ export function appendTaskChunk(
   task.output = (task.output + chunk.data).slice(-1048576);
   return true;
 }
-export function finishTask(task: Task, exitCode: number) {
+export function finishTask(task: Task, exitCode: number, state?: string) {
   task.exitCode = exitCode;
-  task.state = task.cancelRequested
-    ? "cancelled"
-    : exitCode === 0
-      ? "completed"
-      : "failed";
+  task.state =
+    state === "stopped" && task.cancelRequested
+      ? "cancelled"
+      : (state ??
+        (task.cancelRequested
+          ? "cancelled"
+          : exitCode === 0
+            ? "completed"
+            : "failed"));
+}
+export function applyTaskSnapshot(task: Task, record: Partial<TaskRun>) {
+  // Status events can arrive before their initiating RPC response or replay.
+  // Output acknowledgement has a separate sequence and must never jump ahead.
+  if (
+    record.statusVersion !== undefined &&
+    task.statusVersion !== undefined &&
+    record.statusVersion < task.statusVersion
+  )
+    return;
+  const { seq: _seq, ...metadata } = record;
+  Object.assign(task, metadata);
+  if (record.exitCode !== undefined)
+    finishTask(task, record.exitCode, record.state);
 }
 export function createFeature(o: FeatureOptions): Extension {
   const tasks = new Map<string, Task>(),
     listeners = new Set<() => void>(),
-    channels = new Map<string, string>([["Tasks", ""]]),
-    early = new Map<
-      string,
-      { data: { seq: number; data: string }[]; exitCode?: number }
-    >();
+    channels = new Map<string, string>([["Tasks", ""]]);
+  const early = new Map<
+    string,
+    { data: { seq: number; data: string }[]; exitCode?: number; state?: string }
+  >();
   let disposed = false,
-    recovering = false;
+    recovering = false,
+    catalog: TaskCatalog | undefined,
+    worktrees: TaskWorktree[] = [],
+    error = "",
+    selected: string | undefined,
+    loading = false;
   const changed = () => {
     o.kernel.context.set("lastTask", tasks.size > 0);
     o.kernel.context.set(
@@ -47,14 +75,14 @@ export function createFeature(o: FeatureOptions): Extension {
     for (const listener of listeners) listener();
   };
   const output = {
-    append: (channel: string, line: string) => {
+    append(channel: string, text: string) {
       channels.set(
         channel,
-        ((channels.get(channel) ?? "") + line).slice(-1048576),
+        ((channels.get(channel) ?? "") + text).slice(-1048576),
       );
       changed();
     },
-    createChannel: (id: string) => {
+    createChannel(id: string) {
       if (channels.has(id))
         throw new Error(`Output channel ${id} already exists`);
       channels.set(id, "");
@@ -74,40 +102,67 @@ export function createFeature(o: FeatureOptions): Extension {
     params: Record<string, unknown> = {},
   ) => {
     if (!o.runtime?.connected)
-      throw new Error("Connect to a trusted runtime workspace to run tasks");
+      throw new Error("Connect to a runtime workspace to use tasks");
     return o.runtime.request<T>(method, params);
   };
   const apply = (task: Task, chunk: { seq: number; data: string }) => {
     if (appendTaskChunk(task, chunk)) output.append("Tasks", chunk.data);
   };
-  const add = (record: any, drain = true) => {
-    for (const [id, item] of tasks) if (tasks.size >= 128 && item.exitCode !== undefined) tasks.delete(id);
+  const add = (record: Partial<TaskRun> & { id: string }, drain = true) => {
+    for (const [id, task] of tasks)
+      if (tasks.size >= 128 && task.exitCode !== undefined) tasks.delete(id);
     let task = tasks.get(record.id);
     if (!task) {
       task = {
         id: record.id,
         command: record.command ?? "Workspace task",
-        state: "running",
+        state: record.state ?? "running",
         output: "",
         seq: 0,
       };
-      tasks.set(task.id, task);
-    } else if (record.command) task.command = record.command;
-    if (record.exitCode !== undefined) finishTask(task, record.exitCode);
+      tasks.set(record.id, task);
+    }
+    applyTaskSnapshot(task, record);
     const pending = early.get(task.id);
     if (pending && drain) {
       for (const chunk of pending.data.sort((a, b) => a.seq - b.seq))
         apply(task, chunk);
-      if (pending.exitCode !== undefined) finishTask(task, pending.exitCode);
+      if (pending.exitCode !== undefined)
+        finishTask(task, pending.exitCode, pending.state);
       early.delete(task.id);
     }
     return task;
   };
+  const refresh = async () => {
+    if (!o.runtime?.connected) {
+      catalog = undefined;
+      changed();
+      return;
+    }
+    loading = true;
+    changed();
+    try {
+      const next = await request<TaskCatalog>("tasks.catalog");
+      if (disposed) return;
+      catalog = next;
+      error = "";
+      try {
+        worktrees = await request<TaskWorktree[]>("tasks.worktrees");
+      } catch {
+        worktrees = [];
+      }
+    } catch (failure) {
+      error = (failure as Error).message;
+    } finally {
+      loading = false;
+      changed();
+    }
+  };
   const recover = async () => {
-    if (recovering) return;
+    if (recovering || !o.runtime?.connected) return;
     recovering = true;
     try {
-      const records = await request<any[]>("tasks.list");
+      const records = await request<TaskRun[]>("tasks.list");
       if (disposed) return;
       const ids = new Set(records.map((record) => record.id));
       for (const task of tasks.values())
@@ -127,191 +182,111 @@ export function createFeature(o: FeatureOptions): Extension {
           (a, b) => a.seq - b.seq,
         ))
           apply(task, chunk);
-        const exitCode = pending?.exitCode ?? replay.exitCode;
-        if (exitCode !== undefined) finishTask(task, exitCode);
-        else task.state = task.cancelRequested ? "cancelling" : "running";
+        add(replay, false);
+        if (pending?.exitCode !== undefined)
+          finishTask(task, pending.exitCode, pending.state);
         early.delete(task.id);
       }
-      changed();
-    } catch (error) {
-      if (o.runtime?.connected) o.workbench.notify(String(error), "error");
+    } catch (failure) {
+      if (o.runtime?.connected) error = (failure as Error).message;
     } finally {
       recovering = false;
-      for (const task of tasks.values()) add(task);
+      for (const task of tasks.values()) add({ id: task.id });
+      changed();
     }
+    await refresh();
   };
   const run = async (command?: string) => {
-    command ??= await o.workbench.prompt(tr("Workspace command"), "pnpm test");
+    command ??= await o.workbench.prompt("Workspace command", "npm test");
     if (!command?.trim()) return;
-    const result = await request<{ id: string }>("tasks.run", { command });
-    add({ id: result.id, command });
+    const record = await request<TaskRun>("tasks.run", { command });
+    add(record);
+    selected = record.id;
     changed();
     o.workbench.openPanel("tasks");
-    return result.id;
+    return record.id;
+  };
+  const start = async (taskId: string) => {
+    const record = await request<TaskRun>("tasks.start", { taskId });
+    add(record);
+    selected = record.id;
+    changed();
+    o.workbench.openPanel("tasks");
+    return record.id;
+  };
+  const stop = async (id: string, force = false) => {
+    const record = await request<TaskRun>("tasks.stop", { id, force });
+    add(record);
+    changed();
   };
   const cancel = async (id: string) => {
     const task = tasks.get(id);
-    if (!task || task.exitCode !== undefined) return;
-    task.cancelRequested = true;
-    task.state = "cancelling";
-    changed();
+    if (task) task.cancelRequested = true;
     try {
-      await request("tasks.cancel", { id });
+      await stop(id);
     } catch (error) {
-      task.cancelRequested = false;
-      task.state = "running";
-      changed();
+      if (task) task.cancelRequested = false;
       throw error;
     }
   };
-  function Lines({ text }: { text: string }) {
-    return React.createElement(
-      "pre",
-      {
-        style: {
-          whiteSpace: "pre-wrap",
-          margin: 0,
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-        },
-      },
-      ...text.split("\n").map((line, index) => {
-        const match = line.match(
-          /(?:^|\s)((?:[\w.-]+\/)*[\w.-]+\.[\w]+):(\d+)(?::(\d+))?/,
-        );
-        return match
-          ? React.createElement(
-              "button",
-              {
-                key: index,
-                style: { display: "block", textAlign: "left", font: "inherit" },
-                onClick: () =>
-                  void o.workbench.openFile(match[1], {
-                    line: Number(match[2]),
-                    col: Number(match[3] ?? 1),
-                  }),
-              },
-              line + "\n",
-            )
-          : React.createElement("span", { key: index }, line + "\n");
-      }),
-    );
-  }
-  function Panel() {
-    const [, render] = useState(0);
-    useEffect(() => {
-      const listener = () => render((value) => value + 1);
+  const restart = async (id: string) => {
+    const record = await request<TaskRun>("tasks.restart", { id });
+    add(record);
+    selected = record.id;
+    changed();
+  };
+  const model: TaskModel = {
+    options: o,
+    tasks,
+    channels,
+    get catalog() {
+      return catalog;
+    },
+    get worktrees() {
+      return worktrees;
+    },
+    get selected() {
+      return selected;
+    },
+    get error() {
+      return error;
+    },
+    get loading() {
+      return loading;
+    },
+    select: (id) => {
+      selected = id;
+      changed();
+    },
+    subscribe: (listener) => {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
-    }, []);
-    return React.createElement(
-      "div",
-      {
-        className: "tasks-panel",
-        style: { padding: 12, height: "100%", overflow: "auto" },
-      },
-      React.createElement(
-        "button",
-        {
-          onClick: () => {
-            void o.kernel.commands
-              .execute("tasks.run")
-              .catch((error) => o.workbench.notify(String(error), "error"));
-          },
-        },
-        tr("Run task"),
-      ),
-      ...[...tasks.values()].map((task) =>
-        React.createElement(
-          "section",
-          {
-            key: task.id,
-            style: {
-              padding: "8px 0",
-              borderBottom: "1px solid var(--border)",
-            },
-          },
-          React.createElement(
-            "strong",
-            null,
-            task.command +
-              " · " +
-              task.state +
-              (task.exitCode === undefined ? "" : " · exit " + task.exitCode),
-          ),
-          React.createElement(
-            "button",
-            {
-              disabled: task.state === "cancelling",
-              onClick: () => {
-                void (
-                  task.exitCode === undefined
-                    ? cancel(task.id)
-                    : run(task.command)
-                ).catch((error) => o.workbench.notify(String(error), "error"));
-              },
-            },
-            task.exitCode === undefined ? tr("Cancel") : tr("Rerun"),
-          ),
-          task.truncated &&
-            React.createElement(
-              "p",
-              { role: "status" },
-              tr("Earlier task output is no longer available"),
-            ),
-          React.createElement(Lines, { text: task.output }),
-        ),
-      ),
-    );
-  }
-  function Output() {
-    const [, render] = useState(0);
-    const [channel, setChannel] = useState("Tasks");
-    useEffect(() => {
-      const listener = () => render((value) => value + 1);
-      listeners.add(listener);
-      const off = o.kernel.contributions.subscribe(listener);
-      return () => {
-        listeners.delete(listener);
-        off();
-      };
-    }, []);
-    const contributed = o.kernel.contributions.list("outputChannel"),
-      names = [
-        ...new Set([...channels.keys(), ...contributed.map((c) => c.id)]),
-      ],
-      selected = names.includes(channel) ? channel : "Tasks",
-      data = contributed.find((item) => item.id === selected)?.data as
-        { lines?: string[] } | undefined;
-    return React.createElement(
-      "div",
-      {
-        className: "output-panel",
-        style: { padding: 12, height: "100%", overflow: "auto" },
-      },
-      React.createElement(
-        "select",
-        {
-          "aria-label": tr("Output channel"),
-          value: selected,
-          onChange: (event: any) => setChannel(event.target.value),
-        },
-        ...names.map((name) =>
-          React.createElement("option", { key: name }, name),
-        ),
-      ),
-      React.createElement(Lines, {
-        text: channels.get(selected) ?? data?.lines?.join("\n") ?? "",
-      }),
-    );
-  }
+    },
+    request,
+    refresh,
+    run,
+    start,
+    stop,
+    restart,
+    report: async (action) => {
+      try {
+        error = "";
+        await action();
+      } catch (failure) {
+        error = (failure as Error).message;
+      } finally {
+        changed();
+      }
+    },
+  };
+  const { Panel, Output } = createTaskViews(model);
   return {
     manifest: {
       manifestVersion: 1,
       id: "oxbit.tasks",
-      name: "Tasks and Output",
+      name: "Tasks and Services",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
@@ -320,7 +295,18 @@ export function createFeature(o: FeatureOptions): Extension {
     },
     activate(ctx) {
       disposed = false;
-      ctx.own(ctx.services.register("tasks", { run, cancel, tasks }));
+      ctx.own(
+        ctx.services.register("tasks", {
+          run,
+          start,
+          cancel,
+          stop,
+          restart,
+          tasks,
+          refresh,
+          catalog: () => catalog,
+        }),
+      );
       ctx.own(ctx.services.register("output", output));
       ctx.own(
         ctx.contributions.register({
@@ -342,20 +328,53 @@ export function createFeature(o: FeatureOptions): Extension {
       );
       for (const [id, title, action] of [
         ["tasks.run", "Run Task", () => run()],
-        ["tasks.runBuild", "Run Build Task", () => run("pnpm build")],
+        [
+          "tasks.open",
+          "Manage Tasks and Services",
+          () => o.workbench.openPanel("tasks"),
+        ],
+        [
+          "tasks.runBuild",
+          "Run Build Task",
+          async () => {
+            await refresh();
+            const build =
+              catalog?.tasks.find((task) => task.group === "build") ??
+              catalog?.tasks.find((task) => task.name === "build");
+            if (build) await start(build.id);
+            else {
+              o.workbench.openPanel("tasks");
+              o.workbench.notify(
+                "No build task detected. Add a task with the build group.",
+              );
+            }
+          },
+        ],
         [
           "tasks.cancel",
-          "Cancel Running Task",
+          "Stop Running Tasks",
           async () => {
             for (const task of tasks.values())
-              if (task.exitCode === undefined) await cancel(task.id);
+              if (task.exitCode === undefined) await stop(task.id);
+          },
+        ],
+        [
+          "tasks.forceStop",
+          "Force Stop Running Tasks",
+          async () => {
+            for (const task of tasks.values())
+              if (task.exitCode === undefined) await stop(task.id, true);
           },
         ],
         [
           "tasks.rerun",
           "Rerun Last Task",
-          () => run([...tasks.values()].at(-1)?.command),
+          () => {
+            const last = [...tasks.values()].at(-1);
+            return last ? restart(last.id) : run();
+          },
         ],
+        ["tasks.refresh", "Refresh Detected Tasks", refresh],
       ] as const)
         ctx.own(
           ctx.commands.register({
@@ -366,6 +385,12 @@ export function createFeature(o: FeatureOptions): Extension {
           }),
         );
       if (o.runtime) {
+        ctx.subscribe(
+          o.runtime.subscribe("tasks.status", (record) => {
+            add(record);
+            changed();
+          }),
+        );
         ctx.subscribe(
           o.runtime.subscribe("tasks.data", (params) => {
             const task = tasks.get(params.id);
@@ -381,6 +406,7 @@ export function createFeature(o: FeatureOptions): Extension {
               )
                 pending.data.shift();
               early.set(params.id, pending);
+              while (early.size > 128) early.delete(early.keys().next().value!);
             }
             changed();
           }),
@@ -388,10 +414,12 @@ export function createFeature(o: FeatureOptions): Extension {
         ctx.subscribe(
           o.runtime.subscribe("tasks.exit", (params) => {
             const task = tasks.get(params.id);
-            if (task && !recovering) finishTask(task, params.exitCode);
+            if (task && !recovering)
+              finishTask(task, params.exitCode, params.state);
             else {
               const pending = early.get(params.id) ?? { data: [] };
               pending.exitCode = params.exitCode;
+              pending.state = params.state;
               early.set(params.id, pending);
             }
             changed();
@@ -407,6 +435,47 @@ export function createFeature(o: FeatureOptions): Extension {
             }
           }),
         );
+        ctx.subscribe(
+          o.runtime.subscribe("workspace.trust", () => {
+            void recover();
+          }),
+        );
+        ctx.subscribe(
+          o.runtime.subscribe("operation.recovered", (operation) => {
+            if (!operation.method?.startsWith("tasks.")) return;
+            if (operation.status === "completed") {
+              void recover();
+              o.workbench.notify("Task operation completed after reconnect");
+            } else if (
+              ["failed", "interrupted", "unknown"].includes(operation.status)
+            ) {
+              void refresh();
+              o.workbench.notify(
+                operation.error?.message ??
+                  "Task operation was interrupted; inspect its state before retrying",
+                "warning",
+              );
+            }
+          }),
+        );
+        ctx.subscribe(
+          o.runtime.subscribe("runtime.terminated", () => {
+            for (const task of tasks.values())
+              if (task.exitCode === undefined) {
+                task.exitCode = -1;
+                task.state = "terminated (runtime stopped)";
+              }
+            changed();
+          }),
+        );
+        let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+        ctx.subscribe(
+          o.runtime.subscribe("fs.change", () => {
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => void refresh(), 500);
+          }),
+        );
+        ctx.subscribe(() => clearTimeout(refreshTimer));
         void recover();
       }
       ctx.subscribe(() => {

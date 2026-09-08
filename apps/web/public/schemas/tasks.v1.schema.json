@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oxbit.dev/schemas/tasks.v1.schema.json",
+  "title": "Oxbit tasks and worktree lifecycle",
+  "type": "object",
+  "required": [
+    "version",
+    "tasks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "autoDetect": {
+      "type": "boolean",
+      "default": true
+    },
+    "tasks": {
+      "type": "object",
+      "maxProperties": 256,
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "env": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 32768
+      }
+    },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preinit": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 32768
+            },
+            {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 32768
+              }
+            }
+          ]
+        },
+        "init": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 32768
+            },
+            {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 32768
+              }
+            }
+          ]
+        },
+        "preteardown": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 32768
+            },
+            {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 32768
+              }
+            }
+          ]
+        },
+        "teardown": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 32768
+            },
+            {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "maxLength": 32768
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "type": {
+          "enum": [
+            "command",
+            "service"
+          ]
+        },
+        "execution": {
+          "enum": [
+            "shell",
+            "process"
+          ]
+        },
+        "args": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "maxLength": 32768
+          }
+        },
+        "cwd": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "env": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 32768
+          }
+        },
+        "dependsOn": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "maxLength": 32768
+          }
+        },
+        "dependencyOrder": {
+          "enum": [
+            "sequence",
+            "parallel"
+          ]
+        },
+        "group": {
+          "enum": [
+            "build",
+            "test"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "hostname": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "port": {
+          "oneOf": [
+            {
+              "const": "auto"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            {
+              "type": "object",
+              "required": [
+                "min",
+                "max"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              }
+            }
+          ]
+        },
+        "ports": {
+          "type": "object",
+          "maxProperties": 16,
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "const": "auto"
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "ready": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "Literal output marker; not a regular expression."
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 32768
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 3600000
+            },
+            "intervalMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000
+            }
+          }
+        },
+        "restart": {
+          "type": "object",
+          "required": [
+            "policy"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "policy": {
+              "enum": [
+                "never",
+                "on-failure"
+              ]
+            },
+            "maxAttempts": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "delayMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000
+            }
+          }
+        },
+        "stop": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "signal": {
+              "enum": [
+                "SIGTERM",
+                "SIGINT"
+              ]
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000
+            }
+          }
+        }
+      }
+    }
+  }
+}

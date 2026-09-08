@@ -1,54 +1,69 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
 
-> zapp@0.1.0 build /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
-> tsc -b && pnpm --filter @zapp/runtime build && pnpm build:example && pnpm --filter @zapp/web build
+> oxbit@0.1.0 build /Users/ryanyannelli/Development/oxbit
+> tsc -b && pnpm --filter @oxbit/runtime build && pnpm build:example && pnpm --filter @oxbit/web build
 
 
-> @zapp/runtime@1.0.0 build /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/apps/runtime
-> vite build
+> @oxbit/runtime@1.0.0 build /Users/ryanyannelli/Development/oxbit/apps/runtime
+> node ../../scripts/repair-pty.mjs && vite build
 
 vite v7.3.6 building ssr environment for production...
 transforming...
-✓ 60 modules transformed.
+✓ 63 modules transformed.
 rendering chunks...
-dist/index.js  173.72 kB │ map: 336.81 kB
-✓ built in 270ms
+dist/index.js  199.84 kB │ map: 389.57 kB
+✓ built in 266ms
 
-> zapp@0.1.0 build:example /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
-> pnpm --filter @zapp/bundle-inspector exec vite build && node scripts/copy-example.mjs
+> oxbit@0.1.0 build:example /Users/ryanyannelli/Development/oxbit
+> pnpm build:sdk && pnpm --filter @oxbit/bundle-inspector exec vite build && node scripts/copy-example.mjs
+
+
+> oxbit@0.1.0 build:sdk /Users/ryanyannelli/Development/oxbit
+> node scripts/build-sdk.mjs
 
 vite v7.3.6 building client environment for production...
 transforming...
 ✓ 1 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/bundle-inspector.js  10.66 kB │ gzip: 3.47 kB │ map: 24.26 kB
-✓ built in 53ms
+dist/bundle-inspector.js  11.24 kB │ gzip: 3.59 kB │ map: 25.15 kB
+✓ built in 57ms
 
-> @zapp/web@1.0.0 build /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard/apps/web
+> @oxbit/web@1.0.0 build /Users/ryanyannelli/Development/oxbit/apps/web
 > vite build
 
 vite v7.3.6 building client environment for production...
 transforming...
-✓ 298 modules transformed.
+✓ 291 modules transformed.
 rendering chunks...
+The emitted file "assets/standalone-Cayz_KD-.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/html-DwgzGnwN.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/postcss-BGfBeQpW.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/estree-DFfjoHvx.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/babel-BktJt1uC.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/markdown-Bd15IfY5.js.map" overwrites a previously emitted file of the same name.
+The emitted file "assets/typescript-cMir0TZb.js.map" overwrites a previously emitted file of the same name.
 computing gzip size...
-dist/index.html                              0.57 kB │ gzip:   0.37 kB
-dist/assets/worker-Dy8ec4aB.js               1.17 kB
-dist/assets/index-BPaQUIVK.css              36.46 kB │ gzip:   8.30 kB
-dist/assets/addon-image-BxricI7a.js         80.46 kB │ gzip:  25.16 kB │ map:   155.35 kB
-dist/assets/standalone-Cayz_KD-.js          81.51 kB │ gzip:  27.17 kB │ map:   181.64 kB
-dist/assets/postcss-BGfBeQpW.js            156.78 kB │ gzip:  44.93 kB │ map:   382.48 kB
-dist/assets/html-DwgzGnwN.js               160.16 kB │ gzip:  50.63 kB │ map:   334.25 kB
-dist/assets/addon-ligatures-BOzI2Oy0.js    172.59 kB │ gzip:  51.38 kB │ map:   410.00 kB
-dist/assets/estree-DFfjoHvx.js             211.19 kB │ gzip:  61.79 kB │ map:   461.47 kB
-dist/assets/addon-webgl-PbQqCq-D.js        251.85 kB │ gzip:  68.70 kB │ map:   393.71 kB
-dist/assets/markdown-Bd15IfY5.js           268.49 kB │ gzip:  91.78 kB │ map:   659.12 kB
-dist/assets/babel-BktJt1uC.js              318.12 kB │ gzip:  82.88 kB │ map:   623.12 kB
-dist/assets/typescript-cMir0TZb.js         462.35 kB │ gzip: 126.47 kB │ map: 1,470.35 kB
-dist/assets/index-2hNDf56k.js            1,782.64 kB │ gzip: 571.32 kB │ map: 6,117.16 kB
+dist/index.html                              0.89 kB │ gzip:     0.48 kB
+dist/assets/worker-CsXkqX-T.js               1.24 kB
+dist/assets/format.worker-DHgxL0j0.js        2.28 kB
+dist/assets/typescript-HXNn4lJN.js       3,589.00 kB
+dist/assets/index-B0_WCqT5.css              38.51 kB │ gzip:     8.70 kB
+dist/assets/addon-image-BxricI7a.js         80.46 kB │ gzip:    25.16 kB │ map:    155.35 kB
+dist/assets/standalone-Cayz_KD-.js          81.51 kB │ gzip:    27.17 kB │ map:    181.64 kB
+dist/assets/postcss-BGfBeQpW.js            156.78 kB │ gzip:    44.93 kB │ map:    382.48 kB
+dist/assets/html-DwgzGnwN.js               160.16 kB │ gzip:    50.63 kB │ map:    334.25 kB
+dist/assets/addon-ligatures-BOzI2Oy0.js    172.59 kB │ gzip:    51.38 kB │ map:    410.00 kB
+dist/assets/estree-DFfjoHvx.js             211.19 kB │ gzip:    61.79 kB │ map:    461.47 kB
+dist/assets/addon-webgl-PbQqCq-D.js        251.85 kB │ gzip:    68.70 kB │ map:    393.71 kB
+dist/assets/markdown-Bd15IfY5.js           268.49 kB │ gzip:    91.78 kB │ map:    659.12 kB
+dist/assets/babel-BktJt1uC.js              318.12 kB │ gzip:    82.88 kB │ map:    623.12 kB
+dist/assets/typescript-cMir0TZb.js         462.35 kB │ gzip:   126.47 kB │ map:  1,470.35 kB
+dist/assets/index-CQPxp1K3.js            1,783.76 kB │ gzip:   561.16 kB │ map:  6,159.34 kB
+dist/assets/typescript-9o0LPPtb.js       3,588.42 kB │ gzip: 1,028.11 kB │ map: 14,272.93 kB
 
 (!) Some chunks are larger than 1400 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 7.01s
+✓ built in 18.88s

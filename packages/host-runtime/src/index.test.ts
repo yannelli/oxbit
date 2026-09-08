@@ -15,3 +15,22 @@ describe('runtime connection recovery',()=>{
   it('rejects oversized and buffered requests before enqueueing them',async()=>{vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();await expect(client.request('fs.write',{text:'🚀'.repeat(600000)})).rejects.toMatchObject({code:'TOO_LARGE'});Socket.instances[0].bufferedAmount=1048577;await expect(client.request('fs.list')).rejects.toMatchObject({code:'BUSY'});client.dispose();});
   it('renews and disposes filesystem watches and rejects unsynchronized shared saves',async()=>{const listeners=new Map<string,Set<(value:any)=>void>>(),calls:string[]=[];const client:RpcClient={connected:true,request:async<T>(method:string)=>{calls.push(method);return {ok:true} as T;},subscribe(event,listener){const set=listeners.get(event)??new Set();set.add(listener);listeners.set(event,set);return()=>{set.delete(listener);};}};const files=new RuntimeFileSystem(client),watch=files.watch(()=>{});for(const listener of listeners.get('connection.change')??[])listener({state:'connected'});expect(calls.filter(method=>method==='fs.watch')).toHaveLength(2);watch.dispose();expect(calls.at(-1)).toBe('fs.unwatch');files.shared.set('file.ts',{revision:'old',savedText:'saved',update:''});await expect(files.write('file.ts','local',{expectedRevision:'old'})).rejects.toMatchObject({code:'COLLAB_UNAVAILABLE'});expect(calls).not.toContain('collab.save');});
 });
+
+describe('desktop credentials and recovery identity', () => {
+  it('authenticates with injected credentials without reading or writing sessionStorage', async () => {
+    const getItem = vi.fn(() => 'browser-token'), setItem = vi.fn();
+    vi.stubGlobal('sessionStorage', { getItem, setItem }); vi.stubGlobal('WebSocket', Socket);
+    const client = new RuntimeClient('http://127.0.0.1:33001', 'default', { token: 'desktop-token', persistToken: false });
+    await client.connect();
+    expect(Socket.instances[0].sent[0].params.token).toBe('desktop-token');
+    expect(getItem).not.toHaveBeenCalled(); expect(setItem).not.toHaveBeenCalled();
+    client.dispose();
+  });
+  it('keeps the same filesystem identity after the runtime changes port', () => {
+    const a = new RuntimeClient('http://127.0.0.1:33001', 'default', { persistToken: false });
+    const b = new RuntimeClient('http://127.0.0.1:33002', 'default', { persistToken: false });
+    expect(new RuntimeFileSystem(a, 'desktop:canonical').id).toBe(new RuntimeFileSystem(b, 'desktop:canonical').id);
+    expect(new RuntimeFileSystem(a).id).not.toBe(new RuntimeFileSystem(b).id);
+    a.dispose(); b.dispose();
+  });
+});

@@ -1,0 +1,245 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.core",
+  "name": "Oxbit",
+  "version": "1.0.0",
+  "themes": [
+    {
+      "id": "graphite",
+      "name": "Graphite (dark)",
+      "mode": "dark",
+      "pairedTheme": "paper",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#14161a",
+        "surface.background": "#1a1d22",
+        "editor.background": "#1e2227",
+        "popover.background": "#242931",
+        "input.background": "#15181c",
+        "control.hover.background": "#ffffff0e",
+        "control.active.background": "#ffffff17",
+        "list.selection.background": "#8bd5ca24",
+        "border.default": "#30363b",
+        "border.strong": "#44514f",
+        "text.primary": "#f2f3ef",
+        "text.secondary": "#9eadac",
+        "text.muted": "#82928f",
+        "text.disabled": "#4b5855",
+        "accent.primary": "#8bd5ca",
+        "accent.foreground": "#14161a",
+        "accent.background": "#8bd5ca29",
+        "focus.border": "#8bd5ca",
+        "diagnostic.error": "#f27a7a",
+        "diagnostic.warning": "#e5b567",
+        "diagnostic.info": "#7fb3ff",
+        "diagnostic.success": "#7ed49a",
+        "git.modified": "#e5b567",
+        "git.added": "#7ed49a",
+        "git.deleted": "#f27a7a",
+        "git.conflict": "#e08a5b",
+        "diagnostic.error.background": "#f27a7a24",
+        "diagnostic.warning.background": "#e5b56724",
+        "diff.added.background": "#7ed49a24",
+        "diff.deleted.background": "#f27a7a24",
+        "diagnostic.info.background": "#7fb3ff24",
+        "editor.activeLine.background": "#ffffff0a",
+        "editor.search.background": "#e5b56747",
+        "editor.search.activeBackground": "#e5b5678c",
+        "editor.occurrence.background": "#ffffff14",
+        "selection.background": "#8bd5ca47",
+        "editor.guide": "#2e343d",
+        "overlay.background": "#00000080"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#b39ddb"
+        },
+        "string": {
+          "foreground": "#9ccc9c"
+        },
+        "number": {
+          "foreground": "#f2b571"
+        },
+        "comment": {
+          "foreground": "#6b7280"
+        },
+        "type": {
+          "foreground": "#8bd5ca"
+        },
+        "function": {
+          "foreground": "#82b1ff"
+        },
+        "property": {
+          "foreground": "#d6dbe3"
+        },
+        "variable": {
+          "foreground": "#e6e8ec"
+        },
+        "ident": {
+          "foreground": "#e6e8ec"
+        },
+        "text": {
+          "foreground": "#e6e8ec"
+        },
+        "tag": {
+          "foreground": "#f28b82"
+        },
+        "attr": {
+          "foreground": "#f2b571"
+        },
+        "punct": {
+          "foreground": "#8f96a3"
+        },
+        "operator": {
+          "foreground": "#a3a9b4"
+        },
+        "heading": {
+          "foreground": "#82b1ff"
+        },
+        "link": {
+          "foreground": "#8bd5ca"
+        },
+        "strong": {
+          "foreground": "#e6e8ec"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#00000073"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#00000066"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper",
+      "name": "Paper (light)",
+      "mode": "light",
+      "pairedTheme": "graphite",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#f2f3ef",
+        "surface.background": "#f7f8f5",
+        "editor.background": "#ffffff",
+        "popover.background": "#ffffff",
+        "input.background": "#ffffff",
+        "control.hover.background": "#0000000d",
+        "control.active.background": "#00000014",
+        "list.selection.background": "#0f7b6c1f",
+        "border.default": "#d7dcd8",
+        "border.strong": "#bfc7c2",
+        "text.primary": "#14161a",
+        "text.secondary": "#596365",
+        "text.muted": "#66736f",
+        "text.disabled": "#a7b1aa",
+        "accent.primary": "#0f7b6c",
+        "accent.foreground": "#ffffff",
+        "accent.background": "#0f7b6c1f",
+        "focus.border": "#0f7b6c",
+        "diagnostic.error": "#c93c3c",
+        "diagnostic.warning": "#a86d00",
+        "diagnostic.info": "#2b6cb0",
+        "diagnostic.success": "#2f855a",
+        "git.modified": "#a86d00",
+        "git.added": "#2f855a",
+        "git.deleted": "#c93c3c",
+        "git.conflict": "#b5541b",
+        "diagnostic.error.background": "#c93c3c1a",
+        "diagnostic.warning.background": "#a86d001f",
+        "diff.added.background": "#2f855a1f",
+        "diff.deleted.background": "#c93c3c1a",
+        "diagnostic.info.background": "#2b6cb01a",
+        "editor.activeLine.background": "#00000009",
+        "editor.search.background": "#ffc40059",
+        "editor.search.activeBackground": "#ffa60099",
+        "editor.occurrence.background": "#00000012",
+        "selection.background": "#0f7b6c38",
+        "editor.guide": "#e4e7e3",
+        "overlay.background": "#141e2859"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#6f42c1"
+        },
+        "string": {
+          "foreground": "#2e7d32"
+        },
+        "number": {
+          "foreground": "#b35a00"
+        },
+        "comment": {
+          "foreground": "#7a8090"
+        },
+        "type": {
+          "foreground": "#0f7b6c"
+        },
+        "function": {
+          "foreground": "#1f5fbf"
+        },
+        "property": {
+          "foreground": "#2d3340"
+        },
+        "variable": {
+          "foreground": "#1c1e24"
+        },
+        "ident": {
+          "foreground": "#1c1e24"
+        },
+        "text": {
+          "foreground": "#1c1e24"
+        },
+        "tag": {
+          "foreground": "#c0392b"
+        },
+        "attr": {
+          "foreground": "#b35a00"
+        },
+        "punct": {
+          "foreground": "#6b7280"
+        },
+        "operator": {
+          "foreground": "#4b5160"
+        },
+        "heading": {
+          "foreground": "#1f5fbf"
+        },
+        "link": {
+          "foreground": "#0f7b6c"
+        },
+        "strong": {
+          "foreground": "#1c1e24"
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 0,
+            "y": 8,
+            "blur": 28,
+            "spread": 0,
+            "color": "#141e282e"
+          },
+          {
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": 0,
+            "color": "#141e281f"
+          }
+        ]
+      }
+    }
+  ]
+}

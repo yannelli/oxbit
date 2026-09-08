@@ -1,0 +1,219 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+ WARN  Unsupported engine: wanted: {"node":">=24 <25"} (current: {"node":"v26.4.0","pnpm":"9.15.0"})
+
+> oxbit@0.1.0 test /Users/ryanyannelli/Development/oxbit
+> vitest run
+
+
+ RUN  v3.2.7 /Users/ryanyannelli/Development/oxbit
+
+(node:91189) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ apps/runtime/tests/git-remote.test.ts (3 tests | 3 failed) 159ms
+   × local Git remotes and recovery > clones, pushes and fetches against a real local bare remote 57ms
+     → Symlink leaves the accessible workspace
+   × local Git remotes and recovery > preserves a successful clone when simultaneous destination reservation fails 49ms
+     → Symlink leaves the accessible workspace
+   × local Git remotes and recovery > cleans failed or cancelled clones and preserves disk changes on checkout refusal 52ms
+     → Symlink leaves the accessible workspace
+ ❯ apps/runtime/tests/lsp-edits.test.ts (1 test | 1 failed) 98ms
+   × server-initiated language workspace edits > waits for the initiating document client and propagates rejected edits 97ms
+     → Symlink leaves the accessible workspace
+(node:91433) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ apps/runtime/tests/runtime.test.ts (9 tests | 2 failed) 753ms
+   ✓ authenticated runtime with real services > requires authentication, origin approval and trust 7ms
+   ✓ authenticated runtime with real services > checks revisions, escaping paths and symlinks and revokes scoped grants 14ms
+   × authenticated runtime with real services > serializes competing saves and validates encoding conversions 9ms
+     → Symlink leaves the accessible workspace
+   ✓ authenticated runtime with real services > searches actual files with ripgrep and reports UTF-16 editor ranges 20ms
+   ✓ authenticated runtime with real services > executes real PTYs and tasks with resize, cancellation and reconnect replay 64ms
+   ✓ authenticated runtime with real services > makes a real commit and deduplicates non-idempotent requests  328ms
+   ✓ authenticated runtime with real services > merges independent Yjs edits, persists drafts and uses one disk writer 172ms
+   × authenticated runtime with real services > uses a real TypeScript server for completion, diagnostics, navigation, rename and code actions 88ms
+     → Language service URI leaves workspace
+   ✓ authenticated runtime with real services > recovers collaboration drafts and operation status after runtime restart 12ms
+ ✓ packages/workbench/src/controller.test.ts (14 tests) 393ms
+(node:91579) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/features/formatters/src/index.test.ts (2 tests) 299ms
+ ✓ packages/features/language/src/providers.test.ts (6 tests) 232ms
+ ✓ apps/runtime/tests/terminal-shell.test.ts (14 tests) 228ms
+ ❯ apps/runtime/tests/streaming.test.ts (3 tests | 1 failed) 143ms
+   ✓ runtime streaming and symlink entries > decodes UTF-8 split across subprocess output chunks 79ms
+   ✓ runtime streaming and symlink entries > bounds task replay and rejects invalid replay sequence numbers 57ms
+   × runtime streaming and symlink entries > renames and deletes internal symlink entries without deleting their target 6ms
+     → Symlink leaves the accessible workspace
+ ✓ packages/core/src/lifecycle.test.ts (10 tests) 122ms
+(node:91605) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/features/search/src/service.test.ts (4 tests) 62ms
+ ✓ packages/features/terminal/src/terminal.test.ts (1 test) 58ms
+ ✓ apps/web/src/configuration.test.ts (6 tests) 58ms
+(node:91612) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ apps/runtime/tests/cli.test.ts (17 tests) 57ms
+(node:91619) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ apps/runtime/tests/extensions.test.ts (3 tests | 2 failed) 16ms
+   × trusted runtime extension host > loads a local ESM artifact, exposes filesystem services and disposes every activation 7ms
+     → Symlink leaves the accessible workspace
+   × trusted runtime extension host > rejects paths outside the workspace and recovers failed activation 7ms
+     → expected [Function] to throw error including 'Activation fixture failure' but got 'Symlink leaves the accessible workspa…'
+   ✓ trusted runtime extension host > allows only the exact inline importmap through a content hash 1ms
+(node:91622) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/documents/src/index.test.ts (12 tests) 36ms
+ ✓ packages/core/src/index.test.ts (11 tests) 29ms
+ ✓ packages/host-runtime/src/index.test.ts (3 tests) 14ms
+(node:91636) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/features/language/src/index.test.ts (7 tests) 20ms
+ ✓ packages/workbench/src/contributions.test.ts (3 tests) 15ms
+ ✓ packages/host-browser/src/index.test.ts (4 tests) 15ms
+(node:91649) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ packages/features/collaboration/src/collaboration.test.ts (2 tests) 11ms
+ ✓ packages/workbench/src/shortcuts.test.ts (3 tests) 11ms
+ ✓ packages/protocol/src/index.test.ts (2 tests) 5ms
+ ✓ packages/host-browser/src/directory.test.ts (5 tests) 7ms
+ ✓ packages/features/editor/src/view-state.test.ts (3 tests) 4ms
+ ✓ packages/features/editor/src/decorations.test.ts (2 tests) 4ms
+ ✓ packages/workbench/src/files.test.ts (3 tests) 4ms
+(node:91716) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ apps/runtime/tests/branding.test.ts (2 tests) 3ms
+ ✓ packages/features/previews/src/policy.test.ts (3 tests) 4ms
+ ✓ packages/features/settings/src/scopes.test.ts (2 tests) 3ms
+ ✓ packages/features/search/src/engine.test.ts (2 tests) 2ms
+ ✓ packages/features/editor/src/languages.test.ts (1 test) 2ms
+ ✓ packages/features/git/src/git.test.ts (2 tests) 2ms
+ ✓ packages/features/tasks/src/tasks.test.ts (2 tests) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/runtime/tests/extensions.test.ts > trusted runtime extension host > loads a local ESM artifact, exposes filesystem services and disposes every activation
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ RuntimeExtensions.load apps/runtime/src/extensions.ts:40:18
+ ❯ apps/runtime/tests/extensions.test.ts:32:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  apps/runtime/tests/extensions.test.ts > trusted runtime extension host > rejects paths outside the workspace and recovers failed activation
+AssertionError: expected [Function] to throw error including 'Activation fixture failure' but got 'Symlink leaves the accessible workspa…'
+
+Expected: "Activation fixture failure"
+Received: "Symlink leaves the accessible workspace"
+
+ ❯ apps/runtime/tests/extensions.test.ts:64:5
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  apps/runtime/tests/git-remote.test.ts > local Git remotes and recovery > clones, pushes and fetches against a real local bare remote
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ Git.action apps/runtime/src/git.ts:105:7
+ ❯ setup apps/runtime/tests/git-remote.test.ts:14:618
+ ❯ apps/runtime/tests/git-remote.test.ts:15:109
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  apps/runtime/tests/git-remote.test.ts > local Git remotes and recovery > preserves a successful clone when simultaneous destination reservation fails
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ Git.action apps/runtime/src/git.ts:105:7
+ ❯ setup apps/runtime/tests/git-remote.test.ts:14:618
+ ❯ apps/runtime/tests/git-remote.test.ts:16:126
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  apps/runtime/tests/git-remote.test.ts > local Git remotes and recovery > cleans failed or cancelled clones and preserves disk changes on checkout refusal
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ Git.action apps/runtime/src/git.ts:105:7
+ ❯ setup apps/runtime/tests/git-remote.test.ts:14:618
+ ❯ apps/runtime/tests/git-remote.test.ts:17:130
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  apps/runtime/tests/lsp-edits.test.ts > server-initiated language workspace edits > waits for the initiating document client and propagates rejected edits
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ LanguageServer.validate apps/runtime/src/lsp.ts:62:11
+ ❯ LanguageServer.validate apps/runtime/src/lsp.ts:63:16
+ ❯ LanguageServer.notify apps/runtime/src/lsp.ts:314:5
+ ❯ apps/runtime/tests/lsp-edits.test.ts:12:452
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  apps/runtime/tests/runtime.test.ts > authenticated runtime with real services > serializes competing saves and validates encoding conversions
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ WorkspaceFiles.read apps/runtime/src/filesystem.ts:216:18
+ ❯ apps/runtime/tests/runtime.test.ts:231:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  apps/runtime/tests/runtime.test.ts > authenticated runtime with real services > uses a real TypeScript server for completion, diagnostics, navigation, rename and code actions
+Unknown Error: Language service URI leaves workspace
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  apps/runtime/tests/streaming.test.ts > runtime streaming and symlink entries > renames and deletes internal symlink entries without deleting their target
+RpcError: Symlink leaves the accessible workspace
+ ❯ WorkspaceFiles.resolve apps/runtime/src/filesystem.ts:150:17
+    148|               real.startsWith(this.privateRoot + path.sep)))
+    149|         )
+    150|           throw new RpcError(
+       |                 ^
+    151|             "PATH_DENIED",
+    152|             "Symlink leaves the accessible workspace",
+ ❯ WorkspaceFiles.rename apps/runtime/src/filesystem.ts:297:18
+ ❯ apps/runtime/tests/streaming.test.ts:13:373
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  5 failed | 29 passed (34)
+      Tests  9 failed | 158 passed (167)
+   Start at  01:42:35
+   Duration  4.86s (transform 447ms, setup 0ms, collect 1.53s, tests 2.87s, environment 3ms, prepare 1.32s)
+
+ ELIFECYCLE  Test failed. See above for more details.

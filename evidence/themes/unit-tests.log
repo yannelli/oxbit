@@ -1,0 +1,17 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+ RUN  v3.2.7 /Users/ryanyannelli/Development/oxbit
+
+ ✓ packages/features/themes/src/index.test.ts (20 tests) 33ms
+ ✓ packages/core/src/index.test.ts (12 tests) 35ms
+ ✓ packages/themes/src/index.test.ts (27 tests) 444ms
+   ✓ theme contract > keeps generated schema, types and standalone validator reproducible  353ms
+ ✓ packages/workbench/src/contributions.test.ts (3 tests) 17ms
+ ✓ packages/features/themes/src/behavior.test.ts (4 tests) 14ms
+ ✓ packages/features/settings/src/scopes.test.ts (3 tests) 4ms
+
+ Test Files  6 passed (6)
+      Tests  69 passed (69)
+   Start at  05:06:44
+   Duration  1.44s (transform 327ms, setup 0ms, collect 833ms, tests 547ms, environment 1ms, prepare 284ms)
+

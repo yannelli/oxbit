@@ -1,0 +1,29 @@
+{
+  "name": "@oxbit/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 9280 --strictPort",
+    "build": "vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@oxbit/app-workbench": "workspace:*",
+    "@oxbit/host-desktop": "workspace:*",
+    "@oxbit/host-runtime": "workspace:*",
+    "@oxbit/host-browser": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@tauri-apps/api": "2.11.1",
+    "@oxbit/themes": "workspace:*"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "@wdio/tauri-plugin": "1.4.0"
+  },
+  "license": "MIT"
+}

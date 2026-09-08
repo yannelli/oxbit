@@ -1,0 +1,42 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist-types",
+    "tsBuildInfoFile": "dist-types/tsconfig.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/app-workbench"
+    },
+    {
+      "path": "../../packages/host-desktop"
+    },
+    {
+      "path": "../../packages/host-runtime"
+    },
+    {
+      "path": "../../packages/host-browser"
+    },
+    {
+      "path": "../../packages/workbench"
+    },
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/themes"
+    }
+  ]
+}

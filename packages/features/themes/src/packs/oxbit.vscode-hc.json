@@ -1,0 +1,218 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.vscode-hc",
+  "name": "VS Code High Contrast",
+  "version": "1.0.0",
+  "attribution": "Adapted from microsoft/vscode, revision 5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1.\n\nMIT License\n\nCopyright (c) 2015 - present Microsoft Corporation\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "themes": [
+    {
+      "id": "vscode-hc-dark",
+      "name": "VS Code High Contrast Dark",
+      "mode": "dark",
+      "highContrast": true,
+      "pairedTheme": "vscode-hc-light",
+      "base": "builtin:dark",
+      "colors": {
+        "workbench.background": "#000000",
+        "surface.background": "#000000",
+        "editor.background": "#000000",
+        "popover.background": "#0C141F",
+        "input.background": "#000000",
+        "control.hover.background": "#6FC3DF1a",
+        "control.active.background": "#FFFFFF1f",
+        "list.selection.background": "#6FC3DF29",
+        "border.default": "#6FC3DF",
+        "border.strong": "#6FC3DF",
+        "text.primary": "#FFFFFF",
+        "text.secondary": "#FFFFFF",
+        "text.muted": "#FFFFFF",
+        "text.disabled": "#A5A5A5",
+        "accent.primary": "#6FC3DF",
+        "accent.foreground": "#000000",
+        "accent.background": "#6FC3DF29",
+        "focus.border": "#F38518",
+        "diagnostic.error": "#F48771",
+        "diagnostic.warning": "#CCA700",
+        "diagnostic.info": "#75BEFF",
+        "diagnostic.success": "#81B88B",
+        "git.modified": "#E2C08D",
+        "git.added": "#81B88B",
+        "git.deleted": "#C74E39",
+        "git.conflict": "#E4676B",
+        "diagnostic.error.background": "#F4877124",
+        "diagnostic.warning.background": "#CCA70024",
+        "diff.added.background": "#81B88B24",
+        "diff.deleted.background": "#C74E3924",
+        "diagnostic.info.background": "#75BEFF24",
+        "editor.activeLine.background": "#FFFFFF0a",
+        "editor.search.background": "#EA5C0055",
+        "editor.search.activeBackground": "#515C6A",
+        "editor.occurrence.background": "#6FC3DF26",
+        "selection.background": "#6FC3DF38",
+        "editor.guide": "#FFFFFF",
+        "overlay.background": "#00000099"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#569cd6"
+        },
+        "string": {
+          "foreground": "#ce9178"
+        },
+        "number": {
+          "foreground": "#b5cea8"
+        },
+        "comment": {
+          "foreground": "#7ca668"
+        },
+        "type": {
+          "foreground": "#4EC9B0"
+        },
+        "function": {
+          "foreground": "#DCDCAA"
+        },
+        "property": {
+          "foreground": "#9CDCFE"
+        },
+        "variable": {
+          "foreground": "#9CDCFE"
+        },
+        "ident": {
+          "foreground": "#9CDCFE"
+        },
+        "text": {
+          "foreground": "#FFFFFF"
+        },
+        "tag": {
+          "foreground": "#569cd6"
+        },
+        "attr": {
+          "foreground": "#9cdcfe"
+        },
+        "punct": {
+          "foreground": "#FFFFFF"
+        },
+        "operator": {
+          "foreground": "#d4d4d4"
+        },
+        "heading": {
+          "foreground": "#6796e6"
+        },
+        "link": {
+          "foreground": "#3794FF"
+        },
+        "strong": {
+          "foreground": "#FFFFFF"
+        }
+      },
+      "effects": {
+        "shadow": []
+      }
+    },
+    {
+      "id": "vscode-hc-light",
+      "name": "VS Code High Contrast Light",
+      "mode": "light",
+      "highContrast": true,
+      "pairedTheme": "vscode-hc-dark",
+      "base": "builtin:light",
+      "colors": {
+        "workbench.background": "#FFFFFF",
+        "surface.background": "#FFFFFF",
+        "editor.background": "#FFFFFF",
+        "popover.background": "#FFFFFF",
+        "input.background": "#FFFFFF",
+        "control.hover.background": "#0F4A851a",
+        "control.active.background": "#2929291f",
+        "list.selection.background": "#0F4A8529",
+        "border.default": "#0F4A85",
+        "border.strong": "#0F4A85",
+        "text.primary": "#292929",
+        "text.secondary": "#292929",
+        "text.muted": "#292929",
+        "text.disabled": "#7F7F7F",
+        "accent.primary": "#0F4A85",
+        "accent.foreground": "#FFFFFF",
+        "accent.background": "#0F4A8529",
+        "focus.border": "#006BBD",
+        "diagnostic.error": "#A1260D",
+        "diagnostic.warning": "#895503",
+        "diagnostic.info": "#0063B1",
+        "diagnostic.success": "#587C0C",
+        "git.modified": "#895503",
+        "git.added": "#587C0C",
+        "git.deleted": "#AD0707",
+        "git.conflict": "#AD0707",
+        "diagnostic.error.background": "#A1260D24",
+        "diagnostic.warning.background": "#89550324",
+        "diff.added.background": "#587C0C24",
+        "diff.deleted.background": "#AD070724",
+        "diagnostic.info.background": "#0063B124",
+        "editor.activeLine.background": "#2929290a",
+        "editor.search.background": "#EA5C0033",
+        "editor.search.activeBackground": "#A8AC94",
+        "editor.occurrence.background": "#0F4A8526",
+        "selection.background": "#0F4A8538",
+        "editor.guide": "#0F4A85",
+        "overlay.background": "#00000059"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#0F4A85"
+        },
+        "string": {
+          "foreground": "#0F4A85"
+        },
+        "number": {
+          "foreground": "#096d48"
+        },
+        "comment": {
+          "foreground": "#515151"
+        },
+        "type": {
+          "foreground": "#185E73"
+        },
+        "function": {
+          "foreground": "#5e2cbc"
+        },
+        "property": {
+          "foreground": "#001080"
+        },
+        "variable": {
+          "foreground": "#001080"
+        },
+        "ident": {
+          "foreground": "#001080"
+        },
+        "text": {
+          "foreground": "#292929"
+        },
+        "tag": {
+          "foreground": "#0F4A85"
+        },
+        "attr": {
+          "foreground": "#264F78"
+        },
+        "punct": {
+          "foreground": "#292929"
+        },
+        "operator": {
+          "foreground": "#000000"
+        },
+        "heading": {
+          "foreground": "#0F4A85"
+        },
+        "link": {
+          "foreground": "#006AB1"
+        },
+        "strong": {
+          "foreground": "#000080"
+        }
+      },
+      "effects": {
+        "shadow": []
+      }
+    }
+  ]
+}

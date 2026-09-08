@@ -1,0 +1,21 @@
+2026-09-07T09:03:02.735Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Waiting for Tauri (attempt 1/100)
+2026-09-07T09:03:02.735Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Installing backend-log listener
+2026-09-07T09:03:02.735Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Tauri ready - setting up backend-log listener
+2026-09-07T09:03:02.735Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Importing @tauri-apps/api/event
+2026-09-07T09:03:02.735Z INFO tauri-service:service: [Tauri:Frontend:0] [WDIO Tauri Plugin] ⚠️ Invoke interception via defineProperty failed; mock routing via window.__wdio_mocks__ remains active
+2026-09-07T09:03:02.736Z INFO tauri-service:service: [Tauri:Frontend:0] [WDIO Tauri Plugin] TEST: This is a test INFO log after setupConsoleForwarding()
+2026-09-07T09:03:02.737Z INFO tauri-service:service: [Tauri:Frontend:0] [WDIO Tauri Plugin] TEST: This is a test WARN log after setupConsoleForwarding()
+2026-09-07T09:03:02.737Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Event module imported successfully
+2026-09-07T09:03:02.742Z INFO tauri-service:service: [frontend] [WDIO-FRONTEND][INFO] [WDIO][Frontend] Backend log listener registered successfully
+2026-09-07T09:03:04.546Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.546Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.547Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.548Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.550Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.551Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.553Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.554Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.554Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.555Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.556Z INFO tauri-service:service: [Tauri:Frontend:0] {}
+2026-09-07T09:03:04.557Z INFO tauri-service:service: [Tauri:Frontend:0] {}

@@ -2,7 +2,6 @@ node_modules/
 **/dist/
 *.tsbuildinfo
 .oxbit-runtime/
-.zapp-runtime/
 test-results/
 playwright-report/
 .env
@@ -11,3 +10,32 @@ playwright-report/
 evidence/e2e-workspace.json
 
 apps/web/public/extensions/
+
+# Desktop build products and downloaded, checksum-verified tools
+.desktop-cache/
+**/dist-desktop/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/resources/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/tauri.release.conf.json
+apps/desktop/native-results/
+apps/desktop/artifacts/
+
+# Isolated icon-theme production verification bundles
+**/dist-icon-tests/
+
+# Reproducible language-server verification build products
+evidence/language-milestone1/bundles/
+evidence/language-milestone1/smoke.mjs
+evidence/language-milestone1/browser-artifacts/
+evidence/language-milestone1/intelligence.mjs
+
+**/dist-language-tests/
+evidence/language-milestone1/native/*.log
+
+# Editor, OS, and agent-tool state
+.DS_Store
+.idea/
+.opencode/
+.playwright-mcp/
+.claude/

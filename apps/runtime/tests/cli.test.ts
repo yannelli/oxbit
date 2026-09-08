@@ -195,3 +195,12 @@ describe("daemon record", () => {
     expect(await liveDaemon(dataDir)).toBeUndefined();
   });
 });
+
+describe('desktop launch routing', () => {
+  it('keeps desktop launches separate from daemon and foreground options', () => {
+    expect(parse(['--desktop', '/project'], env)).toMatchObject({ action: 'desktop', target: '/project' });
+    expect(parse(['--desktop', '--stop'], env)).toHaveProperty('error');
+    expect(parse(['--desktop', '--foreground'], env)).toHaveProperty('error');
+    expect(parse(['--desktop', '--port', '9277'], env)).toHaveProperty('error');
+  });
+});

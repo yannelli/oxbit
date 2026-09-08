@@ -1,4 +1,6 @@
-import { translate as tr } from "@oxbit/ui";
+import { currentTheme, themeTypography } from "@oxbit/workbench";
+import { terminalTheme, terminalSearch, fontFamily } from "@oxbit/themes";
+import { Icon, IconButton, translate as tr } from "@oxbit/ui";
 import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -25,6 +27,7 @@ type Session = {
   terminal?: Terminal;
   search?: SearchAddon;
   fit?: FitAddon;
+  revealSearch?: () => void;
 };
 export function createFeature(o: FeatureOptions): Extension {
   const sessions = new Map<string, Session>(),
@@ -33,6 +36,7 @@ export function createFeature(o: FeatureOptions): Extension {
   const emittedStates = new Map<string,string>();
   let active: string | undefined,
     split = false,
+    splitIds: string[] = [],
     disposed = false;
   const changed = () => {
     o.kernel.context.set("terminal", sessions.size > 0);
@@ -178,6 +182,7 @@ export function createFeature(o: FeatureOptions): Extension {
       return;
     if (session.exitCode === undefined) await request("terminal.kill", { id });
     sessions.delete(id);
+    if (splitIds.includes(id)) split = false;
     if (active === id) active = sessions.keys().next().value;
     changed();
   }
@@ -187,21 +192,22 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   const selected = () =>
     sessions.get(active ?? "") ?? sessions.values().next().value;
-  const theme = () =>
-    o.kernel.configuration.get("workbench.colorTheme") === "Paper (light)"
-      ? { background: "#f6f4f0", foreground: "#252422", cursor: "#3b78c7" }
-      : { background: "#131517", foreground: "#d4d7db", cursor: "#5c9cf0" };
+  const theme = () => terminalTheme(currentTheme(o.kernel));
+  const fontOptions = () => { const font=themeTypography(o.kernel,'terminal');return {fontFamily:fontFamily(font),fontSize:font.size,fontWeight:font.weight as 400,fontWeightBold:Math.min(900,font.weight+300) as 700,lineHeight:font.lineHeight,letterSpacing:font.letterSpacing}; };
   function TerminalPane({ session }: { session: Session }) {
     const ref = useRef<HTMLDivElement>(null),
       searchRef = useRef<HTMLInputElement>(null);
     const [query, setQuery] = useState("");
+    const [searching, setSearching] = useState(false);
+    useEffect(() => { if (searching) searchRef.current?.focus(); }, [searching]);
+    useEffect(() => {
+      session.revealSearch = () => { setSearching(true); searchRef.current?.focus(); };
+      return () => { session.revealSearch = undefined; };
+    }, [session]);
     useEffect(() => {
       if (!ref.current) return;
       const terminal = new Terminal({
-        fontFamily:
-          o.kernel.configuration.get<string>("editor.fontFamily") ||
-          "ui-monospace, monospace",
-        fontSize: o.kernel.configuration.get<number>("terminal.fontSize") ?? 12,
+        ...fontOptions(),
         scrollback:
           o.kernel.configuration.get<number>("terminal.scrollback") ?? 5000,
         allowProposedApi: true,
@@ -227,7 +233,8 @@ export function createFeature(o: FeatureOptions): Extension {
       session.fit = fit;
       session.rendered = 0;
       let mounted = true;
-      loadOptionalAddons(terminal, () => mounted);
+      const optionalAddons = loadOptionalAddons(terminal, () => mounted);
+      optionalAddons.setLigatures(themeTypography(o.kernel,"terminal").ligatures);
       if (session.truncated)
         terminal.writeln("[Earlier terminal output is no longer available]");
       for (const chunk of session.history) renderChunk(session, chunk);
@@ -253,20 +260,22 @@ export function createFeature(o: FeatureOptions): Extension {
           (error) => o.workbench.notify(String(error), "error"),
         );
       });
-      const configuration = o.kernel.configuration.subscribe(() => {
-        terminal.options.fontSize =
-          o.kernel.configuration.get<number>("terminal.fontSize") ?? 12;
-        terminal.options.scrollback =
-          o.kernel.configuration.get<number>("terminal.scrollback") ?? 5000;
-        terminal.options.fontFamily =
-          o.kernel.configuration.get<string>("editor.fontFamily") ||
-          "ui-monospace, monospace";
-        terminal.options.theme = theme();
-        resize();
-      });
+      const updateTheme = () => {
+        Object.assign(terminal.options, fontOptions());
+        optionalAddons.setLigatures(themeTypography(o.kernel,"terminal").ligatures);
+        terminal.options.scrollback = o.kernel.configuration.get<number>("terminal.scrollback") ?? 5000;
+        terminal.options.theme = theme(); resize();
+      };
+      const configuration = o.kernel.configuration.subscribe(updateTheme);
+      const contributions = o.kernel.contributions.subscribe(updateTheme);
+      document.fonts?.addEventListener('loadingdone', resize);
+      document.addEventListener('oxbit-fonts-loaded', resize);
       return () => {
         mounted = false;
         configuration();
+        contributions();
+        document.fonts?.removeEventListener("loadingdone", resize);
+        document.removeEventListener("oxbit-fonts-loaded", resize);
         observer.disconnect();
         data.dispose();
         terminal.dispose();
@@ -293,19 +302,13 @@ export function createFeature(o: FeatureOptions): Extension {
       React.createElement(
         "div",
         {
-          className: "panel-toolbar",
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "4px 10px",
-          },
+          className: "terminal-pane-toolbar",
         },
-        React.createElement(
-          "span",
-          { style: { fontSize: 11, flex: 1 } },
-          session.name + " · " + session.state,
-        ),
+        React.createElement("span", { className: "terminal-pane-name", title: session.name }, session.name),
+        React.createElement("span", { className: "terminal-state", "data-state": session.state }, session.state),
+        React.createElement(IconButton, { icon: "search", label: tr("Search terminal"), "aria-pressed": searching,
+          onClick: () => { setSearching(!searching); if (searching) session.search?.clearDecorations(); } }),
+        searching &&
         React.createElement("input", {
           ref: searchRef,
           "aria-label": tr("Search terminal"),
@@ -313,23 +316,24 @@ export function createFeature(o: FeatureOptions): Extension {
           value: query,
           onChange: (event: any) => {
             setQuery(event.target.value);
-            session.search?.findNext(event.target.value);
+            session.search?.findNext(event.target.value, {decorations:terminalSearch(currentTheme(o.kernel))});
           },
           onKeyDown: (event: any) => {
             if (event.key === "Enter") {
-              if (event.shiftKey) session.search?.findPrevious(query);
-              else session.search?.findNext(query);
+              if (event.shiftKey) session.search?.findPrevious(query, {decorations:terminalSearch(currentTheme(o.kernel))});
+              else session.search?.findNext(query, {decorations:terminalSearch(currentTheme(o.kernel))});
             }
             if (event.key === "Escape") {
               setQuery("");
+              setSearching(false);
               session.search?.clearDecorations();
               session.terminal?.focus();
             }
           },
         }),
         React.createElement(
-          "button",
-          {
+          IconButton,
+          { icon: "pencil", label: tr("Rename"),
             onClick: () => {
               void o.workbench
                 .prompt(tr("Terminal name"), session.name)
@@ -341,24 +345,22 @@ export function createFeature(o: FeatureOptions): Extension {
                 });
             },
           },
-          tr("Rename"),
         ),
         React.createElement(
-          "button",
-          {
+          IconButton,
+          { icon: "trash", label: session.exitCode === undefined ? tr("Terminate") : tr("Close"),
             onClick: () => {
               void kill(session.id).catch((error) =>
                 o.workbench.notify(String(error), "error"),
               );
             },
           },
-          session.exitCode === undefined ? tr("Terminate") : tr("Close"),
         ),
       ),
       session.truncated &&
         React.createElement(
           "span",
-          { role: "status", style: { fontSize: 11, padding: "0 10px" } },
+          { role: "status", style: { fontSize: "var(--font-small-font-size)", padding: "0 10px" } },
           tr("Earlier terminal output is no longer available"),
         ),
       React.createElement("div", {
@@ -386,48 +388,31 @@ export function createFeature(o: FeatureOptions): Extension {
         onContextMenu:(event:React.MouseEvent)=>{event.preventDefault();o.workbench.showContextMenu("terminal",event.clientX,event.clientY);},
         style: { height: "100%", display: "flex", flexDirection: "column" },
       },
-      React.createElement(
-        "div",
-        {
-          role: "tablist",
-          "aria-label": tr("Terminal sessions"),
-          style: { display: "flex", gap: 8, padding: "4px 10px" },
-        },
-        ...list.map((session) =>
-          React.createElement(
-            "button",
-            {
-              key: session.id,
-              role: "tab",
-              "aria-selected": session === current,
-              onClick: () => select(session.id),
+      React.createElement("div", { className: "terminal-tabs-toolbar" },
+        React.createElement("div", { role: "tablist", "aria-label": tr("Terminal sessions"), className: "terminal-tabs" },
+          ...list.map((session, index) => React.createElement("button", {
+            key: session.id, id: "terminal-tab-" + session.id, role: "tab", className: "terminal-tab",
+            "aria-selected": session === current, "aria-controls": "terminal-panes", title: session.name,
+            tabIndex: session === current ? 0 : -1,
+            onClick: () => { split = false; select(session.id); },
+            onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => {
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === "Home" ? 0 : event.key === "End" ? list.length - 1
+                : (index + (event.key === "ArrowRight" ? 1 : -1) + list.length) % list.length;
+              split = false; select(list[next].id);
+              document.getElementById("terminal-tab-" + list[next].id)?.focus();
             },
-            session.name,
-          ),
-        ),
-        React.createElement(
-          "button",
-          {
-            onClick: () => {
-              void o.kernel.commands
-                .execute("terminal.new")
-                .catch((error) => o.workbench.notify(String(error), "error"));
-            },
-          },
-          tr("New terminal"),
-        ),
-        React.createElement(
-          "button",
-          {
-            onClick: () => {
-              void o.kernel.commands
-                .execute("terminal.split")
-                .catch((error) => o.workbench.notify(String(error), "error"));
-            },
-          },
-          tr("Split terminal"),
-        ),
-      ),
+          }, React.createElement(Icon, { name: "terminal", size: 14 }),
+            React.createElement("span", null, session.name),
+            React.createElement("span", { className: "terminal-state-dot", "data-state": session.state, title: session.state })))),
+        React.createElement("div", { className: "terminal-actions" },
+          React.createElement("button", { className: "button terminal-new", disabled: !o.runtime?.connected,
+            onClick: () => { void o.kernel.commands.execute("terminal.new").catch(error => o.workbench.notify(String(error), "error")); } },
+            React.createElement(Icon, { name: "plus", size: 14 }), tr("New terminal")),
+          React.createElement(IconButton, { icon: "splitR", label: tr("Split terminal"), disabled: !current || !o.runtime?.connected,
+            onClick: () => { void o.kernel.commands.execute("terminal.split").catch(error => o.workbench.notify(String(error), "error")); } }),
+          split && React.createElement(IconButton, { icon: "layoutSide", label: tr("Show single terminal"), onClick: () => { split = false; changed(); } }))),
       !current &&
         React.createElement(
           "p",
@@ -438,8 +423,8 @@ export function createFeature(o: FeatureOptions): Extension {
         ),
       React.createElement(
         "div",
-        { style: { display: "flex", flex: 1, minHeight: 0 } },
-        ...(split ? list.slice(-2) : current ? [current] : []).map((session) =>
+        { id: "terminal-panes", role: "tabpanel", "aria-labelledby": current ? "terminal-tab-" + current.id : undefined, className: "terminal-panes" },
+        ...(split ? splitIds.map(id => sessions.get(id)).filter((session): session is Session => !!session) : current ? [current] : []).map((session) =>
           React.createElement(TerminalPane, { key: session.id, session }),
         ),
       ),
@@ -469,7 +454,7 @@ export function createFeature(o: FeatureOptions): Extension {
         }),
       );
       const commands: [string, string, () => unknown][] = [
-        ["terminal.new", "New Terminal", create],
+        ["terminal.new", "New Terminal", async () => { const session = await create(); split = false; changed(); return session; }],
         [
           "terminal.toggle",
           "Toggle Terminal",
@@ -479,8 +464,11 @@ export function createFeature(o: FeatureOptions): Extension {
           "terminal.split",
           "Split Terminal",
           async () => {
-            split = true;
-            await create();
+            const previous = selected();
+            const session = await create();
+            splitIds = previous ? [previous.id, session.id] : [session.id];
+            split = !!previous;
+            changed();
           },
         ],
         [
@@ -509,13 +497,7 @@ export function createFeature(o: FeatureOptions): Extension {
           "Find in Terminal",
           () => {
             o.workbench.openPanel("terminal");
-            requestAnimationFrame(() =>
-              document
-                .querySelector<HTMLInputElement>(
-                  'input[aria-label="Search terminal"]',
-                )
-                ?.focus(),
-            );
+            requestAnimationFrame(() => selected()?.revealSearch?.());
           },
         ],
       ];
@@ -561,6 +543,12 @@ export function createFeature(o: FeatureOptions): Extension {
             }
           }),
         );
+        ctx.subscribe(o.runtime.subscribe("runtime.terminated", () => {
+          for (const session of sessions.values()) if (session.exitCode === undefined) {
+            session.exitCode = -1; session.state = "terminated (runtime stopped)";
+          }
+          changed();
+        }));
         void restore();
       }
       ctx.subscribe(() => {

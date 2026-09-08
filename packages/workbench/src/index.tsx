@@ -1,4 +1,4 @@
-import { translate as tr, setLocale } from "@oxbit/ui";
+import { Select, translate as tr, setLocale } from "@oxbit/ui";
 import { findWorkspaceFiles } from "./files.js";
 import {
   Component,
@@ -11,7 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import {
-  languageIdForPath,
+  languageForKernel,
+  languages,
   type Extension,
   type Kernel,
   type Contribution,
@@ -24,6 +25,9 @@ import {
   EmptyState,
   Dialog,
   IconProvider,
+  OxbitMark,
+  OxbitLogo,
+  TooltipLayer,
 } from "@oxbit/ui";
 import {
   WorkbenchController,
@@ -32,7 +36,11 @@ import {
   type Notification,
 } from "./controller.js";
 import catalog from "./catalog.json";
-import { menuContributions, themeVariables } from "./contributions.js";
+import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
+import { AboutDialog } from "./about.js";
+import { symbolKind, useDocumentSymbols } from "./symbols.js";
+export { symbolKind, useDocumentSymbols } from "./symbols.js";
+export { currentTheme, themeTypography, themeMode, themeVariables } from "./contributions.js";
 import {
   normalizeShortcut,
   keyboardShortcut,
@@ -107,14 +115,7 @@ export function createWorkbenchFeature(
       add("notifications.clear", "Clear All Notifications", () =>
         workbench.set({ notifications: [] }),
       );
-      add("help.about", "About Oxbit", () =>
-        workbench.ask(
-          tr("Oxbit"),
-          tr("React 19 · CodeMirror 6 · Yjs · Public extension SDK 1.0.0") +
-            "\nMIT · Ryan Yannelli <ryanyannelli@gmail.com> · https://github.com/yannelli · /LICENSE.txt",
-          ["OK"],
-        ),
-      );
+      add("help.about", "About Oxbit", () => workbench.set({ aboutOpen: true }));
       for (const [id, panel] of [
         ["view.search", "search"],
         ["view.scm", "scm"],
@@ -129,7 +130,11 @@ export function createWorkbenchFeature(
           "surface:" + panel,
         );
       const surfaceCommands = new Map<string, { dispose(): void }>();
+      let refreshingSurfaces = false;
       const refreshSurfaces = () => {
+        if (refreshingSurfaces) return;
+        refreshingSurfaces = true;
+        try {
         const surfaces = ctx.contributions
           .list()
           .filter(
@@ -167,6 +172,7 @@ export function createWorkbenchFeature(
               }),
             );
         workbench.synchronizeContributions();
+        } finally { refreshingSurfaces = false; }
       };
       ctx.subscribe(ctx.contributions.subscribe(refreshSurfaces));
       ctx.subscribe(() => {
@@ -336,6 +342,7 @@ export function Workbench({
   const s = useWorkbench(workbench),
     kernel = workbench.kernel;
   useKeyboard(workbench);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(innerWidth);
   const [conn, setConn] = useState(
     runtime?.connected ? "Connected" : "Browser workspace",
@@ -353,15 +360,7 @@ export function Workbench({
     };
   }, [runtime, workbench]);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
-  const chosenTheme = kernel.contributions
-    .list("theme")
-    .find(
-      (item) => item.title === kernel.configuration.get("workbench.colorTheme"),
-    );
-  const theme =
-    (chosenTheme?.data as { mode?: string })?.mode === "light"
-      ? "light"
-      : "dark";
+  const theme = themeMode(kernel);
   const locale =
     kernel.configuration.get("workbench.locale") === "de" ? "long" : "en";
   const t = catalog.strings[locale];
@@ -423,6 +422,8 @@ export function Workbench({
   };
   return (
     <IconProvider
+      kernel={kernel}
+      variant={currentTheme(kernel).highContrast ? "highContrast" : theme}
       values={Object.fromEntries(
         kernel.contributions
           .list("icon")
@@ -433,6 +434,8 @@ export function Workbench({
       )}
     >
       <div
+        ref={rootRef}
+        data-tooltip-root=""
         style={themeVariables(kernel)}
         className={`workbench ${s.focus ? "focus-mode" : ""} ${conf ? "sidebar-right" : ""}`}
         data-screen-label="Workbench"
@@ -453,7 +456,7 @@ export function Workbench({
             aria-label={tr("Application menu")}
           >
             <div className="brand" role="img" aria-label="Oxbit">
-              <span className="oxbit-mark" aria-hidden="true" />
+              <OxbitMark decorative />
             </div>
             {mode === "desktop" &&
               Object.keys(catalog.menus).map((name) => (
@@ -598,7 +601,8 @@ export function Workbench({
                   .map((view) => (
                     <button
                       key={view.id}
-                      title={label(view)}
+                      data-tooltip={label(view)}
+                      title=""
                       aria-label={label(view)}
                       aria-pressed={s.sidebarId === view.id && s.sidebar}
                       className={
@@ -655,7 +659,8 @@ export function Workbench({
                 )}
                 <span className="activity-spacer" />
                 <button
-                  title={t.settings}
+                  data-tooltip={t.settings}
+                  title=""
                   aria-label={t.settings}
                   onClick={command("settings.open")}
                 >
@@ -854,20 +859,6 @@ export function Workbench({
                           workbench={workbench}
                           location={"panel:" + s.panelId}
                         />
-                        {s.panelId === "terminal" && (
-                          <>
-                            <IconButton
-                              icon="plus"
-                              label={tr("New Terminal")}
-                              onClick={command("terminal.new")}
-                            />
-                            <IconButton
-                              icon="splitR"
-                              label={tr("Split Terminal")}
-                              onClick={command("terminal.split")}
-                            />
-                          </>
-                        )}
                         <IconButton
                           icon={s.maxPanel ? "minimize" : "maximize"}
                           label={tr("Maximize panel")}
@@ -917,10 +908,9 @@ export function Workbench({
         ) : (
           <div className="welcome">
             <div className="welcome-inner">
-              <div className="welcome-logo" role="img" aria-label="Oxbit">
-                <span className="oxbit-mark" aria-hidden="true" />
-              </div>
-              <h1>Oxbit</h1>
+              <h1 className="welcome-heading">
+                <OxbitLogo />
+              </h1>
               <p className="muted">{t.noWorkspace}</p>
               <div className="welcome-columns">
                 <div>
@@ -1032,7 +1022,9 @@ export function Workbench({
           </div>
         )}
         {s.dialog && <WorkbenchDialog workbench={workbench} />}
+        {s.aboutOpen && <AboutDialog workbench={workbench} />}
         <Notifications workbench={workbench} />
+        <TooltipLayer rootRef={rootRef} delay={kernel.configuration.get<number>("workbench.tooltipDelay") ?? 400} />
       </div>
     </IconProvider>
   );
@@ -1231,7 +1223,9 @@ function EditorGroup({
                 }}
               >
                 {tab.path ? (
-                  <FileBadge path={tab.path} />
+                  <FileBadge kernel={workbench.kernel} path={tab.path} />
+                ) : tab.id.startsWith("extension:oxbit.") ? (
+                  <OxbitMark className="extension-tab-mark" decorative />
                 ) : (
                   <Icon
                     name={
@@ -1260,6 +1254,7 @@ function EditorGroup({
               ) : (
                 <button
                   className="tab-close"
+                  title=""
                   aria-label={tr("Close {0}", { "0": tab.title })}
                   onClick={() =>
                     void workbench.run("editor.closeTab", {
@@ -1281,20 +1276,9 @@ function EditorGroup({
         <span className="push" />
         <div className="group-actions">
           {s.groups.length > 1 && (
-            <select
-              className="group-picker"
-              aria-label={tr("Active editor group")}
-              value={s.activeGroup}
-              onChange={(event) =>
-                workbench.set({ activeGroup: event.target.value })
-              }
-            >
-              {s.groups.map((item, index) => (
-                <option key={item.id} value={item.id}>
-                  {tr("Group {0}", { 0: index + 1 })}
-                </option>
-              ))}
-            </select>
+            <Select className="group-picker" label={tr("Active editor group")} value={s.activeGroup}
+              onChange={activeGroup => workbench.set({ activeGroup })}
+              options={s.groups.map((item, index) => ({ value: item.id, label: tr("Group {0}", { 0: index + 1 }) }))} />
           )}
           <ToolbarContributions workbench={workbench} location="editor" />
           {current?.path?.endsWith(".md") && (
@@ -1348,7 +1332,7 @@ function EditorGroup({
         <DocumentView tab={current} group={group} workbench={workbench} />
       ) : (
         <div className="editor-empty">
-          <div className="editor-watermark">O</div>
+          <OxbitMark className="editor-watermark" decorative />
           {[
             ["Go to File", "Ctrl P", "workbench.quickOpen"],
             ["Show All Commands", "Ctrl Shift P", "workbench.showCommands"],
@@ -1702,8 +1686,7 @@ function CommandMenu({
 function Palette({ workbench }: { workbench: WorkbenchController }) {
   const s = useWorkbench(workbench),
     palette = s.palette!;
-  const [index, setIndex] = useState(0),
-    [symbols, setSymbols] = useState<any[]>([]);
+  const [index, setIndex] = useState(0);
   const [fileResults, setFileResults] = useState<{
     query: string;
     paths: string[];
@@ -1726,6 +1709,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
           : palette.mode === "recent"
             ? "recent"
             : "files";
+  const symbolResult = useDocumentSymbols(workbench, mode === "symbols");
   const term = query
     .replace(/^[>›@:]/, "")
     .trim()
@@ -1751,22 +1735,6 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
   useEffect(() => {
     setIndex(0);
   }, [query]);
-  useEffect(() => {
-    if (mode !== "symbols") return;
-    const path = workbench.activePath(),
-      service = workbench.kernel.services.optional<any>("language");
-    if (service && path)
-      void service
-        .request("textDocument/documentSymbol", {
-          textDocument: { uri: service.uri(path) },
-        })
-        .then((values: any[]) => {
-          const flatten = (items: any[]): any[] =>
-            items.flatMap((item) => [item, ...flatten(item.children || [])]);
-          setSymbols(flatten(values || []));
-        })
-        .catch(() => setSymbols([]));
-  }, [mode, workbench]);
   const score = (text: string) => {
     const v = text.toLowerCase();
     if (!term) return 1;
@@ -1808,22 +1776,18 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
           .filter((r) => score(tr(r.title) + " " + r.title + " " + r.id) > 0)
           .sort((a, b) => score(tr(b.title)) - score(tr(a.title)))
       : mode === "symbols"
-        ? symbols
+        ? symbolResult.items
             .filter((item) => score(item.name) > 0)
             .map((item, i) => ({
               id: String(i),
               title: item.name,
-              detail: "Symbol",
+              detail: `${tr(symbolKind(item.kind))} · ${tr("Line")} ${item.selectionRange.start.line + 1}`,
               icon: "symbol",
               enabled: true,
               run: () =>
-                workbench.openFile(workbench.activePath()!, {
-                  line:
-                    (item.selectionRange || item.range || item.location?.range)
-                      .start.line + 1,
-                  col:
-                    (item.selectionRange || item.range || item.location?.range)
-                      .start.character + 1,
+                workbench.openFile(item.path, {
+                  line: item.selectionRange.start.line + 1,
+                  col: item.selectionRange.start.character + 1,
                 }),
             }))
         : mode === "line"
@@ -1895,7 +1859,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
             aria-label={tr("Search files and commands")}
             aria-autocomplete="list"
             aria-controls="palette-list"
-            aria-activedescendant={`palette-option-${selected}`}
+            aria-activedescendant={rows.length ? `palette-option-${selected}` : undefined}
             role="combobox"
             aria-expanded="true"
             placeholder={tr(
@@ -1956,12 +1920,12 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
               onClick={() => run(row)}
             >
               {mode === "files" || mode === "recent" ? (
-                <FileBadge path={row.id} />
+                <FileBadge kernel={workbench.kernel} path={row.id} />
               ) : (
                 <Icon name={row.icon || "goto"} size={14} />
               )}
               <span>
-                {tr(row.title)}
+                {mode === "symbols" ? row.title : tr(row.title)}
                 <small>{row.detail ? tr(row.detail) : undefined}</small>
               </span>
               <kbd>{displayShortcut(row.keys)}</kbd>
@@ -1971,7 +1935,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
           {!rows.length && (
             <div className="empty-state">
               {mode === "symbols"
-                ? tr("No language server symbols available.")
+                ? tr(!symbolResult.path ? "Open a code file to see its symbols." : symbolResult.loading ? "Loading symbols…" : symbolResult.error || (symbolResult.items.length ? "No matching symbols." : "No symbols in this file."))
                 : tr("No results found.")}
             </div>
           )}
@@ -2001,8 +1965,11 @@ function WorkbenchDialog({ workbench }: { workbench: WorkbenchController }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter")
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
               workbench.finishDialog(dialog.choices[0], value);
+            }
           }}
         />
       )}
@@ -2170,7 +2137,7 @@ function EditorStatus({ workbench }: { workbench: WorkbenchController }) {
         {tr("Spaces:")}{" "}
         {workbench.kernel.configuration.get<number>(
           "editor.tabSize",
-          path ? languageIdForPath(path) : undefined,
+          path ? languageForKernel(workbench.kernel, path).id : undefined,
         )}
       </button>
       <button onClick={() => void chooseEncoding(workbench)}>
@@ -2185,9 +2152,7 @@ function EditorStatus({ workbench }: { workbench: WorkbenchController }) {
         {doc.eol}
       </button>
       <span>
-        {(catalog.langMeta as Record<string, { label: string }>)[
-          path!.split(".").pop() || "txt"
-        ]?.label || tr("Plain Text")}
+        {languages.find(item => item.id === languageForKernel(workbench.kernel, path!, doc.text.toString().split("\n", 1)[0]).id)?.title ?? languageForKernel(workbench.kernel, path!).id}
       </span>
     </>
   );

@@ -1,4 +1,4 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
 
-> zapp@0.1.0 lint /home/ubuntu/.paseo/worktrees/2fg5jw20/jittery-lizard
+> oxbit@0.1.0 lint /Users/ryanyannelli/Development/oxbit
 > eslint apps packages examples tests scripts --no-warn-ignored
-

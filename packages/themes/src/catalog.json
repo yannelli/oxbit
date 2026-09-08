@@ -1,0 +1,904 @@
+{
+  "colors": {
+    "workbench.background": {
+      "css": "--bg-app",
+      "description": "workbench background",
+      "dark": "#14161a",
+      "light": "#f2f3ef"
+    },
+    "surface.background": {
+      "css": "--bg-surface",
+      "description": "surface background",
+      "dark": "#1a1d22",
+      "light": "#f7f8f5"
+    },
+    "editor.background": {
+      "css": "--bg-editor",
+      "description": "editor background",
+      "dark": "#1e2227",
+      "light": "#ffffff"
+    },
+    "popover.background": {
+      "css": "--bg-raised",
+      "description": "popover background",
+      "dark": "#242931",
+      "light": "#ffffff"
+    },
+    "input.background": {
+      "css": "--bg-input",
+      "description": "input background",
+      "dark": "#15181c",
+      "light": "#ffffff"
+    },
+    "control.hover.background": {
+      "css": "--bg-hover",
+      "description": "control hover background",
+      "dark": "#ffffff0e",
+      "light": "#0000000d"
+    },
+    "control.active.background": {
+      "css": "--bg-active",
+      "description": "control active background",
+      "dark": "#ffffff17",
+      "light": "#00000014"
+    },
+    "list.selection.background": {
+      "css": "--bg-selected",
+      "description": "list selection background",
+      "dark": "#8bd5ca24",
+      "light": "#0f7b6c1f"
+    },
+    "border.default": {
+      "css": "--bd",
+      "description": "border default",
+      "dark": "#30363b",
+      "light": "#d7dcd8"
+    },
+    "border.strong": {
+      "css": "--bd-strong",
+      "description": "border strong",
+      "dark": "#44514f",
+      "light": "#bfc7c2"
+    },
+    "text.primary": {
+      "css": "--fg",
+      "description": "text primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "text.secondary": {
+      "css": "--fg-2",
+      "description": "text secondary",
+      "dark": "#9eadac",
+      "light": "#596365"
+    },
+    "text.muted": {
+      "css": "--fg-3",
+      "description": "text muted",
+      "dark": "#82928f",
+      "light": "#66736f"
+    },
+    "text.disabled": {
+      "css": "--fg-4",
+      "description": "text disabled",
+      "dark": "#4b5855",
+      "light": "#a7b1aa"
+    },
+    "accent.primary": {
+      "css": "--accent",
+      "description": "accent primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "accent.foreground": {
+      "css": "--accent-fg",
+      "description": "accent foreground",
+      "dark": "#14161a",
+      "light": "#ffffff"
+    },
+    "accent.background": {
+      "css": "--accent-soft",
+      "description": "accent background",
+      "dark": "#8bd5ca29",
+      "light": "#0f7b6c1f"
+    },
+    "focus.border": {
+      "css": "--focus",
+      "description": "focus border",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "diagnostic.error": {
+      "css": "--err",
+      "description": "diagnostic error",
+      "dark": "#f27a7a",
+      "light": "#c93c3c"
+    },
+    "diagnostic.warning": {
+      "css": "--warn",
+      "description": "diagnostic warning",
+      "dark": "#e5b567",
+      "light": "#a86d00"
+    },
+    "diagnostic.info": {
+      "css": "--info",
+      "description": "diagnostic info",
+      "dark": "#7fb3ff",
+      "light": "#2b6cb0"
+    },
+    "diagnostic.success": {
+      "css": "--ok",
+      "description": "diagnostic success",
+      "dark": "#7ed49a",
+      "light": "#2f855a"
+    },
+    "git.modified": {
+      "css": "--mod",
+      "description": "git modified",
+      "dark": "#e5b567",
+      "light": "#a86d00"
+    },
+    "git.added": {
+      "css": "--add",
+      "description": "git added",
+      "dark": "#7ed49a",
+      "light": "#2f855a"
+    },
+    "git.deleted": {
+      "css": "--del",
+      "description": "git deleted",
+      "dark": "#f27a7a",
+      "light": "#c93c3c"
+    },
+    "git.conflict": {
+      "css": "--conflict",
+      "description": "git conflict",
+      "dark": "#e08a5b",
+      "light": "#b5541b"
+    },
+    "diagnostic.error.background": {
+      "css": "--err-soft",
+      "description": "diagnostic error background",
+      "dark": "#f27a7a24",
+      "light": "#c93c3c1a"
+    },
+    "diagnostic.warning.background": {
+      "css": "--warn-soft",
+      "description": "diagnostic warning background",
+      "dark": "#e5b56724",
+      "light": "#a86d001f"
+    },
+    "diff.added.background": {
+      "css": "--add-soft",
+      "description": "diff added background",
+      "dark": "#7ed49a24",
+      "light": "#2f855a1f"
+    },
+    "diff.deleted.background": {
+      "css": "--del-soft",
+      "description": "diff deleted background",
+      "dark": "#f27a7a24",
+      "light": "#c93c3c1a"
+    },
+    "diagnostic.info.background": {
+      "css": "--info-soft",
+      "description": "diagnostic info background",
+      "dark": "#7fb3ff24",
+      "light": "#2b6cb01a"
+    },
+    "editor.activeLine.background": {
+      "css": "--line-active",
+      "description": "editor activeLine background",
+      "dark": "#ffffff0a",
+      "light": "#00000009"
+    },
+    "editor.search.background": {
+      "css": "--match",
+      "description": "editor search background",
+      "dark": "#e5b56747",
+      "light": "#ffc40059"
+    },
+    "editor.search.activeBackground": {
+      "css": "--match-active",
+      "description": "editor search activeBackground",
+      "dark": "#e5b5678c",
+      "light": "#ffa60099"
+    },
+    "editor.occurrence.background": {
+      "css": "--occ",
+      "description": "editor occurrence background",
+      "dark": "#ffffff14",
+      "light": "#00000012"
+    },
+    "selection.background": {
+      "css": "--sel",
+      "description": "selection background",
+      "dark": "#8bd5ca47",
+      "light": "#0f7b6c38"
+    },
+    "editor.guide": {
+      "css": "--guide",
+      "description": "editor guide",
+      "dark": "#2e343d",
+      "light": "#e4e7e3"
+    },
+    "overlay.background": {
+      "css": "--scrim",
+      "description": "overlay background",
+      "dark": "#00000080",
+      "light": "#141e2859"
+    },
+    "button.primary.background": {
+      "css": "--button-primary-background",
+      "description": "button primary background",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "button.primary.foreground": {
+      "css": "--button-primary-foreground",
+      "description": "button primary foreground",
+      "source": "accent.foreground",
+      "dark": "#14161a",
+      "light": "#ffffff"
+    },
+    "button.primary.hoverBackground": {
+      "css": "--button-primary-hoverBackground",
+      "description": "button primary hoverBackground",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "link.foreground": {
+      "css": "--link-foreground",
+      "description": "link foreground",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "link.hoverForeground": {
+      "css": "--link-hoverForeground",
+      "description": "link hoverForeground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "selection.foreground": {
+      "css": "--selection-foreground",
+      "description": "selection foreground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "editor.selection.background": {
+      "css": "--editor-selection-background",
+      "description": "editor selection background",
+      "source": "selection.background",
+      "dark": "#8bd5ca47",
+      "light": "#0f7b6c38"
+    },
+    "editor.selection.foreground": {
+      "css": "--editor-selection-foreground",
+      "description": "editor selection foreground",
+      "source": "syntax:text",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "editor.selection.inactiveBackground": {
+      "css": "--editor-selection-inactiveBackground",
+      "description": "editor selection inactiveBackground",
+      "source": "editor.occurrence.background",
+      "dark": "#ffffff14",
+      "light": "#00000012"
+    },
+    "editor.cursor": {
+      "css": "--editor-cursor",
+      "description": "editor cursor",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "editor.gutter.background": {
+      "css": "--editor-gutter-background",
+      "description": "editor gutter background",
+      "source": "editor.background",
+      "dark": "#1e2227",
+      "light": "#ffffff"
+    },
+    "editor.gutter.foreground": {
+      "css": "--editor-gutter-foreground",
+      "description": "editor gutter foreground",
+      "source": "text.muted",
+      "dark": "#82928f",
+      "light": "#66736f"
+    },
+    "popover.foreground": {
+      "css": "--popover-foreground",
+      "description": "popover foreground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "input.foreground": {
+      "css": "--input-foreground",
+      "description": "input foreground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "input.placeholder": {
+      "css": "--input-placeholder",
+      "description": "input placeholder",
+      "source": "text.muted",
+      "dark": "#82928f",
+      "light": "#66736f"
+    },
+    "control.disabled.foreground": {
+      "css": "--control-disabled-foreground",
+      "description": "control disabled foreground",
+      "source": "text.disabled",
+      "dark": "#4b5855",
+      "light": "#a7b1aa"
+    },
+    "tab.active.foreground": {
+      "css": "--tab-active-foreground",
+      "description": "tab active foreground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "tab.inactive.foreground": {
+      "css": "--tab-inactive-foreground",
+      "description": "tab inactive foreground",
+      "source": "text.secondary",
+      "dark": "#9eadac",
+      "light": "#596365"
+    },
+    "tab.hover.background": {
+      "css": "--tab-hover-background",
+      "description": "tab hover background",
+      "source": "control.hover.background",
+      "dark": "#ffffff0e",
+      "light": "#0000000d"
+    },
+    "preview.background": {
+      "css": "--preview-background",
+      "description": "preview background",
+      "source": "editor.background",
+      "dark": "#1e2227",
+      "light": "#ffffff"
+    },
+    "preview.foreground": {
+      "css": "--preview-foreground",
+      "description": "preview foreground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "collaboration.cursor": {
+      "css": "--collaboration-cursor",
+      "description": "collaboration cursor",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "collaboration.selection": {
+      "css": "--collaboration-selection",
+      "description": "collaboration selection",
+      "source": "selection.background",
+      "dark": "#8bd5ca47",
+      "light": "#0f7b6c38"
+    },
+    "terminal.background": {
+      "css": "--terminal-background",
+      "description": "terminal background",
+      "source": "editor.background",
+      "dark": "#1e2227",
+      "light": "#ffffff"
+    },
+    "terminal.foreground": {
+      "css": "--terminal-foreground",
+      "description": "terminal foreground",
+      "source": "syntax:text",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "terminal.cursor": {
+      "css": "--terminal-cursor",
+      "description": "terminal cursor",
+      "source": "accent.primary",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "terminal.cursorAccent": {
+      "css": "--terminal-cursorAccent",
+      "description": "terminal cursorAccent",
+      "source": "editor.background",
+      "dark": "#1e2227",
+      "light": "#ffffff"
+    },
+    "terminal.selectionBackground": {
+      "css": "--terminal-selectionBackground",
+      "description": "terminal selectionBackground",
+      "source": "selection.background",
+      "dark": "#8bd5ca47",
+      "light": "#0f7b6c38"
+    },
+    "terminal.selectionForeground": {
+      "css": "--terminal-selectionForeground",
+      "description": "terminal selectionForeground",
+      "source": "text.primary",
+      "dark": "#f2f3ef",
+      "light": "#14161a"
+    },
+    "terminal.selectionInactiveBackground": {
+      "css": "--terminal-selectionInactiveBackground",
+      "description": "terminal selectionInactiveBackground",
+      "source": "editor.occurrence.background",
+      "dark": "#ffffff14",
+      "light": "#00000012"
+    },
+    "terminal.search.background": {
+      "css": "--terminal-search-background",
+      "description": "terminal search background",
+      "source": "editor.search.background",
+      "dark": "#e5b56747",
+      "light": "#ffc40059"
+    },
+    "terminal.search.activeBackground": {
+      "css": "--terminal-search-activeBackground",
+      "description": "terminal search activeBackground",
+      "source": "editor.search.activeBackground",
+      "dark": "#e5b5678c",
+      "light": "#ffa60099"
+    },
+    "terminal.search.border": {
+      "css": "--terminal-search-border",
+      "description": "terminal search border",
+      "source": "focus.border",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "terminal.black": {
+      "css": "--terminal-black",
+      "description": "Terminal ANSI black",
+      "dark": "#000000",
+      "light": "#000000"
+    },
+    "terminal.red": {
+      "css": "--terminal-red",
+      "description": "Terminal ANSI red",
+      "dark": "#cd3131",
+      "light": "#cd3131"
+    },
+    "terminal.green": {
+      "css": "--terminal-green",
+      "description": "Terminal ANSI green",
+      "dark": "#0dbc79",
+      "light": "#0dbc79"
+    },
+    "terminal.yellow": {
+      "css": "--terminal-yellow",
+      "description": "Terminal ANSI yellow",
+      "dark": "#e5e510",
+      "light": "#e5e510"
+    },
+    "terminal.blue": {
+      "css": "--terminal-blue",
+      "description": "Terminal ANSI blue",
+      "dark": "#2472c8",
+      "light": "#2472c8"
+    },
+    "terminal.magenta": {
+      "css": "--terminal-magenta",
+      "description": "Terminal ANSI magenta",
+      "dark": "#bc3fbc",
+      "light": "#bc3fbc"
+    },
+    "terminal.cyan": {
+      "css": "--terminal-cyan",
+      "description": "Terminal ANSI cyan",
+      "dark": "#11a8cd",
+      "light": "#11a8cd"
+    },
+    "terminal.white": {
+      "css": "--terminal-white",
+      "description": "Terminal ANSI white",
+      "dark": "#e5e5e5",
+      "light": "#e5e5e5"
+    },
+    "terminal.brightBlack": {
+      "css": "--terminal-brightBlack",
+      "description": "Terminal ANSI brightBlack",
+      "dark": "#666666",
+      "light": "#666666"
+    },
+    "terminal.brightRed": {
+      "css": "--terminal-brightRed",
+      "description": "Terminal ANSI brightRed",
+      "dark": "#f14c4c",
+      "light": "#f14c4c"
+    },
+    "terminal.brightGreen": {
+      "css": "--terminal-brightGreen",
+      "description": "Terminal ANSI brightGreen",
+      "dark": "#23d18b",
+      "light": "#23d18b"
+    },
+    "terminal.brightYellow": {
+      "css": "--terminal-brightYellow",
+      "description": "Terminal ANSI brightYellow",
+      "dark": "#f5f543",
+      "light": "#f5f543"
+    },
+    "terminal.brightBlue": {
+      "css": "--terminal-brightBlue",
+      "description": "Terminal ANSI brightBlue",
+      "dark": "#3b8eea",
+      "light": "#3b8eea"
+    },
+    "terminal.brightMagenta": {
+      "css": "--terminal-brightMagenta",
+      "description": "Terminal ANSI brightMagenta",
+      "dark": "#d670d6",
+      "light": "#d670d6"
+    },
+    "terminal.brightCyan": {
+      "css": "--terminal-brightCyan",
+      "description": "Terminal ANSI brightCyan",
+      "dark": "#29b8db",
+      "light": "#29b8db"
+    },
+    "terminal.brightWhite": {
+      "css": "--terminal-brightWhite",
+      "description": "Terminal ANSI brightWhite",
+      "dark": "#ffffff",
+      "light": "#ffffff"
+    },
+    "fileBadge.default.foreground": {
+      "css": "--file-badge-default-foreground",
+      "description": "File badge default foreground",
+      "dark": "#9aa1ad",
+      "light": "#9aa1ad"
+    },
+    "fileBadge.default.background": {
+      "css": "--file-badge-default-background",
+      "description": "File badge default background",
+      "dark": "#9aa1ad22",
+      "light": "#9aa1ad22"
+    },
+    "fileBadge.typescript.foreground": {
+      "css": "--file-badge-typescript-foreground",
+      "description": "File badge typescript foreground",
+      "dark": "#82b1ff",
+      "light": "#82b1ff"
+    },
+    "fileBadge.typescript.background": {
+      "css": "--file-badge-typescript-background",
+      "description": "File badge typescript background",
+      "dark": "#82b1ff22",
+      "light": "#82b1ff22"
+    },
+    "fileBadge.javascript.foreground": {
+      "css": "--file-badge-javascript-foreground",
+      "description": "File badge javascript foreground",
+      "dark": "#f2b571",
+      "light": "#f2b571"
+    },
+    "fileBadge.javascript.background": {
+      "css": "--file-badge-javascript-background",
+      "description": "File badge javascript background",
+      "dark": "#f2b57122",
+      "light": "#f2b57122"
+    },
+    "fileBadge.css.foreground": {
+      "css": "--file-badge-css-foreground",
+      "description": "File badge css foreground",
+      "dark": "#b39ddb",
+      "light": "#b39ddb"
+    },
+    "fileBadge.css.background": {
+      "css": "--file-badge-css-background",
+      "description": "File badge css background",
+      "dark": "#b39ddb22",
+      "light": "#b39ddb22"
+    },
+    "fileBadge.html.foreground": {
+      "css": "--file-badge-html-foreground",
+      "description": "File badge html foreground",
+      "dark": "#f28b82",
+      "light": "#f28b82"
+    },
+    "fileBadge.html.background": {
+      "css": "--file-badge-html-background",
+      "description": "File badge html background",
+      "dark": "#f28b8222",
+      "light": "#f28b8222"
+    }
+  },
+  "syntax": {
+    "keyword": {
+      "css": "--tok-keyword",
+      "description": "Parser category keyword",
+      "dark": "#b39ddb",
+      "light": "#6f42c1"
+    },
+    "string": {
+      "css": "--tok-string",
+      "description": "Parser category string",
+      "dark": "#9ccc9c",
+      "light": "#2e7d32"
+    },
+    "number": {
+      "css": "--tok-number",
+      "description": "Parser category number",
+      "dark": "#f2b571",
+      "light": "#b35a00"
+    },
+    "comment": {
+      "css": "--tok-comment",
+      "description": "Parser category comment",
+      "dark": "#6b7280",
+      "light": "#7a8090"
+    },
+    "type": {
+      "css": "--tok-type",
+      "description": "Parser category type",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "function": {
+      "css": "--tok-function",
+      "description": "Parser category function",
+      "dark": "#82b1ff",
+      "light": "#1f5fbf"
+    },
+    "property": {
+      "css": "--tok-property",
+      "description": "Parser category property",
+      "dark": "#d6dbe3",
+      "light": "#2d3340"
+    },
+    "variable": {
+      "css": "--tok-variable",
+      "description": "Parser category variable",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "ident": {
+      "css": "--tok-ident",
+      "description": "Parser category ident",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "text": {
+      "css": "--tok-text",
+      "description": "Parser category text",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "tag": {
+      "css": "--tok-tag",
+      "description": "Parser category tag",
+      "dark": "#f28b82",
+      "light": "#c0392b"
+    },
+    "attr": {
+      "css": "--tok-attr",
+      "description": "Parser category attr",
+      "dark": "#f2b571",
+      "light": "#b35a00"
+    },
+    "punct": {
+      "css": "--tok-punct",
+      "description": "Parser category punct",
+      "dark": "#8f96a3",
+      "light": "#6b7280"
+    },
+    "operator": {
+      "css": "--tok-operator",
+      "description": "Parser category operator",
+      "dark": "#a3a9b4",
+      "light": "#4b5160"
+    },
+    "heading": {
+      "css": "--tok-heading",
+      "description": "Parser category heading",
+      "dark": "#82b1ff",
+      "light": "#1f5fbf"
+    },
+    "link": {
+      "css": "--tok-link",
+      "description": "Parser category link",
+      "dark": "#8bd5ca",
+      "light": "#0f7b6c"
+    },
+    "strong": {
+      "css": "--tok-strong",
+      "description": "Parser category strong",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    },
+    "emphasis": {
+      "css": "--tok-emphasis",
+      "description": "Markdown emphasis",
+      "dark": "#e6e8ec",
+      "light": "#1c1e24"
+    }
+  },
+  "typography": {
+    "body": {
+      "description": "Typography for body",
+      "default": {
+        "family": [
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif"
+        ],
+        "size": 12,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.4,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "heading": {
+      "description": "Typography for heading",
+      "default": {
+        "family": [
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif"
+        ],
+        "size": 20,
+        "weight": 600,
+        "style": "normal",
+        "lineHeight": 1.3,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "label": {
+      "description": "Typography for label",
+      "default": {
+        "family": [
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif"
+        ],
+        "size": 12,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.4,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "small": {
+      "description": "Typography for small",
+      "default": {
+        "family": [
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif"
+        ],
+        "size": 11,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.4,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "mono": {
+      "description": "Typography for mono",
+      "default": {
+        "family": [
+          "JetBrains Mono",
+          "ui-monospace",
+          "monospace"
+        ],
+        "size": 12,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.4,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "editor": {
+      "description": "Typography for editor",
+      "default": {
+        "family": [
+          "JetBrains Mono",
+          "ui-monospace",
+          "monospace"
+        ],
+        "size": 13,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.5384615384615385,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    },
+    "terminal": {
+      "description": "Typography for terminal",
+      "default": {
+        "family": [
+          "JetBrains Mono",
+          "ui-monospace",
+          "monospace"
+        ],
+        "size": 12,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1,
+        "letterSpacing": 0,
+        "ligatures": true,
+        "axes": {}
+      }
+    },
+    "document": {
+      "description": "Typography for document",
+      "default": {
+        "family": [
+          "Instrument Sans",
+          "system-ui",
+          "sans-serif"
+        ],
+        "size": 12,
+        "weight": 400,
+        "style": "normal",
+        "lineHeight": 1.65,
+        "letterSpacing": 0,
+        "ligatures": false,
+        "axes": {}
+      }
+    }
+  },
+  "effects": {
+    "shadow": {
+      "description": "Popover elevation",
+      "dark": [
+        {
+          "x": 0,
+          "y": 8,
+          "blur": 28,
+          "spread": 0,
+          "color": "#00000073"
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "blur": 2,
+          "spread": 0,
+          "color": "#00000066"
+        }
+      ],
+      "light": [
+        {
+          "x": 0,
+          "y": 8,
+          "blur": 28,
+          "spread": 0,
+          "color": "#141e282e"
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "blur": 2,
+          "spread": 0,
+          "color": "#141e281f"
+        }
+      ]
+    }
+  }
+}

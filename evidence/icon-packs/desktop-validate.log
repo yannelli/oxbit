@@ -1,0 +1,21 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies", "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> oxbit@0.1.0 desktop:validate /Users/ryanyannelli/Development/oxbit
+> node scripts/desktop/validate.mjs
+
+node:internal/fs/promises:640
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open '/Users/ryanyannelli/Development/oxbit/apps/desktop/src-tauri/resources/runtime/inventory.json'
+    at async open (node:internal/fs/promises:640:25)
+    at async Module.readFile (node:internal/fs/promises:1287:14)
+    at async file:///Users/ryanyannelli/Development/oxbit/scripts/desktop/validate.mjs:46:3 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/ryanyannelli/Development/oxbit/apps/desktop/src-tauri/resources/runtime/inventory.json'
+}
+
+Node.js v24.16.0
+ ELIFECYCLE  Command failed with exit code 1.

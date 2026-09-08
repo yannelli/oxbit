@@ -1,0 +1,35 @@
+{
+  "name": "@oxbit/app-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./configuration": "./src/configuration.ts"
+  },
+  "dependencies": {
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/core": "workspace:*",
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
+    "@oxbit/host-browser": "workspace:*",
+    "@oxbit/host-runtime": "workspace:*",
+    "@oxbit/bundle-inspector": "workspace:*",
+    "@oxbit/feature-editor": "workspace:*",
+    "@oxbit/feature-explorer": "workspace:*",
+    "@oxbit/feature-settings": "workspace:*",
+    "@oxbit/feature-extensions": "workspace:*",
+    "@oxbit/feature-themes": "workspace:*",
+    "@oxbit/feature-language": "workspace:*",
+    "@oxbit/feature-search": "workspace:*",
+    "@oxbit/feature-previews": "workspace:*",
+    "@oxbit/feature-formatters": "workspace:*",
+    "@oxbit/feature-terminal": "workspace:*",
+    "@oxbit/feature-tasks": "workspace:*",
+    "@oxbit/feature-git": "workspace:*",
+    "@oxbit/feature-collaboration": "workspace:*",
+    "@oxbit/icon-themes": "workspace:*"
+  },
+  "license": "MIT"
+}

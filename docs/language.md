@@ -1,8 +1,8 @@
 # Language services
 
-The default provider runs TypeScript Language Server in the authorized runtime. It negotiates capabilities, opens documents, sends edits and restarts with the server's stored documents. Browser code uses `RuntimeLanguageTransport`. A host can register `language.transport` or pass a transport to `LanguageService` to use a worker provider. The worker path sends initialize/initialized messages and uses UTF-16 positions.
+The shared registry selects matching managed and local providers for each document. JavaScript/TypeScript retains TypeScript Language Server and its bundled SDK fallback in the authorized runtime. Other presets and the acceptance matrix are documented in [language support](language-support.md). It negotiates capabilities, opens documents, sends edits and restarts with the server's stored documents. Browser code uses `RuntimeLanguageTransport`. A host can register `language.transport` or pass a transport to `LanguageService` to use a worker provider. The worker path sends initialize/initialized messages and uses UTF-16 positions.
 
-The document service sends unshared document updates once per document. Mounted CodeMirror views share diagnostics and remove their view registration when destroyed. Shared files use the runtime's canonical LSP stream. The browser flushes shared changes before language requests.
+The document service sends unshared document updates once per document. Mounted CodeMirror views share diagnostics and remove their view registration when destroyed. Shared files use one canonical runtime stream per attached server instance. The browser flushes shared changes before language requests.
 
 Requests check server capabilities. Cancellation, document changes, connection loss and server failure abort pending requests. Replies from an older document version or server instance are discarded. Server failure clears command availability; Restart starts the provider and opens current documents again. Unsupported position encodings fail startup.
 
@@ -17,3 +17,25 @@ SDK provider contracts. Providers match document languages; their results
 check document versions and cancellation before reaching the editor. Removing
 a contribution cancels its requests and removes its diagnostics and transport.
 CodeMirror syntax providers register separately through `LanguageDefinition`.
+
+
+Managed transports attach with the current document path, effective `languageServers`
+configuration and `files.associations`; runtime messages carry an optional `instanceId`.
+The current-document indicator filters matching providers and keeps relevant
+Start/Retry/Restart/Stop actions. Processes attached to other documents are not listed.
+
+`LanguageTransport.onRequest` optionally installs a server-request handler accepting
+`(method, params, signal)`. Its disposable removes the handler and cancels owned work.
+Dynamic registrations are validated and selector-scoped; unregistering a provider
+immediately changes command availability. A transport without this hook does not
+advertise dynamic registration or configuration-request support.
+
+The SDK adds `SemanticTokensProvider`, `InlayHintsProvider` and `NavigationProvider`
+for `semanticTokens`, `inlayHints` and `navigation` contributions. Each result retains
+its provider identity and document version. Semantic/hint overlays choose the highest
+priority eligible provider; navigation deduplicates eligible providers' locations.
+JSON-valued settings are validated, cloned and persisted at existing configuration scopes.
+
+`ExternalDocument` contains an opaque runtime handle, URI, display name, text, revision
+and `readonly: true`. Its view does not expose an editable filesystem document or bypass
+`DocumentService.applyEdits`. Runtime handles expire when the server generation ends.

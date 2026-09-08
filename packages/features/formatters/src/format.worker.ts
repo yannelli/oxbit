@@ -5,6 +5,7 @@ type Request = {
   provider: "prettier" | "typescript";
   path: string;
   text: string;
+  language?: string;
   tabSize: number;
   insertSpaces: boolean;
 };

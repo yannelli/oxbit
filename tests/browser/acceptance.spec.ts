@@ -1084,7 +1084,7 @@ test("a contributed filesystem opens through the workspace UI and survives provi
     await z.kernel.commands.execute("workspace.open");
   });
   await page
-    .getByRole("button", { name: "Test filesystem", exact: true })
+    .getByRole("button", { name: /^Test filesystem\b/ })
     .click();
   await page.waitForFunction(
     () =>

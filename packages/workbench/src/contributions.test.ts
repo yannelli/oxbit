@@ -74,6 +74,7 @@ describe("contribution surfaces", () => {
         },
       },
     });
-    expect(themeVariables(kernel)).toEqual({ "--bg-editor": "#123456" });
+    expect(themeVariables(kernel)).toMatchObject({ "--bg-editor": "#123456" });
+    expect(themeVariables(kernel)).not.toHaveProperty("--bad");
   });
 });

@@ -1,16 +1,7 @@
 import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
-export function languageIdForPath(path: string): string {
-  const extension = path.split(".").pop()?.toLowerCase();
-  if (extension === "tsx") return "tsx";
-  if (["ts", "mts", "cts"].includes(extension ?? "")) return "typescript";
-  if (["js", "jsx", "mjs", "cjs"].includes(extension ?? ""))
-    return "javascript";
-  if (["md", "markdown"].includes(extension ?? "")) return "markdown";
-  if (["html", "htm"].includes(extension ?? "")) return "html";
-  if (["json", "css"].includes(extension ?? "")) return extension!;
-  return "plaintext";
-}
+export * from "./languages.js";
+export * from "./language-servers.js";
 export type Environment = "browser" | "runtime" | "embedded";
 export type Capability =
   | "filesystem.read"
@@ -44,8 +35,9 @@ export interface Setting {
   id: string;
   title: string;
   description?: string;
-  type: "boolean" | "number" | "string";
-  default: boolean | number | string;
+  type: "boolean" | "number" | "string" | "object" | "array";
+  default: Json;
+  validate?: (value: unknown) => void;
   enum?: (string | number)[];
   min?: number;
   max?: number;
@@ -60,6 +52,8 @@ export type ContributionKind =
   | "documentView"
   | "theme"
   | "icon"
+  | "fileIconTheme"
+  | "productIconTheme"
   | "menu"
   | "shortcut"
   | "language"
@@ -67,6 +61,9 @@ export type ContributionKind =
   | "completion"
   | "formatter"
   | "codeAction"
+  | "semanticTokens"
+  | "inlayHints"
+  | "navigation"
   | "filesystem"
   | "transport"
   | "outputChannel"
@@ -92,6 +89,9 @@ export interface DocumentViewContributionData {
 export interface LanguageDefinition {
   id: string;
   extensions: string[];
+  filenames?: string[];
+  patterns?: string[];
+  shebangs?: string[];
   editorExtensions?: unknown[];
 }
 export interface EditorDecorationContribution {
@@ -194,8 +194,11 @@ export interface ContextService {
   subscribe(listener: () => void): Unsubscribe;
 }
 export interface ConfigurationService {
+  /** Wait for queued persistence before a host closes or transfers a session. */
+  flush?(): Promise<void>;
   register(setting: Setting): Disposable;
   get<T = unknown>(id: string, language?: string): T;
+  inspect<T = unknown>(id: string, language?: string): { value: T; explicit: boolean; scope?: "user" | "workspace"; language?: string; defaultValue: T };
   set(
     id: string,
     value: unknown,
@@ -388,6 +391,7 @@ export interface LanguageTransport {
   ): Promise<T>;
   notify(method: string, params: unknown): void;
   onNotification(listener: (method: string, params: any) => void): Disposable;
+  onRequest?(handler: (method: string, params: any, signal?: AbortSignal) => unknown | Promise<unknown>): Disposable;
   dispose(): void;
 }
 export interface HostAdapter {
@@ -407,7 +411,7 @@ export interface Formatter {
   format(
     text: string,
     path: string,
-    options: { tabSize: number; insertSpaces: boolean; signal?: AbortSignal },
+    options: { tabSize: number; insertSpaces: boolean; language?: string; signal?: AbortSignal },
   ): Promise<string>;
 }
 
@@ -466,3 +470,27 @@ export interface FeatureOptions {
   runtime?: RpcClient;
   workbench: WorkbenchService;
 }
+export type { DocumentSymbol, DocumentSymbolProvider, SymbolRange } from "./symbols.js";
+
+export * from "./text-positions.js";
+export * from "./csv.js";
+
+export * from "./icon-themes.js";
+
+export * from "./lsp-capabilities.js";
+
+/** Runtime-issued, read-only source. The handle never grants workspace write access. */
+export interface ExternalDocument {
+  handle: string;
+  uri: string;
+  name: string;
+  text: string;
+  revision: string;
+  readonly: true;
+}
+
+export * from "./language-providers.js";
+
+export { lspGlobMatches, lspWatchPattern } from "./lsp-glob.js";
+
+export * from "./tasks.js";

@@ -1,6 +1,7 @@
 import { translate as tr } from "@oxbit/ui";
+import { Outline } from "./outline.js";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { FileBadge, Icon, IconButton } from "@oxbit/ui";
+import { FileBadge, FolderIcon, FolderArrow, Icon, IconButton } from "@oxbit/ui";
 import type { WorkbenchController } from "@oxbit/workbench";
 import type { Extension, FileEntry, FileSystem, Kernel } from "@oxbit/sdk";
 import type { DocumentService } from "@oxbit/documents";
@@ -13,6 +14,7 @@ export function Explorer({
 }) {
   const s = useSyncExternalStore(workbench.subscribe, workbench.snapshot);
   const [, refreshBadges] = useState(0);
+  const [outlineOpen, setOutlineOpen] = useState(false);
   useEffect(() => {
     const diagnostics = workbench.kernel.events.on("diagnostics.change", () =>
       refreshBadges((value) => value + 1),
@@ -146,7 +148,7 @@ export function Explorer({
                         : void workbench.openFile(tab.path!, { groupId: g.id })
                     }
                   >
-                    <FileBadge path={tab.path!} />
+                    <FileBadge kernel={workbench.kernel} path={tab.path!} />
                     <span className={tab.preview ? "preview" : ""}>
                       {tab.title}
                     </span>
@@ -169,7 +171,8 @@ export function Explorer({
         onClick={() => setTree(!tree)}
         aria-expanded={tree}
       >
-        <Icon name={tree ? "chevD" : "chevR"} size={12} />
+        <FolderArrow path={s.projectName} root expanded={tree} />
+        <FolderIcon path={s.projectName} root expanded={tree} />
         {s.projectName}
       </button>
       {tree && (
@@ -292,13 +295,13 @@ export function Explorer({
               >
                 <span className="tree-chevron">
                   {entry.kind === "directory" && (
-                    <Icon size={12} name={expanded ? "chevD" : "chevR"} />
+                    <FolderArrow path={entry.path} expanded={expanded} />
                   )}
                 </span>
                 {entry.kind === "directory" ? (
-                  <Icon name={expanded ? "folderOpen" : "folder"} />
+                  <FolderIcon path={entry.path} expanded={expanded} />
                 ) : (
-                  <FileBadge path={entry.path} />
+                  <FileBadge kernel={workbench.kernel} path={entry.path} />
                 )}
                 <span className="truncate">{entry.name}</span>
                 <span className="push" />
@@ -327,45 +330,10 @@ export function Explorer({
         </div>
       )}
       <div className="explorer-spacer" />
-      <details className="outline">
+      <details className="outline" onToggle={event => setOutlineOpen(event.currentTarget.open)}>
         <summary className="section-label border-top">{t.outline}</summary>
-        <Outline workbench={workbench} />
+        {outlineOpen && <Outline workbench={workbench} />}
       </details>
-    </div>
-  );
-}
-function Outline({ workbench }: { workbench: WorkbenchController }) {
-  const [symbols, setSymbols] = useState<any[]>([]);
-  const path = workbench.activePath();
-  return (
-    <div>
-      <button
-        className="text-button"
-        onClick={() => {
-          const service = workbench.kernel.services.optional<any>("language");
-          if (service?.symbols && path)
-            void service
-              .symbols(path)
-              .then(setSymbols)
-              .catch((e: unknown) => workbench.notify(String(e), "error"));
-          else void workbench.run("workbench.gotoSymbol");
-        }}
-      >
-        {tr("Load document symbols")}
-      </button>
-      {symbols.map((s, i) => (
-        <button
-          key={i}
-          className="tree-row"
-          onClick={() =>
-            void workbench.openFile(path!, {
-              line: (s.range?.start.line || 0) + 1,
-            })
-          }
-        >
-          {s.name}
-        </button>
-      ))}
     </div>
   );
 }

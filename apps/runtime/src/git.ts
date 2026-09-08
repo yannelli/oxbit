@@ -4,7 +4,7 @@ import { RpcError } from "@oxbit/protocol";
 import { runCommand } from "./processes.js";
 import { WorkspaceFiles } from "./filesystem.js";
 export class Git {
-  constructor(private files: WorkspaceFiles) {}
+  constructor(private files: WorkspaceFiles, private executable = "git") {}
   private async run(
     args: string[],
     signal?: AbortSignal,
@@ -12,7 +12,7 @@ export class Git {
     onData?: (data: string) => void,
     acceptFailure = false,
   ) {
-    const result = await runCommand("git", args, {
+    const result = await runCommand(this.executable, args, {
       cwd,
       signal,
       onData,

@@ -16,20 +16,7 @@ export class IndexedDBPersistence implements Persistence {
   constructor(databaseName?: string) {
     this.database = this.open(databaseName);
   }
-  private async open(databaseName?: string): Promise<IDBDatabase> {
-    if (databaseName === undefined) {
-      // Keep existing workspaces and recovery drafts in place. Older browsers
-      // without database enumeration use the original storage namespace.
-      if (typeof indexedDB.databases !== "function") databaseName = "zapp";
-      else {
-        const databases = await indexedDB.databases();
-        databaseName = databases.some((db) => db.name === "oxbit")
-          ? "oxbit"
-          : databases.some((db) => db.name === "zapp")
-            ? "zapp"
-            : "oxbit";
-      }
-    }
+  private async open(databaseName = "oxbit"): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => {
@@ -244,7 +231,7 @@ export class BrowserFileSystem implements FileSystem {
       typeof window !== "undefined" &&
       typeof BroadcastChannel !== "undefined"
     ) {
-      this.channel = new BroadcastChannel(`zapp-files:${id}`);
+      this.channel = new BroadcastChannel(`oxbit-files:${id}`);
       this.channel.onmessage = (event) => {
         const change = event.data as FileChange;
         if (
@@ -283,7 +270,7 @@ export class BrowserFileSystem implements FileSystem {
       return result;
     };
     if (typeof navigator !== "undefined" && navigator.locks)
-      return navigator.locks.request(`zapp:${this.id}`, perform);
+      return navigator.locks.request(`oxbit:${this.id}`, perform);
     const pending =
       locks.get(this.persistence) ?? new Map<string, Promise<unknown>>();
     locks.set(this.persistence, pending);
@@ -679,7 +666,7 @@ export class DirectoryFileSystem implements FileSystem {
       return snapshot;
     };
     return typeof navigator !== "undefined" && navigator.locks
-      ? navigator.locks.request(`zapp:${this.id}:${path}`, write)
+      ? navigator.locks.request(`oxbit:${this.id}:${path}`, write)
       : write();
   }
   async mkdir(path: string): Promise<void> {

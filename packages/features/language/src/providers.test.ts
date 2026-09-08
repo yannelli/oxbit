@@ -54,10 +54,11 @@ function transport() {
     ): Promise<any> => {
       if (method === "initialize")
         return {
-          capabilities: { completionProvider: {}, hoverProvider: true },
+          capabilities: { textDocumentSync: 1, completionProvider: {}, hoverProvider: true },
         };
       if (method === "textDocument/completion")
         return [{ label: "from foo transport" }];
+      if (method === "shutdown") return null;
       return new Promise((_resolve, reject) =>
         signal?.addEventListener(
           "abort",
@@ -90,6 +91,39 @@ function transport() {
 }
 
 describe("contributed language providers", () => {
+  it("invalidates contributed completion items after edits or provider replacement", async () => {
+    const { options, kernel, document } = await setup();
+    const provider = { languages: ["foo"], provideCompletions: () => [{ label: "hello" }] };
+    const registration = kernel.contributions.register({ id: "foo.completion", kind: "completion", title: "Foo completion", data: provider });
+    const providers = new LanguageProviders(options, () => {}); cleanup.push(() => providers.dispose());
+    const [item] = await providers.completions("main.foo", 0); expect(providers.ownsCompletion(item)).toBe(true);
+    document.replace("edited"); expect(providers.ownsCompletion(item)).toBe(false);
+    const [fresh] = await providers.completions("main.foo", 0); expect(providers.ownsCompletion(fresh)).toBe(true);
+    registration.dispose(); kernel.contributions.register({ id: "foo.completion", kind: "completion", title: "Replacement", data: { ...provider } });
+    expect(providers.ownsCompletion(fresh)).toBe(false);
+  });
+  it("lists dormant servers and creates a fresh transport after stopping", async () => {
+    const { options, kernel } = await setup();
+    options.workbench.activePath = () => "index.ts";
+    const first = transport(), second = transport();
+    const createTransport = vi.fn().mockReturnValueOnce(first.result).mockReturnValueOnce(second.result);
+    kernel.contributions.register({ id: "foo.server", kind: "transport", title: "Foo server", data: { languages: ["foo"], createTransport } });
+    const language = new LanguageService(options);
+    cleanup.push(() => language.dispose());
+    expect(language.servers.find(s => s.id === "foo.server")).toBeUndefined();
+    expect(createTransport).not.toHaveBeenCalled();
+    options.workbench.activePath = () => "main.foo";
+    expect(language.servers.find(s => s.id === "foo.server")).toMatchObject({ name: "Foo server", state: "stopped" });
+    await language.control("foo.server", "start");
+    const selected = language.serviceForPath("main.foo");
+    await language.control("foo.server", "stop");
+    expect(first.result.dispose).toHaveBeenCalledOnce();
+    await language.control("foo.server", "start");
+    expect(language.serviceForPath("main.foo")).toBe(selected);
+    expect(createTransport).toHaveBeenCalledTimes(2);
+    expect(second.result.notify).toHaveBeenCalledWith("textDocument/didOpen", expect.anything());
+    expect(language.servers.find(s => s.id === "foo.server")?.state).toBe("ready");
+  });
   it("selects a transport by priority and synchronizes its declared language", async () => {
     const { options, kernel, filesystem } = await setup();
     (filesystem as any).shared = new Set(["main.foo"]);
@@ -335,5 +369,21 @@ describe("contributed language providers", () => {
         snapshots,
       ),
     ).rejects.toThrow("removed or replaced");
+  });
+});
+
+describe("current document server status", () => {
+  it("hides unrelated servers when switching documents or leaving the editor", async () => {
+    const { kernel, options, workbench } = await setup();
+    const foo = transport(), bar = transport();
+    kernel.contributions.register({ id: "foo.transport", kind: "transport", title: "Foo", data: { languages: ["foo"], createTransport: () => foo.result } });
+    kernel.contributions.register({ id: "bar.transport", kind: "transport", title: "Bar", data: { languages: ["markdown"], createTransport: () => bar.result } });
+    const service = new LanguageService(options);
+    cleanup.push(() => service.dispose());
+    expect(service.servers.map(item => item.name)).toEqual(["Foo"]);
+    workbench.activePath = () => "notes.md";
+    expect(service.servers.map(item => item.name)).toEqual(["Bar", "Markdown"]);
+    workbench.activePath = () => undefined;
+    expect(service.servers).toEqual([]);
   });
 });
