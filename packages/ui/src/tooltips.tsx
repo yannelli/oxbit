@@ -137,9 +137,10 @@ export function TooltipLayer({
     };
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape" && active) {
-        // A dialog/popover owns Escape even when a tooltip outside it is still hovered.
+        // A dialog/popover owns Escape when the tooltip belongs to something outside it.
         const dialog = event.target instanceof Element ? event.target.closest('[role="dialog"], [role="alertdialog"], [popover]') : null;
-        if (!escapeBubbles && !dialog) event.stopPropagation();
+        if (!escapeBubbles && (!dialog || dialog.contains(active)))
+          event.stopPropagation();
         event.preventDefault();
         dismiss();
       }
