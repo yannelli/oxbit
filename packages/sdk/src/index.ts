@@ -492,3 +492,5 @@ export interface ExternalDocument {
 export * from "./language-providers.js";
 
 export { lspGlobMatches, lspWatchPattern } from "./lsp-glob.js";
+
+export * from "./tasks.js";

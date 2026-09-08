@@ -32,6 +32,7 @@ export interface DesktopSnapshot {
   profile: Profile;
 }
 export interface Connection {
+  openFile?: string;
   url: string;
   token: string;
   key: string;
@@ -58,6 +59,8 @@ export const native = {
   snapshot: () => invoke<DesktopSnapshot>("desktop_snapshot"),
   open: (path?: string, newWindow = false, file = false) =>
     invoke<string | null>("desktop_open_project", { path, newWindow, file }),
+  openRemote: (target: string, newWindow = false) =>
+    invoke<string>("desktop_open_remote", { target, newWindow }),
   fileOpened: (key: string, request: string) =>
     invoke<void>("desktop_file_opened", { key, request }),
   activate: (key: string) => invoke<void>("desktop_activate", { key }),
@@ -149,6 +152,7 @@ export interface ProjectSession {
   storage?: DesktopPersistence;
   error?: string;
   failed?: boolean;
+  loading?: boolean;
 }
 export interface WindowView {
   projects: ProjectSession[];
@@ -202,7 +206,9 @@ export class ProjectSessionManager {
         if (entry) {
           entry.failed = true;
           entry.error =
-            "The project runtime stopped. Your drafts are retained. Restart it to resume tools.";
+            entry.project.path.startsWith("ssh://")
+              ? "The SSH connection closed. Your drafts are retained. Reconnect to resume editing and tools."
+              : "The project runtime stopped. Your drafts are retained. Restart it to resume tools.";
           entry.session?.runtime?.terminated();
           void entry.session?.persist();
           this.publish();
@@ -247,6 +253,7 @@ export class ProjectSessionManager {
           this.entries.set(project.key, entry);
         }
         entry.project = project;
+        this.publish({ projects: snapshot.projects.map(p => this.entries.get(p.key)!).filter(Boolean) });
         if (!entry.session && !entry.error) await this.load(entry);
         if (project.openFile && entry.session) {
           try {
@@ -276,6 +283,9 @@ export class ProjectSessionManager {
     return next;
   }
   private async load(entry: ProjectSession, restart = false) {
+    entry.loading = true;
+    entry.error = undefined;
+    this.publish();
     try {
       if (entry.project.missing)
         throw new Error(
@@ -318,6 +328,7 @@ export class ProjectSessionManager {
             type: "string",
             default: "",
           });
+        if (connection.openFile) await session.workbench.openFile(connection.openFile, { preview: false });
         entry.session = session;
         entry.storage = storage;
         entry.error = undefined;
@@ -328,6 +339,9 @@ export class ProjectSessionManager {
       }
     } catch (error) {
       entry.error = String(error);
+    } finally {
+      entry.loading = false;
+      this.publish();
     }
   }
   async activate(key: string) {

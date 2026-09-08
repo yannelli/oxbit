@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
   // themes.spec.ts and icon-packs.spec.ts have their own configs and servers.
-  testIgnore: ["themes.spec.ts", "icon-packs.spec.ts"],
+  testIgnore: ["themes.spec.ts", "icon-packs.spec.ts", "tasks.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 120000,

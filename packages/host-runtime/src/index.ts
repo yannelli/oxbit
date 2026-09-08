@@ -269,7 +269,7 @@ export class RuntimeClient implements RpcClient {
             { id },
           ),
         );
-      }, 120000);
+      }, method.startsWith("tasks.worktree") ? 21 * 60 * 1000 : 120000);
       const cleanup = () => {
         clearTimeout(timer);
         options.signal?.removeEventListener("abort", abort);

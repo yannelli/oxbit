@@ -24,6 +24,9 @@ import {
 } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { Processes, runCommand } from "./processes.js";
+import { TaskConfigStore } from "./tasks/config.js";
+import { TaskRunner } from "./tasks/runner.js";
+import { TaskWorktrees } from "./tasks/worktrees.js";
 import { Git } from "./git.js";
 import { LanguageServerManager } from "./lsp-manager.js";
 import os from "node:os";
@@ -36,6 +39,10 @@ export interface RuntimeOptions {
   host?: string;
   dataDir?: string;
   pairingCode?: string;
+  /** Override the home containing .oxbit/projects (for isolated embedders/tests). */
+  tasksHome?: string;
+  /** Private desktop SSH bridge: return the local forwarded port for an owned service. */
+  forwardTaskPort?: (host: string, port: number) => Promise<number>;
   origins?: string[];
   webRoot?: string;
   /** Desktop has a private parent channel and never serves frontend assets or pairs over HTTP. */
@@ -227,22 +234,17 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
-  const processes = new Processes(
-    root,
-    ({ event: name, params, stream, seq }, ownerId) => {
-      const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
-      for (const c of connections.values()) {
-        const session = c.session;
-        if (
-          session &&
-          session.id === ownerId &&
-          !session.revoked &&
-          session.capabilities.includes(cap)
-        )
-          event(c, name, params, stream, seq);
-      }
-    },
-  );
+  const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
+    const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
+    for (const c of connections.values()) {
+      const session = c.session;
+      if (session && session.id === ownerId && !session.revoked && session.capabilities.includes(cap)) event(c, name, params, stream, seq);
+    }
+  };
+  const processes = new Processes(root, processEvent);
+  const taskStore = await TaskConfigStore.create(root, { home: options.tasksHome ?? setting("TASKS_HOME"), gitPath: options.desktop?.gitPath });
+  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort);
+  const worktrees = new TaskWorktrees(taskStore, tasks);
   const lsp = new LanguageServerManager(files, setting("LSP_CACHE") ?? path.join(os.homedir(), ".oxbit", "language-servers"), (method, params, instanceId) => {
     for (const c of connections.values())
       if (
@@ -332,6 +334,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (!session) throw new RpcError("NOT_FOUND", "Grant does not exist");
     session.revoked = true;
     processes.revoke(session.id);
+    tasks.revoke(session.id);
     for (const c of connections.values())
       if (c.session?.id === id) {
         for (const controller of c.pending.values()) controller.abort();
@@ -583,7 +586,7 @@ export async function createRuntime(options: RuntimeOptions) {
       };
     if (method.startsWith("search.")) return { cap: "filesystem.read" };
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
-    if (method.startsWith("tasks.")) return { cap: "tasks", trust: true };
+    if (method.startsWith("tasks.")) return { cap: "tasks", trust: !["tasks.catalog", "tasks.list", "tasks.attach", "tasks.worktrees"].includes(method) };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
@@ -630,7 +633,7 @@ export async function createRuntime(options: RuntimeOptions) {
         if (!trusted) {
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
-          for (const s of sessions.values()) processes.revoke(s.id);
+          for (const s of sessions.values()) { processes.revoke(s.id); tasks.revoke(s.id); }
           await lsp.suspend();
         }
         await persist();
@@ -737,22 +740,43 @@ export async function createRuntime(options: RuntimeOptions) {
           Number(params.seq),
         );
         return { ok: true };
+      case "tasks.catalog":
+        return taskStore.catalog();
+      case "tasks.save":
+        owner(connection);
+        return taskStore.save({ sourceId: requireString(params, "sourceId"), name: requireString(params, "name"), task: params.task, sourceCommand: params.sourceCommand as string | undefined, expectedRevision: params.expectedRevision, create: params.create === true });
+      case "tasks.settings":
+        owner(connection);
+        return taskStore.saveSettings({ sourceId: requireString(params, "sourceId"), worktree: params.worktree, env: params.env, expectedRevision: params.expectedRevision });
+      case "tasks.share":
+        owner(connection);
+        if (!params.expectedRevisions || typeof params.expectedRevisions !== "object" || Array.isArray(params.expectedRevisions)) throw new RpcError("INVALID_PARAMS", "Source revisions are required");
+        return taskStore.share(params.expectedRevisions as Record<string, string | null>);
+      case "tasks.start":
+        return tasks.start(session.id, requireString(params, "taskId"), signal);
       case "tasks.run":
-        return processes.runTask(
-          session.id,
-          requireString(params, "command", 32768),
-        );
+        return tasks.run(session.id, requireString(params, "command", 32768), signal);
       case "tasks.cancel":
-        processes.cancelTask(requireString(params, "id"), session.id);
-        return { ok: true };
+      case "tasks.stop":
+        return tasks.stop(requireString(params, "id"), session.id, params.force === true);
+      case "tasks.restart":
+        return tasks.restart(requireString(params, "id"), session.id, signal);
       case "tasks.list":
-        return processes.listTasks(session.id);
+        return tasks.list(session.id);
       case "tasks.attach":
-        return processes.attachTask(
-          requireString(params, "id"),
-          session.id,
-          Number(params.afterSeq ?? 0),
-        );
+        return tasks.attach(requireString(params, "id"), session.id, Number(params.afterSeq ?? 0));
+      case "tasks.worktrees":
+        owner(connection);
+        return worktrees.list();
+      case "tasks.worktreeCreate":
+        owner(connection);
+        return worktrees.create(session.id, requireString(params, "branch"), typeof params.base === "string" ? params.base : "HEAD", signal);
+      case "tasks.worktreeInit":
+        owner(connection);
+        return worktrees.retryInit(session.id, requireString(params, "id"), signal);
+      case "tasks.worktreeRemove":
+        owner(connection);
+        return worktrees.remove(session.id, requireString(params, "id"), signal);
       case "git.status":
         return git.status(signal);
       case "git.diff":
@@ -1277,6 +1301,7 @@ export async function createRuntime(options: RuntimeOptions) {
       }
       extensions.dispose();
       processes.close();
+      await tasks.close();
       await lsp.dispose();
       await Promise.allSettled([...inflight.values()]);
       await collaboration.close();

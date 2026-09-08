@@ -28,3 +28,7 @@ Runtime requests have IDs and optional cancellation. Process output uses sequenc
 `HostAdapter` separates rendering, persistence, filesystem and runtime transports. `Workbench` accepts a controller and host callbacks, so an embedding host can provide surrounding layout and CSS tokens. An Electron host can supply the runtime boundary and native directory access; a mobile host can implement the same document and persistence contracts.
 
 Native packaging, React Native integration, debugging/AI providers, marketplace distribution and certified Paseo compatibility are deferred. Before claiming Paseo 0.7.0 compatibility, verify its exact SDK exports, lifecycle/disposal rules, contribution surfaces, theme/layout ownership, host permissions, transport behavior, document identity and embedding behavior against a running v0.7.0 host. No Paseo compatibility check has been run.
+
+The desktop SSH connector supervises a headless runtime on a remote host, installs a verified platform payload through SSH, and forwards the existing authenticated runtime protocol through a private loopback tunnel. The workbench and filesystem adapter remain shared with local projects. See [Remote SSH](remote-ssh.md).
+
+Task configuration adapters, the process supervisor, port allocation, and managed worktree lifecycle live in `apps/runtime/src/tasks`; shared definitions live in `packages/sdk/src/tasks.ts`. The Tasks extension uses the authenticated runtime RPC for all mutations and execution. See [Tasks and lifecycle](tasks.md).

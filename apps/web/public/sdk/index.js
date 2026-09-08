@@ -334,6 +334,14 @@ function synchronization(capabilities) {
   return typeof sync === "number" ? { openClose: true, change: sync } : sync ?? { openClose: false, change: 0 };
 }
 
+// packages/sdk/src/tasks.ts
+var taskPhases = [
+  "preinit",
+  "init",
+  "preteardown",
+  "teardown"
+];
+
 // packages/sdk/src/index.ts
 var SDK_VERSION = "1.0.0";
 export {
@@ -352,6 +360,7 @@ export {
   registrationMatches,
   resolveLanguage,
   synchronization,
+  taskPhases,
   textOffset,
   textPosition,
   validateFileAssociations,

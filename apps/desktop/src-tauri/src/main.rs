@@ -176,6 +176,7 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         true,
         &[
             &item("desktop:open", "Open Folder…", Some("CmdOrCtrl+O"))?,
+            &item("desktop:remote", "Connect over SSH…", None)?,
             &item("desktop:open-file", "Open File…", Some("CmdOrCtrl+Shift+O"))?,
             &item("desktop:open-new", "Open in New Window…", None)?,
             &item("desktop:move", "Move Project to New Window", None)?,
@@ -254,6 +255,7 @@ fn main() {
             commands::desktop_test_crash,
             commands::desktop_snapshot,
             commands::desktop_open_project,
+            commands::desktop_open_remote,
             commands::desktop_activate,
             commands::desktop_file_opened,
             commands::desktop_connection,

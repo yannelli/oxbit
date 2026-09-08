@@ -39,6 +39,8 @@ struct Frame {
     pid: Option<i32>,
     running: Option<bool>,
     request: Option<String>,
+    message: Option<String>,
+    open_file: Option<String>,
 }
 
 pub struct OwnedRuntime {
@@ -49,6 +51,7 @@ pub struct OwnedRuntime {
     stopped: AtomicBool,
     pub alive: AtomicBool,
     pub port: u16,
+    pub open_file: Option<String>,
 }
 
 fn terminate_groups(groups: &Mutex<HashSet<i32>>) {
@@ -70,15 +73,14 @@ impl OwnedRuntime {
         config: Launch<'_>,
         environment: &Environment,
         crashed: impl Fn() + Send + Sync + 'static,
+        progress: impl Fn(&str),
     ) -> Result<Arc<Self>, String> {
-        Self::launch_with_timeout(
-            node,
-            entry,
-            config,
-            environment,
-            crashed,
-            Duration::from_secs(20),
-        )
+        let timeout = if config.root.starts_with("ssh://") {
+            Duration::from_secs(250)
+        } else {
+            Duration::from_secs(20)
+        };
+        Self::launch_with_timeout(node, entry, config, environment, crashed, progress, timeout)
     }
 
     fn launch_with_timeout(
@@ -87,6 +89,7 @@ impl OwnedRuntime {
         config: Launch<'_>,
         environment: &Environment,
         crashed: impl Fn() + Send + Sync + 'static,
+        progress: impl Fn(&str),
         timeout: Duration,
     ) -> Result<Arc<Self>, String> {
         let mut child = Command::new(node)
@@ -135,7 +138,32 @@ impl OwnedRuntime {
                 }
             }
         });
-        let ready = receive.recv_timeout(timeout);
+        let deadline = Instant::now() + timeout;
+        let startup_groups = Mutex::new(HashSet::new());
+        let ready = loop {
+            let frame = receive.recv_timeout(deadline.saturating_duration_since(Instant::now()));
+            match frame {
+                Ok(frame) if frame.r#type == "progress" => {
+                    if let Some(message) = frame.message.as_deref() {
+                        progress(message);
+                    }
+                }
+                Ok(frame) if frame.r#type == "process" => {
+                    if let (Some(pid), Some(running)) = (frame.pid, frame.running) {
+                        if pid > 1 {
+                            let mut groups = startup_groups.lock().unwrap();
+                            if running {
+                                groups.insert(pid);
+                            } else {
+                                groups.remove(&pid);
+                            }
+                        }
+                    }
+                }
+                result => break result,
+            }
+        };
+        let open_file;
         let port = match ready {
             Ok(frame)
                 if frame.r#type == "ready"
@@ -143,27 +171,34 @@ impl OwnedRuntime {
                     && frame.root.as_deref() == Some(config.root)
                     && frame.port.is_some_and(|p| p > 0) =>
             {
+                open_file = frame.open_file;
                 frame.port.unwrap_or_default()
             }
-            _ => {
+            failed => {
+                let detail = failed
+                    .ok()
+                    .filter(|f| f.r#type == "error")
+                    .and_then(|f| f.message);
                 unsafe {
                     libc::kill(-(child.id() as i32), libc::SIGKILL);
                 }
                 let _ = child.wait();
-                return Err(
+                terminate_groups(&startup_groups);
+                return Err(detail.unwrap_or_else(|| {
                     "Runtime startup failed or timed out. Retry or reinstall the application."
-                        .into(),
-                );
+                        .into()
+                }));
             }
         };
         let runtime = Arc::new(Self {
             child: Mutex::new(child),
             input: Mutex::new(Some(input)),
-            groups: Mutex::new(HashSet::new()),
+            groups: startup_groups,
             replies: Mutex::new(HashMap::new()),
             stopped: AtomicBool::new(false),
             alive: AtomicBool::new(true),
             port,
+            open_file,
         });
         let watched = Arc::downgrade(&runtime);
         thread::spawn(move || loop {
@@ -330,6 +365,7 @@ mod tests {
                 },
                 &env,
                 crashed,
+                |_| {},
                 Duration::from_millis(250),
             )
         }
@@ -361,6 +397,19 @@ mod tests {
         runtime.stop();
         assert!(gone(fixture.pid()));
         assert!(!runtime.alive.load(Ordering::SeqCst));
+    }
+    #[test]
+    fn startup_process_events_do_not_replace_readiness() {
+        let fixture = Fixture::new(&format!(
+            "echo '{{\"version\":1,\"type\":\"process\",\"pid\":'\"$$\"',\"running\":true}}'\n\
+             echo '{{\"version\":1,\"type\":\"process\",\"pid\":'\"$$\"',\"running\":false}}'\n\
+             {READY}\nIFS= read -r shutdown"
+        ));
+        let runtime = fixture.launch(|| {}).unwrap();
+        assert_eq!(runtime.port, 12345);
+        assert!(runtime.groups.lock().unwrap().is_empty());
+        runtime.stop();
+        assert!(gone(fixture.pid()));
     }
     #[test]
     fn wrong_identity_malformed_frames_and_timeout_reap_child() {

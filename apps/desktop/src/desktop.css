@@ -97,3 +97,8 @@
     padding: 4px 7px;
   }
 }
+.ssh-form { display: flex; flex-direction: column; gap: 14px; }
+.ssh-form label { display: flex; flex-direction: column; gap: 6px; }
+.ssh-form input { width: 100%; box-sizing: border-box; }
+.ssh-form p { margin: 0; color: var(--fg-3); }
+.ssh-form [role="alert"] { color: var(--error); }

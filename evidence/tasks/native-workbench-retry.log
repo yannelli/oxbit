@@ -1,0 +1,15 @@
+
+> oxbit@0.1.0 desktop:test:native /Users/ryanyannelli/Development/oxbit-remote-ssh
+> wdio run tests/desktop/wdio.conf.mjs
+
+
+Execution of 1 workers started at 2026-09-08T05:21:40.829Z
+
+[0-0] RUNNING in undefined - file:///tests/desktop/workbench.e2e.mjs
+[0-0] Error in "Oxbit native workbench.preserves a dirty draft when an external disk edit causes a conflict"
+Error: waitUntil condition timed out after 30000ms
+    at async Context.<anonymous> (/Users/ryanyannelli/Development/oxbit-remote-ssh/tests/desktop/workbench.e2e.mjs:283:5)
+
+
+Goodbye 👋
+ ELIFECYCLE  Command failed with exit code 1.

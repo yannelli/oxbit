@@ -1,0 +1,23 @@
+
+> oxbit@0.1.0 desktop:runtime:test /Users/ryanyannelli/Development/oxbit-remote-ssh
+> node scripts/desktop/smoke-runtime.mjs
+
+{
+  "platform": "darwin-arm64",
+  "result": "passed",
+  "checks": [
+    "private readiness",
+    "minimal environment",
+    "read-only resources",
+    "spaces and Unicode",
+    "authentication",
+    "origin rejection",
+    "workspace trust",
+    "filesystem",
+    "bundled ripgrep",
+    "real PTY resize/output",
+    "bundled TypeScript completion",
+    "parent-loss cleanup",
+    "restart identity"
+  ]
+}

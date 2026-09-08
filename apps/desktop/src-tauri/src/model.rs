@@ -94,7 +94,8 @@ impl Model {
                     return Err("Unsupported desktop session state version".into());
                 }
                 for project in model.projects.values_mut() {
-                    project.missing = !Path::new(&project.path).is_dir();
+                    project.missing =
+                        !project.path.starts_with("ssh://") && !Path::new(&project.path).is_dir();
                 }
                 Ok(model)
             }
@@ -318,6 +319,24 @@ mod tests {
             }]
         )
         .is_err());
+    }
+    #[test]
+    fn remote_projects_restore_without_local_filesystem_checks() {
+        let directory =
+            std::env::temp_dir().join(format!("oxbit-remote-model-{}", uuid::Uuid::new_v4()));
+        let mut model = Model::default();
+        model.add(
+            "remote".into(),
+            "ssh://dev/~/project".into(),
+            None,
+            "main".into(),
+        );
+        model.save(&directory).unwrap();
+        let restored = Model::load(&directory.join("session.json")).unwrap();
+        assert!(!restored.projects["remote"].missing);
+        assert_eq!(restored.recent, vec!["ssh://dev/~/project"]);
+        assert!(restored.authorize("other", "remote").is_err());
+        fs::remove_dir_all(directory).unwrap();
     }
     #[test]
     fn canonical_aliases_share_identity_and_missing_projects_restore() {
