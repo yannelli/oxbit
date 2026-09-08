@@ -62,6 +62,17 @@ fn desktop_close_panel(
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn configure_text_input(configuration: &objc2_web_kit::WKWebViewConfiguration) {
+    unsafe {
+        configuration.setAllowsInlinePredictions(false);
+        // This public macOS 15 API is absent from objc2-web-kit 0.3.2's bindings.
+        let _: () = objc2::msg_send![configuration,
+            setWritingToolsBehavior: objc2_app_kit::NSWritingToolsBehavior::None
+        ];
+    }
+}
+
 fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
     if app.get_webview_window(label).is_some() {
         return Ok(());
@@ -117,6 +128,8 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
                     let owner = panel_owner.clone();
                     let nav_app = app_new.clone();
                     let link_app = app_new.clone();
+                    #[cfg(target_os = "macos")]
+                    configure_text_input(&features.opener().target_configuration);
                     let builder = WebviewWindowBuilder::new(
                         &app_new,
                         &panel_label,
@@ -217,6 +230,14 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
             builder = builder.center();
         }
     }
+    #[cfg(target_os = "macos")]
+    let builder = {
+        let main_thread =
+            objc2::MainThreadMarker::new().ok_or("Webviews must be created on the main thread")?;
+        let configuration = unsafe { objc2_web_kit::WKWebViewConfiguration::new(main_thread) };
+        configure_text_input(&configuration);
+        builder.with_webview_configuration(configuration)
+    };
     let window = builder
         .build()
         .map_err(|e| format!("Could not create an Oxbit window: {e}"))?;

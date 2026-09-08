@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 
+const literal = '["npx", "-y", "package-example"]';
+
 describe("Native floating panels", () => {
   it("opens a related native panel window and docks its live state back", async () => {
     await browser.waitUntil(
@@ -40,6 +42,15 @@ describe("Native floating panels", () => {
       globalThis.__oxbit.workbench.openPanel("native-panel");
     });
     await $('[aria-label="Native panel draft"]').waitForDisplayed();
+    const input = await $('[aria-label="Native panel draft"]');
+    for (const [name, value] of Object.entries({
+      spellcheck: "false",
+      autocorrect: "off",
+      autocapitalize: "off",
+      autocomplete: "off",
+      writingsuggestions: "false",
+    })) assert.equal(await input.getAttribute(name), value);
+    await input.setValue(literal);
     await $('.dock-bottom [aria-label="Pop Out Panel"]').click();
     await browser
       .waitUntil(
@@ -83,10 +94,22 @@ describe("Native floating panels", () => {
     });
     assert.equal(result.count, 1);
     assert.equal(result.mounts, 1);
-    assert.equal(result.value, "Native draft");
+    assert.equal(result.value, literal);
     assert.equal(result.mainCount, 0);
     assert.match(result.url, /^about:blank/);
     assert.ok(result.size[0] >= 320);
+    const popupAttributes = await browser.execute(async () => {
+      const child = [...globalThis.__oxbit.workbench.panelWindows.windows.values()][0];
+      const field = child.document.createElement("textarea");
+      child.document.body.append(field);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const attributes = ["spellcheck", "autocorrect", "writingsuggestions"].map(
+        (name) => field.getAttribute(name),
+      );
+      field.remove();
+      return attributes;
+    });
+    assert.deepEqual(popupAttributes, ["false", "off", "false"]);
     await browser.execute(() =>
       [
         ...globalThis.__oxbit.workbench.panelWindows.windows.values(),
@@ -155,7 +178,7 @@ describe("Native floating panels", () => {
           '[aria-label="Native panel draft"]',
         )?.value;
       }),
-      "Native draft",
+      literal,
     );
     assert.equal(await browser.execute(() => globalThis.panelMounts), 1);
     await browser.execute(() =>
