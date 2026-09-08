@@ -1,8 +1,8 @@
 import { dependencyRoots } from "./dependencies.js";
 import { consoleBootstrap } from "./bootstrap.js";
 import { pathToFileURL } from "node:url";
-import cargoSchema from "./schemas/cargo.json";
-import cargoConfigSchema from "./schemas/cargo-config.json";
+import cargoSchema from "./schemas/cargo.json" with { type: "json" };
+import cargoConfigSchema from "./schemas/cargo-config.json" with { type: "json" };
 import path from "node:path";
 import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";

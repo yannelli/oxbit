@@ -4,8 +4,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { setTimeout as delay } from "node:timers/promises";
 import { x as untar } from "tar";
-import npmLock from "./npm/package-lock.json";
-import nativeLock from "./artifacts.lock.json";
+import npmLock from "./npm/package-lock.json" with { type: "json" };
+import nativeLock from "./artifacts.lock.json" with { type: "json" };
 
 export type ManagedPlatform = "darwin-arm64" | "linux-x64";
 type Package = { version?: string; resolved?: string; integrity?: string; dependencies?: Record<string, string>; optionalDependencies?: Record<string, string> };

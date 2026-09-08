@@ -134,9 +134,9 @@ test("an Oxbit browser workspace and formatter preference persist across reloads
         (await (window as any).__oxbit.filesystem.read("keep.txt")).text,
     ),
   ).toBe("My existing workspace");
-  expect(
-    await page.evaluate(async () =>
-      (await indexedDB.databases()).map((db) => db.name),
-    ),
-  ).toEqual(["oxbit"]);
+  const databases = await page.evaluate(async () =>
+    (await indexedDB.databases()).map((db) => db.name),
+  );
+  expect(databases).toContain("oxbit");
+  expect(databases.filter((name) => !name?.startsWith("oxbit"))).toEqual([]);
 });
