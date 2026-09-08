@@ -6,6 +6,7 @@ export function ProjectMenu({
   view,
   onActivate,
   onOpen,
+  onConnectSsh,
   onMove,
   onOpenBehaviorChange,
   disabled = false,
@@ -13,6 +14,7 @@ export function ProjectMenu({
   view: WindowView;
   onActivate: (key: string) => void;
   onOpen: (newWindow?: boolean) => void;
+  onConnectSsh: () => void;
   onMove?: () => void;
   onOpenBehaviorChange: (value: "currentWindow" | "newWindow") => void;
   disabled?: boolean;
@@ -146,6 +148,10 @@ export function ProjectMenu({
             <hr role="separator" />
           </>
         )}
+        <button type="button" role="menuitem" onClick={() => run(onConnectSsh)}>
+          <Icon name="goto" size={16} />
+          <span>{tr("Connect over SSH…")}</span>
+        </button>
         <button type="button" role="menuitem" onClick={() => run(() => onOpen())}>
           <Icon name="folderOpen" size={16} />
           <span>{tr("Open Folder…")}</span>

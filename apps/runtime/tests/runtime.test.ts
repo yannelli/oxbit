@@ -87,7 +87,9 @@ describe("authenticated runtime with real services", () => {
     return value;
   }
   beforeAll(async () => {
-    directory = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-runtime-"));
+    directory = await fs.mkdtemp(
+      path.join(await fs.realpath(os.tmpdir()), "oxbit-runtime-"),
+    );
     root = path.join(directory, "workspace");
     await fs.mkdir(root);
     await fs.writeFile(
@@ -96,6 +98,7 @@ describe("authenticated runtime with real services", () => {
     );
     runtime = await createRuntime({
       root,
+      tasksHome: directory,
       port: 0,
       dataDir: path.join(directory, "state"),
       projectsDir: path.join(directory, "projects"),
@@ -162,6 +165,12 @@ describe("authenticated runtime with real services", () => {
       body: JSON.stringify({ code: runtime.pairingCode }),
     });
     expect(denied.status).toBe(403);
+    expect((await client.request("tasks.catalog")).projectId).toMatch(
+      /^[a-f0-9-]{36}$/,
+    );
+    await expect(
+      client.request("tasks.run", { command: "echo denied" }),
+    ).rejects.toMatchObject({ code: "UNTRUSTED" });
     await expect(client.request("terminal.create")).rejects.toMatchObject({
       code: "UNTRUSTED",
     });
@@ -180,6 +189,39 @@ describe("authenticated runtime with real services", () => {
     expect(await client.request("workspace.trust", { trusted: true })).toEqual({
       trusted: true,
     });
+  });
+  it("edits configured tasks only as owner and enforces execution grants", async () => {
+    const catalog = await client.request("tasks.catalog"),
+      source = catalog.sources.find((item: any) => item.private);
+    const updated = await client.request("tasks.save", {
+      sourceId: source.id,
+      name: "rpc test",
+      task: { command: "printf 'configured rpc task\\n'" },
+      expectedRevision: source.revision,
+    });
+    const task = updated.tasks.find((task: any) => task.name === "rpc test");
+    const grant = await client.request("workspace.grant", {
+      capabilities: ["tasks"],
+    });
+    const guest = await connect(grant.token);
+    await expect(
+      guest.request("tasks.save", {
+        sourceId: source.id,
+        name: "rpc test",
+        task: { command: "false" },
+        expectedRevision: updated.sources.find((item: any) => item.private)
+          .revision,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const run = await guest.request("tasks.start", { taskId: task.id });
+    expect(
+      (await guest.event("tasks.exit", (params) => params.id === run.id))
+        .exitCode,
+    ).toBe(0);
+    await expect(
+      client.request("tasks.stop", { id: run.id }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await client.request("workspace.revoke", { id: grant.sessionId });
   });
   it("checks revisions, escaping paths and symlinks and revokes scoped grants", async () => {
     const snapshot = await client.request("fs.read", { path: "hello.ts" });
@@ -610,6 +652,7 @@ describe("authenticated runtime with real services", () => {
     await runtime.close();
     runtime = await createRuntime({
       root,
+      tasksHome: directory,
       port: 0,
       dataDir: path.join(directory, "state"),
       settingsFile: path.join(directory, "settings.json"),

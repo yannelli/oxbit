@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/ryanyannelli/Development/oxbit-remote-ssh
+
+ ✓ apps/runtime/tests/task-config.test.ts (14 tests) 165ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  01:21:14
+   Duration  560ms (transform 100ms, setup 0ms, collect 156ms, tests 165ms, environment 0ms, prepare 52ms)
+

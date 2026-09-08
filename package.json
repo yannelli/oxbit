@@ -45,7 +45,13 @@
     "settings:schema:check": "tsx scripts/generate-settings-schema.ts --check",
     "test:icons:browser": "playwright test --config tests/browser/icon-packs.config.ts",
     "test:themes:browser": "playwright test -c tests/browser/themes.config.ts",
-    "test:icons:desktop": "node scripts/build-icon-native-tests.mjs && node scripts/run-icon-native-tests.mjs"
+    "test:icons:desktop": "node scripts/build-icon-native-tests.mjs && node scripts/run-icon-native-tests.mjs",
+    "remote:prepare": "node scripts/desktop/prepare.mjs",
+    "remote:test": "tsx scripts/remote/smoke.ts",
+    "remote:test:native": "wdio run tests/desktop/remote.conf.mjs",
+    "test:tasks": "vitest run apps/runtime/tests/task-config.test.ts apps/runtime/tests/task-runner.test.ts apps/runtime/tests/task-worktrees.test.ts packages/features/tasks/src/tasks.test.ts",
+    "test:tasks:browser": "playwright test -c tests/browser/tasks.config.ts",
+    "test:tasks:native": "wdio run tests/desktop/tasks.conf.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

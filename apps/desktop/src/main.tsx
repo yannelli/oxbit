@@ -17,6 +17,7 @@ import { ProjectMenu } from "./project-menu.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 import "./desktop.css";
+import { SshDialog } from "./ssh-dialog.js";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 if (import.meta.env.VITE_DESKTOP_TEST === "1")
@@ -68,7 +69,7 @@ function App() {
   const view = useSyncExternalStore(manager.subscribe, manager.snapshot);
   const active = manager.active;
   const [error, setError] = useState("");
-  const [panel, setPanel] = useState<"trust" | "tools" | "update">();
+  const [panel, setPanel] = useState<"trust" | "tools" | "update" | "ssh">();
   const [tools, setTools] = useState<ToolStatus[]>([]);
   const [update, setUpdate] = useState<UpdateStatus>();
   const [busy, setBusy] = useState(false);
@@ -107,6 +108,9 @@ function App() {
     if (manager.isClosing) return;
     const current = manager.active;
     switch (id) {
+      case "desktop:remote":
+        setPanel("ssh");
+        break;
       case "desktop:open":
         await native.open();
         break;
@@ -146,6 +150,7 @@ function App() {
       else off.push(dispose);
     };
     void (async () => {
+      add(await listen<{ key: string; message: string }>("desktop-remote-progress", ({ payload }) => setProgress(payload.message)));
       add(
         await listen<string>("desktop-error", ({ payload }) =>
           setError(payload),
@@ -288,6 +293,7 @@ function App() {
     if (!session) return;
     const registrations = [
       ["workspace.open", "Open Folder…", () => native.open()],
+      ["workspace.connectSsh", "Connect over SSH…", () => setPanel("ssh")],
       [
         "workspace.switch",
         "Switch Project",
@@ -360,6 +366,7 @@ function App() {
       disabled={manager.isClosing}
       onActivate={(key) => perform(manager.activate(key))}
       onOpen={(newWindow) => perform(native.open(undefined, newWindow))}
+      onConnectSsh={() => setPanel("ssh")}
       onMove={active ? () => perform(manager.move(active.project.key)) : undefined}
       onOpenBehaviorChange={(value) => perform(native.settings([
         { path: ["user", "desktop.projects.openBehavior"], value },
@@ -391,7 +398,7 @@ function App() {
             className="button"
             onClick={() => perform(manager.restart(active.project.key))}
           >
-            Restart Runtime
+            {active.project.path.startsWith("ssh://") ? "Reconnect over SSH" : "Restart Runtime"}
           </button>
           <button
             className="button"
@@ -416,13 +423,15 @@ function App() {
           <div className="desktop-welcome">
             <div className="oxbit-logo" role="img" aria-label="Oxbit" />
             <h1>
-              {view.loading
+              {active?.loading && active.project.path.startsWith("ssh://")
+                ? "Connecting to your remote workspace…"
+                : view.loading || active?.loading
                 ? "Opening your projects…"
                 : active?.error
                   ? "Project unavailable"
                   : "Open a folder to start"}
             </h1>
-            <p>Your files, editor, and developer tools in one place.</p>
+            <p role="status">{(view.loading || active?.loading) && progress ? progress : "Your files, editor, and developer tools in one place."}</p>
             <button
               className="button primary"
               onClick={() => perform(native.open())}
@@ -452,6 +461,10 @@ function App() {
           </div>
         )}
       </main>
+      {panel === "ssh" && <SshDialog onClose={() => setPanel(undefined)} onConnect={async target => {
+        await native.openRemote(target);
+        setPanel(undefined);
+      }} />}
       {panel === "trust" && active?.session && (
         <div className="runtime-connect">
           <TrustDialog

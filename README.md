@@ -212,3 +212,11 @@ a public marketplace, and further debugging/AI providers remain deferred.
 [MIT](LICENSE). Copyright © 2026 **Ryan Yannelli**
 ([yannelli](https://github.com/yannelli), <ryanyannelli@gmail.com>).
 Bundled fonts and dependencies keep their [third-party licenses](THIRD_PARTY_NOTICES.md).
+
+## Remote workspaces
+
+Use **Connect over SSH…** in the desktop app to open a folder or file on Linux x64 or macOS Apple Silicon. Oxbit automatically installs a headless runtime through SSH and runs file operations, terminals, Git, search, and language services on the remote host. The host needs no Node/npm installation or outbound internet access for the bundled runtime. See [Remote SSH](docs/remote-ssh.md) for setup, supported systems, lifecycle, and verification.
+
+### Tasks and services
+
+The Tasks panel detects Paseo, VS Code, JetBrains, package scripts and other project commands; supports supervised services with dynamic ports, links, dependencies and worktree hooks; and saves to the detected source or a private project configuration. See [Tasks and lifecycle configuration](docs/tasks.md).

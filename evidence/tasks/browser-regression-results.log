@@ -1,0 +1,13 @@
+[WebServer] (node:66824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:66855) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:66898) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/acceptance.spec.ts:316:1 › real terminal, resize, task status and cancellation (1.2s)
+  ✓  2 tests/browser/dialogs-symbols.spec.ts:145:1 › dialog keyboard actions trap focus and preserve workspace actions (1.0s)
+
+  2 passed (4.0s)

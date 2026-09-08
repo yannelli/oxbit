@@ -4,6 +4,7 @@ use crate::{
     supervisor::{Launch, OwnedRuntime},
 };
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
     fs,
@@ -114,6 +115,81 @@ pub fn open_path(
     Ok(key)
 }
 
+/// The SSH URI is persisted as the project identity; remote paths are never
+/// passed to local filesystem dialogs, canonicalization, or file-manager APIs.
+fn open_remote(
+    app: &AppHandle,
+    window: &str,
+    target: &str,
+    new_window: bool,
+) -> Result<String, String> {
+    validate_remote(target)?;
+    let desktop = app.state::<Desktop>();
+    if desktop.closing.lock().unwrap().is_some() {
+        return Err("Finish or cancel closing first".into());
+    }
+    let key = format!("{:x}", Sha256::digest(target.as_bytes()));
+    let owner = {
+        let model = desktop.model.lock().unwrap();
+        model
+            .projects
+            .get(&key)
+            .map(|p| p.owner.clone())
+            .unwrap_or_else(|| {
+                if new_window || model.new_window_setting() {
+                    format!("project-{}", uuid::Uuid::new_v4())
+                } else {
+                    window.into()
+                }
+            })
+    };
+    crate::create_window(app, &owner)?;
+    {
+        let mut model = desktop.model.lock().unwrap();
+        model.add(key.clone(), target.into(), None, owner.clone());
+        if let Some(project) = model.projects.get_mut(&key) {
+            project.name = format!("SSH · {}", target.trim_start_matches("ssh://"));
+        }
+        model.save(&desktop.directory)?;
+    }
+    if let Some(window) = app.get_webview_window(&owner) {
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+    changed(app);
+    Ok(key)
+}
+
+fn validate_remote(target: &str) -> Result<(), String> {
+    let url = tauri::Url::parse(target).map_err(|_| "Invalid SSH workspace URI")?;
+    if target.len() > 8192
+        || target.chars().any(char::is_control)
+        || url.scheme() != "ssh"
+        || url.host_str().is_none()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+        || !url.path().starts_with('/')
+        || url.port() == Some(0)
+    {
+        return Err(
+            "Use ssh://[user@]host[:port]/path without passwords, queries, or fragments".into(),
+        );
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn desktop_open_remote(
+    app: AppHandle,
+    window: WebviewWindow,
+    target: String,
+    new_window: Option<bool>,
+) -> Result<String, String> {
+    local(&window)?;
+    open_remote(&app, window.label(), &target, new_window.unwrap_or(false))
+}
+
 #[tauri::command]
 pub async fn desktop_open_project(
     app: AppHandle,
@@ -123,6 +199,9 @@ pub async fn desktop_open_project(
     file: Option<bool>,
 ) -> Result<Option<String>, String> {
     local(&window)?;
+    if let Some(target) = path.as_deref().filter(|p| p.starts_with("ssh://")) {
+        return open_remote(&app, window.label(), target, new_window.unwrap_or(false)).map(Some);
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let picked = if let Some(path) = path {
             let path = fs::canonicalize(path).map_err(|_| "Project path is unavailable")?;
@@ -231,13 +310,14 @@ pub async fn desktop_connection(
             environment::executable("git", model.configured_tool("git").as_deref(), &desktop.environment).map(|p| p.display().to_string())
         };
         let event_app = app.clone(); let event_key = key.clone();
+        let progress_app = app.clone(); let progress_key = key.clone();
         let process = OwnedRuntime::launch(&resource.join("bin/node"), &resource.join("desktop.js"), Launch {
             version: 1, r#type: "launch", root: &project.path, data_dir: &data.to_string_lossy(), workspace_key: &key, token: &token,
             rg_path: &resource.join("bin/rg").to_string_lossy(), git_path: git.as_deref(), development: cfg!(debug_assertions) && !cfg!(feature = "custom-protocol"),
-        }, &desktop.environment, move || { let _ = event_app.emit("desktop-runtime-failed", json!({"key":event_key})); })?;
+        }, &desktop.environment, move || { let _ = event_app.emit("desktop-runtime-failed", json!({"key":event_key})); }, move |message| { let _ = progress_app.emit("desktop-remote-progress", json!({"key":progress_key,"message":message})); })?;
         // Ownership can change while the runtime starts. Never return credentials to a former owner.
         desktop.model.lock().unwrap().authorize(window.label(), &key)?;
-        let result = json!({"url":format!("http://127.0.0.1:{}", process.port), "token":token, "key":key});
+        let result = json!({"url":format!("http://127.0.0.1:{}", process.port), "token":token, "key":key, "openFile":process.open_file});
         runtimes.insert(key, RuntimeRecord { token, process });
         Ok(result)
     }).await.map_err(|_| "Runtime supervisor failed")?
@@ -432,6 +512,9 @@ pub fn desktop_reveal(
     relative: String,
 ) -> Result<(), String> {
     let project = authorized(&app, &window, &key)?;
+    if project.path.starts_with("ssh://") {
+        return Err("Remote files are available in the Oxbit explorer".into());
+    }
     let root = Path::new(&project.path);
     let target = fs::canonicalize(root.join(relative)).map_err(|_| "File is unavailable")?;
     if !target.starts_with(root) {
@@ -496,4 +579,22 @@ pub fn desktop_test_crash(
         record.process.crash_for_test();
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod remote_tests {
+    use super::*;
+    #[test]
+    fn remote_locations_reject_passwords_and_non_ssh_schemes() {
+        assert!(validate_remote("ssh://user@dev:2222/~/my%20project").is_ok());
+        for uri in [
+            "https://dev/path",
+            "ssh://user:secret@dev/path",
+            "ssh://dev/path?x",
+            "ssh://dev/path#x",
+            "ssh://dev:0/path",
+        ] {
+            assert!(validate_remote(uri).is_err(), "{uri}");
+        }
+    }
 }

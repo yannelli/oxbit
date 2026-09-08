@@ -135,6 +135,62 @@ var settings_schema_default = {
       type: "string",
       description: "JSON Schema URI. Ignored when merging effective preferences."
     },
+    "agentACP.provider": {
+      title: "Default agent",
+      type: "string",
+      default: "codex",
+      enum: [
+        "codex",
+        "cursor",
+        "amp"
+      ]
+    },
+    "agentACP.codex.command": {
+      title: "Codex ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.codex.args": {
+      title: "Codex ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","@agentclientprotocol/codex-acp@1.10.0"]'
+    },
+    "agentACP.cursor.command": {
+      title: "Cursor ACP executable",
+      type: "string",
+      default: "agent"
+    },
+    "agentACP.cursor.args": {
+      title: "Cursor ACP arguments (JSON array)",
+      type: "string",
+      default: '["acp"]'
+    },
+    "agentACP.amp.command": {
+      title: "Amp Agent ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.amp.args": {
+      title: "Amp Agent ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","amp-acp@0.9.0"]'
+    },
+    "workbench.keymap": {
+      title: "Keymap",
+      description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
+      type: "string",
+      default: "default",
+      enum: [
+        "default",
+        "vscode",
+        "jetbrains",
+        "macos",
+        "sublime",
+        "atom",
+        "visual-studio",
+        "emacs"
+      ]
+    },
     "workbench.tooltipDelay": {
       title: "Tooltip Delay",
       description: "Delay in milliseconds before showing a tooltip on hover. Keyboard focus shows tooltips immediately.",
@@ -598,62 +654,6 @@ var settings_schema_default = {
       type: "boolean",
       default: false
     },
-    "workbench.keymap": {
-      title: "Keymap",
-      description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
-      type: "string",
-      default: "default",
-      enum: [
-        "default",
-        "vscode",
-        "jetbrains",
-        "macos",
-        "sublime",
-        "atom",
-        "visual-studio",
-        "emacs"
-      ]
-    },
-    "agentACP.provider": {
-      title: "Default agent",
-      type: "string",
-      default: "codex",
-      enum: [
-        "codex",
-        "cursor",
-        "amp"
-      ]
-    },
-    "agentACP.codex.command": {
-      title: "Codex ACP executable",
-      type: "string",
-      default: "npx"
-    },
-    "agentACP.codex.args": {
-      title: "Codex ACP arguments (JSON array)",
-      type: "string",
-      default: '["-y","@agentclientprotocol/codex-acp@1.10.0"]'
-    },
-    "agentACP.cursor.command": {
-      title: "Cursor ACP executable",
-      type: "string",
-      default: "agent"
-    },
-    "agentACP.cursor.args": {
-      title: "Cursor ACP arguments (JSON array)",
-      type: "string",
-      default: '["acp"]'
-    },
-    "agentACP.amp.command": {
-      title: "Amp Agent ACP executable",
-      type: "string",
-      default: "npx"
-    },
-    "agentACP.amp.args": {
-      title: "Amp Agent ACP arguments (JSON array)",
-      type: "string",
-      default: '["-y","amp-acp@0.9.0"]'
-    },
     "desktop.projects.openBehavior": {
       title: "Open projects",
       type: "string",
@@ -789,6 +789,30 @@ var settings_schema_default = {
     languageOverrides: {
       type: "object",
       properties: {
+        "agentACP.provider": {
+          $ref: "#/properties/agentACP.provider"
+        },
+        "agentACP.codex.command": {
+          $ref: "#/properties/agentACP.codex.command"
+        },
+        "agentACP.codex.args": {
+          $ref: "#/properties/agentACP.codex.args"
+        },
+        "agentACP.cursor.command": {
+          $ref: "#/properties/agentACP.cursor.command"
+        },
+        "agentACP.cursor.args": {
+          $ref: "#/properties/agentACP.cursor.args"
+        },
+        "agentACP.amp.command": {
+          $ref: "#/properties/agentACP.amp.command"
+        },
+        "agentACP.amp.args": {
+          $ref: "#/properties/agentACP.amp.args"
+        },
+        "workbench.keymap": {
+          $ref: "#/properties/workbench.keymap"
+        },
         "workbench.tooltipDelay": {
           $ref: "#/properties/workbench.tooltipDelay"
         },
@@ -935,30 +959,6 @@ var settings_schema_default = {
         },
         "workbench.reducedMotion": {
           $ref: "#/properties/workbench.reducedMotion"
-        },
-        "workbench.keymap": {
-          $ref: "#/properties/workbench.keymap"
-        },
-        "agentACP.provider": {
-          $ref: "#/properties/agentACP.provider"
-        },
-        "agentACP.codex.command": {
-          $ref: "#/properties/agentACP.codex.command"
-        },
-        "agentACP.codex.args": {
-          $ref: "#/properties/agentACP.codex.args"
-        },
-        "agentACP.cursor.command": {
-          $ref: "#/properties/agentACP.cursor.command"
-        },
-        "agentACP.cursor.args": {
-          $ref: "#/properties/agentACP.cursor.args"
-        },
-        "agentACP.amp.command": {
-          $ref: "#/properties/agentACP.amp.command"
-        },
-        "agentACP.amp.args": {
-          $ref: "#/properties/agentACP.amp.args"
         },
         "desktop.projects.openBehavior": {
           $ref: "#/properties/desktop.projects.openBehavior"
@@ -1228,6 +1228,14 @@ var ACP_PROVIDERS = [
   }
 ];
 
+// packages/sdk/src/tasks.ts
+var taskPhases = [
+  "preinit",
+  "init",
+  "preteardown",
+  "teardown"
+];
+
 // packages/sdk/src/settings.ts
 var settingsObject = (value) => !!value && typeof value === "object" && !Array.isArray(value);
 function mergeSettings(lower, upper) {
@@ -1297,6 +1305,7 @@ export {
   settingsObject,
   settingsSchema,
   synchronization,
+  taskPhases,
   textOffset,
   textPosition,
   validateFileAssociations,

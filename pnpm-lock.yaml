@@ -132,9 +132,15 @@ importers:
       '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xmldom/xmldom':
+        specifier: ^0.9.12
+        version: 0.9.12
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       ignore:
         specifier: 7.0.5
         version: 7.0.5
@@ -2092,6 +2098,10 @@ packages:
   '@wdio/xvfb@9.31.2':
     resolution: {integrity: sha512-48MqdcrvdC/Jn2YPhW6hjGLzcQqOEt1Q6KELR/TWz3vIJoZwzTngGAdT06voUnZS+PUEcd/vKSo4a6zxQ/mm7g==}
     engines: {node: '>=18.20.0'}
+
+  '@xmldom/xmldom@0.9.12':
+    resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
+    engines: {node: '>=14.6'}
 
   '@xterm/addon-clipboard@0.3.0-beta.303':
     resolution: {integrity: sha512-AVw9y9f50uVcI1/LIzp4vkQzPXiRad8SFHjqo33kg7wWL4jes+Z/08jWDBLGvNfYNGhmElp9H2cg/ITErex55g==}
@@ -5613,6 +5623,8 @@ snapshots:
   '@wdio/xvfb@9.31.2':
     dependencies:
       '@wdio/logger': 9.29.1
+
+  '@xmldom/xmldom@0.9.12': {}
 
   '@xterm/addon-clipboard@0.3.0-beta.303(@xterm/xterm@6.1.0-beta.304)':
     dependencies:

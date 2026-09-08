@@ -81,7 +81,7 @@ The login-shell environment is imported from a neutral directory with a timeout 
 
 Set `desktop.tools.gitPath` or `desktop.tools.ghPath` to an absolute executable path if automatic resolution fails. Restart the project's runtime after changing its Git path. The Developer Tools dialog checks GitHub authentication only after selecting Check GitHub Authentication. Sign In with gh in Terminal runs an interactive login only on request and only in a trusted project. No login or account-changing operation runs automatically.
 
-The existing `oxbit` command still starts the browser editor. `oxbit --desktop [path]` opens the installed desktop application. Linux packages install the distinct `oxbit-desktop` binary/desktop entry. macOS bundles an optional launcher at `Oxbit.app/Contents/Resources/oxbit-desktop`; add it to your PATH explicitly if desired. Installation never replaces a pre-existing `oxbit` command.
+The existing `oxbit` command still starts the browser editor. `oxbit --desktop [path]` opens the installed desktop application. Linux packages install the distinct `oxbit-desktop` binary/desktop entry. macOS bundles an optional launcher at `Oxbit.app/Contents/Resources/bin/oxbit-desktop`; add it to your PATH explicitly if desired. Installation never replaces a pre-existing `oxbit` command.
 
 ## Signing and releases
 

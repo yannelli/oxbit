@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
+import { stageDependencies } from "./dependencies.mjs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
@@ -91,63 +91,7 @@ try {
       type: "module",
     }),
   );
-  // Materialize the locked dependency graph as ordinary directories. No pnpm store or checkout symlinks.
-  const copied = new Map();
-  const inventory = [];
-  async function copyDependency(name, from, optional = false) {
-    const require = createRequire(path.join(from, "package.json"));
-    let manifest;
-    try {
-      for (const directory of require.resolve.paths(name) ?? []) {
-        const candidate = path.join(directory, name, "package.json");
-        try {
-          await fs.access(candidate);
-          manifest = candidate;
-          break;
-        } catch {
-          /* Try next package directory. */
-        }
-      }
-      if (!manifest) throw new Error(`Missing production dependency: ${name}`);
-    } catch (error) {
-      if (optional) return;
-      throw error;
-    }
-    const source = path.dirname(await fs.realpath(manifest));
-    const pkg = JSON.parse(await fs.readFile(manifest, "utf8"));
-    if (copied.has(name)) {
-      if (copied.get(name) !== pkg.version)
-        throw new Error(
-          `Dependency version collision: ${name}. Extend staging to preserve both versions.`,
-        );
-      return;
-    }
-    copied.set(name, pkg.version);
-    const destination = path.join(stage, "node_modules", name);
-    await fs.cp(source, destination, {
-      recursive: true,
-      dereference: true,
-      filter: (entry) =>
-        entry === source ||
-        !path.relative(source, entry).split(path.sep).includes("node_modules"),
-    });
-    inventory.push({
-      name,
-      version: pkg.version,
-      license: pkg.license ?? "SEE LICENSE IN PACKAGE",
-      path: `node_modules/${name}`,
-    });
-    for (const dependency of Object.keys(pkg.dependencies ?? {}))
-      await copyDependency(dependency, source);
-    for (const dependency of Object.keys(pkg.optionalDependencies ?? {}))
-      await copyDependency(dependency, source, true);
-  }
-  const runtime = path.join(root, "apps/runtime");
-  const pkg = JSON.parse(
-    await fs.readFile(path.join(runtime, "package.json"), "utf8"),
-  );
-  for (const name of Object.keys(pkg.dependencies))
-    if (!name.startsWith("@oxbit/")) await copyDependency(name, runtime);
+  const inventory = await stageDependencies(stage, path.join(root, "apps/runtime"));
   const prebuilds = path.join(stage, "node_modules/node-pty/prebuilds");
   try {
     for (const entry of await fs.readdir(prebuilds))
@@ -198,6 +142,7 @@ try {
     ],
     { cwd: stage, env: { PATH: "/usr/bin:/bin", HOME: os.homedir() } },
   );
+  run(process.execPath, ["scripts/remote/prepare.mjs", "--from-stage", stage]);
   console.log(`Desktop runtime staged at ${stage}`);
 } finally {
   await fs.rm(node, { recursive: true, force: true });

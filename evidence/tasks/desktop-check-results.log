@@ -1,0 +1,118 @@
+
+> oxbit@0.1.0 desktop:check /Users/ryanyannelli/Development/oxbit-remote-ssh
+> node scripts/desktop/run.mjs check
+
+
+> @oxbit/desktop@0.1.0 build /Users/ryanyannelli/Development/oxbit-remote-ssh/apps/desktop
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 456 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                              0.50 kB │ gzip:     0.32 kB
+dist/assets/worker-CsXkqX-T.js               1.19 kB
+dist/assets/format.worker-q2YB7Fph.js        6.19 kB
+dist/assets/typescript-HXNn4lJN.js       3,588.95 kB
+dist/assets/index-CWFzHJyY.css              91.53 kB │ gzip:    16.04 kB
+dist/assets/addon-image-BxricI7a.js         80.41 kB │ gzip:    25.12 kB
+dist/assets/standalone-Cayz_KD-.js          81.46 kB │ gzip:    27.13 kB
+dist/assets/postcss-BGfBeQpW.js            156.74 kB │ gzip:    44.90 kB
+dist/assets/html-DwgzGnwN.js               160.11 kB │ gzip:    50.60 kB
+dist/assets/addon-ligatures-BOzI2Oy0.js    172.54 kB │ gzip:    51.34 kB
+dist/assets/estree-DFfjoHvx.js             211.14 kB │ gzip:    61.75 kB
+dist/assets/addon-webgl-PbQqCq-D.js        251.80 kB │ gzip:    68.66 kB
+dist/assets/markdown-Bd15IfY5.js           268.44 kB │ gzip:    91.74 kB
+dist/assets/babel-BktJt1uC.js              318.08 kB │ gzip:    82.85 kB
+dist/assets/typescript-cMir0TZb.js         462.30 kB │ gzip:   126.44 kB
+dist/assets/index-8GB20L0m.js            2,823.41 kB │ gzip:   796.43 kB
+dist/assets/typescript-CCkbK7Na.js       3,588.37 kB │ gzip: 1,028.07 kB
+
+(!) Some chunks are larger than 1800 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 20.91s
+    Checking objc2-exception-helper v0.1.1
+    Checking ring v0.17.14
+   Compiling oxbit-desktop v0.1.0 (/Users/ryanyannelli/Development/oxbit-remote-ssh/apps/desktop/src-tauri)
+    Checking objc2 v0.6.4
+    Checking block2 v0.6.2
+    Checking objc2-core-foundation v0.3.2
+    Checking rustls-webpki v0.103.15
+    Checking dispatch2 v0.3.1
+    Checking rustls v0.23.43
+    Checking objc2-core-graphics v0.3.2
+    Checking objc2-foundation v0.3.2
+    Checking tokio-rustls v0.26.5
+    Checking rustls-platform-verifier v0.7.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.13.4
+    Checking objc2-app-kit v0.3.2
+    Checking objc2-web-kit v0.3.2
+    Checking tao v0.35.3
+    Checking muda v0.19.3
+    Checking window-vibrancy v0.6.0
+    Checking objc2-osa-kit v0.3.2
+    Checking rfd v0.16.0
+    Checking arboard v3.6.1
+    Checking osakit v0.3.1
+    Checking wry v0.55.1
+    Checking tauri-runtime v2.11.3
+    Checking tauri-runtime-wry v2.11.4
+    Checking tauri v2.11.5
+    Checking tauri-plugin-fs v2.5.2
+    Checking tauri-plugin-clipboard-manager v2.3.3
+    Checking tauri-plugin-single-instance v2.4.4
+    Checking tauri-plugin-updater v2.11.0
+    Checking tauri-plugin-opener v2.5.5
+    Checking tauri-plugin-dialog v2.7.3
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.67s
+   Compiling objc2-core-foundation v0.3.2
+   Compiling dispatch2 v0.3.1
+   Compiling tokio-rustls v0.26.5
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling oxbit-desktop v0.1.0 (/Users/ryanyannelli/Development/oxbit-remote-ssh/apps/desktop/src-tauri)
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.13.4
+   Compiling objc2-foundation v0.3.2
+   Compiling objc2-core-graphics v0.3.2
+   Compiling objc2-app-kit v0.3.2
+   Compiling objc2-web-kit v0.3.2
+   Compiling tao v0.35.3
+   Compiling window-vibrancy v0.6.0
+   Compiling muda v0.19.3
+   Compiling objc2-osa-kit v0.3.2
+   Compiling arboard v3.6.1
+   Compiling rfd v0.16.0
+   Compiling osakit v0.3.1
+   Compiling wry v0.55.1
+   Compiling tauri-runtime v2.11.3
+   Compiling tauri-runtime-wry v2.11.4
+   Compiling tauri v2.11.5
+   Compiling tauri-plugin-fs v2.5.2
+   Compiling tauri-plugin-opener v2.5.5
+   Compiling tauri-plugin-updater v2.11.0
+   Compiling tauri-plugin-clipboard-manager v2.3.3
+   Compiling tauri-plugin-single-instance v2.4.4
+   Compiling tauri-plugin-dialog v2.7.3
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.65s
+     Running unittests src/main.rs (target/debug/deps/oxbit_desktop-f785488224eab7b2)
+
+running 12 tests
+test model::tests::independent_settings_changes_merge ... ok
+test environment::tests::skips_relative_search_directories ... ok
+test model::tests::duplicate_focus_and_transfer_have_one_owner ... ok
+test commands::remote_tests::remote_locations_reject_passwords_and_non_ssh_schemes ... ok
+test model::tests::remote_projects_restore_without_local_filesystem_checks ... ok
+test model::tests::canonical_aliases_share_identity_and_missing_projects_restore ... ok
+test supervisor::tests::startup_process_events_do_not_replace_readiness ... ok
+test environment::tests::bounds_output_and_time ... ok
+test supervisor::tests::valid_ready_and_graceful_shutdown_keep_credentials_private ... ok
+test icon_packs::tests::revisions_are_atomic_and_shared_across_projects ... ok
+test supervisor::tests::abrupt_exit_reports_failure_once_and_cleans_inherited_children ... ok
+test supervisor::tests::wrong_identity_malformed_frames_and_timeout_reap_child ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+

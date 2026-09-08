@@ -102,29 +102,34 @@ export function Dialog({
   onClose,
   danger = false,
   className = "",
+  initialFocus,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   danger?: boolean;
   className?: string;
+  initialFocus?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const prior = document.activeElement as HTMLElement | null;
     const el = ref.current;
-    el?.querySelector<HTMLElement>(
-      'input:not([hidden]),button,select,a[href],summary,[tabindex="0"]',
+    (initialFocus ? el?.querySelector<HTMLElement>(initialFocus) : undefined)?.focus();
+    if (!initialFocus || !el?.contains(document.activeElement)) el?.querySelector<HTMLElement>(
+      'input:not([hidden]),textarea,button,select,a[href],summary,[tabindex="0"]',
     )?.focus();
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        closeRef.current();
       }
       if (e.key === "Tab" && el) {
         const list = Array.from(
           el.querySelectorAll<HTMLElement>(
-            'button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href],summary,[tabindex="0"]',
+            'button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],summary,[tabindex="0"]',
           ),
         ).filter(element => element.getClientRects().length > 0);
         const a = list[0],
@@ -143,7 +148,7 @@ export function Dialog({
       el?.removeEventListener("keydown", key);
       prior?.focus();
     };
-  }, [onClose]);
+  }, [initialFocus]);
   return (
     <div
       className="modal-scrim"

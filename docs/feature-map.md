@@ -27,7 +27,7 @@ The complete Phase 1 reference is preserved in `design/reference/`. Literal samp
 | File error view | missing (restore from git) · permission denied (retry) | packages/documents, packages/workbench |
 | Panel | terminal · problems · output · tasks · Bundle Size (plugin) · maximized · hidden · sheet (tablet/phone) | packages/workbench, packages/ui |
 | Terminal | idle · running · completed · failed · disconnected (Enter reconnects) · terminated · split (2) · search · rename | packages/features/terminal |
-| Tasks | idle · running (cancel) · completed · failed · cancelled · rerun | packages/features/tasks |
+| Tasks | detected/imported configs · private/project persistence · command/service editing · readiness/health · dependency graph · dynamic ports/variables · links · restart/force stop · worktree lifecycle | packages/features/tasks, apps/runtime/src/tasks |
 | Problems | grouped by file · empty | packages/features/language |
 | Output | channel select (plugin channel appears/disappears) | packages/features/tasks |
 | Command palette | files · commands · symbols · line · recent · empty · disabled rows with reasons | packages/workbench, packages/ui |

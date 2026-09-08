@@ -62,7 +62,7 @@ For a repository override, Oxbit recognizes the filename without a declaration. 
 
 Oxbit resolves that identifier locally. A distributable copy is also included in the web build at `/schemas/settings.v1.schema.json`; publishing the hosted `oxbit.dev` URL is a separate deployment step. For another editor before deployment, reference the installed local schema or a checked-in copy with a relative `$schema` path.
 
-The generator reads the same configuration declarations used by Settings, Keymaps, Agent ACP and Desktop. Run `pnpm settings:schema` after changing those declarations and `pnpm settings:schema:check` to detect stale generated artifacts. The SDK exports `settingsSchema` and `SETTINGS_SCHEMA_URI`.
+The generator discovers feature configuration modules and reads the same declarations used by Settings and Desktop. Independently added features with a configuration module are included automatically. Run `pnpm settings:schema` after changing those declarations and `pnpm settings:schema:check` to detect stale generated artifacts. The SDK exports `settingsSchema` and `SETTINGS_SCHEMA_URI`.
 
 ## Editing and persistence
 

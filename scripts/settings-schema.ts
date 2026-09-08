@@ -1,10 +1,20 @@
 import type { Setting } from "../packages/sdk/src/index.js";
-import { settingsConfiguration } from "../packages/features/settings/src/configuration.js";
-import { keymapConfiguration } from "../packages/features/keymaps/src/configuration.js";
-import { agentConfiguration } from "../packages/features/agent-acp/src/configuration.js";
+import * as fs from "node:fs/promises";
 import { desktopConfiguration } from "../packages/host-desktop/src/configuration.js";
 
-export const builtinSettings = [...settingsConfiguration, ...keymapConfiguration, ...agentConfiguration, ...desktopConfiguration];
+// Discover declarations without importing UI modules. This includes independently
+// shipped features when they contribute a configuration module to the checkout.
+const featureRoot = new URL("../packages/features/", import.meta.url);
+const featureSettings: Setting[] = [];
+for (const name of (await fs.readdir(featureRoot)).sort()) {
+  const source = new URL(`${name}/src/configuration.ts`, featureRoot);
+  try { await fs.access(source); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; throw error; }
+  const module = await import(source.href);
+  for (const [key, value] of Object.entries(module))
+    if (key.endsWith("Configuration") && Array.isArray(value)) featureSettings.push(...value);
+}
+export const builtinSettings = [...featureSettings, ...desktopConfiguration];
 type Schema = Record<string, any>;
 const string = { type: "string" };
 const safeString = { type: "string", pattern: "^[^\\u0000]*$" };
