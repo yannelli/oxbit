@@ -135,6 +135,9 @@ importers:
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
+      ignore:
+        specifier: 7.0.5
+        version: 7.0.5
       node-pty:
         specifier: ^1.1.0
         version: 1.1.0
@@ -268,6 +271,9 @@ importers:
       '@oxbit/documents':
         specifier: workspace:*
         version: link:../documents
+      '@oxbit/feature-agent-acp':
+        specifier: workspace:*
+        version: link:../features/agent-acp
       '@oxbit/feature-collaboration':
         specifier: workspace:*
         version: link:../features/collaboration
@@ -286,6 +292,9 @@ importers:
       '@oxbit/feature-git':
         specifier: workspace:*
         version: link:../features/git
+      '@oxbit/feature-keymaps':
+        specifier: workspace:*
+        version: link:../features/keymaps
       '@oxbit/feature-language':
         specifier: workspace:*
         version: link:../features/language
@@ -346,6 +355,36 @@ importers:
       yjs:
         specifier: ^13.6.27
         version: 13.6.32
+
+  packages/features/agent-acp:
+    dependencies:
+      '@oxbit/documents':
+        specifier: workspace:*
+        version: link:../../documents
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+      '@oxbit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@oxbit/workbench':
+        specifier: workspace:*
+        version: link:../../workbench
+      diff:
+        specifier: 8.0.4
+        version: 8.0.4
+      dompurify:
+        specifier: ^3.2.7
+        version: 3.4.15
+      markdown-it:
+        specifier: ^10.0.0
+        version: 10.0.0
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
 
   packages/features/collaboration:
     dependencies:
@@ -535,6 +574,15 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+
+  packages/features/keymaps:
+    dependencies:
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+      '@oxbit/workbench':
+        specifier: workspace:*
+        version: link:../../workbench
 
   packages/features/language:
     dependencies:
@@ -736,6 +784,9 @@ importers:
       '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
+      '@oxbit/icon-themes':
+        specifier: workspace:*
+        version: link:../../icon-themes
       '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk
@@ -2917,6 +2968,10 @@ packages:
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
+    engines: {node: '>= 4'}
+
+  ignore@7.0.5:
+    resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
     engines: {node: '>= 4'}
 
   ignore@7.0.8:
@@ -6478,6 +6533,8 @@ snapshots:
   ieee754@1.2.1: {}
 
   ignore@5.3.2: {}
+
+  ignore@7.0.5: {}
 
   ignore@7.0.8: {}
 

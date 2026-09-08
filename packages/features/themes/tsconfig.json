@@ -28,6 +28,9 @@
     },
     {
       "path": "../../workbench"
+    },
+    {
+      "path": "../../icon-themes"
     }
   ]
 }

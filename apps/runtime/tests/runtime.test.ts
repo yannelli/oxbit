@@ -98,6 +98,8 @@ describe("authenticated runtime with real services", () => {
       root,
       port: 0,
       dataDir: path.join(directory, "state"),
+      projectsDir: path.join(directory, "projects"),
+      settingsFile: path.join(directory, "settings.json"),
       pairingCode: "test-pair-code",
     });
     const response = await fetch(`http://127.0.0.1:${runtime.port}/api/pair`, {
@@ -111,6 +113,40 @@ describe("authenticated runtime with real services", () => {
     token = (await response.json()).token;
     client = await connect();
   }, 20000);
+  it("shares merged JSON settings and notifications through owner-only RPCs", async () => {
+    const first = await client.request("settings.read");
+    expect(first.files.map((file: any) => file.exists)).toEqual([true, true, false, false]);
+    const second = await connect();
+    await client.request("settings.patch", { changes: [{ scope: "user", path: ["editor.tabSize"], value: 3 }] });
+    await second.event("settings.changed");
+    expect((await second.request("settings.read")).layers.user["editor.tabSize"]).toBe(3);
+    await client.request("settings.patch", { changes: [{ scope: "workspace", path: ["project.intelligence"], value: { enabled: false } }, { scope: "workspace", path: ["project.schemas"], value: { download: false } }] });
+    const disabled = await client.request("project.refresh");
+    expect(disabled.state).toBe("disabled");
+    expect(disabled.configuration.schemas).toMatchObject({ catalog: true, download: false, associations: [] });
+    await client.request("settings.patch", { changes: [{ scope: "workspace", path: ["project.intelligence"], before: { enabled: false } }, { scope: "workspace", path: ["project.schemas"], before: { download: false } }] });
+    await client.request("project.refresh");
+    await client.request("fs.mkdir", { path: ".config" });
+    await client.request("fs.mkdir", { path: ".config/oxbit" });
+    await client.request("fs.write", { path: ".config/oxbit/settings.local.json", text: '{"editor.tabSize": 6}', expectedRevision: null });
+    expect((await second.request("settings.read")).layers.workspace["editor.tabSize"]).toBe(6);
+    await client.request("fs.delete", { path: ".config/oxbit/settings.local.json", expectedRevision: (await client.request("fs.read", { path: ".config/oxbit/settings.local.json" })).revision });
+  });
+  it("exposes persisted project analysis through owner-scoped runtime requests and follows file changes", async () => {
+    const before = await client.request("project.info");
+    expect(before.directory).toContain(before.configuration.id);
+    expect(before.configuration.schemas.catalog).toBe(true);
+    await client.request("fs.write", { path: "intelligence-helper.ts", expectedRevision: null, text: "export const value = 1;" });
+    await client.request("fs.write", { path: "intelligence-entry.ts", expectedRevision: null, text: "import { value } from './intelligence-helper';" });
+    await client.request("project.refresh");
+    const relations = await client.request("project.relations", { path: "intelligence-helper.ts" });
+    expect(relations.importedBy).toContain("intelligence-entry.ts");
+    const page = await client.request("project.intelligence", { offset: 0, limit: 1 });
+    expect(page.files).toHaveLength(1); expect(page.totalFiles).toBeGreaterThan(1);
+    await expect(client.request("project.intelligence", { limit: 10000 })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await client.request("fs.delete", { path: "intelligence-entry.ts" });
+    await expect.poll(async () => (await client.request("project.relations", { path: "intelligence-helper.ts" })).importedBy).not.toContain("intelligence-entry.ts");
+  });
   afterAll(async () => {
     for (const c of clients) c.close();
     await runtime?.close();
@@ -178,6 +214,10 @@ describe("authenticated runtime with real services", () => {
       capabilities: ["filesystem.read"],
     });
     const restricted = await connect(grant.token);
+    await expect(restricted.request("project.info")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(restricted.request("settings.read")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(restricted.request("settings.patch", { changes: [] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(restricted.request("project.intelligence")).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(
       (await restricted.request("fs.read", { path: "hello.ts" })).text,
     ).toContain("saved");
@@ -572,6 +612,8 @@ describe("authenticated runtime with real services", () => {
       root,
       port: 0,
       dataDir: path.join(directory, "state"),
+      settingsFile: path.join(directory, "settings.json"),
+      projectsDir: path.join(directory, "projects"),
       pairingCode: "test-pair-code",
     });
     client = await connect();

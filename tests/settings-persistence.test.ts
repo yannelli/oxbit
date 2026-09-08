@@ -1,0 +1,101 @@
+import { afterEach, expect, it } from "vitest";
+import * as fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { createKernel } from "../packages/core/src/index.js";
+import { ScopedConfigurationPersistence } from "../packages/app-workbench/src/configuration.js";
+import { SettingsStore } from "../apps/runtime/src/settings.js";
+import { WorkspaceFiles } from "../apps/runtime/src/filesystem.js";
+import type { Persistence, RpcClient, FileSystem } from "@oxbit/sdk";
+const cleanup: (() => Promise<unknown> | void)[] = [];
+afterEach(async () => { for (const dispose of cleanup.splice(0).reverse()) await dispose(); });
+async function fixture() {
+  const directory = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-settings-client-"));
+  cleanup.push(() => fs.rm(directory, { recursive: true, force: true }));
+  const root = path.join(directory, "workspace"); await fs.mkdir(root);
+  const listeners = new Map<string, Set<(params: any) => void>>();
+  const emit = (name: string, value: any = {}) => { for (const listener of listeners.get(name) ?? []) listener(value); };
+  const store = await new SettingsStore(new WorkspaceFiles(root), path.join(directory, "settings.json"), path.join(directory, "projects/id"), () => emit("settings.changed")).initialize();
+  cleanup.push(() => store.dispose());
+  const values = new Map<string, unknown>();
+  const storage: Persistence = { async get<T>(key: string) { return structuredClone(values.get(key)) as T; }, async set(key, value) { values.set(key, structuredClone(value)); }, async delete(key) { values.delete(key); } };
+  const runtime: RpcClient & { connected: boolean } = { connected: true, subscribe(name, listener) { const set = listeners.get(name) ?? new Set(); set.add(listener); listeners.set(name, set); return () => { set.delete(listener); }; }, async request<T>(method: string, params: any = {}) { if (!runtime.connected) throw new Error("offline"); return await (method === "settings.read" ? store.read(params.legacy) : store.patch(params.changes)) as T; } };
+  const create = async () => {
+    const persistence = new ScopedConfigurationPersistence(storage, { id: "runtime" } as FileSystem, runtime);
+    const data = await persistence.get("settings");
+    const kernel = createKernel({ environment: "browser", persistence });
+    kernel.configuration.register({ id: "object", title: "Object", type: "object", default: {} });
+    kernel.configuration.register({ id: "number", title: "Number", type: "number", default: 1 });
+    kernel.configuration.import(data, { persist: false });
+    const errors: string[] = []; persistence.attach(kernel, message => errors.push(message));
+    cleanup.push(() => persistence.dispose()); cleanup.push(() => kernel.dispose());
+    return { kernel, persistence, errors };
+  };
+  return { root, store, runtime, emit, create, values };
+}
+it("saves UI settings to JSON, reloads external files and merges objects in the effective kernel", async () => {
+  const { root, store, create } = await fixture(), { kernel } = await create();
+  kernel.configuration.set("object", { user: true, nested: { a: 1 } });
+  kernel.configuration.set("object", { project: true, nested: { b: 2 } }, "workspace");
+  await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8"))).toEqual({ $schema: "schemas/settings.v1.schema.json", object: { user: true, nested: { a: 1 } } });
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ $schema: "../../schemas/settings.v1.schema.json", object: { project: true, nested: { b: 2 } } });
+  await fs.mkdir(path.join(root, ".config/oxbit"), { recursive: true });
+  await fs.writeFile(store.paths[3], '{"object":{"nested":{"b":3}},"number":4}');
+  await expect.poll(() => kernel.configuration.get("number"), { timeout: 3000 }).toBe(4);
+  expect(kernel.configuration.get("object")).toEqual({ user: true, project: true, nested: { a: 1, b: 3 } });
+  kernel.configuration.set("number", 5, "workspace"); await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[3], "utf8")).number).toBe(5);
+  kernel.configuration.reset("number", "workspace"); await kernel.configuration.flush!();
+  expect(kernel.configuration.get("number")).toBe(1);
+});
+it("recovers offline changes after recreating the client without replacing unrelated disk values", async () => {
+  const { store, runtime, create, emit } = await fixture(), first = await create();
+  runtime.connected = false;
+  first.kernel.configuration.set("number", 7); await first.kernel.configuration.flush!();
+  first.persistence.dispose();
+  await fs.writeFile(store.paths[0], '{"object":{"external":true}}');
+  const second = await create(); expect(second.kernel.configuration.get("number")).toBe(7);
+  runtime.connected = true; emit("connection.change", { state: "connected" });
+  await expect.poll(async () => JSON.parse(await fs.readFile(store.paths[0], "utf8")).number, { timeout: 3000 }).toBe(7);
+  await expect.poll(() => second.kernel.configuration.get("object")).toEqual({ external: true });
+});
+it("keeps conflicting UI edits until explicitly reloaded, without overwriting disk", async () => {
+  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors } = await create();
+  runtime.connected = false; kernel.configuration.set("number", 7); await kernel.configuration.flush!();
+  await fs.writeFile(store.paths[0], '{"number":9}'); runtime.connected = true; emit("connection.change", { state: "connected" });
+  await expect.poll(() => errors.some(message => message.includes("changed on disk")), { timeout: 3000 }).toBe(true);
+  expect(kernel.configuration.get("number")).toBe(7);
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8")).number).toBe(9);
+  await persistence.resolveWorkspaceSettings("disk"); expect(kernel.configuration.get("number")).toBe(9);
+});
+it("explicitly saving a conflict rebases only pending changes onto the current files", async () => {
+  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors } = await create();
+  runtime.connected = false; kernel.configuration.set("number", 7); await kernel.configuration.flush!();
+  await fs.writeFile(store.paths[0], '{"number":9,"object":{"external":true}}'); runtime.connected = true; emit("connection.change", { state: "connected" });
+  await expect.poll(() => errors.some(message => message.includes("changed on disk")), { timeout: 3000 }).toBe(true);
+  await persistence.resolveWorkspaceSettings("local");
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8"))).toEqual({ number: 7, object: { external: true } });
+  expect(kernel.configuration.get("object")).toEqual({ external: true });
+});
+it("migrates pending writes from the former workspace file without losing offline edits", async () => {
+  const { store, root, create, values } = await fixture();
+  await fs.mkdir(path.join(root, ".oxbit"));
+  await fs.writeFile(path.join(root, ".oxbit/settings.json"), '{"number":3}');
+  values.set("workspace-settings:runtime:pending", { value: { workspace: { number: 7 }, workspaceLanguages: {} }, revision: "legacy", lastText: '{"number":3}' });
+  const { kernel } = await create();
+  expect(kernel.configuration.get("number")).toBe(7);
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ $schema: "../../schemas/settings.v1.schema.json", number: 7 });
+  expect(await fs.readFile(path.join(root, ".oxbit/settings.json"), "utf8")).toBe('{"number":3}');
+  expect(values.has("workspace-settings:runtime:pending")).toBe(false);
+});
+it("retains an upgrade conflict when the former workspace file changed while offline", async () => {
+  const { store, root, create, values } = await fixture();
+  await fs.mkdir(path.join(root, ".oxbit"));
+  await fs.writeFile(path.join(root, ".oxbit/settings.json"), '{"number":9}');
+  values.set("workspace-settings:runtime:pending", { value: { workspace: { number: 7 }, workspaceLanguages: {} }, revision: "legacy", lastText: '{"number":3}' });
+  const { kernel, errors } = await create();
+  expect(kernel.configuration.get("number")).toBe(7);
+  expect(errors.some(message => message.includes("changed on disk"))).toBe(true);
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ $schema: "../../schemas/settings.v1.schema.json", number: 9 });
+});

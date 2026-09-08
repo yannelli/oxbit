@@ -1,45 +1,125 @@
-import { Icon, IconButton, Select, FileBadge, translate as tr } from "@oxbit/ui";
+import {
+  Icon,
+  IconButton,
+  Select,
+  FileBadge,
+  translate as tr,
+} from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
-import type { Extension, FeatureOptions } from "@oxbit/sdk";
-type Change = { path: string; index: string; working: string };
-type Status = { branch: string; branches: string[]; changes: Change[] };
+import type {
+  Extension,
+  FeatureOptions,
+  GitChange as Change,
+  GitStatus as Status,
+  GitDiff,
+  GitStash,
+} from "@oxbit/sdk";
+import {
+  History,
+  Branches,
+  Stashes,
+  CommitDetails,
+  StashDetails,
+  Patch,
+  type RepositoryUI,
+} from "./views.js";
+const emptyStatus = (): Status => ({
+  repository: false,
+  branch: "",
+  branches: [],
+  refs: [],
+  changes: [],
+  remotes: [],
+  ahead: 0,
+  behind: 0,
+});
 export function resolveConflict(
   text: string,
   choice: "current" | "incoming" | "both",
 ): string {
   return text.replace(
     /^<<<<<<<[^\n]*\n([\s\S]*?)^=======[^\n]*\n([\s\S]*?)^>>>>>>>[^\n]*(?:\n|$)/gm,
-    (_match, current: string, incoming: string) =>
-      choice === "current"
+    (_match, original: string, incoming: string) => {
+      const current = original.replace(/^\|{7}[^\n]*\n[\s\S]*$/m, "");
+      return choice === "current"
         ? current
         : choice === "incoming"
           ? incoming
-          : current + incoming,
+          : current + incoming;
+    },
   );
 }
-export function unifiedDiff(before:string,after:string):string {
-  if(before===after)return "No changes";
-  const left=before.split("\n"),right=after.split("\n"),lines=["--- Previous content","+++ Current content"];
-  let prefix=0;while(prefix<left.length&&prefix<right.length&&left[prefix]===right[prefix])prefix++;
-  let suffix=0;while(suffix<left.length-prefix&&suffix<right.length-prefix&&left[left.length-1-suffix]===right[right.length-1-suffix])suffix++;
-  const a=left.slice(prefix,left.length-suffix),b=right.slice(prefix,right.length-suffix);
-  lines.push(`@@ -${prefix+1},${a.length} +${prefix+1},${b.length} @@`);
-  if(a.length*b.length>1000000){lines.push(...a.map(line=>"-"+line),...b.map(line=>"+"+line));return lines.join("\n");}
-  const width=b.length+1,table=new Uint32Array((a.length+1)*width);
-  for(let i=a.length-1;i>=0;i--)for(let j=b.length-1;j>=0;j--)table[i*width+j]=a[i]===b[j]?1+table[(i+1)*width+j+1]:Math.max(table[(i+1)*width+j],table[i*width+j+1]);
-  let i=0,j=0;while(i<a.length||j<b.length){if(i<a.length&&j<b.length&&a[i]===b[j]){lines.push(" "+a[i++]);j++;}else if(j<b.length&&(i===a.length||table[i*width+j+1]>table[(i+1)*width+j]))lines.push("+"+b[j++]);else lines.push("-"+a[i++]);}
+export function unifiedDiff(before: string, after: string): string {
+  if (before === after) return "No changes";
+  const left = before.split("\n"),
+    right = after.split("\n"),
+    lines = ["--- Previous content", "+++ Current content"];
+  let prefix = 0;
+  while (
+    prefix < left.length &&
+    prefix < right.length &&
+    left[prefix] === right[prefix]
+  )
+    prefix++;
+  let suffix = 0;
+  while (
+    suffix < left.length - prefix &&
+    suffix < right.length - prefix &&
+    left[left.length - 1 - suffix] === right[right.length - 1 - suffix]
+  )
+    suffix++;
+  const a = left.slice(prefix, left.length - suffix),
+    b = right.slice(prefix, right.length - suffix);
+  lines.push(`@@ -${prefix + 1},${a.length} +${prefix + 1},${b.length} @@`);
+  if (a.length * b.length > 1000000) {
+    lines.push(...a.map((line) => "-" + line), ...b.map((line) => "+" + line));
+    return lines.join("\n");
+  }
+  const width = b.length + 1,
+    table = new Uint32Array((a.length + 1) * width);
+  for (let i = a.length - 1; i >= 0; i--)
+    for (let j = b.length - 1; j >= 0; j--)
+      table[i * width + j] =
+        a[i] === b[j]
+          ? 1 + table[(i + 1) * width + j + 1]
+          : Math.max(table[(i + 1) * width + j], table[i * width + j + 1]);
+  let i = 0,
+    j = 0;
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) {
+      lines.push(" " + a[i++]);
+      j++;
+    } else if (
+      j < b.length &&
+      (i === a.length || table[i * width + j + 1] > table[(i + 1) * width + j])
+    )
+      lines.push("+" + b[j++]);
+    else lines.push("-" + a[i++]);
+  }
   return lines.join("\n");
 }
-const staged = (change: Change) => ![" ", "?", ""].includes(change.index);
-const unstaged = (change: Change) => ![" ", ""].includes(change.working);
+const staged = (change: Change) =>
+  !change.conflict && ![" ", "?", ""].includes(change.index);
+const unstaged = (change: Change) =>
+  !change.conflict && ![" ", ""].includes(change.working);
 export function createFeature(o: FeatureOptions): Extension {
-  let status: Status = { branch: "", branches: [], changes: [] },
+  let status: Status = emptyStatus(),
     error = "",
     progress = "",
     cloning = false,
     disposed = false;
+  let revision = 0;
+  let commitMessage = "",
+    committing = false;
+  const tabs = ["Changes", "History", "Branches", "Stashes"] as const;
+  let tab: (typeof tabs)[number] = "Changes";
+  const selectTab = (next: typeof tab) => {
+    tab = next;
+    changed();
+  };
   const listeners = new Set<() => void>();
   let cloneController: AbortController | undefined;
+  let operationController: AbortController | undefined;
   const changed = () => {
     for (const listener of listeners) listener();
   };
@@ -49,20 +129,31 @@ export function createFeature(o: FeatureOptions): Extension {
     signal?: AbortSignal,
   ) => {
     if (!o.runtime?.connected)
-      throw new Error("Connect to a trusted runtime workspace to use Git");
+      return Promise.reject(
+        new Error("Connect to a trusted runtime workspace to use Git"),
+      );
     return o.runtime.request<T>("git." + method, params, { signal });
   };
+  let statusRequest = 0;
   const refresh = async () => {
+    const sequence = ++statusRequest;
     try {
-      status = await request<Status>("status");
+      const next = await request<Status>("status");
+      if (sequence !== statusRequest || disposed) return;
+      status = next;
       status.changes ??= [];
       status.branches ??= [];
+      status.refs ??= [];
+      status.remotes ??= [];
+      revision++;
       error = "";
-      o.kernel.context.set("gitRepo", true);
+      o.kernel.context.set("gitRepo", status.repository);
       o.kernel.context.set("gitChanges", status.changes.length > 0);
       o.kernel.context.set("gitStaged", status.changes.some(staged));
       changed();
     } catch (failure) {
+      if (sequence !== statusRequest || disposed) return;
+      status = emptyStatus();
       error = String(failure);
       o.kernel.context.set("gitRepo", false);
       o.kernel.context.set("gitChanges", false);
@@ -78,6 +169,93 @@ export function createFeature(o: FeatureOptions): Extension {
       o.workbench.notify(error, "error");
     });
   };
+  const saveBuffers = async (paths?: string[], stageOnly = false) => {
+    const dirty = [...o.documents.documents.values()].filter(
+      (document) => document.dirty && (!paths || paths.includes(document.path)),
+    );
+    if (!dirty.length) return true;
+    const choice = await o.workbench.ask(
+      tr("Unsaved editor changes"),
+      tr("{0} files have unsaved edits. Save them before continuing?", {
+        "0": dirty.length,
+      }),
+      stageOnly
+        ? ["Save All and Continue", "Stage Saved Content", "Cancel"]
+        : ["Save All and Continue", "Cancel"],
+    );
+    if (stageOnly && choice === "Stage Saved Content") return true;
+    if (choice !== "Save All and Continue") return false;
+    for (const document of dirty) await o.documents.save(document.path);
+    return true;
+  };
+  const perform = async (
+    method: string,
+    params: Record<string, unknown> = {},
+  ) => {
+    if (
+      [
+        "checkout",
+        "branchCreate",
+        "branchTrack",
+        "pull",
+        "merge",
+        "continue",
+        "abort",
+        "stashSave",
+        "stashApply",
+        "stashPop",
+        "cherryPick",
+        "revert",
+      ].includes(method) &&
+      !(await saveBuffers())
+    )
+      return false;
+    if (operationController)
+      throw new Error("Wait for the current Git operation to finish");
+    operationController = new AbortController();
+    error = "";
+    progress = "";
+    changed();
+    try {
+      await request(method, params, operationController.signal);
+    } finally {
+      operationController = undefined;
+      await refresh().catch(() => {});
+      await o.workbench.refreshFiles();
+      changed();
+    }
+    return true;
+  };
+  const api: RepositoryUI = {
+    options: o,
+    request,
+    perform,
+    report,
+    openCommit: (refId) =>
+      o.workbench.openView(
+        "git-commit:" + refId,
+        tr("Commit") + " " + refId.slice(0, 7),
+        CommitDetails,
+        { api, refId },
+      ),
+    openStash: (stash: GitStash) =>
+      o.workbench.openView(
+        "git-stash:" + stash.id,
+        stash.message,
+        StashDetails,
+        { api, stash },
+      ),
+  };
+  const stageAll = async () => {
+    await refresh();
+    if (!(await saveBuffers(undefined, true))) return;
+    if (status.changes.some((change) => change.conflict))
+      throw new Error(
+        "Resolve and stage conflicted files individually before staging all changes",
+      );
+    await request("stageAll");
+    await refresh();
+  };
   const stage = async (path: string, save = false) => {
     const doc = o.documents.get(path);
     if (doc?.dirty) {
@@ -90,6 +268,13 @@ export function createFeature(o: FeatureOptions): Extension {
           );
       if (!choice || choice === "Cancel") return;
       if (choice === "Save and Stage") await o.documents.save(path);
+    }
+    if (status.changes.find((change) => change.path === path)?.conflict) {
+      const disk = await request<GitDiff>("diff", { path });
+      if (/^<<<<<<<|^=======|^>>>>>>>/m.test(disk.after))
+        throw new Error(
+          "Remove conflict markers and save the file before staging the resolution",
+        );
     }
     await request("stage", { path });
     await refresh();
@@ -142,18 +327,29 @@ export function createFeature(o: FeatureOptions): Extension {
     if (failures.length) throw new Error(failures.join("\n"));
   };
   const commit = async (message?: string) => {
-    message ??= await o.workbench.prompt(tr("Commit message"));
+    if (committing) return;
+    message ??=
+      commitMessage || (await o.workbench.prompt(tr("Commit message")));
     if (message === undefined) return;
     if (!message.trim()) throw new Error("Enter a commit message");
-    await request("commit", { message });
-    await refresh();
-    o.workbench.notify("Commit created");
+    committing = true;
+    changed();
+    try {
+      await request("commit", { message });
+      if (commitMessage === message) commitMessage = "";
+      await refresh();
+      o.workbench.notify("Commit created");
+    } finally {
+      committing = false;
+      changed();
+    }
   };
   let branchOpenRequest = 0;
   const checkout = async (branch?: string) => {
     await refresh();
     if (!branch) {
       branchOpenRequest++;
+      tab = "Changes";
       o.workbench.openPanel("scm");
       changed();
       return;
@@ -161,8 +357,7 @@ export function createFeature(o: FeatureOptions): Extension {
     if (!branch) return;
     if (!status.branches.includes(branch))
       throw new Error("Choose an existing local branch");
-    await request("checkout", { branch });
-    await refresh();
+    await perform("checkout", { branch });
   };
   const clone = async () => {
     if (cloning) throw new Error("A clone is already running");
@@ -208,16 +403,14 @@ export function createFeature(o: FeatureOptions): Extension {
     staged?: boolean;
     mode?: "disk" | "base";
   }) {
-    const [data, setData] = useState<{
-        before: string;
-        after: string;
-        diff: string;
-      }>(),
+    const [data, setData] = useState<GitDiff>(),
       [failure, setFailure] = useState(""),
       [inline, setInline] = useState(
         o.kernel.configuration.get("scm.diffLayout") === "inline",
       );
-    const [, render] = useState(0);
+    const [version, render] = useState(0);
+    const [applying, setApplying] = useState(false);
+    const [hunkView, setHunkView] = useState(false);
     useEffect(() => {
       const controller = new AbortController();
       const load = mode
@@ -226,25 +419,47 @@ export function createFeature(o: FeatureOptions): Extension {
               before =
                 mode === "base"
                   ? document.savedText
-                  : (o.runtime && o.filesystem.id.startsWith("runtime:") ? await o.runtime.request<{text:string}>("fs.read",{path}) : await o.filesystem.read(path)).text;
+                  : (o.runtime && o.filesystem.id.startsWith("runtime:")
+                      ? await o.runtime.request<{ text: string }>("fs.read", {
+                          path,
+                        })
+                      : await o.filesystem.read(path)
+                    ).text;
             return {
               before,
               after: document.text.toString(),
-              diff: unifiedDiff(before,document.text.toString()),
+              diff: unifiedDiff(before, document.text.toString()),
             };
           })()
         : request("diff", { path, staged: isStaged }, controller.signal);
-      void load.then(setData, (reason) => {
-        if (!controller.signal.aborted) setFailure(String(reason));
-      });
+      setFailure("");
+      void load.then(
+        (value) => {
+          if (!controller.signal.aborted) setData(value);
+        },
+        (reason) => {
+          if (!controller.signal.aborted) setFailure(String(reason));
+        },
+      );
+      return () => controller.abort();
+    }, [path, isStaged, mode, version]);
+    useEffect(() => {
+      let seen = revision;
+      const update = () => {
+        if (seen !== revision) {
+          seen = revision;
+          render((value) => value + 1);
+        }
+      };
+      listeners.add(update);
       const off = o.kernel.events.on("document.change", () =>
         render((value) => value + 1),
       );
       return () => {
-        controller.abort();
+        listeners.delete(update);
         off.dispose();
       };
-    }, [path, isStaged, mode]);
+    }, []);
     const buffer = o.documents.get(path);
     return React.createElement(
       "div",
@@ -272,9 +487,20 @@ export function createFeature(o: FeatureOptions): Extension {
         ),
         React.createElement(
           "button",
-          { onClick: () => setInline(!inline) },
+          {
+            onClick: () => {
+              setHunkView(false);
+              setInline(!inline);
+            },
+          },
           inline ? tr("Side by side") : tr("Inline"),
         ),
+        !!data?.hunks?.length &&
+          React.createElement(
+            "button",
+            { onClick: () => setHunkView(!hunkView), "aria-pressed": hunkView },
+            tr("Review hunks"),
+          ),
         buffer?.dirty &&
           React.createElement(
             "button",
@@ -283,12 +509,74 @@ export function createFeature(o: FeatureOptions): Extension {
           ),
       ),
       failure && React.createElement("p", { role: "alert" }, failure),
+      data?.binary &&
+        React.createElement(
+          "p",
+          { className: "scm-empty" },
+          tr("Binary file changed"),
+        ),
+      hunkView &&
+        data &&
+        React.createElement(
+          "div",
+          { className: "scm-hunk-list" },
+          ...(data.hunks ?? []).map((hunk) =>
+            React.createElement(
+              "section",
+              {
+                key: hunk.index,
+                "aria-label": tr("Hunk {0}", { "0": hunk.index + 1 }),
+              },
+              React.createElement(
+                "div",
+                { className: "scm-hunk-toolbar" },
+                React.createElement("span", null, hunk.header),
+                React.createElement(
+                  "button",
+                  {
+                    className: "button",
+                    disabled: applying,
+                    onClick: () => {
+                      setApplying(true);
+                      report(async () => {
+                        try {
+                          await request("hunk", {
+                            path,
+                            staged: isStaged,
+                            fingerprint: data.fingerprint,
+                            hunk: hunk.index,
+                          });
+                          await refresh();
+                        } finally {
+                          render((value) => value + 1);
+                          setApplying(false);
+                        }
+                      });
+                    },
+                  },
+                  tr(isStaged ? "Unstage hunk {0}" : "Stage hunk {0}", {
+                    "0": hunk.index + 1,
+                  }),
+                ),
+              ),
+              React.createElement(Patch, { text: hunk.patch }),
+            ),
+          ),
+          !data.hunks?.length &&
+            React.createElement(
+              "p",
+              { className: "scm-empty" },
+              tr("No remaining hunks"),
+            ),
+        ),
       data &&
+        !data.binary &&
+        !hunkView &&
         React.createElement(
           "div",
           { style: { display: "flex", flex: 1, overflow: "auto" } },
           ...(inline
-            ? [data.diff || unifiedDiff(data.before,data.after)]
+            ? [data.diff || unifiedDiff(data.before, data.after)]
             : [data.before, data.after]
           ).map((text, index) =>
             React.createElement(
@@ -314,7 +602,26 @@ export function createFeature(o: FeatureOptions): Extension {
                   fontSize: "var(--font-mono-font-size)",
                 },
               },
-              ...(inline ? text.split("\n").map((line,index)=>React.createElement("span",{key:index,style:{display:"block",background:line.startsWith("+")&&!line.startsWith("+++")?"var(--add-soft)":line.startsWith("-")&&!line.startsWith("---")?"var(--del-soft)":"transparent"}},line||" ")) : [text]),
+              ...(inline
+                ? text.split("\n").map((line, index) =>
+                    React.createElement(
+                      "span",
+                      {
+                        key: index,
+                        style: {
+                          display: "block",
+                          background:
+                            line.startsWith("+") && !line.startsWith("+++")
+                              ? "var(--add-soft)"
+                              : line.startsWith("-") && !line.startsWith("---")
+                                ? "var(--del-soft)"
+                                : "transparent",
+                        },
+                      },
+                      line || " ",
+                    ),
+                  )
+                : [text]),
             ),
           ),
         ),
@@ -374,12 +681,17 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   function Panel() {
     const [, render] = useState(0);
-    const [message, setMessage] = useState("");
+    const message = commitMessage;
+    const setMessage = (value: string) => {
+      commitMessage = value;
+      changed();
+    };
     const [view, setView] = useState(() =>
       localStorage.getItem("oxbit.scm.view") === "tree" ? "tree" : "list",
     );
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
     const [pending, setPending] = useState(false);
+    const [filter, setFilter] = useState("");
     useEffect(() => {
       const listener = () => render((value) => value + 1);
       listeners.add(listener);
@@ -408,7 +720,12 @@ export function createFeature(o: FeatureOptions): Extension {
         return next;
       });
     const hasStaged = status.changes.some(staged);
-    const canCommit = hasStaged && !!message.trim() && !pending;
+    const canCommit =
+      hasStaged &&
+      !!message.trim() &&
+      !pending &&
+      !committing &&
+      !status.changes.some((change) => change.conflict);
     const submit = () => {
       if (canCommit) run(() => commit(message).then(() => setMessage("")));
     };
@@ -436,6 +753,12 @@ export function createFeature(o: FeatureOptions): Extension {
           },
           h(FileBadge, { path: change.path }),
           h("span", { className: "scm-filename" }, name),
+          change.originalPath &&
+            h(
+              "span",
+              { className: "scm-directory", title: change.originalPath },
+              "← " + change.originalPath,
+            ),
           view === "list" &&
             directory &&
             h("span", { className: "scm-directory" }, directory),
@@ -465,6 +788,7 @@ export function createFeature(o: FeatureOptions): Extension {
               ),
           }),
           !isStaged &&
+            !change.conflict &&
             h(IconButton, {
               icon: "refresh",
               label: "Discard " + change.path,
@@ -555,14 +879,29 @@ export function createFeature(o: FeatureOptions): Extension {
           }),
           h(IconButton, {
             icon: "arrowUp",
-            label: "Push",
-            disabled: pending || !status.branch,
-            onClick: () => run(() => request("push").then(refresh)),
+            label: status.upstream ? "Push" : "Publish branch",
+            disabled: pending || !status.head,
+            onClick: () =>
+              status.upstream
+                ? run(() => perform("push"))
+                : selectTab("Branches"),
+          }),
+          h(IconButton, {
+            icon: "arrowDown",
+            label: "Pull",
+            disabled: pending || !status.upstream,
+            onClick: () => run(() => perform("pull")),
+          }),
+          h(IconButton, {
+            icon: "sync",
+            label: "Fetch",
+            disabled: pending || !status.remotes.length,
+            onClick: () => run(() => perform("fetch")),
           }),
           h(IconButton, {
             icon: "copy",
             label: "Clone",
-            disabled: pending,
+            disabled: pending || !o.runtime?.connected,
             onClick: () => run(clone),
           }),
           h(IconButton, {
@@ -598,46 +937,96 @@ export function createFeature(o: FeatureOptions): Extension {
             if (branch !== status.branch) run(() => checkout(branch));
           },
         }),
+        status.repository &&
+          h(
+            "div",
+            { className: "scm-tracking", role: "status" },
+            status.upstream
+              ? h(
+                  "span",
+                  { title: status.upstream },
+                  status.upstream,
+                  " · ↑ ",
+                  status.ahead,
+                  " ↓ ",
+                  status.behind,
+                )
+              : h(
+                  "button",
+                  { onClick: () => selectTab("Branches") },
+                  tr(status.head ? "Publish branch…" : "No commits yet"),
+                ),
+          ),
         !status.branch &&
           h(
             "button",
             {
               className: "button",
-              disabled: pending,
+              disabled: pending || !o.runtime?.connected,
               onClick: () => run(() => request("init").then(refresh)),
             },
             h(Icon, { name: "plus" }),
             tr("Initialize Repository"),
           ),
-        h("textarea", {
-          className: "scm-message",
-          "aria-label": tr("Commit message"),
-          rows: 3,
-          placeholder: tr("Message (Ctrl+Enter to commit)"),
-          value: message,
-          onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
-            setMessage(event.target.value),
-          onKeyDown: (event: React.KeyboardEvent) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-              event.preventDefault();
-              submit();
-            }
-          },
-        }),
-        h(
-          "button",
-          {
-            className: "button primary scm-commit",
-            disabled: !canCommit,
-            onClick: submit,
-          },
-          h(Icon, { name: "check" }),
-          tr("Commit staged changes"),
-        ),
+        tab === "Changes" &&
+          status.repository &&
+          h("textarea", {
+            className: "scm-message",
+            "aria-label": tr("Commit message"),
+            rows: 3,
+            placeholder: tr("Message (Ctrl+Enter to commit)"),
+            value: message,
+            onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setMessage(event.target.value),
+            onKeyDown: (event: React.KeyboardEvent) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault();
+                submit();
+              }
+            },
+          }),
+        tab === "Changes" &&
+          status.repository &&
+          h(
+            "button",
+            {
+              className: "button primary scm-commit",
+              disabled: !canCommit,
+              onClick: submit,
+            },
+            h(Icon, { name: "check" }),
+            tr("Commit staged changes"),
+          ),
         error &&
-          h("p", { className: "scm-feedback error-text", role: "alert" }, error),
+          h(
+            "p",
+            { className: "scm-feedback error-text", role: "alert" },
+            error,
+          ),
         progress &&
-          h("p", { className: "scm-feedback", role: "status" }, progress),
+          h(
+            "details",
+            { className: "scm-feedback scm-output" },
+            h(
+              "summary",
+              null,
+              tr(
+                operationController || cloning
+                  ? "Git operation running…"
+                  : "Git output",
+              ),
+            ),
+            h("pre", null, progress),
+          ),
+        operationController &&
+          h(
+            "button",
+            {
+              className: "button",
+              onClick: () => operationController?.abort(),
+            },
+            tr("Cancel Git operation"),
+          ),
         cloning &&
           h(
             "button",
@@ -645,70 +1034,222 @@ export function createFeature(o: FeatureOptions): Extension {
             tr("Cancel Clone"),
           ),
       ),
-      h(
-        "div",
-        { className: "scm-changes" },
-        ...(["staged", "unstaged"] as const).map((group) => {
-          const changes = status.changes.filter(
-            group === "staged" ? staged : unstaged,
-          );
-          const expanded = !collapsed.has(group);
-          return h(
-            "section",
-            {
-              key: group,
-              className: "scm-group",
-              "aria-label":
-                group === "staged" ? tr("Staged changes") : tr("Changes"),
-            },
-            h(
-              "div",
-              { className: "scm-group-header" },
-              h(
-                "button",
-                {
-                  className: "scm-group-toggle",
-                  "aria-expanded": expanded,
-                  onClick: () => toggle(group),
-                },
-                h(Icon, { name: expanded ? "chevD" : "chevR", size: 12 }),
-                h(
-                  "span",
-                  null,
-                  group === "staged" ? tr("Staged changes") : tr("Changes"),
-                ),
-                h("span", { className: "scm-count" }, changes.length),
-              ),
-              h(IconButton, {
-                icon: group === "staged" ? "minus" : "plus",
-                label:
-                  group === "staged"
-                    ? "Unstage All Changes"
-                    : "Stage All Changes",
-                disabled: !changes.length || pending,
-                onClick: () =>
-                  run(() =>
-                    o.kernel.commands.execute(
-                      group === "staged" ? "git.unstageAll" : "git.stageAll",
-                    ),
-                  ),
-              }),
+      status.operation &&
+        h(
+          "div",
+          { className: "scm-operation", role: "status" },
+          h("strong", null, tr("{0} in progress", { "0": status.operation })),
+          h(
+            "p",
+            null,
+            tr(
+              "Resolve conflicts, save the files, and stage each resolution to continue.",
             ),
-            expanded &&
-              (view === "tree"
-                ? tree(changes, group)
-                : changes.map((change) => file(change, group))),
-          );
-        }),
-        !status.changes.length &&
-          !error &&
+          ),
           h(
             "div",
-            { className: "scm-empty" },
-            h(Icon, { name: "okCircle", size: 24 }),
-            h("span", null, tr("No disk changes")),
+            { className: "scm-card-actions" },
+            h(
+              "button",
+              {
+                className: "button",
+                disabled:
+                  pending || status.changes.some((change) => change.conflict),
+                onClick: () =>
+                  run(() =>
+                    perform("continue", { operation: status.operation }),
+                  ),
+              },
+              tr("Continue"),
+            ),
+            h(
+              "button",
+              {
+                className: "button",
+                disabled: pending,
+                onClick: () =>
+                  run(async () => {
+                    const operation = status.operation;
+                    if (
+                      (await o.workbench.ask(
+                        tr("Abort operation?"),
+                        tr(
+                          "Discard conflict resolutions and return to the state before {0}?",
+                          { "0": operation },
+                        ),
+                        ["Abort", "Cancel"],
+                        true,
+                      )) === "Abort"
+                    )
+                      await perform("abort", { operation, confirm: true });
+                  }),
+              },
+              tr("Abort"),
+            ),
           ),
-      ),
+        ),
+      status.repository &&
+        h(
+          "div",
+          {
+            className: "scm-tabs",
+            role: "tablist",
+            "aria-label": tr("Source control views"),
+            onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+              if (
+                !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+              )
+                return;
+              event.preventDefault();
+              const next =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? tabs.length - 1
+                    : (tabs.indexOf(tab) +
+                        (event.key === "ArrowRight" ? 1 : -1) +
+                        tabs.length) %
+                      tabs.length;
+              selectTab(tabs[next]!);
+              (event.currentTarget.children[next] as HTMLButtonElement).focus();
+            },
+          },
+          ...tabs.map((name) =>
+            h(
+              "button",
+              {
+                key: name,
+                role: "tab",
+                id: "scm-tab-" + name,
+                "aria-controls": "scm-content",
+                "aria-selected": tab === name,
+                tabIndex: tab === name ? 0 : -1,
+                onClick: () => selectTab(name),
+              },
+              tr(name),
+            ),
+          ),
+        ),
+      tab === "Changes" &&
+        status.repository &&
+        h("input", {
+          className: "scm-filter",
+          "aria-label": tr("Filter changed files"),
+          placeholder: tr("Filter changed files"),
+          value: filter,
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+            setFilter(event.target.value),
+        }),
+      status.repository &&
+        h(
+          "div",
+          {
+            className: "scm-content",
+            id: "scm-content",
+            role: "tabpanel",
+            "aria-labelledby": "scm-tab-" + tab,
+          },
+          tab === "History"
+            ? h(History, { api, status, revision })
+            : tab === "Branches"
+              ? h(Branches, { api, status, pending, run })
+              : tab === "Stashes"
+                ? h(Stashes, { api, status, pending, revision, run })
+                : h(
+                    "div",
+                    { className: "scm-changes" },
+                    ...(["conflicts", "staged", "unstaged"] as const).map(
+                      (group) => {
+                        const all = status.changes.filter(
+                          group === "conflicts"
+                            ? (change) => change.conflict
+                            : group === "staged"
+                              ? staged
+                              : unstaged,
+                        );
+                        if (group === "conflicts" && !all.length) return null;
+                        const changes = all.filter((change) =>
+                          change.path
+                            .toLowerCase()
+                            .includes(filter.toLowerCase()),
+                        );
+                        const expanded = !collapsed.has(group);
+                        return h(
+                          "section",
+                          {
+                            key: group,
+                            className: "scm-group",
+                            "aria-label":
+                              group === "conflicts"
+                                ? tr("Merge changes")
+                                : group === "staged"
+                                  ? tr("Staged changes")
+                                  : tr("Changes"),
+                          },
+                          h(
+                            "div",
+                            { className: "scm-group-header" },
+                            h(
+                              "button",
+                              {
+                                className: "scm-group-toggle",
+                                "aria-expanded": expanded,
+                                onClick: () => toggle(group),
+                              },
+                              h(Icon, {
+                                name: expanded ? "chevD" : "chevR",
+                                size: 12,
+                              }),
+                              h(
+                                "span",
+                                null,
+                                group === "conflicts"
+                                  ? tr("Merge changes")
+                                  : group === "staged"
+                                    ? tr("Staged changes")
+                                    : tr("Changes"),
+                              ),
+                              h(
+                                "span",
+                                { className: "scm-count" },
+                                changes.length,
+                              ),
+                            ),
+                            group !== "conflicts" &&
+                              h(IconButton, {
+                                icon: group === "staged" ? "minus" : "plus",
+                                label:
+                                  group === "staged"
+                                    ? "Unstage All Changes"
+                                    : "Stage All Changes",
+                                disabled: !changes.length || pending,
+                                onClick: () =>
+                                  run(() =>
+                                    o.kernel.commands.execute(
+                                      group === "staged"
+                                        ? "git.unstageAll"
+                                        : "git.stageAll",
+                                    ),
+                                  ),
+                              }),
+                          ),
+                          expanded &&
+                            (view === "tree"
+                              ? tree(changes, group)
+                              : changes.map((change) => file(change, group))),
+                        );
+                      },
+                    ),
+                    !status.changes.length &&
+                      !error &&
+                      h(
+                        "div",
+                        { className: "scm-empty" },
+                        h(Icon, { name: "okCircle", size: 24 }),
+                        h("span", null, tr("No disk changes")),
+                      ),
+                  ),
+        ),
     );
   }
   return {
@@ -727,7 +1268,12 @@ export function createFeature(o: FeatureOptions): Extension {
       ctx.own(
         ctx.services.register("git", {
           status: () => status,
-          subscribe: (listener:()=>void) => {listeners.add(listener);return ()=>{listeners.delete(listener);};},
+          subscribe: (listener: () => void) => {
+            listeners.add(listener);
+            return () => {
+              listeners.delete(listener);
+            };
+          },
           refresh,
           stage,
           discard,
@@ -762,25 +1308,37 @@ export function createFeature(o: FeatureOptions): Extension {
         request("init").then(refresh),
       );
       command("git.commit", "Commit Staged Changes", () => commit());
-      command("git.push", "Push", () => request("push").then(refresh));
-      command("git.fetch", "Fetch", () => request("fetch").then(refresh));
+      command("git.push", "Push", () =>
+        status.upstream ? perform("push") : showTab("Branches"),
+      );
+      command("git.fetch", "Fetch", () => perform("fetch"));
+      command("git.pull", "Pull (Fast-forward Only)", () => perform("pull"));
+      const showTab = (next: typeof tab) => {
+        selectTab(next);
+        o.workbench.openPanel("scm");
+      };
+      command("git.history", "Show Commit History", () => showTab("History"));
+      command("git.branches", "Manage Branches and Remotes", () =>
+        showTab("Branches"),
+      );
+      command("git.stashes", "Manage Stashes", () => showTab("Stashes"));
+      command("git.branchCreate", "Create Branch", async () => {
+        const name = await o.workbench.prompt(tr("New branch name"));
+        if (name) await perform("branchCreate", { name });
+      });
+      command("git.publish", "Publish Branch", () => showTab("Branches"));
       command("git.stage", "Stage File", () => {
         const path = o.workbench.activePath();
         if (path) return stage(path);
       });
-      command("git.stageAll", "Stage All Changes", async () => {
-        await refresh();
-        for (const change of [...status.changes].filter(unstaged))
-          await stage(change.path);
-      });
+      command("git.stageAll", "Stage All Changes", stageAll);
       command("git.unstage", "Unstage File", () => {
         const path = o.workbench.activePath();
         if (path) return request("unstage", { path }).then(refresh);
       });
       command("git.unstageAll", "Unstage All Changes", async () => {
         await refresh();
-        for (const change of status.changes.filter(staged))
-          await request("unstage", { path: change.path });
+        await request("unstageAll");
         await refresh();
       });
       command("git.discard", "Discard File Changes", () => {
@@ -809,6 +1367,7 @@ export function createFeature(o: FeatureOptions): Extension {
               .then(
                 () => {
                   failures = 0;
+                  void refresh().catch(() => {});
                 },
                 (failure) => {
                   if (!fetchController?.signal.aborted) {
@@ -852,11 +1411,24 @@ export function createFeature(o: FeatureOptions): Extension {
             }
           }),
         );
-        ctx.subscribe(o.runtime.subscribe("operation.recovered", operation => {
-          if (!operation.method?.startsWith("git.")) return;
-          if (operation.status === "completed") { o.workbench.notify(`${operation.method}: operation completed after reconnect`); void refresh().catch(()=>{}); }
-          else if (["failed","interrupted","unknown"].includes(operation.status)) o.workbench.notify(operation.error?.message??`${operation.method}: ${operation.status}; inspect repository state before retrying`,"warning");
-        }));
+        ctx.subscribe(
+          o.runtime.subscribe("operation.recovered", (operation) => {
+            if (!operation.method?.startsWith("git.")) return;
+            if (operation.status === "completed") {
+              o.workbench.notify(
+                `${operation.method}: operation completed after reconnect`,
+              );
+              void refresh().catch(() => {});
+            } else if (
+              ["failed", "interrupted", "unknown"].includes(operation.status)
+            )
+              o.workbench.notify(
+                operation.error?.message ??
+                  `${operation.method}: ${operation.status}; inspect repository state before retrying`,
+                "warning",
+              );
+          }),
+        );
         ctx.subscribe(
           o.runtime.subscribe("git.progress", (params) => {
             progress = (progress + (params.data ?? params.message ?? "")).slice(
@@ -879,6 +1451,13 @@ export function createFeature(o: FeatureOptions): Extension {
       }
       let refreshTimer: ReturnType<typeof setTimeout> | undefined;
       ctx.own(ctx.events.on("document.change", changed));
+      if (typeof window !== "undefined") {
+        const onFocus = () => {
+          if (o.runtime?.connected) void refresh().catch(() => {});
+        };
+        window.addEventListener("focus", onFocus);
+        ctx.subscribe(() => window.removeEventListener("focus", onFocus));
+      }
       schedule();
       ctx.subscribe(() => {
         disposed = true;
@@ -886,6 +1465,7 @@ export function createFeature(o: FeatureOptions): Extension {
         clearTimeout(refreshTimer);
         fetchController?.abort();
         cloneController?.abort();
+        operationController?.abort();
         listeners.clear();
       });
     },

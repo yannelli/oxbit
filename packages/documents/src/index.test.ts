@@ -32,6 +32,24 @@ const setup = async () => {
 const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
 
 describe("shared documents", () => {
+  it("saves an explicitly reviewed snapshot exactly while ordinary saves retain hooks", async () => {
+    const { filesystem, persistence } = await setup();
+    const kernel = createKernel({ environment: "browser" });
+    const service = new DocumentService(filesystem, persistence, kernel);
+    services.push(service);
+    kernel.hooks.beforeSave("format", ({ text }) => text + " formatted");
+    const document = await service.open("index.ts");
+    document.replace("reviewed snapshot");
+    await service.save("index.ts", undefined, { skipHooks: true });
+    expect((await filesystem.read("index.ts")).text).toBe("reviewed snapshot");
+    expect(document.dirty).toBe(false);
+    document.replace("ordinary save");
+    await service.save("index.ts");
+    expect((await filesystem.read("index.ts")).text).toBe(
+      "ordinary save formatted",
+    );
+    kernel.dispose();
+  });
   it("recovers unsaved Yjs content with stable IDs and independent view state", async () => {
     const { service, filesystem, persistence } = await setup();
     const document = await service.open("index.ts");

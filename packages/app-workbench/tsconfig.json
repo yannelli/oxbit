@@ -54,6 +54,9 @@
       "path": "../features/themes"
     },
     {
+      "path": "../features/keymaps"
+    },
+    {
       "path": "../features/language"
     },
     {
@@ -79,6 +82,9 @@
     },
     {
       "path": "../icon-themes"
+    },
+    {
+      "path": "../features/agent-acp"
     }
   ]
 }

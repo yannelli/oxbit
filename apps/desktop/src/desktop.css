@@ -10,24 +10,57 @@
   font-weight: var(--font-body-font-weight);
   position: relative;
 }
-.desktop-projects {
-  min-height: 42px;
-  padding: 6px 12px;
+.desktop-project-control { min-width: 0; max-width: 240px; flex: 0 1 auto; }
+.desktop-project-trigger { max-width: calc(100% - 6px); border-radius: 4px; }
+.desktop-project-trigger[aria-expanded="true"] { background: var(--bg-selected); }
+.desktop-project-trigger > svg { flex: none; color: var(--fg-3); }
+.desktop-project-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.desktop-project-count {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  color: var(--fg-3);
+  font-size: var(--font-small-font-size);
+  font-weight: var(--font-small-font-weight);
+}
+.desktop-project-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-width: 0;
+  max-width: calc(100vw - 16px);
+}
+.desktop-project-menu button {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid var(--bd);
-  flex-wrap: wrap;
+  width: 100%;
+  min-height: 30px;
+  padding: 6px 9px;
+  border-radius: 4px;
+  text-align: left;
 }
-.desktop-projects > select {
-  min-width: 150px;
-  max-width: 260px;
+.desktop-project-menu button > svg { flex: none; color: var(--fg-3); }
+.desktop-project-menu button > span { flex: 1; min-width: 0; }
+.desktop-project-menu button[aria-checked="true"] > svg:last-child { color: var(--accent); }
+.desktop-project-menu button:focus-visible { background: var(--bg-hover); outline-offset: -2px; }
+.desktop-project-heading {
+  padding: 7px 9px 5px;
+  color: var(--fg-3);
+  font-size: var(--font-small-font-size);
+  font-weight: 600;
 }
-.desktop-projects label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.desktop-project-detail { display: flex; flex-direction: column; gap: 2px; }
+.desktop-project-detail > span, .desktop-project-detail > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.desktop-project-detail > small { color: var(--fg-3); font-size: var(--font-small-font-size); }
+.desktop-project-detail > .desktop-project-warning { color: var(--warn); }
+.desktop-project-menu hr { border: 0; border-top: 1px solid var(--bd); margin: 4px; }
+.desktop-project-menu .desktop-project-preference { padding-left: 35px; }
 .desktop-content {
   flex: 1;
   min-height: 0;
@@ -89,11 +122,8 @@
 .desktop-shell > .modal-scrim {
   z-index: 200;
 }
-@media (max-width: 1000px) {
-  .desktop-projects > .push {
-    margin-left: 0;
-  }
-  .desktop-projects .button {
-    padding: 4px 7px;
-  }
+@media (max-width: 599px) {
+  .desktop-project-control { max-width: 180px; }
+  .desktop-project-trigger { max-width: 100%; }
+  .desktop-project-menu button { min-height: 44px; }
 }

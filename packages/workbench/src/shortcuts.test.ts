@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createKernel } from "@oxbit/core";
 import {
+  commandBinding,
   normalizeShortcut,
   resolveWorkbenchShortcut,
   shortcutCandidates,
@@ -47,6 +48,50 @@ describe("workbench shortcut precedence", () => {
         (item) => item.command.id === "one",
       ),
     ).toBe(false);
+  });
+  it("layers user overrides over a keymap over the command default", () => {
+    const kernel = setup();
+    kernel.configuration.register({
+      id: "workbench.keymap",
+      title: "Keymap",
+      type: "string",
+      default: "default",
+    });
+    kernel.commands.register({
+      id: "view.explorer",
+      title: "Explorer",
+      shortcut: "Ctrl+Shift+E",
+      run() {},
+    });
+    kernel.commands.register({
+      id: "editor.find",
+      title: "Find",
+      shortcut: "Ctrl+F",
+      run() {},
+    });
+    kernel.contributions.register({
+      id: "test/jetbrains",
+      kind: "keymap",
+      title: "JetBrains",
+      data: {
+        stableId: "jetbrains",
+        bindings: { "view.explorer": "Alt+1", "editor.find": "" },
+      },
+    });
+    expect(resolveWorkbenchShortcut(kernel, {}, "Alt+1")).toBeUndefined();
+    kernel.configuration.set("workbench.keymap", "jetbrains");
+    expect(resolveWorkbenchShortcut(kernel, {}, "Alt+1")?.id).toBe(
+      "view.explorer",
+    );
+    expect(resolveWorkbenchShortcut(kernel, {}, "Ctrl+Shift+E")).toBeUndefined();
+    expect(resolveWorkbenchShortcut(kernel, {}, "Ctrl+F")).toBeUndefined();
+    expect(
+      resolveWorkbenchShortcut(kernel, { "view.explorer": "Ctrl+0" }, "Ctrl+0")
+        ?.id,
+    ).toBe("view.explorer");
+    expect(
+      commandBinding(kernel, {}, { id: "view.explorer", shortcut: "Ctrl+Shift+E" }),
+    ).toBe("Alt+1");
   });
   it("consumes extension shortcuts with context and focus precedence", () => {
     const kernel = setup();

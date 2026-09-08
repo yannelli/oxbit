@@ -5,11 +5,17 @@ import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 import { WorkspaceFiles } from "../../apps/runtime/src/filesystem.js";
 import { LanguageServerManager } from "../../apps/runtime/src/lsp-manager.js";
+import { textOffset, textPosition } from "../../packages/sdk/src/text-positions.js";
 const root = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-language-features-"));
-const manager = new LanguageServerManager(new WorkspaceFiles(root), process.env.OXBIT_LSP_CACHE ?? path.join(os.tmpdir(), "oxbit-managed-language-smoke-cache"), (method, params) => { if (process.env.OXBIT_LSP_TRACE && method === "window/logMessage") console.log(params.message); });
+const diagnostics = new Map<string, { version: number; diagnostics: any[] }>();
+const manager = new LanguageServerManager(new WorkspaceFiles(root), process.env.OXBIT_LSP_CACHE ?? path.join(os.tmpdir(), "oxbit-managed-language-smoke-cache"), (method, params) => {
+  if (process.env.OXBIT_LSP_TRACE && method === "window/logMessage") console.log(params.message);
+  if (method === "textDocument/publishDiagnostics") diagnostics.set(params.uri, params);
+});
 const results: { feature: string; passed: boolean }[] = [];
 async function open(id: string, file: string, text: string, settings: any = {}) {
   await fs.writeFile(path.join(root, file), text); manager.canonical(file, text);
+  await manager.watched(file, 1);
   const attached = await manager.attach(file, "fixture", settings, {}, id); await manager.start(false, attached.instanceId);
   const textDocument = { uri: pathToFileURL(path.join(root, file)).href };
   return { id: attached.instanceId, request: (method: string, params: any) => manager.request(method, { textDocument, ...params }, undefined, undefined, attached.instanceId) };
@@ -55,9 +61,63 @@ try {
   const vueImportItem = (Array.isArray(vueImported) ? vueImported : vueImported.items).find((item: any) => item.label === "welcomeUser");
   const vueResolvedImport = await vueImport.request("completionItem/resolve", vueImportItem);
   assert(vueResolvedImport.additionalTextEdits?.some((edit: any) => edit.newText.includes("import") && edit.newText.includes("welcomeUser"))); pass("Vue resolved auto-import edits");
-  const astro = await open("astro", "index.astro", '---\nconst message = "hello";\nmessage.\n---\n<div />');
-  const astroCompletion = await astro.request("textDocument/completion", { position: { line: 2, character: 8 }, context: { triggerKind: 2, triggerCharacter: "." } });
-  assert((Array.isArray(astroCompletion) ? astroCompletion : astroCompletion.items).some((item: any) => item.label === "toUpperCase")); pass("Astro TypeScript SDK completion");
+  let astroText = ["---", '// 😀 source positions', 'const message: string = "hello";', 'const broken: number = "wrong";', 'message.toUpperCase();', '---', '<h1>{message.toUpperCase()}</h1>', '<script>', 'const client: string = "hello";', 'const clientBroken: number = "wrong";', 'client.toUpperCase();', '</script>', '<style>', 'h1 { color: red; }', '</style>', ''].join("\r\n");
+  const astro = await open("astro", "index.astro", astroText);
+  const astroUri = pathToFileURL(path.join(root, "index.astro")).href;
+  const astroPosition = (marker: string, advance = 0) => {
+    const index = astroText.indexOf(marker); assert(index >= 0, `Missing Astro marker: ${marker}`);
+    return textPosition(astroText, index + advance);
+  };
+  for (const [region, marker, advance, label] of [
+    ["frontmatter", "message.toUpperCase();", 8, "toUpperCase"],
+    ["template expression", "{message.toUpperCase()}", 9, "toUpperCase"],
+    ["script", "client.toUpperCase();", 7, "toUpperCase"],
+    ["HTML", "<h1>", 2, "h1"],
+    ["CSS", "color: red", 3, "color"],
+  ] as const) {
+    const position = astroPosition(marker, advance);
+    const completion = await astro.request("textDocument/completion", { position, context: { triggerKind: 1 } });
+    const item = (Array.isArray(completion) ? completion : completion.items).find((item: any) => item.label === label);
+    assert(item, `Missing ${region} completion`);
+    const resolved = await astro.request("completionItem/resolve", item);
+    assert(resolved.documentation || resolved.detail, `Missing ${region} documentation`);
+    const editRange = resolved.textEdit?.range ?? resolved.textEdit?.insert;
+    assert.equal(editRange?.start.line, position.line, `${region} edit must target the source line`);
+    const hover = await astro.request("textDocument/hover", { position: { ...position, character: position.character + 1 } });
+    assert(hover?.contents && hover.range?.start.line === position.line, `${region} hover must target the source line`);
+    pass(`Astro ${region} completion, resolution and hover`);
+  }
+  async function checkAstroMappings() {
+    const templatePosition = astroPosition("{message.", 2);
+    const definitions = await astro.request("textDocument/definition", { position: templatePosition });
+    const locations = Array.isArray(definitions) ? definitions : [definitions];
+    assert(locations.some((item: any) => (item.uri ?? item.targetUri) === astroUri && (item.range ?? item.targetSelectionRange).start.line === astroPosition("const message").line));
+    const version = manager.versions(astro.id)[astroUri];
+    const report = await eventually(async () => diagnostics.get(astroUri), value => value?.version === version && ["const broken", "const clientBroken"].every(marker => value.diagnostics.some(item => item.code === 2322 && item.range.start.line === astroPosition(marker).line)));
+    assert(report);
+    const rename = await astro.request("textDocument/rename", { position: templatePosition, newName: "greeting" });
+    const edits = rename.changes?.[astroUri] ?? rename.documentChanges?.flatMap((change: any) => change.textDocument?.uri === astroUri ? change.edits : []) ?? [];
+    assert.equal(edits.length, 3);
+    assert(edits.every((edit: any) => astroText.slice(textOffset(astroText, edit.range.start), textOffset(astroText, edit.range.end)) === "message"));
+  }
+  await checkAstroMappings(); pass("Astro cross-region navigation, rename and diagnostics");
+  astroText = astroText.replace("// 😀 source positions", "// unsaved change\r\n// 😀 source positions");
+  manager.canonical("index.astro", astroText);
+  await checkAstroMappings(); pass("Astro mappings after unsaved CRLF edits");
+  diagnostics.delete(astroUri);
+  await manager.restart(astro.id);
+  await checkAstroMappings(); pass("Astro mixed-language restart replay");
+  const astroImportText = '---\n// 😀 keep imports inside frontmatter\nwelcomeUs\n---\n<h1>Hello</h1>\n';
+  const astroImport = await open("astro", "Import.astro", astroImportText);
+  const astroImported = await eventually(() => astroImport.request("textDocument/completion", { position: { line: 2, character: 9 }, context: { triggerKind: 1 } }), value => (Array.isArray(value) ? value : value?.items ?? []).some((item: any) => item.label === "welcomeUser"));
+  const astroImportItem = (Array.isArray(astroImported) ? astroImported : astroImported.items).find((item: any) => item.label === "welcomeUser");
+  const astroResolved = await astroImport.request("completionItem/resolve", astroImportItem);
+  const importEdit = astroResolved.additionalTextEdits?.find((edit: any) => edit.newText.includes("import") && edit.newText.includes("welcomeUser"));
+  assert(importEdit);
+  const importOffset = textOffset(astroImportText, importEdit.range.start);
+  assert(importOffset >= 3 && importOffset < astroImportText.indexOf("\n---", 3));
+  assert.equal(astroResolved.textEdit.insert.start.line, 2);
+  pass("Astro resolved auto-import edits stay inside frontmatter");
   const cargo = await open("taplo", "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\n');
   const cargoAssociation = await eventually(() => cargo.request("taplo/associatedSchema", { documentUri: pathToFileURL(path.join(root, "Cargo.toml")).href }), value => Boolean(value?.schema?.url));
   assert(cargoAssociation.schema.url.endsWith("/schemas/cargo.json"));

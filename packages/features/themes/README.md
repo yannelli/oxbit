@@ -31,6 +31,25 @@ The **Binx** pack includes three dark themes:
 
 Choose a variant in **Settings → Color Theme**, or search for **Use Binx** in the command palette. All three palettes live in `src/packs/oxbit.binx.json`. The light/dark toggle switches from these dark-only variants to Paper; toggling back uses Graphite.
 
+## ClassicOS 98
+
+**ClassicOS 98** is a Windows 98/2000 era desktop treatment: a colour theme pack, a matching icon pack, and scoped chrome CSS.
+
+| Theme | Mode | Scheme |
+| --- | --- | --- |
+| **ClassicOS 98** | light | Grey 3D face, navy selection, black window text |
+| **ClassicOS 2000** | light | The same face with the Windows 2000 title blue and softer dark edge |
+| **ClassicOS 98 Eggplant** | dark | Plum chrome with an olive selection bar |
+| **ClassicOS 98 High Contrast Black** | dark, high contrast | Black chrome, white text, system yellow accent |
+
+Choose a variant in **Settings → Color Theme**, search **Use ClassicOS** in the command palette, or run **Use ClassicOS 98 Theme and Icons** to set the colour theme, file icons and control icons together. The light/dark toggle pairs ClassicOS 98 with Eggplant. Palettes live in `src/packs/oxbit.classicos98.json`; the terminal uses the 16-colour VGA text palette, UI text falls back through Tahoma and MS Sans Serif, and code falls back through Fixedsys and Lucida Console.
+
+`src/classicos98/` builds the icon pack: 16x16 pixel art in the VGA palette, written as one character per pixel and rendered to SVG rects at module load. It ships a file icon theme (documents, manila folders, drives, and colour-coded language chips) and two product icon themes covering every control id in `packages/ui/src/product-icons.ts`: **ClassicOS 98** for the light schemes and **ClassicOS 98 Dark**, whose neutral ramp is inverted so black-outlined art reads on the Eggplant and High Contrast faces. **Use ClassicOS 98 Theme and Icons** picks the pair that matches the current light/dark mode. `packages/app-workbench` installs it into the icon pack store on first launch, so **Extensions → Icon Packs** can enable, replace, or uninstall it like any imported pack; uninstalling it is remembered for the origin until the bundled revision changes.
+
+The 3D bevels are in `packages/ui/src/classicos98.css`, scoped to `[data-theme-pack="oxbit.classicos98"]` and applied only through inset box shadows, so no rule there changes layout. Its edge colours are declared in `tokens.css` and invert for the dark variants.
+
+This is an original palette and icon set in the visual style of late-1990s desktop systems. It includes no Microsoft assets, fonts, or artwork.
+
 ## Load Bearing
 
 Load Bearing is an original theme family inspired by [Claude](https://claude.com/): warm paper, quiet ink, terracotta accents, and restrained sage, ochre, blue, and plum syntax colors.

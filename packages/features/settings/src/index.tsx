@@ -1,12 +1,12 @@
-import { languages, validateFileAssociations, validateLanguageServers } from "@oxbit/sdk";
+import { languages } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Extension, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
 import { Icon, IconButton, Dialog, Select, IconThemeSelect } from "@oxbit/ui";
-import schema from "./schema.json";
+import { settingsConfiguration } from "./configuration.js";
 import { scopedSetting } from "./scopes.js";
-import { normalizeShortcut } from "@oxbit/workbench";
+import { activeKeymap, commandBinding, normalizeShortcut } from "@oxbit/workbench";
 export function Settings({
   kernel,
   workbench,
@@ -229,8 +229,14 @@ export function KeyboardShortcuts({
     [keys, setKeys] = useState("");
   const commands = kernel.commands.list();
   const overrides = (state as any).keybindings || {};
+  const keymap = activeKeymap(kernel);
   const binding = (id: string) =>
-    overrides[id] ?? commands.find((c) => c.id === id)?.shortcut ?? "";
+    commandBinding(
+      kernel,
+      overrides,
+      commands.find((c) => c.id === id) ?? { id },
+      keymap,
+    );
   const conflicts = commands.filter(
     (c) =>
       c.id !== capture &&
@@ -290,7 +296,13 @@ export function KeyboardShortcuts({
                       <span className="warning-text"> {tr("Conflict")}</span>
                     )}
                   </td>
-                  <td>{c.id in overrides ? tr("User") : tr("Default")}</td>
+                  <td>
+                    {c.id in overrides
+                      ? tr("User")
+                      : keymap && c.id in keymap.bindings
+                        ? tr(keymap.title)
+                        : tr("Default")}
+                  </td>
                   <td>
                     <IconButton
                       icon="pencil"
@@ -398,24 +410,7 @@ export function createFeature({
       environments: ["browser", "embedded"],
       activation: ["*"],
       capabilities: [],
-      configuration: [
-        ...(schema as Setting[]).map(s => ({ ...s, validate: s.id === "files.associations" ? validateFileAssociations : s.id === "languageServers" ? validateLanguageServers : undefined })),
-        {
-          id: "workbench.locale",
-          title: "Display Language",
-          type: "string",
-          default: "en",
-          enum: ["en", "de"],
-          category: "Appearance",
-        },
-        {
-          id: "workbench.reducedMotion",
-          title: "Reduced Motion",
-          type: "boolean",
-          default: false,
-          category: "Appearance",
-        },
-      ],
+      configuration: settingsConfiguration.map(setting => ({ ...setting, enum: setting.enum?.slice() })),
     },
     activate(ctx) {
       ctx.own(

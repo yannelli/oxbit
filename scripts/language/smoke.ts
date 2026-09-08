@@ -8,6 +8,8 @@ import { LanguageServerManager } from "../../apps/runtime/src/lsp-manager.js";
 const fixtures = [
   ["typescript", "main.ts", "export const hello: string = 'world';\n"],
   ["marksman", "README.md", "# Hello\n\n[Heading](#hello)\n"],
+  ["mdx", "README.mdx", 'export const greeting = "hello"\n\n# Hello\n\n{greeting.toUpperCase()}\n'],
+  ["laravel", "laravel/welcome.blade.php", "<h1>Hello</h1>\n"],
   ["html", "index.html", '<!doctype html><html><body><h1>Hello</h1></body></html>\n'],
   ["vue", "App.vue", '<script setup lang="ts">\nconst message: string = "hello";\n</script>\n<template><div>{{ message }}</div></template>\n'],
   ["astro", "index.astro", '---\nconst message: string = "hello";\n---\n<h1>{message}</h1>\n'],
@@ -26,6 +28,8 @@ const manager = new LanguageServerManager(new WorkspaceFiles(root), cache, (meth
   if (method === "oxbit/serverState") console.log(JSON.stringify({ instanceId, ...params }));
 });
 try {
+  await fs.mkdir(path.join(root, "laravel"));
+  await fs.writeFile(path.join(root, "laravel/artisan"), "<?php\n");
   await fs.writeFile(path.join(root, ".marksman.toml"), "");
   for (const [id, file, text] of fixtures) {
     if (process.env.OXBIT_LSP_ONLY && !process.env.OXBIT_LSP_ONLY.split(",").includes(id)) continue;

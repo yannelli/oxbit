@@ -36,12 +36,11 @@ Reselecting a native directory reuses its saved workspace ID. Directory renames
 copy raw bytes, including binary files. Explicit encoding choices persist with
 that directory so a Latin-1 save can be decoded again after refresh.
 
-Runtime workspace settings cache pending writes and their disk revision across
-refresh. Conflicting disk changes preserve the local settings. Use **Reload
-Workspace Settings from Disk** to discard the local overrides, or **Save
-Workspace Settings to Disk** to write them after confirmation. Deleting the
-disk settings file removes clean workspace overrides. User settings remain in
-the browser profile.
+Runtime [settings files](settings.md) merge the global user file, private project
+file and optional repository overrides. Pending property changes survive refresh
+and offline sessions. Conflicts preserve local changes until **Reload Settings
+from Disk** or **Save Local Settings to Disk** resolves them. Deleting an override
+reveals lower-priority values. Browser-only workspaces keep host storage.
 
 Search replacement previews retain per-file selection and document versions.
 Applying a preview changes unsaved documents and reports failures per file.

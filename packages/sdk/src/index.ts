@@ -1,7 +1,10 @@
+import type { PanelLayout, PanelTarget } from "./panels.js";
+export * from "./panels.js";
 import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
 export * from "./languages.js";
 export * from "./language-servers.js";
+export * from "./settings-schema.js";
 export type Environment = "browser" | "runtime" | "embedded";
 export type Capability =
   | "filesystem.read"
@@ -56,6 +59,7 @@ export type ContributionKind =
   | "productIconTheme"
   | "menu"
   | "shortcut"
+  | "keymap"
   | "language"
   | "diagnostics"
   | "completion"
@@ -85,6 +89,12 @@ export interface DocumentViewContributionData {
   extensions?: string[];
   matches?: (path: string) => boolean;
   default?: boolean;
+}
+export interface KeymapContributionData {
+  /** Value stored in `workbench.keymap` when this keymap is selected. */
+  stableId: string;
+  /** Command id to shortcut; an empty string removes the default binding. */
+  bindings: Record<string, string>;
 }
 export interface LanguageDefinition {
   id: string;
@@ -173,6 +183,8 @@ export interface ExtensionManifest {
   sdk: string;
   environments: Environment[];
   description?: string;
+  /** Opt-in extensions stay disabled until explicitly enabled by the user. */
+  enabledByDefault?: boolean;
   dependencies?: Record<string, string>;
   activation: string[];
   capabilities: Capability[];
@@ -209,7 +221,7 @@ export interface ConfigurationService {
   list(): Setting[];
   subscribe(listener: () => void): Unsubscribe;
   export(): unknown;
-  import(data: unknown): void;
+  import(data: unknown, options?: { persist?: boolean }): void;
 }
 export interface ContributionService {
   register(value: Contribution, owner?: string): Disposable;
@@ -441,6 +453,11 @@ export interface WorkbenchService {
   ): void | Promise<void>;
   openPanel(id: string): void;
   togglePanel(id: string): void;
+  /** Optional on older hosts. Panel IDs are existing activityView/panel contribution IDs. */
+  getPanelLayout?(): PanelLayout;
+  movePanel?(id: string, target: PanelTarget): void;
+  detachPanel?(id: string): Promise<void>;
+  redockPanel?(id: string): void;
   openView(
     id: string,
     title: string,
@@ -474,6 +491,7 @@ export type { DocumentSymbol, DocumentSymbolProvider, SymbolRange } from "./symb
 
 export * from "./text-positions.js";
 export * from "./csv.js";
+export * from "./projects.js";
 
 export * from "./icon-themes.js";
 
@@ -492,3 +510,7 @@ export interface ExternalDocument {
 export * from "./language-providers.js";
 
 export { lspGlobMatches, lspWatchPattern } from "./lsp-glob.js";
+
+export * from "./agent-acp.js";
+export * from "./git.js";
+export * from "./settings.js";

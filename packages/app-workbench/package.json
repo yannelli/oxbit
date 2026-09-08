@@ -21,6 +21,7 @@
     "@oxbit/feature-settings": "workspace:*",
     "@oxbit/feature-extensions": "workspace:*",
     "@oxbit/feature-themes": "workspace:*",
+    "@oxbit/feature-keymaps": "workspace:*",
     "@oxbit/feature-language": "workspace:*",
     "@oxbit/feature-search": "workspace:*",
     "@oxbit/feature-previews": "workspace:*",
@@ -29,7 +30,8 @@
     "@oxbit/feature-tasks": "workspace:*",
     "@oxbit/feature-git": "workspace:*",
     "@oxbit/feature-collaboration": "workspace:*",
-    "@oxbit/icon-themes": "workspace:*"
+    "@oxbit/icon-themes": "workspace:*",
+    "@oxbit/feature-agent-acp": "workspace:*"
   },
   "license": "MIT"
 }

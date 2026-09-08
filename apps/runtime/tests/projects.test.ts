@@ -1,0 +1,82 @@
+import { afterEach, expect, it } from "vitest";
+import * as fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { ProjectStore, projectId } from "../src/projects.js";
+import { WorkspaceFiles } from "../src/filesystem.js";
+
+const cleanup: (() => Promise<unknown>)[] = [];
+afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
+async function setup() {
+  const directory = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-projects-")), root = path.join(directory, "workspace");
+  await fs.mkdir(root);
+  const store = await new ProjectStore(new WorkspaceFiles(root), path.join(directory, "projects")).initialize();
+  cleanup.push(() => fs.rm(directory, { recursive: true, force: true }), () => store.dispose());
+  const write = async (file: string, text: string) => { await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true }); await fs.writeFile(path.join(root, file), text); };
+  return { root, directory, store, write };
+}
+it("persists project identity and user settings separately from refreshed dependency and import intelligence", async () => {
+  const { root, directory, store, write } = await setup();
+  await write("package.json", '{"name":"app","dependencies":{"react":"^19"}}');
+  await write("tsconfig.json", '{"compilerOptions":{"baseUrl":".","paths":{"@/*":["src/*"]},"moduleResolution":"bundler","module":"esnext"}}');
+  await write("src/helper.ts", "export function helper() { return 1; }");
+  await write("src/main.ts", "import { helper } from '@/helper'; export const value = helper();");
+  await write("src/main.test.ts", "import { value } from './main.js';");
+  await write("README.mdx", "import {\n  helper\n} from './src/helper.js'\n\n# Hello\n\n{helper()}\n\n```js\nimport example from './not-real.js'\n```\n");
+  await write("packages/ui/package.json", '{"name":"@app/ui","exports":"./index.ts"}');
+  await write("packages/ui/index.ts", "export const component = 1;");
+  await write("src/consumer.ts", "import { component } from '@app/ui';");
+  await write("server/composer.json", '{"name":"site/backend","require":{"laravel/framework":"^13"}}');
+  await write("node_modules/ignored/index.js", "export const secret = 1;");
+  await write(".gitignore", "generated/\n*.local.ts\n");
+  await write("generated/output.ts", "export const ignored = 1;");
+  await write("src/secret.local.ts", "export const ignored = 1;");
+  const configFile = path.join(store.directory, "project.json");
+  const config = { ...store.info().configuration, notes: "Keep this note" };
+  await fs.writeFile(configFile, JSON.stringify(config));
+  await store.refresh();
+  const index = await store.snapshot();
+  expect(index?.frameworks).toEqual(["laravel/framework", "react"]);
+  expect(index?.packages.map(item => item.name)).toEqual(["app", "site/backend", "@app/ui"]);
+  expect(index?.files.some(item => item.path.includes("node_modules"))).toBe(false);
+  expect(index?.files.some(item => item.path.startsWith("generated/") || item.path.endsWith(".local.ts"))).toBe(false);
+  expect(index?.files.find(item => item.path === "src/main.ts")?.imports).toEqual([{ specifier: "@/helper", target: "src/helper.ts" }]);
+  expect(index?.files.find(item => item.path === "README.mdx")?.imports[0].target).toBe("src/helper.ts");
+  expect(index?.files.find(item => item.path === "README.mdx")?.imports).toHaveLength(1);
+  expect(index?.files.find(item => item.path === "src/consumer.ts")?.imports[0].target).toBe("packages/ui/index.ts");
+  expect((await store.relations("src/helper.ts")).affected).toEqual(["README.mdx", "src/main.test.ts", "src/main.ts"]);
+  expect((await store.relations("src/main.ts")).related.some(item => item.path === "src/main.test.ts")).toBe(true);
+  expect(JSON.parse(await fs.readFile(configFile, "utf8"))).toEqual(config);
+  expect(await fs.readFile(path.join(store.directory, "intelligence.json"), "utf8")).not.toContain("return 1");
+  await fs.unlink(path.join(root, "src/helper.ts")); await store.refresh();
+  expect((await store.snapshot())?.files.some(item => item.path === "src/helper.ts")).toBe(false);
+  const reopened = await new ProjectStore(new WorkspaceFiles(root), path.join(directory, "projects")).initialize();
+  expect(reopened.id).toBe(store.id); expect(reopened.info().configuration.notes).toBe("Keep this note");
+  expect(store.id).toMatch(/^[\da-f]{8}-[\da-f]{4}-5[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/);
+  expect(projectId(path.join(root, "different"))).not.toBe(store.id); await reopened.dispose();
+});
+it("honors exclusions, limits, disabled analysis and rejects bad configuration without overwriting it", async () => {
+  const { store, write } = await setup();
+  await write("secret.ts", "export const value = 1"); await write("main.ts", "export const x = 1");
+  const configFile = path.join(store.directory, "project.json"), config = store.info().configuration;
+  config.intelligence.exclude = ["secret.ts"];
+  await fs.writeFile(configFile, JSON.stringify(config)); await store.refresh();
+  expect((await store.snapshot())?.files.map(item => item.path)).toEqual(["main.ts"]);
+  config.intelligence.enabled = false; await fs.writeFile(configFile, JSON.stringify(config)); await store.refresh();
+  expect(store.info().state).toBe("disabled"); expect(await store.snapshot()).toBeUndefined();
+  await fs.writeFile(configFile, '{"broken":'); await store.refresh();
+  expect(store.info().state).toBe("failed"); expect(await fs.readFile(configFile, "utf8")).toBe('{"broken":');
+  await expect(store.relations("../private.ts")).rejects.toThrow();
+});
+
+it("keeps project data and its symlink aliases private when the workspace contains the storage directory", async () => {
+  const { root } = await setup();
+  const base = path.join(root, "private-projects"); await fs.mkdir(base);
+  await fs.writeFile(path.join(base, "project.json"), '{"notes":"private"}');
+  const files = new WorkspaceFiles(root); files.protect(base);
+  await fs.symlink(base, path.join(root, "alias"));
+  await expect(files.resolve("private-projects/project.json")).rejects.toThrow();
+  await expect(files.resolve("alias/project.json")).rejects.toThrow();
+  expect((await files.list()).map(item => item.name)).not.toContain("private-projects");
+  expect((await files.list()).map(item => item.name)).not.toContain("alias");
+});

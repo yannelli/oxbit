@@ -52,7 +52,7 @@ Failed activation removes its registrations and records the error. Disabling a d
 
 Palette, menu, toolbar and shortcut actions call `commands.execute`. Context expressions support keys, `!`, `&&`, `||`, parentheses, booleans and literal equality or inequality. Contributions sort by ascending `order`, descending `priority`, then ID. Shortcut conflicts sort by descending priority, descending context length, then ID. Shortcut contributions declare `command` and `data.key`.
 
-Settings check type, finite numeric bounds and enum values. Precedence is defaults, user, workspace, user-language, workspace-language. Reset removes a scoped override. Invalid stored values fall through to a valid lower layer. The kernel stores configuration through its persistence adapter.
+Settings check type, finite numeric bounds and enum values. Precedence is defaults, user, workspace, user-language, workspace-language. Objects merge recursively; arrays and scalar values replace. Reset removes a scoped override. Invalid stored values fall through to a valid lower layer. The kernel stores configuration through its persistence adapter. Runtime [JSON files](settings.md) merge within these scopes; `configuration.import(data, { persist: false })` applies disk reloads without writing them back.
 
 ## Hooks and services
 
@@ -80,6 +80,7 @@ owned results.
 | `codeAction` | `CodeActionProvider` | Contributed actions join the editor's code-action workflow. |
 | `formatter` | `Formatter` | Formatter selection and save hooks use matching language providers. |
 | `editorDecoration` | `EditorDecorationContribution` | Matching editors mount and remove CodeMirror extensions. |
+| `keymap` | `KeymapContributionData` | Selecting the keymap in `workbench.keymap` applies its bindings above command defaults and below user keybindings. |
 
 A filesystem returned by `FileSystemProvider.open()` transfers to the workspace
 host until that workspace closes. Give it a stable `id` for draft and layout

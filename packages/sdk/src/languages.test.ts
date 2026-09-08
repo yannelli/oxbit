@@ -5,7 +5,7 @@ import { textOffset, textPosition } from "./text-positions.js";
 describe("shared language registry", () => {
   it.each([
     ["x.ts", "typescript"], ["x.mts", "typescript"], ["x.cts", "typescript"], ["x.tsx", "typescriptreact"], ["x.jsx", "javascriptreact"], ["x.cjs", "javascript"],
-    ["README.markdown", "markdown"], ["index.htm", "html"], ["App.vue", "vue"], ["index.astro", "astro"],
+    ["README.markdown", "markdown"], ["README.mdx", "mdx"], ["welcome.blade.php", "blade"], ["index.htm", "html"], ["App.vue", "vue"], ["index.astro", "astro"],
     ["Dockerfile", "dockerfile"], ["Dockerfile.prod", "dockerfile"], ["prod.dockerfile", "dockerfile"],
     ["run.sh", "shellscript"], ["run.bash", "shellscript"], [".bashrc", "shellscript"], [".bash_profile", "shellscript"],
     [".zshrc", "zsh"], [".zshenv", "zsh"], [".zprofile", "zsh"], ["run.zsh", "zsh"],

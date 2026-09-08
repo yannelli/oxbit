@@ -1,3 +1,4 @@
+import { desktopConfiguration } from "./configuration.js";
 import { DesktopIconPackStore } from "./icon-packs.js";
 import {
   profileChanges,
@@ -66,6 +67,7 @@ export const native = {
   move: (key: string) => invoke<void>("desktop_move_project", { key }),
   close: (kind: CloseRequest["reason"], key?: string) =>
     invoke<void>("desktop_request_close", { kind, key }),
+  closePanel: (id: string) => invoke<void>("desktop_close_panel", { id }),
   vote: (id: string, accepted: boolean) =>
     invoke<void>("desktop_close_vote", { id, accepted }),
   finished: (id: string, error?: string) =>
@@ -102,8 +104,10 @@ export class DesktopPersistence implements Persistence {
       if (key === "profile-settings") {
         const next = value as unknown as Profile;
         const changes = profileChanges(this.profile, next);
-        if (changes.length) await native.settings(changes);
+        const before = this.profile;
         this.profile = structuredClone(next);
+        try { if (changes.length) await native.settings(changes); }
+        catch (error) { this.profile = before; throw error; }
       } else
         await invoke("desktop_storage_set", {
           project: this.project,
@@ -134,12 +138,22 @@ export class DesktopPersistence implements Persistence {
   async refreshProfile(session: Session) {
     await session.kernel.configuration.flush?.();
     await this.flush();
+    const before = structuredClone(this.profile);
     const latest = await this.get<Profile>("profile-settings");
     if (!latest) return;
     const current = session.kernel.configuration.export() as Profile &
       Record<string, unknown>;
-    if (profileChanges(current, latest).length)
-      session.kernel.configuration.import({ ...current, ...latest });
+    // Native menus still update the desktop profile. Apply only their changed keys
+    // to the runtime configuration so the JSON persistence layer saves them too.
+    const changes = profileChanges(before, latest);
+    if (!changes.length) return;
+    for (const change of changes) {
+      let cursor = current as Record<string, any>;
+      for (const key of change.path.slice(0, -1)) cursor = cursor[key] ??= {};
+      const key = change.path.at(-1)!;
+      if (change.value === undefined) delete cursor[key]; else cursor[key] = change.value;
+    }
+    session.kernel.configuration.import(current);
   }
 }
 
@@ -177,10 +191,12 @@ export class ProjectSessionManager {
   };
   private publish(patch: Partial<WindowView> = {}) {
     this.view = { ...this.view, ...patch };
-    for (const entry of this.entries.values())
+    for (const entry of this.entries.values()) {
       entry.session?.setActive(
         entry.project.key === this.view.active && !this.frozen,
       );
+      entry.session?.workbench.panelWindows.setSuspended(this.frozen);
+    }
     for (const listener of this.listeners) listener();
   }
   get isClosing() {
@@ -302,22 +318,15 @@ export class ProjectSessionManager {
           protectUnload: false,
         });
         session.workbench.set({ projectName: entry.project.name });
-        session.kernel.configuration.register({
-          id: "desktop.projects.openBehavior",
-          title: "Open projects",
-          category: "Desktop",
-          type: "string",
-          default: "currentWindow",
-          enum: ["currentWindow", "newWindow"],
-        });
-        for (const tool of ["git", "gh"])
-          session.kernel.configuration.register({
-            id: `desktop.tools.${tool}Path`,
-            title: `${tool} executable path`,
-            category: "Desktop",
-            type: "string",
-            default: "",
-          });
+        for (const setting of desktopConfiguration) session.kernel.configuration.register(setting);
+        const mirrorProfile = () => {
+          const { user, userLanguages } = session.kernel.configuration.export() as Profile;
+          void storage.set("profile-settings", { user, userLanguages }).catch(error => session.workbench.notify(String(error), "error"));
+        };
+        mirrorProfile();
+        const offProfile = session.kernel.configuration.subscribe(mirrorProfile);
+        const dispose = session.dispose.bind(session);
+        session.dispose = async () => { offProfile(); await dispose(); };
         entry.session = session;
         entry.storage = storage;
         entry.error = undefined;

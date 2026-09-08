@@ -2,6 +2,8 @@
 
 Use **Preferences: Import Icon Pack…** or **Extensions → Icon Packs → Manage Icon Packs**. Review the publisher, version, license, theme list, sample icons and compatibility warnings, then install. Installation does not change your selections. File/folder icons and application controls have independent selectors in Settings and the command palette.
 
+Oxbit ships one pack, **ClassicOS 98 Icons** (`oxbit.classicos98`), installed on first launch. It behaves like any imported pack in Extensions → Icon Packs. Uninstalling it is remembered for the origin, across projects and launches, until the bundled revision changes.
+
 `workbench.iconTheme` and `workbench.productIconTheme` default to `oxbit.default`. Installed IDs are `publisher.package/themeId`; existing user/workspace configuration precedence applies. Disabled, missing, corrupt and removed packs fall back to Oxbit defaults while retaining the selected ID. Re-enable or reinstall the pack to restore it. Replacing a pack with an invalid archive or failing storage write preserves the prior installation.
 
 ## Authoring
@@ -45,7 +47,7 @@ Example `themes/files.json` (images live in `images/`):
 }
 ```
 
-Example `themes/controls.json` (supply a licensed font containing the chosen glyph):
+Example `themes/controls.json` (supply a licensed font containing the chosen glyph, or point `iconPath` at an image):
 
 ```json
 {
@@ -54,7 +56,7 @@ Example `themes/controls.json` (supply a licensed font containing the chosen gly
 }
 ```
 
-Product themes use monochrome font glyphs in the control's current color. File themes support SVG/PNG images and WOFF, WOFF2, TTF and OTF glyphs. Filename matches precede extensions, longest compound extensions precede shorter ones, then language IDs and generic defaults. Parent-qualified associations take precedence within their kind. Matching is case insensitive. Folder names, root folders, expanded folders, light and high-contrast association overrides are supported. High contrast uses explicit color-theme metadata. Explorer arrows disappear only where different usable open/closed folder resources exist.
+Both kinds support SVG/PNG images and WOFF, WOFF2, TTF and OTF glyphs. A font glyph takes the control's current color; an image is drawn as authored and is not recolored. Filename matches precede extensions, longest compound extensions precede shorter ones, then language IDs and generic defaults. Parent-qualified associations take precedence within their kind. Matching is case insensitive. Folder names, root folders, expanded folders, light and high-contrast association overrides are supported. High contrast uses explicit color-theme metadata. Explorer arrows disappear only where different usable open/closed folder resources exist.
 
 Draft 2020-12 schemas are checked in under `packages/icon-themes/src/schemas/` and served at `/schemas/icon-manifest.v1.schema.json`, `/schemas/icon-file.v1.schema.json`, and `/schemas/icon-product.v1.schema.json`. Validators are generated with Ajv standalone compilation, bundled without runtime code generation, and work offline. JSONC comments and trailing commas are accepted.
 

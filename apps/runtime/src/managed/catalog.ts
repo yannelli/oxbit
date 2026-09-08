@@ -13,6 +13,7 @@ const preset = (id: string, name: string, languages: string[], rootMarkers: stri
 export const serverCatalog: readonly LanguageServerDefinition[] = [
   preset("typescript", "TypeScript / JavaScript", js, ["tsconfig.json", "jsconfig.json", "package.json"]),
   preset("marksman", "Marksman", ["markdown"], [".marksman.toml", ".git"]),
+  preset("mdx", "MDX", ["mdx"], ["tsconfig.json", "jsconfig.json", "package.json"]),
   preset("html", "HTML", ["html"], ["package.json", ".git"]),
   preset("vue", "Vue", ["vue"], ["tsconfig.json", "jsconfig.json", "package.json"]),
   preset("astro", "Astro", ["astro"], ["astro.config.mjs", "astro.config.ts", "astro.config.js", "package.json"]),
@@ -21,9 +22,11 @@ export const serverCatalog: readonly LanguageServerDefinition[] = [
   preset("json", "JSON / JSONC", ["json", "jsonc"], ["package.json", ".git"]),
   preset("taplo", "Taplo", ["toml"], ["taplo.toml", ".taplo.toml", "Cargo.toml", ".git"]),
   preset("intelephense", "Intelephense", ["php"], ["composer.json", ".git"]),
+  preset("laravel", "Laravel", ["php", "blade"], ["artisan"]),
   preset("lemminx", "LemMinX", ["xml"], [".lemminx", "pom.xml", ".git"]),
 ];
 export interface LaunchSpec {
+  schemaContent?: (uri: string) => Promise<string>;
   settingsSection?: string;
   executable: string;
   args: string[];
@@ -40,11 +43,16 @@ const npmPresets: Record<string, [string, string, string[]?]> = {
   json: ["vscode-langservers-extracted", "bin/vscode-json-language-server"],
   vue: ["@vue/language-server", "bin/vue-language-server.js", ["@vue/typescript-plugin", "typescript-language-server", "typescript"]],
   astro: ["@astrojs/language-server", "bin/nodeServer.js", ["typescript"]],
+  mdx: ["@mdx-js/language-server", "lib/index.js", ["typescript"]],
   dockerfile: ["dockerfile-language-server-nodejs", "bin/docker-langserver"],
   bash: ["bash-language-server", "out/cli.js"],
   intelephense: ["intelephense", "lib/intelephense.js"],
 };
 export async function resolveLaunch(id: string, root: string, installer: ManagedInstaller, signal?: AbortSignal): Promise<LaunchSpec> {
+  if (id === "laravel") {
+    const binary = await installer.native("laravel", signal);
+    return { executable: binary.executable, args: [], version: binary.version };
+  }
   if (id === "marksman" || id === "taplo") {
     const binary = await installer.native(id, signal);
     const schemaDirectory = path.join(installer.cache, "schemas");
@@ -72,8 +80,9 @@ export async function resolveLaunch(id: string, root: string, installer: Managed
   const installation = await installer.npm(id, [name, ...dependencies], signal);
   const modules = path.join(installation.directory, "node_modules");
   const bootstrap = await consoleBootstrap(installer.cache);
-  const spec: LaunchSpec = { executable: process.execPath, args: ["--require", bootstrap, path.join(modules, name, bin), id === "bash" ? "start" : "--stdio"], version: installation.version };
-  if (["typescript", "vue", "astro"].includes(id)) {
+  // A file-URL preload also starts when the workspace package.json is temporarily invalid.
+  const spec: LaunchSpec = { executable: process.execPath, args: ["--import", pathToFileURL(bootstrap).href, path.join(modules, name, bin), id === "bash" ? "start" : "--stdio"], version: installation.version };
+  if (["typescript", "vue", "astro", "mdx"].includes(id)) {
     let sdk = path.join(modules, "typescript/lib");
     try { sdk = path.dirname(createRequire(path.join(root, "package.json")).resolve("typescript/lib/tsserverlibrary.js")); } catch { /* Bundled SDK is available offline. */ }
     spec.dependencyRoots = [await fs.realpath(sdk)];
@@ -82,9 +91,10 @@ export async function resolveLaunch(id: string, root: string, installer: Managed
     spec.dependencyRoots.push(...await dependencyRoots(root, signal));
     if (id === "typescript") spec.initializationOptions = { tsserver: { path: path.join(sdk, "tsserver.js") }, disableAutomaticTypingAcquisition: true };
     if (id === "astro") spec.initializationOptions = { typescript: { tsdk: sdk } };
+    if (id === "mdx") spec.initializationOptions = { typescript: { enabled: true, tsdk: sdk } };
     if (id === "vue") {
       spec.initializationOptions = { typescript: { tsdk: sdk } };
-      spec.companion = { settings: spec.settings, executable: process.execPath, args: ["--require", bootstrap, path.join(modules, "typescript-language-server/lib/cli.mjs"), "--stdio"], initializationOptions: {
+      spec.companion = { settings: spec.settings, executable: process.execPath, args: ["--import", pathToFileURL(bootstrap).href, path.join(modules, "typescript-language-server/lib/cli.mjs"), "--stdio"], initializationOptions: {
         tsserver: { path: path.join(sdk, "tsserver.js") }, disableAutomaticTypingAcquisition: true,
         plugins: [{ name: "@vue/typescript-plugin", location: path.join(modules, "@vue/typescript-plugin"), languages: ["vue"], configNamespace: "typescript" }],
       } };

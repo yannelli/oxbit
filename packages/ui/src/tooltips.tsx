@@ -30,6 +30,7 @@ export function TooltipLayer({
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    const ownerWindow = root.ownerDocument.defaultView!;
     setTip(null);
     let hovered: HTMLElement | null = null;
     let focused: HTMLElement | null = null;
@@ -53,8 +54,9 @@ export function TooltipLayer({
       hide();
     };
     const anchorAt = (target: EventTarget | null) => {
-      if (!(target instanceof Element)) return null;
-      const anchor = target.closest<HTMLElement>(
+      const element = target as Element | null;
+      if (element?.nodeType !== 1) return null;
+      const anchor = element.closest<HTMLElement>(
         "[data-tooltip], button[aria-label]",
       );
       if (!anchor || !root.contains(anchor) || anchor.getAttribute("role") === "combobox") return null;
@@ -68,7 +70,7 @@ export function TooltipLayer({
       return anchor;
     };
     const insideTip = (target: EventTarget | null) =>
-      target instanceof Node && !!tipRef.current?.contains(target);
+      !!target && "nodeType" in target && !!tipRef.current?.contains(target as Node);
     const resetDismissal = () => {
       if (dismissed !== hovered && dismissed !== focused) dismissed = null;
     };
@@ -138,7 +140,7 @@ export function TooltipLayer({
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape" && active) {
         // A dialog/popover owns Escape when the tooltip belongs to something outside it.
-        const dialog = event.target instanceof Element ? event.target.closest('[role="dialog"], [role="alertdialog"], [popover]') : null;
+        const dialog = (event.target as Element | null)?.nodeType === 1 ? (event.target as Element).closest('[role="dialog"], [role="alertdialog"], [popover]') : null;
         if (!escapeBubbles && (!dialog || dialog.contains(active)))
           event.stopPropagation();
         event.preventDefault();
@@ -151,10 +153,10 @@ export function TooltipLayer({
     root.addEventListener("focusout", blur);
     root.addEventListener("pointerdown", dismiss, true);
     // Hover does not move focus into the workbench, so Escape may target the body.
-    window.addEventListener("keydown", key, true);
-    window.addEventListener("scroll", dismiss, true);
-    window.addEventListener("resize", dismiss);
-    window.addEventListener("blur", dismiss);
+    ownerWindow.addEventListener("keydown", key, true);
+    ownerWindow.addEventListener("scroll", dismiss, true);
+    ownerWindow.addEventListener("resize", dismiss);
+    ownerWindow.addEventListener("blur", dismiss);
     const observer = new MutationObserver(() => {
       if (active && !root.contains(active)) hide();
     });
@@ -167,10 +169,10 @@ export function TooltipLayer({
       root.removeEventListener("focusin", focus);
       root.removeEventListener("focusout", blur);
       root.removeEventListener("pointerdown", dismiss, true);
-      window.removeEventListener("keydown", key, true);
-      window.removeEventListener("scroll", dismiss, true);
-      window.removeEventListener("resize", dismiss);
-      window.removeEventListener("blur", dismiss);
+      ownerWindow.removeEventListener("keydown", key, true);
+      ownerWindow.removeEventListener("scroll", dismiss, true);
+      ownerWindow.removeEventListener("resize", dismiss);
+      ownerWindow.removeEventListener("blur", dismiss);
     };
   }, [rootRef, delay, escapeBubbles]);
 
@@ -182,9 +184,9 @@ export function TooltipLayer({
     const bounds = root.getBoundingClientRect();
     const rect = element.getBoundingClientRect();
     const leftEdge = Math.max(0, bounds.left) + 8;
-    const rightEdge = Math.min(innerWidth, bounds.right) - 8;
+    const rightEdge = Math.min(root.ownerDocument.defaultView!.innerWidth, bounds.right) - 8;
     const topEdge = Math.max(0, bounds.top) + 8;
-    const bottomEdge = Math.min(innerHeight, bounds.bottom) - 8;
+    const bottomEdge = Math.min(root.ownerDocument.defaultView!.innerHeight, bounds.bottom) - 8;
     const below = anchor.bottom + 6;
     setPosition({
       left: Math.max(

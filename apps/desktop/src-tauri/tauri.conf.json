@@ -16,15 +16,20 @@
       "capabilities": [
         "desktop"
       ]
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
+    "licenseFile": "../../../LICENSE",
+    "license": "MIT",
+    "publisher": "Ryan Yannelli",
     "active": true,
     "targets": "all",
     "category": "DeveloperTool",
     "shortDescription": "A desktop code editor",
     "longDescription": "Oxbit code editor with real files, terminals, Git, and TypeScript language services.",
     "copyright": "Copyright \u00a9 2026 Ryan Yannelli",
+    "homepage": "https://ryanyannelli.com",
     "resources": {
       "resources/runtime/": "runtime/"
     },
@@ -38,7 +43,8 @@
       "minimumSystemVersion": "26.0",
       "entitlements": "Entitlements.plist",
       "infoPlist": "Info.plist",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "signingIdentity": "Apple Distribution: Ryan Yannelli (2P58V89SR7)"
     },
     "linux": {
       "deb": {

@@ -1,4 +1,5 @@
 export const icons: Record<string, string> = {
+  agent: "M3.5 2.5h9A1.5 1.5 0 0 1 14 4v6a1.5 1.5 0 0 1-1.5 1.5H7L3 14v-2.5A1.5 1.5 0 0 1 1.5 10V4a1.5 1.5 0 0 1 2-1.5z M5 6h.01 M8 6h.01 M11 6h.01 M5 9h6",
   languageServer: "M5 3L1.5 8 5 13 M11 3l3.5 5-3.5 5 M9 2L7 14",
   files:
     "M9 2H4.5A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V6L9 2z M9 2v4h4",

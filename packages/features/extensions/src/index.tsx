@@ -148,9 +148,13 @@ export function ExtensionDetails({
               disabled={busy}
               onClick={() =>
                 void act(async () => {
-                  if (record.state === "active")
+                  const enabling = record.state !== "active";
+                  if (!enabling)
                     await kernel.extensions.disable(id);
                   else await kernel.extensions.activate(id);
+                  const enabled = (await workbench.persistence.get<string[]>("extension-enabled")) || [];
+                  await workbench.persistence.set("extension-enabled", enabling
+                    ? [...new Set([...enabled, id])] : enabled.filter((value) => value !== id));
                   const disabled = kernel.extensions
                     .list()
                     .filter((e) => e.state === "disabled")
@@ -184,6 +188,8 @@ export function ExtensionDetails({
                     )) === "Remove"
                   ) {
                     await kernel.extensions.remove(id);
+                    const enabled = (await workbench.persistence.get<string[]>("extension-enabled")) || [];
+                    await workbench.persistence.set("extension-enabled", enabled.filter((value) => value !== id));
                     const artifacts =
                       (await workbench.persistence.get<Record<string, string>>(
                         "extension-artifacts",

@@ -22,6 +22,19 @@ async function setup(idle = 300_000) {
   return { root, manager };
 }
 describe("project language instances", () => {
+  it("activates Laravel only inside an artisan root and recognizes Blade separately from PHP", async () => {
+    const { manager, root } = await setup();
+    await fs.writeFile(path.join(root, "plain.php"), "<?php");
+    await expect(manager.attach("plain.php", "one", {}, {}, "laravel")).rejects.toThrow("artisan");
+    expect(await manager.laravelRoot("plain.php")).toBeNull();
+    await fs.writeFile(path.join(root, "nested/artisan"), "<?php");
+    await fs.writeFile(path.join(root, "nested/composer.json"), "{}");
+    await fs.mkdir(path.join(root, "nested/views"));
+    await fs.writeFile(path.join(root, "nested/views/welcome.blade.php"), "<h1>Hello</h1>");
+    const blade = await manager.attach("nested/views/welcome.blade.php", "one", {}, {}, "laravel");
+    expect(blade.projectRootUri).toMatch(/\/nested$/);
+    expect(lockedPackages(["@mdx-js/language-server", "typescript"]).has("node_modules/@mdx-js/language-server")).toBe(true);
+  });
   it("shares identical instances and isolates roots and effective configuration", async () => {
     const { manager, root } = await setup();
     const a = await manager.attach("main.ts", "one"), b = await manager.attach("main.ts", "two");

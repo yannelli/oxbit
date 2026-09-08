@@ -1,0 +1,13 @@
+{
+  "platform": "darwin-arm64",
+  "reports": [
+    "Laravel named-route completion from the running project",
+    "Laravel route hover",
+    "Laravel view definition into Blade",
+    "Blade directive snippet completion",
+    "Laravel restart replay"
+  ],
+  "limitations": [
+    "Laravel 0.0.31 returned no Blade @include string completions"
+  ]
+}

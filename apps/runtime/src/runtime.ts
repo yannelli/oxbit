@@ -26,8 +26,13 @@ import { WorkspaceFiles } from "./filesystem.js";
 import { Processes, runCommand } from "./processes.js";
 import { Git } from "./git.js";
 import { LanguageServerManager } from "./lsp-manager.js";
+import { ProjectStore } from "./projects.js";
+import { SettingsStore } from "./settings.js";
+import { JsonSchemas } from "./json-schemas.js";
 import os from "node:os";
 import { Collaboration } from "./collaboration.js";
+import { AgentACP } from "./agent-acp.js";
+import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 
 export interface RuntimeOptions {
@@ -35,6 +40,8 @@ export interface RuntimeOptions {
   port?: number;
   host?: string;
   dataDir?: string;
+  projectsDir?: string;
+  settingsFile?: string;
   pairingCode?: string;
   origins?: string[];
   webRoot?: string;
@@ -227,6 +234,10 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
+  const agents = new AgentACP(files, (connectionId, name, params) => {
+    const connection = connections.get(connectionId);
+    if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
+  });
   const processes = new Processes(
     root,
     ({ event: name, params, stream, seq }, ownerId) => {
@@ -243,7 +254,18 @@ export async function createRuntime(options: RuntimeOptions) {
       }
     },
   );
-  const lsp = new LanguageServerManager(files, setting("LSP_CACHE") ?? path.join(os.homedir(), ".oxbit", "language-servers"), (method, params, instanceId) => {
+  let projectChanged = () => {};
+  const project = await new ProjectStore(files, options.projectsDir ?? setting("PROJECTS_DIR") ?? path.join(os.homedir(), ".oxbit", "projects"), () => projectChanged()).initialize();
+  const projectDataRoot = files.protect(path.dirname(project.directory));
+  let settingsChanged = () => {};
+  const settings = await new SettingsStore(files, options.settingsFile ?? setting("SETTINGS_FILE") ?? path.join(os.homedir(), ".oxbit", "settings.json"), project.directory, () => {
+    for (const c of connections.values()) if (c.session?.owner && !c.session.revoked && c.session.capabilities.includes("filesystem.read")) event(c, "settings.changed", {});
+    settingsChanged();
+  }).initialize();
+  files.protect(settings.userFile);
+  project.useSettings(() => settings.effective());
+  const lspCache = setting("LSP_CACHE") ?? path.join(os.homedir(), ".oxbit", "language-servers");
+  const lsp = new LanguageServerManager(files, lspCache, (method, params, instanceId) => {
     for (const c of connections.values())
       if (
         c.language &&
@@ -253,7 +275,19 @@ export async function createRuntime(options: RuntimeOptions) {
         c.session.capabilities.includes("lsp")
       )
         { event(c, "lsp.notification", { method, params, instanceId }); if (method === "oxbit/serverRequest") break; }
-  });
+  }, 300_000, project, new JsonSchemas(files, path.join(lspCache, "json-schemas"), fetch, { settingsPaths: settings.paths, schemaFile: settings.schemaFile }));
+  projectChanged = () => { void lsp.refreshSchemas(); };
+  const initialPreferences = await settings.effective();
+  let intelligencePreference = JSON.stringify(initialPreferences["project.intelligence"]), schemaPreference = JSON.stringify(initialPreferences["project.schemas"]);
+  settingsChanged = () => {
+    void settings.effective().then(preferences => {
+      const intelligence = JSON.stringify(preferences["project.intelligence"]), schemas = JSON.stringify(preferences["project.schemas"]);
+      if (intelligence !== intelligencePreference || schemas !== schemaPreference) project.invalidate();
+      if (schemas !== schemaPreference) void lsp.refreshSchemas();
+      intelligencePreference = intelligence; schemaPreference = schemas;
+    });
+  };
+  project.invalidate();
   const collaboration = new Collaboration(
     files,
     path.join(dataDir, "collaboration"),
@@ -582,9 +616,12 @@ export async function createRuntime(options: RuntimeOptions) {
           : "filesystem.write",
       };
     if (method.startsWith("search.")) return { cap: "filesystem.read" };
+    if (method.startsWith("project.")) return { cap: "filesystem.read" };
+    if (method.startsWith("settings.")) return { cap: method === "settings.patch" ? "filesystem.write" : "filesystem.read" };
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
     if (method.startsWith("tasks.")) return { cap: "tasks", trust: true };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
+    if (method.startsWith("acp.")) return { cap: "extensions", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
     if (method.startsWith("extensions."))
@@ -619,7 +656,40 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Workspace is not granted");
     const required = permission(method),
       session = authorized(connection, required.cap, required.trust);
+    if (method.startsWith("acp.")) owner(connection);
+    if (method.startsWith("project.")) owner(connection);
+    if (method.startsWith("settings.")) owner(connection);
     switch (method) {
+      case "settings.read":
+        return settings.read(params.legacy as Parameters<SettingsStore["read"]>[0]);
+      case "settings.patch":
+        return settings.patch(params.changes);
+      case "project.info":
+        return project.info();
+      case "project.refresh":
+        await project.refresh(); return project.info();
+      case "project.intelligence": {
+        const index = await project.snapshot();
+        if (!index) return null;
+        const offset = typeof params.offset === "number" ? params.offset : 0, limit = typeof params.limit === "number" ? params.limit : 50;
+        if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 1 || limit > 200) throw new RpcError("INVALID_PARAMS", "Use a nonnegative offset and limit from 1 to 200");
+        return { ...index, files: index.files.slice(offset, offset + limit), totalFiles: index.files.length };
+      }
+      case "project.relations":
+        return project.relations(requireString(params, "path"));
+      case "acp.start":
+        return agents.start(connection.id, params as unknown as ACPLaunch, signal);
+      case "acp.call":
+        return agents.call(connection.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>, signal);
+      case "acp.respond":
+        return agents.respond(connection.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
+      case "acp.cancel":
+        return agents.cancel(connection.id, requireString(params, "id"));
+      case "acp.stop":
+        return agents.stop(connection.id, requireString(params, "id"));
+      case "acp.disconnect":
+        agents.disconnect(connection.id);
+        return {};
       case "workspace.info":
         return sessionInfo(session);
       case "workspace.trust":
@@ -628,6 +698,7 @@ export async function createRuntime(options: RuntimeOptions) {
           throw new RpcError("INVALID_PARAMS", "trusted must be boolean");
         trusted = params.trusted;
         if (!trusted) {
+          agents.dispose();
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
           for (const s of sessions.values()) processes.revoke(s.id);
@@ -755,6 +826,16 @@ export async function createRuntime(options: RuntimeOptions) {
         );
       case "git.status":
         return git.status(signal);
+      case "git.log":
+        return git.log(params, signal);
+      case "git.show":
+        return git.show(params.ref, signal);
+      case "git.commitDiff":
+        return git.commitDiff(params, signal);
+      case "git.stashes":
+        return git.stashes(signal);
+      case "git.stashDiff":
+        return git.stashDiff(params, signal);
       case "git.diff":
         return git.diff(
           requireString(params, "path"),
@@ -771,6 +852,26 @@ export async function createRuntime(options: RuntimeOptions) {
       case "git.push":
       case "git.fetch":
       case "git.clone":
+      case "git.stageAll":
+      case "git.unstageAll":
+      case "git.hunk":
+      case "git.branchCreate":
+      case "git.branchTrack":
+      case "git.branchRename":
+      case "git.branchDelete":
+      case "git.merge":
+      case "git.continue":
+      case "git.abort":
+      case "git.cherryPick":
+      case "git.revert":
+      case "git.stashSave":
+      case "git.stashApply":
+      case "git.stashPop":
+      case "git.stashDrop":
+      case "git.remoteAdd":
+      case "git.remoteRemove":
+      case "git.publish":
+      case "git.pull":
         return git.action(method.slice(4), params, signal, (data) =>
           event(connection, "git.progress", { id: requestId, data }),
         );
@@ -786,6 +887,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return extensions.activate(requireString(params, "id"));
       case "extensions.remove":
         return extensions.remove(requireString(params, "id"));
+      case "lsp.laravelRoot":
+        return lsp.laravelRoot(requireString(params, "path"));
       case "lsp.attach":
         connection.language = true;
         return lsp.attach(requireString(params, "path"), connection.id, params.configuration ?? {}, params.associations ?? {}, typeof params.definitionId === "string" ? params.definitionId : undefined);
@@ -1124,6 +1227,7 @@ export async function createRuntime(options: RuntimeOptions) {
     ws.on("error", () => {});
     ws.on("close", () => {
       clearTimeout(authDeadline);
+      agents.disconnect(connection.id);
       lsp.detach(connection.id);
       connections.delete(connection.id);
       for (const pending of connection.edits.values()) {pending.cleanup();pending.resolve({applied:false,failureReason:"Document client disconnected"});} connection.edits.clear();
@@ -1164,6 +1268,7 @@ export async function createRuntime(options: RuntimeOptions) {
               : "changed",
       };
       if (kind !== "addDir" && kind !== "unlinkDir") await collaboration.changed(relative);
+      project.invalidate();
       await lsp.watched(relative, change.kind === "created" ? 1 : change.kind === "deleted" ? 3 : 2);
       for (const c of connections.values())
         if (
@@ -1198,7 +1303,8 @@ export async function createRuntime(options: RuntimeOptions) {
                 segment.startsWith(".oxbit-tmp-"),
             ) ||
           file === dataDir ||
-          file.startsWith(dataDir + path.sep)
+          file.startsWith(dataDir + path.sep) ||
+          file === projectDataRoot || file.startsWith(projectDataRoot + path.sep)
         );
       },
       awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 25 },
@@ -1275,8 +1381,11 @@ export async function createRuntime(options: RuntimeOptions) {
         for (const controller of c.pending.values()) controller.abort();
         c.ws.terminate();
       }
+      agents.dispose();
       extensions.dispose();
       processes.close();
+      await project.dispose();
+      await settings.dispose();
       await lsp.dispose();
       await Promise.allSettled([...inflight.values()]);
       await collaboration.close();

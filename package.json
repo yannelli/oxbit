@@ -1,6 +1,6 @@
 {
   "name": "oxbit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -41,6 +41,8 @@
     "test:language:servers": "tsx scripts/language/smoke.ts",
     "icons:validate": "tsx scripts/validate-icon-pack.ts",
     "icons:schemas": "node scripts/generate-icon-schemas.mjs",
+    "settings:schema": "tsx scripts/generate-settings-schema.ts",
+    "settings:schema:check": "tsx scripts/generate-settings-schema.ts --check",
     "test:icons:browser": "playwright test --config tests/browser/icon-packs.config.ts",
     "test:themes:browser": "playwright test -c tests/browser/themes.config.ts",
     "test:icons:desktop": "node scripts/build-icon-native-tests.mjs && node scripts/run-icon-native-tests.mjs"

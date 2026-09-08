@@ -100,6 +100,26 @@
       "entry": "lemminx.jar",
       "license": "EPL-2.0",
       "integrity": "sha256-9P3hZOeFxjXl+GNh2/S5k7/ixfg/21KJHQWLffybz8g="
+    },
+    {
+      "id": "laravel",
+      "version": "0.0.31",
+      "platform": "darwin-arm64",
+      "url": "https://github.com/laravel/lsp/releases/download/v0.0.31/server-v0.0.31-arm64-darwin",
+      "format": "file",
+      "entry": "laravel-lsp",
+      "license": "MIT",
+      "integrity": "sha256-A5O2dUPAAFy/7ns7yjFo9QKGqdcXqCOURdkMyvoa1Xg="
+    },
+    {
+      "id": "laravel",
+      "version": "0.0.31",
+      "platform": "linux-x64",
+      "url": "https://github.com/laravel/lsp/releases/download/v0.0.31/server-v0.0.31-x64-linux",
+      "format": "file",
+      "entry": "laravel-lsp",
+      "license": "MIT",
+      "integrity": "sha256-z4Ftro0baMSh9yiORiVzKj+H3w3M31oGfn4xW5ZDyII="
     }
   ]
 }

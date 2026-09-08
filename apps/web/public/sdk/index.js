@@ -5,6 +5,7 @@ var languages = [
   { id: "javascript", title: "JavaScript", extensions: ["js", "mjs", "cjs"], syntax: "javascript", providers: ["typescript"], badge: "JS" },
   { id: "javascriptreact", title: "JavaScript React", extensions: ["jsx"], settingsAliases: ["javascript"], syntax: "jsx", providers: ["typescript"], badge: "JS" },
   { id: "markdown", title: "Markdown", extensions: ["md", "markdown"], syntax: "markdown", providers: ["marksman"], badge: "M\u2193" },
+  { id: "mdx", title: "MDX", extensions: ["mdx"], syntax: "mdx", providers: ["mdx"], badge: "MDX" },
   { id: "html", title: "HTML", extensions: ["html", "htm"], syntax: "html", providers: ["html"], badge: "<>" },
   { id: "vue", title: "Vue", extensions: ["vue"], syntax: "vue", providers: ["vue"], badge: "V" },
   { id: "astro", title: "Astro", extensions: ["astro"], syntax: "astro", providers: ["astro"], badge: "A" },
@@ -15,7 +16,8 @@ var languages = [
   { id: "jsonc", title: "JSON with Comments", extensions: ["jsonc"], syntax: "jsonc", providers: ["json"], badge: "{}" },
   { id: "jsonl", title: "JSON Lines", extensions: ["jsonl", "ndjson"], syntax: "jsonl", providers: ["local"], badge: "{}" },
   { id: "toml", title: "TOML", extensions: ["toml"], filenames: ["Cargo.lock"], patterns: ["**/.cargo/config"], syntax: "toml", providers: ["taplo"], badge: "T" },
-  { id: "php", title: "PHP", extensions: ["php", "phtml"], syntax: "php", providers: ["intelephense"], badge: "PHP" },
+  { id: "blade", title: "Blade", extensions: ["blade.php"], syntax: "php", providers: ["laravel"], badge: "B" },
+  { id: "php", title: "PHP", extensions: ["php", "phtml"], syntax: "php", providers: ["intelephense", "laravel"], badge: "PHP" },
   { id: "xml", title: "XML", extensions: ["xml", "xsd", "xsl", "xslt", "svg"], syntax: "xml", providers: ["lemminx"], badge: "<>" },
   { id: "ini", title: "INI", extensions: ["ini"], syntax: "ini", providers: ["local"], badge: "=" },
   { id: "dotenv", title: "Environment", extensions: ["env"], filenames: [".env"], patterns: [".env.*"], syntax: "dotenv", providers: ["local"], badge: "=" },
@@ -120,6 +122,870 @@ function validateLanguageServers(value) {
     if (credentials(config.initializationOptions) || credentials(config.settings) || credentials(config.env)) throw new Error("Store license credentials in the runtime-local language server credential file");
   }
 }
+
+// packages/sdk/src/settings.schema.json
+var settings_schema_default = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  $id: "https://oxbit.dev/schemas/settings.v1.schema.json",
+  title: "Oxbit Settings",
+  description: "User, private workspace and repository settings. Literal dotted IDs; objects merge recursively, arrays and scalar values replace. Unrecognized extension settings are preserved. Null is a value, not a reset, and must be valid for its setting.",
+  type: "object",
+  properties: {
+    $schema: {
+      type: "string",
+      description: "JSON Schema URI. Ignored when merging effective preferences."
+    },
+    "workbench.tooltipDelay": {
+      title: "Tooltip Delay",
+      description: "Delay in milliseconds before showing a tooltip on hover. Keyboard focus shows tooltips immediately.",
+      type: "number",
+      default: 400,
+      minimum: 0,
+      maximum: 5e3
+    },
+    "workbench.colorTheme": {
+      title: "Color Theme",
+      description: "Specifies the color theme used in the workbench.",
+      type: "string",
+      default: "Graphite (dark)"
+    },
+    "workbench.density": {
+      title: "Layout Density",
+      description: "Controls row heights, padding and label sizes across the workbench.",
+      type: "string",
+      default: "compact",
+      enum: [
+        "compact",
+        "comfortable"
+      ]
+    },
+    "workbench.sidebarLocation": {
+      title: "Sidebar Location",
+      description: "Where the primary sidebar is docked.",
+      type: "string",
+      default: "left",
+      enum: [
+        "left",
+        "right"
+      ]
+    },
+    "editor.fontFamily": {
+      title: "Font Family",
+      description: "Controls the font family of the editor.",
+      type: "string",
+      default: "'JetBrains Mono', ui-monospace, monospace"
+    },
+    "editor.fontSize": {
+      title: "Font Size",
+      description: "Font size in pixels.",
+      type: "number",
+      default: 13,
+      minimum: 8,
+      maximum: 32
+    },
+    "editor.lineHeight": {
+      title: "Line Height",
+      description: "Line height in pixels. 0 uses 1.55 \xD7 font size.",
+      type: "number",
+      default: 20,
+      minimum: 0,
+      maximum: 60
+    },
+    "editor.fontLigatures": {
+      title: "Font Ligatures",
+      description: "Enables font ligatures when the font supports them.",
+      type: "boolean",
+      default: false
+    },
+    "editor.tabSize": {
+      title: "Tab Size",
+      description: "The number of spaces a tab is equal to.",
+      type: "number",
+      default: 2,
+      minimum: 1,
+      maximum: 8
+    },
+    "editor.insertSpaces": {
+      title: "Insert Spaces",
+      description: "Insert spaces when pressing Tab.",
+      type: "boolean",
+      default: true
+    },
+    "editor.detectIndentation": {
+      title: "Detect Indentation",
+      description: "Detect Tab Size and Insert Spaces from file contents on open.",
+      type: "boolean",
+      default: true
+    },
+    "editor.renderIndentGuides": {
+      title: "Indentation Guides",
+      description: "Render vertical guides for each indent level.",
+      type: "boolean",
+      default: true
+    },
+    "editor.wordWrap": {
+      title: "Word Wrap",
+      description: "Controls how lines should wrap.",
+      type: "string",
+      default: "off",
+      enum: [
+        "off",
+        "on",
+        "bounded"
+      ]
+    },
+    "editor.renderWhitespace": {
+      title: "Render Whitespace",
+      description: "Controls how the editor renders whitespace characters.",
+      type: "string",
+      default: "selection",
+      enum: [
+        "none",
+        "boundary",
+        "selection",
+        "all"
+      ]
+    },
+    "editor.cursorBlinking": {
+      title: "Cursor Blinking",
+      description: "Cursor animation style.",
+      type: "string",
+      default: "blink",
+      enum: [
+        "blink",
+        "smooth",
+        "phase",
+        "solid"
+      ]
+    },
+    "editor.minimap": {
+      title: "Minimap",
+      description: "Show a minimap of the document.",
+      type: "boolean",
+      default: false
+    },
+    "files.autoSave": {
+      title: "Auto Save",
+      description: "Controls auto save of editors that have unsaved changes.",
+      type: "string",
+      default: "off",
+      enum: [
+        "off",
+        "afterDelay",
+        "onFocusChange",
+        "onWindowChange"
+      ]
+    },
+    "files.autoSaveDelay": {
+      title: "Auto Save Delay",
+      description: "Delay in milliseconds after which an editor is saved automatically. Applies when Auto Save is afterDelay.",
+      type: "number",
+      default: 1e3,
+      minimum: 100,
+      maximum: 6e4
+    },
+    "files.trimTrailingWhitespace": {
+      title: "Trim Trailing Whitespace",
+      description: "Remove trailing whitespace when saving.",
+      type: "boolean",
+      default: true
+    },
+    "editor.formatOnSave": {
+      title: "Format On Save",
+      description: "Format a file on save. A formatter must be available.",
+      type: "boolean",
+      default: false
+    },
+    "editor.defaultFormatter": {
+      title: "Default Formatter",
+      description: "Formatter used when several are available.",
+      type: "string",
+      default: "oxbit.prettier",
+      anyOf: [
+        {
+          enum: [
+            "oxbit.prettier",
+            "oxbit.builtin-ts"
+          ]
+        },
+        {
+          type: "string"
+        }
+      ]
+    },
+    "terminal.fontSize": {
+      title: "Terminal Font Size",
+      description: "Font size in pixels for the terminal.",
+      type: "number",
+      default: 12,
+      minimum: 8,
+      maximum: 32
+    },
+    "terminal.scrollback": {
+      title: "Scrollback",
+      description: "Maximum number of lines kept in the terminal buffer.",
+      type: "number",
+      default: 5e3,
+      minimum: 100,
+      maximum: 1e5
+    },
+    "terminal.confirmOnKill": {
+      title: "Confirm On Kill",
+      description: "Ask before killing a terminal with a running process.",
+      type: "boolean",
+      default: true
+    },
+    "scm.autoFetch": {
+      title: "Auto Fetch",
+      description: "Periodically fetch from the default remote.",
+      type: "boolean",
+      default: true
+    },
+    "scm.diffLayout": {
+      title: "Diff Layout",
+      description: "Default layout for diff editors.",
+      type: "string",
+      default: "side-by-side",
+      enum: [
+        "side-by-side",
+        "inline"
+      ]
+    },
+    "files.associations": {
+      title: "File Associations",
+      description: "Map filename or workspace-relative glob patterns to language IDs. Explicit associations take precedence over built-in detection.",
+      type: "object",
+      default: {},
+      propertyNames: {
+        minLength: 1,
+        maxLength: 1024
+      },
+      additionalProperties: {
+        type: "string",
+        pattern: "^[\\w+-]+$"
+      }
+    },
+    languageServers: {
+      title: "Language Servers",
+      description: "Configure enabled state, selectors, rootMarkers, executable, args, env, initializationOptions, settings, and priority by server ID. Servers install on first use in a trusted runtime. License keys belong in the runtime-local credential file.",
+      type: "object",
+      default: {},
+      propertyNames: {
+        pattern: "^[a-zA-Z0-9._-]+$"
+      },
+      additionalProperties: {
+        type: "object",
+        properties: {
+          enabled: {
+            type: "boolean",
+            description: "Enable this language server."
+          },
+          selectors: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                language: {
+                  type: "string"
+                },
+                pattern: {
+                  type: "string"
+                },
+                scheme: {
+                  const: "file"
+                }
+              },
+              additionalProperties: false,
+              minProperties: 1
+            }
+          },
+          rootMarkers: {
+            type: "array",
+            items: {
+              type: "string",
+              pattern: "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$",
+              minLength: 1
+            }
+          },
+          executable: {
+            type: "string",
+            pattern: "^[^\\u0000]*$",
+            minLength: 1
+          },
+          args: {
+            type: "array",
+            items: {
+              type: "string",
+              pattern: "^[^\\u0000]*$"
+            }
+          },
+          env: {
+            type: "object",
+            propertyNames: {
+              pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            additionalProperties: {
+              type: "string",
+              pattern: "^[^\\u0000]*$"
+            }
+          },
+          initializationOptions: {
+            type: "object",
+            additionalProperties: true,
+            description: "Server-specific initialization options. Store license credentials in the runtime credential file."
+          },
+          settings: {
+            type: "object",
+            additionalProperties: true,
+            description: "Server-specific configuration; nested objects merge across files."
+          },
+          priority: {
+            type: "number"
+          }
+        },
+        additionalProperties: false
+      }
+    },
+    "ui.fontFamily": {
+      title: "UI Font Family",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "string",
+      default: ""
+    },
+    "ui.fontSize": {
+      title: "UI Font Size",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 12,
+      minimum: 8,
+      maximum: 72
+    },
+    "ui.fontWeight": {
+      title: "UI Font Weight",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 400,
+      minimum: 100,
+      maximum: 900
+    },
+    "ui.fontStyle": {
+      title: "UI Font Style",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "string",
+      default: "normal",
+      enum: [
+        "normal",
+        "italic",
+        "oblique"
+      ]
+    },
+    "ui.lineHeight": {
+      title: "UI Line Height",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 1.4,
+      minimum: 1,
+      maximum: 3
+    },
+    "ui.letterSpacing": {
+      title: "UI Letter Spacing",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 0,
+      minimum: -3,
+      maximum: 10
+    },
+    "ui.fontLigatures": {
+      title: "UI Font Ligatures",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "boolean",
+      default: false
+    },
+    "terminal.fontFamily": {
+      title: "Terminal Font Family",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "string",
+      default: ""
+    },
+    "terminal.fontWeight": {
+      title: "Terminal Font Weight",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 400,
+      minimum: 100,
+      maximum: 900
+    },
+    "terminal.fontStyle": {
+      title: "Terminal Font Style",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "string",
+      default: "normal",
+      enum: [
+        "normal",
+        "italic",
+        "oblique"
+      ]
+    },
+    "terminal.lineHeight": {
+      title: "Terminal Line Height",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 1,
+      minimum: 1,
+      maximum: 3
+    },
+    "terminal.letterSpacing": {
+      title: "Terminal Letter Spacing",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "number",
+      default: 0,
+      minimum: -3,
+      maximum: 10
+    },
+    "terminal.fontLigatures": {
+      title: "Terminal Font Ligatures",
+      description: "Overrides theme typography. Reset restores the theme value.",
+      type: "boolean",
+      default: false
+    },
+    "workbench.iconTheme": {
+      title: "File Icon Theme",
+      description: "Select a locally installed icon theme. Unavailable selections use Oxbit defaults until restored.",
+      type: "string",
+      default: "oxbit.default"
+    },
+    "workbench.productIconTheme": {
+      title: "Product Icon Theme",
+      description: "Select a locally installed icon theme. Unavailable selections use Oxbit defaults until restored.",
+      type: "string",
+      default: "oxbit.default"
+    },
+    "editor.semanticHighlighting": {
+      title: "Semantic Highlighting",
+      description: "Color symbols using language server information.",
+      type: "boolean",
+      default: true
+    },
+    "editor.inlayHints.types": {
+      title: "Type Inlay Hints",
+      description: "Show supported type hints in the visible editor.",
+      type: "boolean",
+      default: true
+    },
+    "editor.inlayHints.parameters": {
+      title: "Parameter Inlay Hints",
+      description: "Show supported parameter hints in the visible editor.",
+      type: "boolean",
+      default: true
+    },
+    "editor.largeFileIntelligence": {
+      title: "Large File Intelligence",
+      description: "Allow full semantic highlighting and inlay hints for files larger than 1 MiB.",
+      type: "boolean",
+      default: false
+    },
+    "workbench.locale": {
+      title: "Display Language",
+      type: "string",
+      default: "en",
+      enum: [
+        "en",
+        "de"
+      ]
+    },
+    "workbench.reducedMotion": {
+      title: "Reduced Motion",
+      type: "boolean",
+      default: false
+    },
+    "workbench.keymap": {
+      title: "Keymap",
+      description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
+      type: "string",
+      default: "default",
+      enum: [
+        "default",
+        "vscode",
+        "jetbrains",
+        "macos",
+        "sublime",
+        "atom",
+        "visual-studio",
+        "emacs"
+      ]
+    },
+    "agentACP.provider": {
+      title: "Default agent",
+      type: "string",
+      default: "codex",
+      enum: [
+        "codex",
+        "cursor",
+        "amp"
+      ]
+    },
+    "agentACP.codex.command": {
+      title: "Codex ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.codex.args": {
+      title: "Codex ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","@agentclientprotocol/codex-acp@1.10.0"]'
+    },
+    "agentACP.cursor.command": {
+      title: "Cursor ACP executable",
+      type: "string",
+      default: "agent"
+    },
+    "agentACP.cursor.args": {
+      title: "Cursor ACP arguments (JSON array)",
+      type: "string",
+      default: '["acp"]'
+    },
+    "agentACP.amp.command": {
+      title: "Amp Agent ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.amp.args": {
+      title: "Amp Agent ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","amp-acp@0.9.0"]'
+    },
+    "desktop.projects.openBehavior": {
+      title: "Open projects",
+      type: "string",
+      default: "currentWindow",
+      enum: [
+        "currentWindow",
+        "newWindow"
+      ]
+    },
+    "desktop.tools.gitPath": {
+      title: "git executable path",
+      type: "string",
+      default: ""
+    },
+    "desktop.tools.ghPath": {
+      title: "gh executable path",
+      type: "string",
+      default: ""
+    },
+    "project.intelligence": {
+      type: "object",
+      properties: {
+        enabled: {
+          type: "boolean",
+          default: true,
+          description: "Index project dependencies, imports and related files."
+        },
+        exclude: {
+          type: "array",
+          items: {
+            type: "string",
+            maxLength: 1024
+          },
+          default: []
+        },
+        maxFiles: {
+          type: "integer",
+          minimum: 1,
+          maximum: 1e5,
+          default: 2e4
+        },
+        maxFileBytes: {
+          type: "integer",
+          minimum: 1,
+          maximum: 5242880,
+          default: 1048576
+        }
+      },
+      additionalProperties: false,
+      title: "Project Intelligence",
+      description: "Partial overrides of project.json intelligence. Objects merge across files."
+    },
+    "project.schemas": {
+      type: "object",
+      properties: {
+        catalog: {
+          type: "boolean",
+          default: true,
+          description: "Discover file schemas through SchemaStore. Bundled Oxbit settings support remains available."
+        },
+        download: {
+          type: "boolean",
+          default: true,
+          description: "Allow remote schema downloads; cached and bundled schemas work offline."
+        },
+        associations: {
+          type: "array",
+          maxItems: 1e3,
+          default: [],
+          items: {
+            type: "object",
+            properties: {
+              url: {
+                type: "string",
+                minLength: 1,
+                description: "Schema URL or workspace file URI."
+              },
+              fileMatch: {
+                type: "array",
+                items: {
+                  type: "string",
+                  maxLength: 1024
+                }
+              },
+              schema: {
+                type: [
+                  "object",
+                  "boolean"
+                ],
+                description: "An inline JSON Schema."
+              }
+            },
+            additionalProperties: false,
+            anyOf: [
+              {
+                required: [
+                  "url"
+                ]
+              },
+              {
+                required: [
+                  "schema"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      additionalProperties: false,
+      title: "JSON Schemas",
+      description: "Partial overrides of project.json schemas. Association arrays replace lower arrays."
+    }
+  },
+  propertyNames: {
+    anyOf: [
+      {
+        not: {
+          pattern: "^\\[.*\\]$"
+        }
+      },
+      {
+        pattern: "^\\[[^\\[\\]]+\\]$"
+      }
+    ]
+  },
+  patternProperties: {
+    "^\\[[^\\[\\]]+\\]$": {
+      $ref: "#/definitions/languageOverrides"
+    }
+  },
+  additionalProperties: true,
+  definitions: {
+    languageOverrides: {
+      type: "object",
+      properties: {
+        "workbench.tooltipDelay": {
+          $ref: "#/properties/workbench.tooltipDelay"
+        },
+        "workbench.colorTheme": {
+          $ref: "#/properties/workbench.colorTheme"
+        },
+        "workbench.density": {
+          $ref: "#/properties/workbench.density"
+        },
+        "workbench.sidebarLocation": {
+          $ref: "#/properties/workbench.sidebarLocation"
+        },
+        "editor.fontFamily": {
+          $ref: "#/properties/editor.fontFamily"
+        },
+        "editor.fontSize": {
+          $ref: "#/properties/editor.fontSize"
+        },
+        "editor.lineHeight": {
+          $ref: "#/properties/editor.lineHeight"
+        },
+        "editor.fontLigatures": {
+          $ref: "#/properties/editor.fontLigatures"
+        },
+        "editor.tabSize": {
+          $ref: "#/properties/editor.tabSize"
+        },
+        "editor.insertSpaces": {
+          $ref: "#/properties/editor.insertSpaces"
+        },
+        "editor.detectIndentation": {
+          $ref: "#/properties/editor.detectIndentation"
+        },
+        "editor.renderIndentGuides": {
+          $ref: "#/properties/editor.renderIndentGuides"
+        },
+        "editor.wordWrap": {
+          $ref: "#/properties/editor.wordWrap"
+        },
+        "editor.renderWhitespace": {
+          $ref: "#/properties/editor.renderWhitespace"
+        },
+        "editor.cursorBlinking": {
+          $ref: "#/properties/editor.cursorBlinking"
+        },
+        "editor.minimap": {
+          $ref: "#/properties/editor.minimap"
+        },
+        "files.autoSave": {
+          $ref: "#/properties/files.autoSave"
+        },
+        "files.autoSaveDelay": {
+          $ref: "#/properties/files.autoSaveDelay"
+        },
+        "files.trimTrailingWhitespace": {
+          $ref: "#/properties/files.trimTrailingWhitespace"
+        },
+        "editor.formatOnSave": {
+          $ref: "#/properties/editor.formatOnSave"
+        },
+        "editor.defaultFormatter": {
+          $ref: "#/properties/editor.defaultFormatter"
+        },
+        "terminal.fontSize": {
+          $ref: "#/properties/terminal.fontSize"
+        },
+        "terminal.scrollback": {
+          $ref: "#/properties/terminal.scrollback"
+        },
+        "terminal.confirmOnKill": {
+          $ref: "#/properties/terminal.confirmOnKill"
+        },
+        "scm.autoFetch": {
+          $ref: "#/properties/scm.autoFetch"
+        },
+        "scm.diffLayout": {
+          $ref: "#/properties/scm.diffLayout"
+        },
+        "files.associations": {
+          $ref: "#/properties/files.associations"
+        },
+        languageServers: {
+          $ref: "#/properties/languageServers"
+        },
+        "ui.fontFamily": {
+          $ref: "#/properties/ui.fontFamily"
+        },
+        "ui.fontSize": {
+          $ref: "#/properties/ui.fontSize"
+        },
+        "ui.fontWeight": {
+          $ref: "#/properties/ui.fontWeight"
+        },
+        "ui.fontStyle": {
+          $ref: "#/properties/ui.fontStyle"
+        },
+        "ui.lineHeight": {
+          $ref: "#/properties/ui.lineHeight"
+        },
+        "ui.letterSpacing": {
+          $ref: "#/properties/ui.letterSpacing"
+        },
+        "ui.fontLigatures": {
+          $ref: "#/properties/ui.fontLigatures"
+        },
+        "terminal.fontFamily": {
+          $ref: "#/properties/terminal.fontFamily"
+        },
+        "terminal.fontWeight": {
+          $ref: "#/properties/terminal.fontWeight"
+        },
+        "terminal.fontStyle": {
+          $ref: "#/properties/terminal.fontStyle"
+        },
+        "terminal.lineHeight": {
+          $ref: "#/properties/terminal.lineHeight"
+        },
+        "terminal.letterSpacing": {
+          $ref: "#/properties/terminal.letterSpacing"
+        },
+        "terminal.fontLigatures": {
+          $ref: "#/properties/terminal.fontLigatures"
+        },
+        "workbench.iconTheme": {
+          $ref: "#/properties/workbench.iconTheme"
+        },
+        "workbench.productIconTheme": {
+          $ref: "#/properties/workbench.productIconTheme"
+        },
+        "editor.semanticHighlighting": {
+          $ref: "#/properties/editor.semanticHighlighting"
+        },
+        "editor.inlayHints.types": {
+          $ref: "#/properties/editor.inlayHints.types"
+        },
+        "editor.inlayHints.parameters": {
+          $ref: "#/properties/editor.inlayHints.parameters"
+        },
+        "editor.largeFileIntelligence": {
+          $ref: "#/properties/editor.largeFileIntelligence"
+        },
+        "workbench.locale": {
+          $ref: "#/properties/workbench.locale"
+        },
+        "workbench.reducedMotion": {
+          $ref: "#/properties/workbench.reducedMotion"
+        },
+        "workbench.keymap": {
+          $ref: "#/properties/workbench.keymap"
+        },
+        "agentACP.provider": {
+          $ref: "#/properties/agentACP.provider"
+        },
+        "agentACP.codex.command": {
+          $ref: "#/properties/agentACP.codex.command"
+        },
+        "agentACP.codex.args": {
+          $ref: "#/properties/agentACP.codex.args"
+        },
+        "agentACP.cursor.command": {
+          $ref: "#/properties/agentACP.cursor.command"
+        },
+        "agentACP.cursor.args": {
+          $ref: "#/properties/agentACP.cursor.args"
+        },
+        "agentACP.amp.command": {
+          $ref: "#/properties/agentACP.amp.command"
+        },
+        "agentACP.amp.args": {
+          $ref: "#/properties/agentACP.amp.args"
+        },
+        "desktop.projects.openBehavior": {
+          $ref: "#/properties/desktop.projects.openBehavior"
+        },
+        "desktop.tools.gitPath": {
+          $ref: "#/properties/desktop.tools.gitPath"
+        },
+        "desktop.tools.ghPath": {
+          $ref: "#/properties/desktop.tools.ghPath"
+        },
+        "project.intelligence": false,
+        "project.schemas": false
+      },
+      additionalProperties: true,
+      description: "Settings for a language ID, such as [mdx] or [php]. Runtime project options belong at the top level.",
+      propertyNames: {
+        not: {
+          pattern: "^\\[.*\\]$"
+        }
+      }
+    }
+  }
+};
+
+// packages/sdk/src/settings-schema.ts
+var settingsSchema = settings_schema_default;
+var SETTINGS_SCHEMA_URI = settings_schema_default.$id;
 
 // packages/sdk/src/text-positions.ts
 function textOffset(text, pos) {
@@ -334,10 +1200,82 @@ function synchronization(capabilities) {
   return typeof sync === "number" ? { openClose: true, change: sync } : sync ?? { openClose: false, change: 0 };
 }
 
+// packages/sdk/src/agent-acp.ts
+var ACP_PROVIDERS = [
+  {
+    id: "codex",
+    name: "Codex ACP",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/codex-acp@1.10.0"],
+    setup: "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
+    url: "https://github.com/agentclientprotocol/codex-acp"
+  },
+  {
+    id: "cursor",
+    name: "Cursor ACP",
+    command: "agent",
+    args: ["acp"],
+    setup: "Install Cursor CLI and run agent login first. If your executable is cursor-agent, change the command below.",
+    url: "https://cursor.com/docs/cli/acp"
+  },
+  {
+    id: "amp",
+    name: "Amp Agent ACP",
+    command: "npx",
+    args: ["-y", "amp-acp@0.9.0"],
+    setup: "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
+    url: "https://github.com/tao12345666333/amp-acp"
+  }
+];
+
+// packages/sdk/src/settings.ts
+var settingsObject = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+function mergeSettings(lower, upper) {
+  if (!settingsObject(lower) || !settingsObject(upper)) return structuredClone(upper);
+  return Object.fromEntries([.../* @__PURE__ */ new Set([...Object.keys(lower), ...Object.keys(upper)])].map((key) => [
+    key,
+    Object.hasOwn(upper, key) ? Object.hasOwn(lower, key) ? mergeSettings(lower[key], upper[key]) : structuredClone(upper[key]) : structuredClone(lower[key])
+  ]));
+}
+function parseSettings(value) {
+  validateJson(value);
+  if (!settingsObject(value)) throw new Error("Settings must contain a JSON object");
+  for (const [key, item] of Object.entries(value))
+    if (/^\[.*\]$/.test(key) && (!/^\[[^\[\]]+\]$/.test(key) || !settingsObject(item)))
+      throw new Error(`Language settings ${key} must contain an object`);
+  return value;
+}
+function settingsLayers(user, workspace) {
+  const result = { user: {}, workspace: {}, userLanguages: {}, workspaceLanguages: {} };
+  for (const [scope, value] of [["user", user], ["workspace", workspace]])
+    for (const [key, item] of Object.entries(value)) {
+      const language = key.match(/^\[([^\]]+)\]$/)?.[1];
+      if (language) result[scope === "user" ? "userLanguages" : "workspaceLanguages"][language] = structuredClone(item);
+      else if (key !== "$schema") result[scope][key] = structuredClone(item);
+    }
+  return result;
+}
+function settingsFile(layers, scope) {
+  return { ...structuredClone(layers[scope]), ...Object.fromEntries(Object.entries(layers[scope === "user" ? "userLanguages" : "workspaceLanguages"]).filter(([, value]) => Object.keys(value).length).map(([language, value]) => [`[${language}]`, structuredClone(value)])) };
+}
+function settingsChanges(before, after) {
+  const result = [];
+  const visit = (scope, path, a, b) => {
+    if (JSON.stringify(a) === JSON.stringify(b)) return;
+    if (settingsObject(a) && settingsObject(b)) {
+      for (const key of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) visit(scope, [...path, key], a[key], b[key]);
+    } else result.push({ scope, path, ...a === void 0 ? {} : { before: structuredClone(a) }, ...b === void 0 ? {} : { value: structuredClone(b) } });
+  };
+  for (const scope of ["user", "workspace"]) visit(scope, [], settingsFile(before, scope), settingsFile(after, scope));
+  return result;
+}
+
 // packages/sdk/src/index.ts
 var SDK_VERSION = "1.0.0";
 export {
+  ACP_PROVIDERS,
   SDK_VERSION,
+  SETTINGS_SCHEMA_URI,
   canonicalLanguageId,
   effectiveCapabilities,
   incrementalChange,
@@ -348,9 +1286,16 @@ export {
   lspGlobMatches,
   lspWatchPattern,
   matchesFilePattern,
+  mergeSettings,
   parseCsv,
+  parseSettings,
   registrationMatches,
   resolveLanguage,
+  settingsChanges,
+  settingsFile,
+  settingsLayers,
+  settingsObject,
+  settingsSchema,
   synchronization,
   textOffset,
   textPosition,

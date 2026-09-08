@@ -1,5 +1,7 @@
 # Language support milestones
 
+MDX, the official Laravel LSP, automatic JSON Schema discovery/caching and persistent project data are described in [Project intelligence and additional language support](project-intelligence.md). These additions use the same registry and managed-server lifecycle; the original milestone verification below remains a record of its own acceptance run.
+
 Implementation order: server configuration, protocol/capabilities, completion/signature help, semantic tokens/inlay hints, navigation. A milestone is complete only when its full gate passes. This document records implementation and evidence separately.
 
 ## 1. Server configuration and language coverage
@@ -63,6 +65,7 @@ Verified locally:
 
 - All 11 pinned managed presets install/initialize, answer advertised document-symbol requests and stop on Apple Silicon macOS and Ubuntu 24.04 x64. Ubuntu checks ran under Docker x64 emulation on this Mac, including network-disabled cached startup with `PATH=/nonexistent`.
 - Real HTML and JSON-schema completion, PHP free signatures, TypeScript signatures/tokens/type and parameter hints/resolved auto-import edits, Vue bridge completion and resolved auto-import edits, Astro SDK completion, separate Cargo schema associations and read-only TypeScript SDK navigation.
+- Astro frontmatter, template expressions, scripts, HTML and CSS completion/resolution/hover, source-mapped diagnostics and cross-region navigation/rename, unsaved CRLF edits, restart replay and resolved imports inside frontmatter. These checks run in `scripts/language/intelligence.ts`; protocol regressions distinguish opaque embedded-document metadata from actual document/edit URIs. `tests/browser/language-embedded.spec.ts` verifies completion application and resolved documentation across script regions, markup/style hover and auto-import placement in the editor.
 - Deterministic protocol fixtures cover registration/unregistration, scoped configuration, watcher filtering, synchronization variants, Unicode/CRLF changes, save ordering, cancellation and restart replay. Manager fixtures cover instance sharing, root bounds, canonical fanout, persistent Stop and atomic/concurrent/interrupted installation.
 - Browser journeys cover current-document filtering, untrusted local support, preserved hover/status controls, phone layout, snippets, overload selection, keyboard hover, malformed-delta recovery, split-view cache reuse, removal of stale overlays, navigation result deduplication, history and lazy hierarchies.
 - A packaged macOS runtime passes with read-only resources, a minimal environment, bundled Node/ripgrep/TypeScript, real PTY and process cleanup. A dedicated native WebView test checks local status filtering, real TypeScript overlays, hover geometry and external-source rendering. The embedded driver reports an occluded document, so the test harness supplies timer-backed animation frames; production scheduling is unchanged. Native screenshot capture omits the fixed hover layer, so pixel-level native hover verification remains open.
