@@ -1,0 +1,51 @@
+{
+  "verifiedAt": "2026-09-08T04:16:30.631442+00:00",
+  "precedence": [
+    "defaults",
+    "~/.oxbit/settings.json",
+    "~/.oxbit/projects/<uuid>/settings.json",
+    "<project>/.config/oxbit/settings.json",
+    "<project>/.config/oxbit/settings.local.json"
+  ],
+  "merge": "recursive objects; arrays, null and scalars replace",
+  "checks": {
+    "unit": {
+      "passed": 540,
+      "failed": 0,
+      "files": 64,
+      "command": "pnpm exec vitest run"
+    },
+    "lint": "passed",
+    "typecheck": "passed",
+    "runtimeBuild": "passed",
+    "webBuild": "passed",
+    "sdkBuild": "passed",
+    "browser": {
+      "passed": 1,
+      "command": "pnpm exec playwright test -c scripts/language/settings-playwright.config.ts",
+      "coverage": [
+        "Settings UI saves to global file",
+        "Workspace UI saves to highest existing override",
+        "deep merge of language-server options",
+        "live updates across two windows",
+        "deletion fallback",
+        "reload persistence"
+      ],
+      "pageErrors": 0
+    },
+    "nativeDesktop": "not run",
+    "ci": "not run"
+  },
+  "setup": {
+    "privateFilesCreated": true,
+    "existingUserPreferencesPreserved": 28,
+    "fileMode": "0600",
+    "repositoryOverridesCreated": false
+  },
+  "notes": [
+    "Former workspace pending-write recovery was migrated and verified, including conflicts.",
+    "Browser, theme and desktop fixtures now use isolated settings paths.",
+    "The legacy theme fixture wrote a test-only global value during development; the fixture was isolated and existing desktop preferences restored into the user file.",
+    "External editors can race the final filesystem rename; writes are atomic per file, not transactional across files."
+  ]
+}

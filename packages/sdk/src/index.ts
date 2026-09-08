@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
 export * from "./languages.js";
 export * from "./language-servers.js";
+export * from "./settings-schema.js";
 export type Environment = "browser" | "runtime" | "embedded";
 export type Capability =
   | "filesystem.read"
@@ -209,7 +210,7 @@ export interface ConfigurationService {
   list(): Setting[];
   subscribe(listener: () => void): Unsubscribe;
   export(): unknown;
-  import(data: unknown): void;
+  import(data: unknown, options?: { persist?: boolean }): void;
 }
 export interface ContributionService {
   register(value: Contribution, owner?: string): Disposable;
@@ -494,3 +495,5 @@ export * from "./language-providers.js";
 export { lspGlobMatches, lspWatchPattern } from "./lsp-glob.js";
 
 export * from "./tasks.js";
+export * from "./projects.js";
+export * from "./settings.js";

@@ -1,5 +1,7 @@
 # Language support milestones
 
+MDX, the official Laravel LSP, automatic JSON Schema discovery/caching and persistent project data are described in [Project intelligence and additional language support](project-intelligence.md). These additions use the same registry and managed-server lifecycle; the original milestone verification below remains a record of its own acceptance run.
+
 Implementation order: server configuration, protocol/capabilities, completion/signature help, semantic tokens/inlay hints, navigation. A milestone is complete only when its full gate passes. This document records implementation and evidence separately.
 
 ## 1. Server configuration and language coverage

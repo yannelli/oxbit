@@ -195,9 +195,10 @@ export function languageFor(path: string, kernel?: Kernel, firstLine?: string): 
     case "html": return html();
     case "vue": return vue();
     case "astro": return astroSyntax();
-    case "php": return php();
+    case "php": case "blade": return php();
     case "xml": return xml();
     case "markdown": return markdown();
+    case "mdx": return markdown({ htmlTagLanguage: javascript({ jsx: true }) });
     case "shellscript": return StreamLanguage.define(shell);
     case "toml": return StreamLanguage.define(toml);
     case "dockerfile": return StreamLanguage.define(dockerFile);
@@ -214,7 +215,8 @@ function documentSyntax(path: string, kernel: Kernel, text: string): CMExtension
   if (["javascript", "javascriptreact"].includes(id)) return StreamLanguage.define(streamJavaScript);
   if (id === "json") return StreamLanguage.define(streamJson);
   if (id === "xml") return StreamLanguage.define(streamXml);
-  if (["html", "vue", "php"].includes(id)) return StreamLanguage.define(streamHtml);
+  if (["html", "vue", "php", "blade"].includes(id)) return StreamLanguage.define(streamHtml);
+  if (id === "mdx") return languageFor(path, kernel, firstLine);
   return ["jsonc", "jsonl", "shellscript", "toml", "dockerfile", "zsh", "ini", "dotenv", "csv", "log", "astro"].includes(id) ? languageFor(path, kernel, firstLine) : [];
 }
 

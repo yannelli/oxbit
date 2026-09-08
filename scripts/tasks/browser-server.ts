@@ -78,6 +78,8 @@ const runtime = await createRuntime({
   root,
   port: 9286,
   dataDir: path.join(dir, "runtime"),
+  settingsFile: path.join(dir, "settings.json"),
+  projectsDir: path.join(dir, "projects"),
   tasksHome: dir,
   pairingCode: "oxbit-tasks-test",
   webRoot: path.resolve("apps/web/dist"),

@@ -12,6 +12,8 @@ const runtime = await createRuntime({
   root,
   port: 9290,
   dataDir: root + "-data",
+  settingsFile: join(root + "-data", "settings.json"),
+  projectsDir: join(root + "-data", "projects"),
   pairingCode: "oxbit-theme-test",
 });
 const vite = spawn(

@@ -1,0 +1,18 @@
+{
+  "platform": "darwin-arm64",
+  "reports": [
+    "Automatic settings completion: .oxbit/settings.json",
+    "Automatic settings completion: .oxbit/projects/86a6190e-6744-5df0-a25e-fd5a937090fa/settings.json",
+    "Automatic settings completion: .config/oxbit/settings.json",
+    "Automatic settings completion: .config/oxbit/settings.local.json",
+    "Automatic settings completion: custom/preferences.json",
+    "Language override enum completion",
+    "Project intelligence property completion",
+    "Explicit canonical schema URI works offline",
+    "Installed local schema outside workspace works offline",
+    "Invalid type and numeric bound diagnostics",
+    "Setting descriptions in hover",
+    "Zero remote schema requests"
+  ],
+  "downloads": 0
+}

@@ -366,3 +366,15 @@ it("preserves formatter preferences across all configuration layers", () => {
     "oxbit.prettier",
   );
 });
+
+it("recursively merges object settings through defaults, scopes and language overrides", () => {
+  const kernel = createKernel({ environment: "browser" });
+  kernel.configuration.register({ id: "example.object", title: "Object", type: "object", default: { nested: { default: true, values: [0] } } });
+  kernel.configuration.set("example.object", { nested: { user: true, values: [1, 2] } }, "user");
+  kernel.configuration.set("example.object", { nested: { workspace: true } }, "workspace");
+  kernel.configuration.set("example.object", { nested: { language: true, values: [] } }, "workspace", "mdx");
+  expect(kernel.configuration.get("example.object", "mdx")).toEqual({ nested: { default: true, user: true, workspace: true, language: true, values: [] } });
+  expect(kernel.configuration.inspect("example.object", "mdx")).toMatchObject({ explicit: true, scope: "workspace", language: "mdx" });
+  kernel.configuration.reset("example.object", "workspace", "mdx");
+  expect(kernel.configuration.get<any>("example.object", "mdx").nested.values).toEqual([1, 2]);
+});

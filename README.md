@@ -81,12 +81,20 @@ behavior from outstanding installed-artifact and signing gates.
 
 The editor supports JavaScript/TypeScript, web components, markup, shell,
 configuration and data formats through a shared [language registry](docs/language-support.md).
+[JSON settings](docs/settings.md) merge user preferences, private project overrides,
+and optional `.config/oxbit/settings.json` / `settings.local.json` files.
 It includes split views, multiple cursors, find/replace, formatter selection and
 Markdown previews. Settings support user, workspace and language scopes.
 Managed servers install pinned versions in a trusted runtime; local format
 providers also work without one. The LSP indicator shows only providers for
 the current document. See the [implementation and acceptance status](docs/language-support.md)
 for feature coverage and remaining rollout gates.
+
+MDX and the official Laravel LSP install automatically. JSON/JSONC files discover
+and cache schemas from SchemaStore and document `$schema` references. Each runtime
+project keeps editable settings and generated dependency/file intelligence in
+`~/.oxbit/projects/<uuid>/`; open **Project Intelligence** from the command palette.
+See [project intelligence and language setup](docs/project-intelligence.md).
 
 Runtime features include PTY sessions, cancellable tasks, Git changes and
 commits, clone/push/checkout, and authenticated Yjs collaboration. **Share

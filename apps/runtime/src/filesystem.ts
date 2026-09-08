@@ -101,14 +101,25 @@ export function encode(
 
 export class WorkspaceFiles {
   private queues = new Map<string, Promise<unknown>>();
+  private protectedRoots = new Set<string>();
   constructor(
     readonly root: string,
     readonly privateRoot?: string,
   ) {
     // macOS /var and /tmp aliases must share the same security boundary as their real paths.
     this.root = realpathSync(root);
-    if (privateRoot) this.privateRoot = realpathSync(privateRoot);
+    if (privateRoot) { this.privateRoot = realpathSync(privateRoot); this.protectedRoots.add(this.privateRoot); }
   }
+  protect(directory: string) {
+    let root: string;
+    try { root = realpathSync(directory); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      root = path.join(realpathSync(path.dirname(directory)), path.basename(directory));
+    }
+    this.protectedRoots.add(root); return root;
+  }
+  private protected(candidate: string) { return [...this.protectedRoots].some(root => candidate === root || candidate.startsWith(root + path.sep)); }
   inside(candidate: string): boolean {
     const rel = path.relative(this.root, candidate);
     return (
@@ -133,9 +144,7 @@ export class WorkspaceFiles {
     const full = path.resolve(this.root, relative || ".");
     if (
       !this.inside(full) ||
-      (this.privateRoot &&
-        (full === this.privateRoot ||
-          full.startsWith(this.privateRoot + path.sep)))
+      this.protected(full)
     )
       throw new RpcError(
         "PATH_DENIED",
@@ -147,9 +156,7 @@ export class WorkspaceFiles {
         const real = await fs.realpath(cursor);
         if (
           !this.inside(real) ||
-          (this.privateRoot &&
-            (real === this.privateRoot ||
-              real.startsWith(this.privateRoot + path.sep)))
+          this.protected(real)
         )
           throw new RpcError(
             "PATH_DENIED",

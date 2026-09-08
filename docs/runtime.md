@@ -47,5 +47,8 @@ event service.
 Runtime variables use `OXBIT_*`. Private workspace data, including daemon records,
 sessions, and collaboration data, lives in `~/.oxbit/workspaces/<id>` unless
 `OXBIT_DATA_DIR` is set. Browser workspaces and recovery drafts use the `oxbit`
-IndexedDB database. Workspace settings use `.oxbit/settings.json`, and built-in
+IndexedDB database. [JSON settings](settings.md) merge user preferences from
+`~/.oxbit/settings.json`, private workspace overrides from
+`~/.oxbit/projects/<uuid>/settings.json`, and manually created
+`.config/oxbit/settings.json` / `settings.local.json` files in the project root. Built-in
 formatter IDs are `oxbit.prettier` and `oxbit.builtin-ts`.

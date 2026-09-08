@@ -1,4 +1,4 @@
-import { validateJson, canonicalLanguageId, languages, languageForKernel } from "@oxbit/sdk";
+import { validateJson, canonicalLanguageId, languages, languageForKernel, mergeSettings } from "@oxbit/sdk";
 import { satisfies, valid, validRange } from "semver";
 import {
   SDK_VERSION,
@@ -201,10 +201,10 @@ export function createKernel({
   const ensureAlive = () => {
     if (disposed) throw new Error("Kernel is disposed");
   };
-  const configChanged = () => {
+  const configChanged = (persist = true) => {
     configurationRevision++;
     publish(configListeners);
-    if (persistence) {
+    if (persistence && persist) {
       const snapshot = structuredClone(configurationData);
       configWrite = configWrite
         .catch(() => {})
@@ -275,17 +275,23 @@ export function createKernel({
         configurationData.workspace,
         configurationData.user,
       ];
-      for (const source of ordered) {
+      let value: unknown = structuredClone(settings.get(id)?.default);
+      let origin: { scope?: "workspace" | "user"; language?: string } = {};
+      let explicit = false;
+      for (const source of ordered.reverse()) {
         if (source && Object.hasOwn(source, id)) {
           try {
-            validate(id, source[id]);
-            return { value: structuredClone(source[id]) as T, explicit: true, scope: (source === configurationData.workspace || scopes.some(key => source === configurationData.workspaceLanguages[key]) ? "workspace" : "user") as "workspace" | "user", language: scopes.find(key => source === configurationData.workspaceLanguages[key] || source === configurationData.userLanguages[key]), defaultValue: structuredClone(settings.get(id)?.default) as T };
+            const merged = mergeSettings(value, source[id]);
+            validate(id, merged);
+            value = merged;
+            explicit = true;
+            origin = { scope: source === configurationData.workspace || scopes.some(key => source === configurationData.workspaceLanguages[key]) ? "workspace" : "user", language: scopes.find(key => source === configurationData.workspaceLanguages[key] || source === configurationData.userLanguages[key]) };
           } catch {
             /* Invalid persisted values use the next valid layer. */
           }
         }
       }
-      return { value: structuredClone(settings.get(id)?.default) as T, explicit: false, defaultValue: structuredClone(settings.get(id)?.default) as T };
+      return { value: structuredClone(value) as T, explicit, ...origin, defaultValue: structuredClone(settings.get(id)?.default) as T };
     },
     set(id, value, scope = "user", language) {
       validate(id, value);
@@ -308,7 +314,7 @@ export function createKernel({
       return () => configListeners.delete(listener);
     },
     export: () => structuredClone(configurationData),
-    import(data) {
+    import(data, options) {
       if (!data || typeof data !== "object")
         throw new Error("Invalid settings data");
       const input = data as Partial<ConfigurationData>;
@@ -331,7 +337,7 @@ export function createKernel({
           ),
         ),
       };
-      configChanged();
+      configChanged(options?.persist !== false);
     },
   };
   const extensionChanged = (id: string) => {
@@ -1093,7 +1099,7 @@ export function createKernel({
       .get("settings")
       .then((data) => {
         if (data && !disposed && configurationRevision === 0)
-          configuration.import(data);
+          configuration.import(data, { persist: false });
       })
       .catch((error) => console.error(error));
   return kernel;

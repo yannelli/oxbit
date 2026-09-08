@@ -5,6 +5,8 @@ import { languageFor } from "./index.js";
 
 describe("syntax remains available without a language server", () => {
   it.each([
+    ["README.mdx", 'import { Button } from "./Button"\n\n# Hello\n\n<Button label={"hello"} />\n'],
+    ["welcome.blade.php", '@if($user)\n<h1>{{ $user->name }}</h1>\n@endif'],
     ["App.vue", '<script setup lang="ts">const message = "hello";</script>\n<template><div>{{message}}</div></template>'],
     ["index.astro", '---\nconst message: string = "hello";\n---\n<h1>{message}</h1>\n<p>Hello</p>'],
     ["index.phtml", '<h1>Hello</h1>\n<?php function greet(string $name) { return $name; } ?>'],

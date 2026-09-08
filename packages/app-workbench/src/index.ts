@@ -87,12 +87,12 @@ export async function createWorkbenchSession({
   if (runtime) {
     kernel.commands.register({
       id: "settings.reloadWorkspace",
-      title: "Reload Workspace Settings from Disk",
+      title: "Reload Settings from Disk",
       run: async () => {
         if (
           (await workbench.ask(
-            tr("Reload workspace settings?"),
-            tr("Replace local workspace settings with the disk file?"),
+            tr("Reload settings?"),
+            tr("Discard pending user and workspace changes and reload the merged settings files?"),
             [tr("Reload"), tr("Cancel")],
           )) === tr("Reload")
         )
@@ -101,12 +101,12 @@ export async function createWorkbenchSession({
     });
     kernel.commands.register({
       id: "settings.saveWorkspace",
-      title: "Save Workspace Settings to Disk",
+      title: "Save Local Settings to Disk",
       run: async () => {
         if (
           (await workbench.ask(
-            tr("Save workspace settings?"),
-            tr("Replace the disk settings file with local workspace settings?"),
+            tr("Save local settings?"),
+            tr("Apply pending user and workspace changes over the current disk settings?"),
             [tr("Save"), tr("Cancel")],
           )) === tr("Save")
         )
@@ -360,7 +360,7 @@ export async function createWorkbenchSession({
         documentChange();
         await session.persist();
         iconThemes.dispose();
-        configurationPersistence.dispose();
+        await configurationPersistence.dispose();
         workbench.dispose();
         kernel.dispose();
         documents.dispose();
@@ -378,7 +378,7 @@ export async function createWorkbenchSession({
     return session;
   } catch (error) {
     iconThemes.dispose();
-    configurationPersistence.dispose();
+    await configurationPersistence.dispose();
     workbench.dispose();
     kernel.dispose();
     documents.dispose();

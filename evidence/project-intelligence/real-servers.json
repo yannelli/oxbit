@@ -1,0 +1,45 @@
+{
+  "platform": "darwin-arm64",
+  "reports": [
+    {
+      "feature": "Automatic SchemaStore package.json completion",
+      "passed": true
+    },
+    {
+      "feature": "Automatic SchemaStore validation",
+      "passed": true
+    },
+    {
+      "feature": "Workspace $schema and nested relative $ref completion",
+      "passed": true
+    },
+    {
+      "feature": "Local schema edits invalidate cached validation and completion",
+      "passed": true
+    },
+    {
+      "feature": "MDX embedded JavaScript completion and resolution",
+      "passed": true
+    },
+    {
+      "feature": "MDX hover",
+      "passed": true
+    },
+    {
+      "feature": "MDX cross-file definition",
+      "passed": true
+    },
+    {
+      "feature": "MDX restart replay",
+      "passed": true
+    },
+    {
+      "feature": "Pinned Laravel native LSP initialization and Blade activation",
+      "passed": true
+    },
+    {
+      "feature": "Persisted project dependencies and MDX import mapping",
+      "passed": true
+    }
+  ]
+}

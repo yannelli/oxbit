@@ -1,6 +1,6 @@
 import path from "node:path";
 import * as fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { languageIdForPath, resolveLanguage, matchesFilePattern, validateFileAssociations, validateLanguageServers, type LanguageServerDefinition } from "@oxbit/sdk";
 import { RpcError } from "@oxbit/protocol";
 import { LanguageServer } from "./lsp.js";
@@ -8,6 +8,8 @@ import { WorkspaceFiles } from "./filesystem.js";
 import { serverCatalog, resolveLaunch, type LaunchSpec } from "./managed/catalog.js";
 import { ManagedInstaller, fingerprint } from "./managed/install.js";
 import { setting } from "./branding.js";
+import { JsonSchemas } from "./json-schemas.js";
+import type { ProjectStore } from "./projects.js";
 
 interface Instance {
   id: string;
@@ -32,8 +34,10 @@ export class LanguageServerManager {
   private defaultLifecycle = 0;
   private defaultQueue: Promise<unknown> = Promise.resolve();
   private installer: ManagedInstaller;
-  constructor(private files: WorkspaceFiles, cache: string, private emit: (method: string, params: any, instanceId?: string) => void, private idleMs = 300_000) {
+  private schemas: JsonSchemas;
+  constructor(private files: WorkspaceFiles, cache: string, private emit: (method: string, params: any, instanceId?: string) => void, private idleMs = 300_000, private project?: ProjectStore, schemas?: JsonSchemas) {
     this.installer = new ManagedInstaller(cache);
+    this.schemas = schemas ?? new JsonSchemas(files, path.join(cache, "json-schemas"));
     this.defaultServer = new LanguageServer(files, emit);
   }
   private get(id?: string) {
@@ -71,6 +75,13 @@ export class LanguageServerManager {
     const language = resolveLanguage(relative, { associations: instance.associations, firstLine: text?.split("\n", 1)[0] }).id;
     return instance.definition.selectors.some(selector => (!selector.language || selector.language === language || selector.language === "*") && (!selector.pattern || matchesFilePattern(selector.pattern, relative)));
   }
+  async laravelRoot(relative: string): Promise<string | null> {
+    const root = await this.projectRoot(relative, ["artisan"]);
+    try {
+      const marker = await this.files.resolve(path.relative(this.files.root, path.join(root, "artisan")).split(path.sep).join("/"));
+      return (await fs.stat(marker)).isFile() ? root : null;
+    } catch { return null; }
+  }
   async attach(relative: string, owner: string, settings: unknown = {}, associationsInput: unknown = {}, preferred?: string) {
     validateLanguageServers(settings); validateFileAssociations(associationsInput);
     const associations = associationsInput as Record<string, string>;
@@ -81,7 +92,8 @@ export class LanguageServerManager {
     const definition = candidates[0];
     if (!definition) throw new RpcError("LSP_UNAVAILABLE", `No enabled language server matches ${languageIdForPath(relative)}`);
     if (!definition.executable && !serverCatalog.some(preset => preset.id === definition.id)) throw new RpcError("INVALID_PARAMS", "Custom language servers require an executable");
-    const root = await this.projectRoot(relative, definition.rootMarkers);
+    const root = definition.id === "laravel" ? await this.laravelRoot(relative) : await this.projectRoot(relative, definition.rootMarkers);
+    if (!root) throw new RpcError("LSP_UNAVAILABLE", "Laravel language support requires a project containing artisan");
     const digest = fingerprint({ definition, associations }), id = `${definition.id}:${fingerprint([root, digest]).slice(0, 24)}`;
     let instance = this.instances.get(id);
     if (!instance) {
@@ -92,7 +104,14 @@ export class LanguageServerManager {
           const override = definition.executable ?? (definition.id === "typescript" ? setting("LSP_COMMAND") : undefined);
           if (override) spec = { executable: override, args: definition.args ?? ["--stdio"] };
           else spec = await resolveLaunch(definition.id, root, this.installer, signal);
-          return { ...spec, args: definition.args ?? spec.args, env: { ...spec.env, ...definition.env }, initializationOptions: merge(spec.initializationOptions, definition.initializationOptions), settings: merge(spec.settings, definition.settings) };
+          spec = { ...spec, args: definition.args ?? spec.args, env: { ...spec.env, ...definition.env }, initializationOptions: merge(spec.initializationOptions, definition.initializationOptions), settings: merge(spec.settings, definition.settings) };
+          if (definition.id === "json") {
+            const options = this.project ? (await this.project.reload()).schemas : { catalog: true, download: true, associations: [] };
+            spec.settings = await this.schemas.settings(spec.settings ?? {}, options);
+            spec.initializationOptions = { ...spec.initializationOptions, handledSchemaProtocols: [] };
+            spec.schemaContent = uri => this.schemas.content(uri, options.download && spec.settings?.json?.schemaDownload?.enable !== false);
+          }
+          return spec;
         },
       });
       instance = { id, definition, root, fingerprint: digest, server, attachments: new Map(), associations, queue: Promise.resolve(), lifecycle: 0 };
@@ -138,7 +157,11 @@ export class LanguageServerManager {
     for (const instance of this.instances.values()) instance.server.saved(relative, text);
   }
   async watched(relative: string, type: number) {
+    for (const instance of this.instances.values()) if (instance.definition.id === "json") instance.server.schemaChanged(pathToFileURL(path.join(this.files.root, relative)).href);
     await Promise.all([this.defaultServer.watched(relative, type), ...[...this.instances.values()].map(instance => instance.server.watched(relative, type))]);
+  }
+  async refreshSchemas() {
+    await Promise.allSettled([...this.instances.values()].filter(instance => instance.definition.id === "json" && instance.server.status().state === "ready").map(instance => this.restart(instance.id)));
   }
   authorizeExternal(uri: string, id?: string) { return this.get(id).external.authorize(uri); }
   readExternal(handle: string, id?: string) { return this.get(id).external.read(handle); }
@@ -160,10 +183,11 @@ export class LanguageServerManager {
   notify(method: string, params: any, id?: string) { return this.get(id).notify(method, params); }
   async suspend() {
     for (const instance of this.instances.values()) instance.server.cancelStart();
-    await Promise.all([this.defaultServer.stop(), ...[...this.instances.values()].map(instance => this.stop(false, instance.id))]);
+    await Promise.all([this.schemas.cancelPending(), this.defaultServer.stop(), ...[...this.instances.values()].map(instance => this.stop(false, instance.id))]);
   }
   async dispose() {
     for (const instance of this.instances.values()) { clearTimeout(instance.idle); instance.server.cancelStart(); }
+    await this.schemas.dispose();
     await Promise.all([this.defaultServer.stop(), ...[...this.instances.values()].map(instance => this.stop(false, instance.id))]);
     this.instances.clear();
   }

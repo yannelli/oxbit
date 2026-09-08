@@ -4,6 +4,9 @@ on:
     paths:
       - 'apps/runtime/src/lsp*'
       - 'apps/runtime/src/managed/**'
+      - 'apps/runtime/src/json-schemas.ts'
+      - 'apps/runtime/src/projects.ts'
+      - 'packages/sdk/src/projects.ts'
       - 'packages/features/language/**'
       - 'packages/sdk/src/language*'
       - 'scripts/language/**'
@@ -40,6 +43,10 @@ jobs:
         run: |
           NODE="$(command -v node)"
           env PATH=/nonexistent "$NODE" evidence/language-milestone1/smoke.mjs
+      - name: MDX, automatic JSON schemas and persisted project analysis
+        run: node evidence/language-milestone1/project-intelligence.mjs
+        env:
+          OXBIT_LSP_REPORT: evidence/language-milestone1/project-intelligence.json
       - name: Reproducible open source dependency trees
         run: pnpm exec tsx scripts/language/package.ts
       - uses: actions/upload-artifact@v4

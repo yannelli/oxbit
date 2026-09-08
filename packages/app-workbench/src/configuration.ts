@@ -1,300 +1,154 @@
-import type {
-  FileSystem,
-  FileSnapshot,
-  Kernel,
-  Persistence,
-  RpcClient,
-} from "@oxbit/sdk";
-interface Layers {
-  user: Record<string, unknown>;
-  workspace: Record<string, unknown>;
-  userLanguages: Record<string, Record<string, unknown>>;
-  workspaceLanguages: Record<string, Record<string, unknown>>;
-}
-interface WorkspaceLayers {
-  workspace: Layers["workspace"];
-  workspaceLanguages: Layers["workspaceLanguages"];
-}
-interface PendingSettings {
-  value: WorkspaceLayers;
-  revision: string | null;
-  lastText?: string;
-}
-const empty = (): WorkspaceLayers => ({
-  workspace: {},
-  workspaceLanguages: {},
-});
-function fromFile(text: string): WorkspaceLayers {
-  const value: unknown = JSON.parse(text);
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Workspace settings must contain a JSON object.");
-  const result = empty();
-  for (const [key, setting] of Object.entries(value)) {
-    const language = key.match(/^\[([^\]]+)\]$/)?.[1];
-    if (language) {
-      if (!setting || typeof setting !== "object" || Array.isArray(setting))
-        throw new Error(`Settings for ${language} must contain an object.`);
-      result.workspaceLanguages[language] = setting as Record<string, unknown>;
-    } else result.workspace[key] = setting;
-  }
-  return result;
-}
-function toFile(value: WorkspaceLayers) {
-  const result: Record<string, unknown> = { ...value.workspace };
-  for (const [language, settings] of Object.entries(value.workspaceLanguages))
-    if (Object.keys(settings).length) result[`[${language}]`] = settings;
-  return JSON.stringify(result, null, 2) + "\n";
-}
+import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSettings, type SettingsChange, type SettingsLayers, type SettingsSnapshot, type FileSystem, type Kernel, type Persistence, type RpcClient } from "@oxbit/sdk";
+
+interface Recovery { snapshot: SettingsSnapshot; local: SettingsLayers; pending: SettingsChange[] }
+const empty = () => settingsLayers({}, {});
+
+/** Browser-only sessions use host storage; runtime sessions share the same JSON files. */
 export class ScopedConfigurationPersistence implements Persistence {
-  private readonly settingsDirectory = ".oxbit";
-  private get settingsPath() {
-    return `${this.settingsDirectory}/settings.json`;
-  }
-  private revision: string | null = null;
-  private lastText?: string;
-  private pending?: Layers;
-  private queue: Promise<void> = Promise.resolve();
-  private error?: string;
-  private notify?: (message: string, type?: string) => void;
-  private disposed = false;
-  private initialized = false;
-  private off?: () => void;
-  private watch?: { dispose(): void };
-  private kernel?: Kernel;
-  private loaded?: Promise<Layers>;
   readonly key: string;
-  constructor(
-    private storage: Persistence,
-    private filesystem: FileSystem,
-    private runtime?: RpcClient,
-  ) {
+  private readonly recoveryKey: string;
+  private loaded?: Promise<SettingsLayers>;
+  private snapshot?: SettingsSnapshot;
+  private local = empty();
+  private pending: SettingsChange[] = [];
+  private queue: Promise<void> = Promise.resolve();
+  private kernel?: Kernel;
+  private notify?: (message: string, type?: string) => void;
+  private errors: string[] = [];
+  private subscriptions: (() => void)[] = [];
+  private disposed = false;
+  private fileSettings: boolean;
+  constructor(private storage: Persistence, private filesystem: FileSystem, private runtime?: RpcClient) {
     this.key = "workspace-settings:" + filesystem.id;
+    this.recoveryKey = this.key + ":files";
+    this.fileSettings = !!runtime && (runtime as RpcClient & { session?: { owner: boolean } }).session?.owner !== false;
   }
   async get<T>(key: string): Promise<T | undefined> {
     if (key !== "settings") return this.storage.get<T>(key);
-    this.loaded ??= this.loadSettings();
-    return this.loaded as Promise<T>;
+    this.loaded ??= this.load();
+    return structuredClone(await this.loaded) as T;
   }
-  private async loadSettings(): Promise<Layers> {
-    const legacy = await this.storage.get<Layers>("settings");
-    const profile = (await this.storage.get<
-      Pick<Layers, "user" | "userLanguages">
-    >("profile-settings")) || {
-      user: legacy?.user || {},
-      userLanguages: legacy?.userLanguages || {},
-    };
-    let workspace =
-      (await this.storage.get<WorkspaceLayers>(this.key)) ||
-      (this.filesystem.id === "browser"
-        ? {
-            workspace: legacy?.workspace || {},
-            workspaceLanguages: legacy?.workspaceLanguages || {},
-          }
-        : empty());
-    const pending = this.runtime
-      ? await this.storage.get<PendingSettings>(this.key + ":pending")
-      : undefined;
-    if (pending) {
-      workspace = pending.value;
-      this.revision = pending.revision;
-      this.lastText = pending.lastText;
-      this.pending = { ...profile, ...workspace };
-    }
-    if (this.runtime) {
-      try {
-        const file = await this.runtime.request<FileSnapshot>("fs.read", {
-          path: this.settingsPath,
-        });
-        if (!pending || toFile(workspace) === toFile(fromFile(file.text))) {
-          workspace = fromFile(file.text);
-          this.revision = file.revision;
-          this.lastText = toFile(workspace);
-          this.pending = undefined;
-          await this.storage.delete(this.key + ":pending");
-        } else if (file.revision !== this.revision) {
-          this.report(
-            `Workspace settings changed on disk. Local settings were recovered; resolve ${this.settingsPath} before saving them.`,
-          );
-        }
-      } catch (e) {
-        if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(e)))
-          this.report(`Workspace settings could not be loaded: ${String(e)}`);
+  private async load(): Promise<SettingsLayers> {
+    const legacy = await this.storage.get<SettingsLayers>("settings"), profile = await this.storage.get<Pick<SettingsLayers, "user" | "userLanguages">>("profile-settings");
+    const workspace = await this.storage.get<Pick<SettingsLayers, "workspace" | "workspaceLanguages">>(this.key);
+    this.local = { ...empty(), ...legacy, ...profile, ...workspace };
+    if (!this.fileSettings) return this.local;
+    const recovery = await this.storage.get<Recovery>(this.recoveryKey);
+    let seed = structuredClone(this.local);
+    if (recovery) { this.snapshot = recovery.snapshot; this.local = recovery.local; this.pending = recovery.pending; }
+    else {
+      const old = await this.storage.get<{ value: Pick<SettingsLayers, "workspace" | "workspaceLanguages">; lastText?: string }>(this.key + ":pending");
+      if (old) {
+        const saved = settingsLayers({}, old.lastText ? parseSettings(JSON.parse(old.lastText)) : {});
+        seed = { ...seed, workspace: saved.workspace, workspaceLanguages: saved.workspaceLanguages };
+        this.local = { ...this.local, ...old.value };
+        this.pending = settingsChanges(seed, this.local);
       }
+      this.snapshot = { layers: seed, files: [] };
     }
-    if (
-      this.lastText === undefined &&
-      !Object.keys(workspace.workspace).length &&
-      !Object.keys(workspace.workspaceLanguages).length
-    )
-      this.lastText = toFile(workspace);
-    this.initialized = true;
-    if (this.pending && this.runtime?.connected)
-      this.queue = this.queue
-        .then(() => this.flush())
-        .catch((e) =>
-          this.report(`Workspace settings were retained locally: ${String(e)}`),
-        );
-    return { ...profile, ...workspace };
+    try {
+      const snapshot = await this.runtime!.request<SettingsSnapshot>("settings.read", { legacy: recovery?.snapshot.layers ?? seed });
+      this.snapshot = snapshot;
+      if (!this.pending.length) this.local = snapshot.layers;
+      this.reportFiles(snapshot);
+      await this.flush();
+      await this.cache();
+    } catch (error) { this.report(`Settings are retained locally: ${String(error)}`); }
+    await this.cache();
+    return this.local;
   }
   async set(key: string, value: unknown) {
-    if (key !== "settings") {
-      await this.storage.set(key, value);
+    if (key !== "settings") return this.storage.set(key, value);
+    const layers = structuredClone(value) as SettingsLayers;
+    if (!this.fileSettings) {
+      this.local = layers;
+      await this.storage.set("profile-settings", { user: layers.user, userLanguages: layers.userLanguages });
+      await this.storage.set(this.key, { workspace: layers.workspace, workspaceLanguages: layers.workspaceLanguages });
       return;
     }
-    const layers = structuredClone(value) as Layers;
-    await this.storage.set("profile-settings", {
-      user: layers.user,
-      userLanguages: layers.userLanguages,
+    const changes = settingsChanges(this.local, layers);
+    this.local = layers;
+    this.pending.push(...changes);
+    if (this.snapshot && !settingsChanges(this.snapshot.layers, this.local).length) this.pending = [];
+    this.queue = this.queue.catch(() => {}).then(async () => {
+      await this.cache();
+      try { await this.flush(); } catch (error) { this.report(`Settings are retained locally: ${String(error)}`); }
     });
-    await this.storage.set(this.key, {
-      workspace: layers.workspace,
-      workspaceLanguages: layers.workspaceLanguages,
-    });
-    if (this.runtime && this.initialized && toFile(layers) === this.lastText) {
-      this.pending = undefined;
+    await this.queue;
+  }
+  private async cache() {
+    if (this.snapshot) {
+      await this.storage.set(this.recoveryKey, { snapshot: this.snapshot, local: this.local, pending: this.pending } satisfies Recovery);
       await this.storage.delete(this.key + ":pending");
-    } else if (this.runtime && this.initialized) {
-      this.pending = layers;
-      await this.storage.set(this.key + ":pending", {
-        value: {
-          workspace: layers.workspace,
-          workspaceLanguages: layers.workspaceLanguages,
-        },
-        revision: this.revision,
-        lastText: this.lastText,
-      } satisfies PendingSettings);
-      this.queue = this.queue
-        .then(() => this.flush())
-        .catch((e) =>
-          this.report(`Workspace settings were retained locally: ${String(e)}`),
-        );
-      await this.queue;
     }
   }
-  async delete(key: string) {
-    if (key === "settings") {
-      await this.storage.delete("profile-settings");
-      await this.storage.delete(this.key);
-      await this.storage.delete(this.key + ":pending");
-    } else await this.storage.delete(key);
+  private async flush() {
+    if (!this.pending.length || this.disposed) return;
+    if (!this.runtime?.connected) throw new Error("Reconnect to save settings to disk.");
+    if (!this.snapshot?.files.length) this.snapshot = await this.runtime.request<SettingsSnapshot>("settings.read", { legacy: this.snapshot?.layers ?? empty() });
+    const changes = [...this.pending], saved = structuredClone(this.local);
+    const snapshot = await this.runtime.request<SettingsSnapshot>("settings.patch", { changes });
+    this.pending.splice(0, changes.length);
+    this.snapshot = snapshot;
+    // A newer UI change can already be queued in the kernel. Do not replace it.
+    if (!this.pending.length && (!this.kernel || !settingsChanges(saved, this.kernel.configuration.export() as SettingsLayers).length)) this.apply(snapshot);
+    await this.cache();
   }
-  attach(kernel: Kernel, notify: (message: string, type?: string) => void) {
-    this.kernel = kernel;
-    this.notify = notify;
-    if (this.error) {
-      notify(this.error, "error");
-      this.error = undefined;
-    }
-    if (this.runtime) {
-      this.off = this.runtime.subscribe("connection.change", (event) => {
-        if (event.state === "connected" && this.pending)
-          this.queue = this.queue
-            .then(() => this.flush())
-            .catch((e) =>
-              this.report(
-                `Workspace settings were retained locally: ${String(e)}`,
-              ),
-            );
-      });
-      this.watch = this.filesystem.watch((event) => {
-        if (event.path !== this.settingsPath || this.pending || this.disposed)
-          return;
-        void this.reload().catch((e) =>
-          this.report(`Workspace settings reload failed: ${String(e)}`),
-        );
-      });
-    }
+  private apply(snapshot: SettingsSnapshot) {
+    this.snapshot = snapshot;
+    this.local = structuredClone(snapshot.layers);
+    this.kernel?.configuration.import(this.local, { persist: false });
+    this.reportFiles(snapshot);
+  }
+  private reportFiles(snapshot: SettingsSnapshot) {
+    for (const file of snapshot.files) if (file.error) this.report(`${file.path}: ${file.error}. Keeping the last valid settings.`);
   }
   private report(message: string) {
     if (this.notify) this.notify(message, "error");
-    else this.error = message;
+    else this.errors.push(message);
   }
-  private async reload() {
-    if (!this.kernel || this.disposed) return;
-    let snapshot: FileSnapshot | undefined;
-    try {
-      snapshot = await this.runtime!.request<FileSnapshot>("fs.read", {
-        path: this.settingsPath,
+  attach(kernel: Kernel, notify: (message: string, type?: string) => void) {
+    this.kernel = kernel; this.notify = notify;
+    for (const message of this.errors) notify(message, "error");
+    this.errors = [];
+    if (!this.fileSettings) return;
+    const refresh = () => {
+      this.queue = this.queue.catch(() => {}).then(async () => {
+        if (this.disposed) return;
+        try {
+          await this.flush();
+          if (this.pending.length || settingsChanges(this.local, kernel.configuration.export() as SettingsLayers).length) return;
+          this.apply(await this.runtime!.request<SettingsSnapshot>("settings.read"));
+          await this.cache();
+        } catch (error) { this.report(`Settings reload failed: ${String(error)}`); }
       });
-    } catch (error) {
-      if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(error)))
-        throw error;
-    }
-    if ((snapshot?.revision ?? null) === this.revision) return;
-    const workspace = snapshot ? fromFile(snapshot.text) : empty();
-    this.revision = snapshot?.revision ?? null;
-    this.lastText = toFile(workspace);
-    const current = this.kernel.configuration.export() as Layers;
-    this.kernel.configuration.import({ ...current, ...workspace });
+    };
+    this.subscriptions.push(this.runtime!.subscribe("settings.changed", refresh));
+    this.subscriptions.push(this.runtime!.subscribe("connection.change", event => { if (event.state === "connected") refresh(); }));
   }
   async resolveWorkspaceSettings(choice: "disk" | "local") {
-    if (!this.runtime?.connected || !this.kernel)
-      throw new Error("Connect to the runtime first");
+    if (!this.runtime?.connected || !this.kernel || !this.fileSettings) throw new Error("Connect to the workspace owner runtime first");
     await this.queue;
-    const current = this.kernel.configuration.export() as Layers;
-    let snapshot: FileSnapshot | undefined;
-    try {
-      snapshot = await this.runtime.request<FileSnapshot>("fs.read", {
-        path: this.settingsPath,
-      });
-    } catch (error) {
-      if (!/ENOENT|NOT_FOUND|not found|does not exist/i.test(String(error)))
-        throw error;
-    }
-    this.revision = snapshot?.revision ?? null;
-    this.lastText = toFile(snapshot ? fromFile(snapshot.text) : empty());
-    this.pending = undefined;
-    await this.storage.delete(this.key + ":pending");
+    const latest = await this.runtime.request<SettingsSnapshot>("settings.read");
     if (choice === "disk") {
-      const workspace = snapshot ? fromFile(snapshot.text) : empty();
-      await this.storage.set(this.key, workspace);
-      this.kernel.configuration.import({ ...current, ...workspace });
-    } else await this.set("settings", current);
-  }
-  private async flush() {
-    if (!this.pending || this.disposed) return;
-    if (!this.runtime?.connected)
-      throw new Error(
-        "Runtime is offline. Reconnect to save workspace settings.",
-      );
-    const value = this.pending;
-    const text = toFile(value);
-    if (text === this.lastText) {
-      this.pending = undefined;
-      await this.storage.delete(this.key + ":pending");
-      return;
+      this.pending = [];
+      this.apply(latest);
+    } else {
+      const files = { user: settingsFile(latest.layers, "user"), workspace: settingsFile(latest.layers, "workspace") };
+      this.pending = this.pending.map(change => {
+        let cursor = files[change.scope];
+        for (const key of change.path.slice(0, -1)) { if (!settingsObject(cursor[key])) cursor[key] = {}; cursor = cursor[key] as Record<string, unknown>; }
+        const key = change.path.at(-1)!, before = cursor[key];
+        if (change.value === undefined) delete cursor[key]; else cursor[key] = change.value;
+        return { scope: change.scope, path: change.path, ...(before === undefined ? {} : { before }), ...(change.value === undefined ? {} : { value: change.value }) };
+      });
+      if (this.pending.length) await this.flush(); else this.apply(latest);
     }
-    try {
-      await this.runtime.request("fs.mkdir", { path: this.settingsDirectory });
-    } catch (e) {
-      if (!/EEXIST|already exists/i.test(String(e))) throw e;
-    }
-    const snapshot = await this.runtime.request<FileSnapshot>("fs.write", {
-      path: this.settingsPath,
-      text,
-      expectedRevision: this.revision,
-      encoding: "utf-8",
-      eol: "LF",
-    });
-    this.revision = snapshot.revision;
-    this.lastText = snapshot.text;
-    if (this.pending === value) {
-      this.pending = undefined;
-      await this.storage.delete(this.key + ":pending");
-    } else if (this.pending) {
-      await this.storage.set(this.key + ":pending", {
-        value: {
-          workspace: this.pending.workspace,
-          workspaceLanguages: this.pending.workspaceLanguages,
-        },
-        revision: this.revision,
-        lastText: this.lastText,
-      } satisfies PendingSettings);
-    }
+    await this.cache();
   }
-  dispose() {
-    this.disposed = true;
-    this.off?.();
-    this.watch?.dispose();
+  async delete(key: string) {
+    if (key === "settings") await this.set(key, empty());
+    else await this.storage.delete(key);
   }
+  async dispose() { this.disposed = true; for (const off of this.subscriptions) off(); await this.queue.catch(() => {}); }
 }

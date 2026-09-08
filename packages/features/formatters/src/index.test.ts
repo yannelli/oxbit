@@ -49,6 +49,14 @@ async function setup() {
 }
 
 describe("formatter providers", () => {
+  it("formats MDX through its own parser while preserving embedded JSX", async () => {
+    const { service } = await setup();
+    expect(service.list("guide.mdx").map(item => item.id)).toContain("oxbit.prettier");
+    const text = 'export const title="Hello"\n\n# Hello\n\n<Button label={title}/>\n';
+    const formatted = await service.format(text, "guide.mdx");
+    expect(formatted).toContain('export const title = "Hello";');
+    expect(formatted).toContain("<Button label={title} />");
+  });
   it("runs independently registered Prettier and TypeScript implementations", async () => {
     const { kernel, service } = await setup();
     expect(service.list("index.ts").map((provider) => provider.id)).toEqual(

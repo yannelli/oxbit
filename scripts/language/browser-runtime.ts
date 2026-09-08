@@ -5,7 +5,7 @@ import { createRuntime } from "../../apps/runtime/src/runtime.js";
 const root = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-language-browser-"));
 await fs.writeFile(path.join(root, "package.json"), '{"name":"language-fixture","private":true}');
 await fs.writeFile(path.join(root, ".marksman.toml"), "");
-const runtime = await createRuntime({ root, port: 9534, dataDir: root + "-data", pairingCode: "oxbit-acceptance-2026", webRoot: path.resolve("apps/web/dist") });
+const runtime = await createRuntime({ root, port: Number(process.env.OXBIT_LANGUAGE_BROWSER_PORT ?? 9534), dataDir: root + "-data", projectsDir: path.join(root + "-data", "projects"), settingsFile: path.join(root + "-data", "settings.json"), pairingCode: "oxbit-acceptance-2026", webRoot: path.resolve("apps/web/dist") });
 async function close() { await runtime.close(); await fs.rm(root, { recursive: true, force: true }); await fs.rm(root + "-data", { recursive: true, force: true }); process.exit(0); }
 process.on("SIGTERM", () => void close());
 process.on("SIGINT", () => void close());
