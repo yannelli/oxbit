@@ -136,7 +136,20 @@ when development process watching also fails.
 | `packages/features/*`                                | Independently registered editor features         |
 | `examples/bundle-inspector`                          | External SDK extension example                   |
 
+## Source Control
+
+Source Control includes per-hunk staging, commit history and file diffs, branch
+and remote management, pull/publish, stashes, and merge recovery. Open its
+**Changes**, **History**, **Branches**, and **Stashes** tabs in a trusted runtime
+workspace. See [Source Control](docs/source-control.md) for workflows and limits.
+
 ## Extensions
+
+**Agent ACP** adds Codex ACP, Cursor ACP, and Amp Agent ACP with resumable
+conversation history, inspectable editor context, chronological tool activity,
+diff review in the editor, guarded undo, and permission controls. It is
+**disabled by default**. Enable it in Extensions, connect to a trusted runtime,
+and choose an agent. See [Agent ACP setup and tooling](docs/agent-acp.md).
 
 Bundle Inspector contributes a command, panel, setting, status item, output
 channel, and custom document view through the public SDK.

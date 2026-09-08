@@ -80,6 +80,7 @@ owned results.
 | `codeAction` | `CodeActionProvider` | Contributed actions join the editor's code-action workflow. |
 | `formatter` | `Formatter` | Formatter selection and save hooks use matching language providers. |
 | `editorDecoration` | `EditorDecorationContribution` | Matching editors mount and remove CodeMirror extensions. |
+| `keymap` | `KeymapContributionData` | Selecting the keymap in `workbench.keymap` applies its bindings above command defaults and below user keybindings. |
 
 A filesystem returned by `FileSystemProvider.open()` transfers to the workspace
 host until that workspace closes. Give it a stable `id` for draft and layout

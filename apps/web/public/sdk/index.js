@@ -135,6 +135,62 @@ var settings_schema_default = {
       type: "string",
       description: "JSON Schema URI. Ignored when merging effective preferences."
     },
+    "agentACP.provider": {
+      title: "Default agent",
+      type: "string",
+      default: "codex",
+      enum: [
+        "codex",
+        "cursor",
+        "amp"
+      ]
+    },
+    "agentACP.codex.command": {
+      title: "Codex ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.codex.args": {
+      title: "Codex ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","@agentclientprotocol/codex-acp@1.10.0"]'
+    },
+    "agentACP.cursor.command": {
+      title: "Cursor ACP executable",
+      type: "string",
+      default: "agent"
+    },
+    "agentACP.cursor.args": {
+      title: "Cursor ACP arguments (JSON array)",
+      type: "string",
+      default: '["acp"]'
+    },
+    "agentACP.amp.command": {
+      title: "Amp Agent ACP executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.amp.args": {
+      title: "Amp Agent ACP arguments (JSON array)",
+      type: "string",
+      default: '["-y","amp-acp@0.9.0"]'
+    },
+    "workbench.keymap": {
+      title: "Keymap",
+      description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
+      type: "string",
+      default: "default",
+      enum: [
+        "default",
+        "vscode",
+        "jetbrains",
+        "macos",
+        "sublime",
+        "atom",
+        "visual-studio",
+        "emacs"
+      ]
+    },
     "workbench.tooltipDelay": {
       title: "Tooltip Delay",
       description: "Delay in milliseconds before showing a tooltip on hover. Keyboard focus shows tooltips immediately.",
@@ -733,6 +789,30 @@ var settings_schema_default = {
     languageOverrides: {
       type: "object",
       properties: {
+        "agentACP.provider": {
+          $ref: "#/properties/agentACP.provider"
+        },
+        "agentACP.codex.command": {
+          $ref: "#/properties/agentACP.codex.command"
+        },
+        "agentACP.codex.args": {
+          $ref: "#/properties/agentACP.codex.args"
+        },
+        "agentACP.cursor.command": {
+          $ref: "#/properties/agentACP.cursor.command"
+        },
+        "agentACP.cursor.args": {
+          $ref: "#/properties/agentACP.cursor.args"
+        },
+        "agentACP.amp.command": {
+          $ref: "#/properties/agentACP.amp.command"
+        },
+        "agentACP.amp.args": {
+          $ref: "#/properties/agentACP.amp.args"
+        },
+        "workbench.keymap": {
+          $ref: "#/properties/workbench.keymap"
+        },
         "workbench.tooltipDelay": {
           $ref: "#/properties/workbench.tooltipDelay"
         },
@@ -1120,6 +1200,34 @@ function synchronization(capabilities) {
   return typeof sync === "number" ? { openClose: true, change: sync } : sync ?? { openClose: false, change: 0 };
 }
 
+// packages/sdk/src/agent-acp.ts
+var ACP_PROVIDERS = [
+  {
+    id: "codex",
+    name: "Codex ACP",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/codex-acp@1.10.0"],
+    setup: "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
+    url: "https://github.com/agentclientprotocol/codex-acp"
+  },
+  {
+    id: "cursor",
+    name: "Cursor ACP",
+    command: "agent",
+    args: ["acp"],
+    setup: "Install Cursor CLI and run agent login first. If your executable is cursor-agent, change the command below.",
+    url: "https://cursor.com/docs/cli/acp"
+  },
+  {
+    id: "amp",
+    name: "Amp Agent ACP",
+    command: "npx",
+    args: ["-y", "amp-acp@0.9.0"],
+    setup: "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
+    url: "https://github.com/tao12345666333/amp-acp"
+  }
+];
+
 // packages/sdk/src/tasks.ts
 var taskPhases = [
   "preinit",
@@ -1173,6 +1281,7 @@ function settingsChanges(before, after) {
 // packages/sdk/src/index.ts
 var SDK_VERSION = "1.0.0";
 export {
+  ACP_PROVIDERS,
   SDK_VERSION,
   SETTINGS_SCHEMA_URI,
   canonicalLanguageId,

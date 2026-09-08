@@ -10,6 +10,26 @@
   "permissions": [
     "core:event:default",
     "core:window:allow-is-focused",
-    "core:window:allow-set-focus"
+    "core:window:allow-set-focus",
+    "core:app:allow-supports-multiple-windows",
+    "opener:allow-open-url",
+    "opener:allow-open-path",
+    "clipboard-manager:allow-clear",
+    "clipboard-manager:allow-read-image",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-html",
+    "clipboard-manager:allow-write-image",
+    "clipboard-manager:allow-write-text",
+    "core:app:allow-app-show",
+    "core:app:allow-app-hide",
+    "dialog:allow-save",
+    "dialog:allow-ask",
+    "dialog:allow-confirm",
+    "dialog:allow-message",
+    "dialog:allow-open",
+    "core:window:allow-set-background-color",
+    "core:webview:allow-set-webview-background-color",
+    "core:window:allow-set-visible-on-all-workspaces",
+    "core:window:allow-set-title-bar-style"
   ]
 }

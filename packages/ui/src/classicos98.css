@@ -1,0 +1,163 @@
+/* 3D chrome for the ClassicOS 98 theme pack. Bevels are inset shadows, so no rule here changes layout. */
+[data-theme-pack="oxbit.classicos98"]{
+  --w98-raised:inset 1px 1px 0 0 var(--w98-hilight),inset -1px -1px 0 0 var(--w98-dkshadow),inset 2px 2px 0 0 var(--w98-light),inset -2px -2px 0 0 var(--w98-shadow);
+  --w98-sunken:inset 1px 1px 0 0 var(--w98-shadow),inset -1px -1px 0 0 var(--w98-hilight),inset 2px 2px 0 0 var(--w98-dkshadow),inset -2px -2px 0 0 var(--w98-light);
+  --w98-thin:inset 1px 1px 0 0 var(--w98-shadow),inset -1px -1px 0 0 var(--w98-hilight);
+  --w98-toolbar:inset 1px 1px 0 0 var(--w98-hilight),inset -1px -1px 0 0 var(--w98-shadow);
+}
+
+[data-theme-pack="oxbit.classicos98"] *{border-radius:0!important;transition:none!important;text-shadow:none}
+[data-theme-pack="oxbit.classicos98"] :focus-visible{outline:1px dotted var(--fg)!important;outline-offset:-3px!important}
+
+/* Raised: anything the pointer can press. */
+[data-theme-pack="oxbit.classicos98"] .button,
+[data-theme-pack="oxbit.classicos98"] .icon-button,
+[data-theme-pack="oxbit.classicos98"] .activity-bar>button,
+[data-theme-pack="oxbit.classicos98"] .panel-tabs>button,
+[data-theme-pack="oxbit.classicos98"] .view-tabs button,
+[data-theme-pack="oxbit.classicos98"] .terminal-tab,
+[data-theme-pack="oxbit.classicos98"] .editor-tab{
+  background:var(--bg-app);border-color:transparent;box-shadow:var(--w98-raised);color:var(--fg)
+}
+[data-theme-pack="oxbit.classicos98"] .button:hover,
+[data-theme-pack="oxbit.classicos98"] .icon-button:hover,
+[data-theme-pack="oxbit.classicos98"] .activity-bar>button:hover{background:var(--bg-app)}
+[data-theme-pack="oxbit.classicos98"] .button:active,
+[data-theme-pack="oxbit.classicos98"] .icon-button:active{box-shadow:var(--w98-sunken)}
+
+/* Menu bar titles stay flat until they open, then invert like a system menu. */
+[data-theme-pack="oxbit.classicos98"] .menu-parent>button{color:var(--fg);background:transparent;box-shadow:none}
+[data-theme-pack="oxbit.classicos98"] .menu-parent>button:hover,
+[data-theme-pack="oxbit.classicos98"] .menu-parent>button[aria-expanded=true]{
+  background:var(--bg-selected);color:var(--selection-foreground)
+}
+
+/* Tabs need their own padding: the shared rules size them to the label alone. */
+[data-theme-pack="oxbit.classicos98"] .view-tabs,
+[data-theme-pack="oxbit.classicos98"] .panel-tabs{gap:1px}
+[data-theme-pack="oxbit.classicos98"] .view-tabs button,
+[data-theme-pack="oxbit.classicos98"] .panel-tabs>button{padding:0 6px;border-bottom-width:0}
+/* Toolbar buttons carry a single bevel so a 16px glyph still clears the edge. */
+[data-theme-pack="oxbit.classicos98"] .icon-button{box-shadow:var(--w98-toolbar)}
+[data-theme-pack="oxbit.classicos98"] .icon-button:active{box-shadow:var(--w98-thin)}
+
+/* Pressed-in: the selected tab or activity button stays depressed. */
+[data-theme-pack="oxbit.classicos98"] .editor-tab.active,
+[data-theme-pack="oxbit.classicos98"] .activity-bar>button.active,
+[data-theme-pack="oxbit.classicos98"] .panel-tabs>button.selected,
+[data-theme-pack="oxbit.classicos98"] .view-tabs button.selected,
+[data-theme-pack="oxbit.classicos98"] .terminal-tab[aria-selected=true]{
+  box-shadow:var(--w98-sunken);background:var(--bg-app);color:var(--fg)
+}
+[data-theme-pack="oxbit.classicos98"] .editor-tab.active:before,
+[data-theme-pack="oxbit.classicos98"] .activity-bar>button.active:before,
+[data-theme-pack="oxbit.classicos98"] .panel-tabs>button.selected:after,
+[data-theme-pack="oxbit.classicos98"] .tree-row[aria-selected=true]:before{display:none}
+[data-theme-pack="oxbit.classicos98"] .view-tabs button{border-bottom-color:transparent}
+
+/* Sunken: anything that holds content or text entry. */
+[data-theme-pack="oxbit.classicos98"] input,
+[data-theme-pack="oxbit.classicos98"] textarea,
+[data-theme-pack="oxbit.classicos98"] select,
+[data-theme-pack="oxbit.classicos98"] .select-trigger,
+[data-theme-pack="oxbit.classicos98"] .palette-input>input,
+[data-theme-pack="oxbit.classicos98"] .sidebar-content,
+[data-theme-pack="oxbit.classicos98"] .palette-results,
+[data-theme-pack="oxbit.classicos98"] .codemirror-host,
+[data-theme-pack="oxbit.classicos98"] .terminal-session{
+  border-color:transparent;box-shadow:var(--w98-thin);background:var(--bg-input)
+}
+[data-theme-pack="oxbit.classicos98"] .sidebar-content,
+[data-theme-pack="oxbit.classicos98"] .palette-results{background:var(--bg-editor)}
+[data-theme-pack="oxbit.classicos98"] input:focus,
+[data-theme-pack="oxbit.classicos98"] textarea:focus,
+[data-theme-pack="oxbit.classicos98"] select:focus{border-color:transparent}
+[data-theme-pack="oxbit.classicos98"] input[type=checkbox]{accent-color:var(--w98-hilight);box-shadow:none}
+[data-theme-pack="oxbit.classicos98"] .select-trigger:hover:not(:disabled),
+[data-theme-pack="oxbit.classicos98"] .select-trigger[aria-expanded=true]{
+  border-color:transparent;background:var(--bg-input);box-shadow:var(--w98-thin)
+}
+
+/* A native select keeps the host's rounded control, so draw the combo button instead. */
+[data-theme-pack="oxbit.classicos98"] select{
+  appearance:none;padding-right:24px;
+  background-image:
+    linear-gradient(45deg,transparent 50%,var(--fg) 50%),
+    linear-gradient(135deg,var(--fg) 50%,transparent 50%),
+    linear-gradient(var(--w98-hilight),var(--w98-hilight)),
+    linear-gradient(var(--w98-hilight),var(--w98-hilight)),
+    linear-gradient(var(--w98-shadow),var(--w98-shadow)),
+    linear-gradient(var(--w98-shadow),var(--w98-shadow)),
+    linear-gradient(var(--bg-app),var(--bg-app));
+  background-position:
+    right 13px center,right 8px center,
+    right 2px top 2px,right 21px top 2px,
+    right 2px bottom 2px,right 2px top 2px,
+    right 2px center;
+  background-size:
+    5px 5px,5px 5px,
+    20px 1px,1px calc(100% - 4px),
+    20px 1px,1px calc(100% - 4px),
+    20px calc(100% - 4px);
+  background-repeat:no-repeat
+}
+
+/* Surfaces: flat faces separated by hard bevel lines, never by soft borders. */
+[data-theme-pack="oxbit.classicos98"] .titlebar,
+[data-theme-pack="oxbit.classicos98"] .statusbar,
+[data-theme-pack="oxbit.classicos98"] .tabbar,
+[data-theme-pack="oxbit.classicos98"] .panel-header,
+[data-theme-pack="oxbit.classicos98"] .terminal-tabs-toolbar,
+[data-theme-pack="oxbit.classicos98"] .sidebar-heading,
+[data-theme-pack="oxbit.classicos98"] .activity-bar,
+[data-theme-pack="oxbit.classicos98"] .sidebar{
+  background:var(--bg-app);border-color:var(--w98-shadow);color:var(--fg)
+}
+[data-theme-pack="oxbit.classicos98"] .titlebar,
+[data-theme-pack="oxbit.classicos98"] .statusbar{box-shadow:var(--w98-raised)}
+[data-theme-pack="oxbit.classicos98"] .statusbar>.lsp-status-trigger{box-shadow:var(--w98-thin)}
+[data-theme-pack="oxbit.classicos98"] .sidebar-heading{font-weight:700;letter-spacing:0}
+
+/* Popovers keep the theme's hard offset shadow and gain a window frame. */
+[data-theme-pack="oxbit.classicos98"] .dialog,
+[data-theme-pack="oxbit.classicos98"] .palette,
+[data-theme-pack="oxbit.classicos98"] .command-menu,
+[data-theme-pack="oxbit.classicos98"] .context-menu>.command-menu,
+[data-theme-pack="oxbit.classicos98"] .select-popup,
+[data-theme-pack="oxbit.classicos98"] .notification,
+[data-theme-pack="oxbit.classicos98"] .notification-center,
+[data-theme-pack="oxbit.classicos98"] .lsp-status-popover{
+  background:var(--bg-app);border-color:transparent;box-shadow:var(--w98-raised),var(--shadow);animation:none
+}
+[data-theme-pack="oxbit.classicos98"] .workbench-tooltip{
+  background:var(--w98-tip);color:var(--w98-tip-fg);border:1px solid var(--w98-dkshadow);box-shadow:none
+}
+[data-theme-pack="oxbit.classicos98"] .dialog-title{
+  margin:-18px -20px 12px;padding:3px 6px;font-weight:700;
+  background:linear-gradient(90deg,var(--accent),var(--w98-caption-end));color:var(--accent-fg)
+}
+
+/* Selection is a solid bar, so every label inside it takes the highlight colour. */
+[data-theme-pack="oxbit.classicos98"] .tree-row.selected,
+[data-theme-pack="oxbit.classicos98"] .palette-results .selected,
+[data-theme-pack="oxbit.classicos98"] .select-option[data-active=true]{
+  background:var(--bg-selected);color:var(--selection-foreground)
+}
+[data-theme-pack="oxbit.classicos98"] .tree-row.selected span,
+[data-theme-pack="oxbit.classicos98"] .tree-row.selected small,
+[data-theme-pack="oxbit.classicos98"] .palette-results .selected span,
+[data-theme-pack="oxbit.classicos98"] .palette-results .selected small,
+[data-theme-pack="oxbit.classicos98"] .select-option[data-active=true] span{
+  color:var(--selection-foreground);background:transparent
+}
+[data-theme-pack="oxbit.classicos98"] .tree-row:hover:not(.selected){background:transparent}
+
+/* 16px scrollbars with the dithered track Windows painted behind the thumb. */
+[data-theme-pack="oxbit.classicos98"] *::-webkit-scrollbar{width:16px;height:16px}
+[data-theme-pack="oxbit.classicos98"] *::-webkit-scrollbar-track{
+  background:repeating-conic-gradient(var(--bg-app) 0 25%,var(--w98-hilight) 0 50%) 0 0/2px 2px
+}
+[data-theme-pack="oxbit.classicos98"] *::-webkit-scrollbar-thumb{
+  background:var(--bg-app);border:0;box-shadow:var(--w98-raised)
+}
+[data-theme-pack="oxbit.classicos98"] *::-webkit-scrollbar-corner{background:var(--bg-app)}

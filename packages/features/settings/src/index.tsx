@@ -6,7 +6,7 @@ import type { WorkbenchController } from "@oxbit/workbench";
 import { Icon, IconButton, Dialog, Select, IconThemeSelect } from "@oxbit/ui";
 import { settingsConfiguration } from "./configuration.js";
 import { scopedSetting } from "./scopes.js";
-import { normalizeShortcut } from "@oxbit/workbench";
+import { activeKeymap, commandBinding, normalizeShortcut } from "@oxbit/workbench";
 export function Settings({
   kernel,
   workbench,
@@ -229,8 +229,14 @@ export function KeyboardShortcuts({
     [keys, setKeys] = useState("");
   const commands = kernel.commands.list();
   const overrides = (state as any).keybindings || {};
+  const keymap = activeKeymap(kernel);
   const binding = (id: string) =>
-    overrides[id] ?? commands.find((c) => c.id === id)?.shortcut ?? "";
+    commandBinding(
+      kernel,
+      overrides,
+      commands.find((c) => c.id === id) ?? { id },
+      keymap,
+    );
   const conflicts = commands.filter(
     (c) =>
       c.id !== capture &&
@@ -290,7 +296,13 @@ export function KeyboardShortcuts({
                       <span className="warning-text"> {tr("Conflict")}</span>
                     )}
                   </td>
-                  <td>{c.id in overrides ? tr("User") : tr("Default")}</td>
+                  <td>
+                    {c.id in overrides
+                      ? tr("User")
+                      : keymap && c.id in keymap.bindings
+                        ? tr(keymap.title)
+                        : tr("Default")}
+                  </td>
                   <td>
                     <IconButton
                       icon="pencil"

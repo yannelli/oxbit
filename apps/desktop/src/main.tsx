@@ -1,5 +1,5 @@
 import * as ReactHost from "react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -11,8 +11,9 @@ import {
   type UpdateStatus,
 } from "@oxbit/host-desktop";
 import type { Session } from "@oxbit/app-workbench";
-import { Workbench, workspaceEntries, themeMode, themeVariables } from "@oxbit/workbench";
-import { Dialog, setLocale } from "@oxbit/ui";
+import { configurePanelWindows, currentTheme, PanelProvider, Workbench, workspaceEntries, themeMode, themeVariables } from "@oxbit/workbench";
+import { Dialog, OxbitMark, setLocale } from "@oxbit/ui";
+import { ProjectMenu } from "./project-menu.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 import "./desktop.css";
@@ -30,6 +31,25 @@ Object.defineProperty(navigator, "clipboard", {
     writeText: (text: string) => native.clipboard(text).then(() => {}),
     readText: () => native.clipboard(),
   },
+});
+// Keep related panel windows in the native webview, sharing their opener's session.
+const openPanelWindow = window.open.bind(window);
+configurePanelWindows({
+  pointerDrag: true,
+  close: (id) => native.closePanel(id),
+  open: (_url, name, features) => {
+    // A related blank window inherits the opener's origin and needs no app bootstrap.
+    const child = openPanelWindow("about:blank#oxbit-panel=" + name, name, features);
+    if (child) {
+      child.document.title = "Oxbit — Panels";
+      child.document.body.dataset.oxbitPanelShell = "true";
+      const root = child.document.createElement("div");
+      root.id = "panel-root";
+      child.document.body.append(root);
+    }
+    return child;
+  },
+  restoreAutomatically: true,
 });
 window.open = ((url?: string | URL) => {
   if (url) void native.external(String(url));
@@ -147,6 +167,7 @@ function App() {
         await listen<CloseRequest>(
           "desktop-prepare-close",
           ({ payload }) => {
+            void getCurrentWebviewWindow().setFocus();
             setPanel(undefined);
             discardOnClose.current = false;
             pendingClose.current = payload.id;
@@ -276,7 +297,10 @@ function App() {
       [
         "workspace.switch",
         "Switch Project",
-        () => document.getElementById("project-switcher")?.focus(),
+        () => {
+          session.workbench.set({ focus: false });
+          requestAnimationFrame(() => document.getElementById("project-switcher")?.click());
+        },
       ],
       [
         "workspace.close",
@@ -336,69 +360,29 @@ function App() {
     (globalThis as any).__oxbitDesktop = { manager, native };
   const theme = active?.session ? themeMode(active.session.kernel) : 'dark';
   useSyncExternalStore<unknown>(active?.session?.workbench.subscribe ?? (()=>()=>{}), active?.session?.workbench.snapshot ?? (()=>0));
+  const projectMenu = (
+    <ProjectMenu
+      view={view}
+      disabled={manager.isClosing}
+      onActivate={(key) => perform(manager.activate(key))}
+      onOpen={(newWindow) => perform(native.open(undefined, newWindow))}
+      onConnectSsh={() => setPanel("ssh")}
+      onMove={active ? () => perform(manager.move(active.project.key)) : undefined}
+      onOpenBehaviorChange={(value) => perform(native.settings([
+        { path: ["user", "desktop.projects.openBehavior"], value },
+      ]))}
+    />
+  );
   return (
-    <div className="desktop-shell" style={active?.session ? themeVariables(active.session.kernel) : undefined} data-theme={theme} data-density="compact">
-      <nav
-        className="desktop-projects"
-        aria-label="Projects"
-        inert={manager.isClosing}
-      >
-        <label htmlFor="project-switcher">Project</label>
-        <select
-          id="project-switcher"
-          value={view.active ?? ""}
-          onChange={(event) => perform(manager.activate(event.target.value))}
-        >
-          {!view.projects.length && <option value="">No folder open</option>}
-          {view.projects.map((entry) => (
-            <option key={entry.project.key} value={entry.project.key}>
-              {entry.project.name}
-              {entry.failed || entry.error ? " (needs attention)" : ""}
-            </option>
-          ))}
-        </select>
-        <button className="button" onClick={() => setPanel("ssh")}>Connect over SSH…</button>
-        <button className="button" onClick={() => perform(native.open())}>
-          Open Folder…
-        </button>
-        <button
-          className="button"
-          onClick={() => perform(native.open(undefined, true))}
-        >
-          Open in New Window…
-        </button>
-        {active && (
-          <button
-            className="button"
-            onClick={() => perform(manager.move(active.project.key))}
-          >
-            Move to New Window
-          </button>
-        )}
-        <label className="push">
-          Open projects in{" "}
-          <select
-            aria-label="Open projects in"
-            value={String(
-              view.profile.user["desktop.projects.openBehavior"] ??
-                "currentWindow",
-            )}
-            onChange={(event) =>
-              perform(
-                native.settings([
-                  {
-                    path: ["user", "desktop.projects.openBehavior"],
-                    value: event.target.value,
-                  },
-                ]),
-              )
-            }
-          >
-            <option value="currentWindow">Current window</option>
-            <option value="newWindow">New window</option>
-          </select>
-        </label>
-      </nav>
+    <div className="desktop-shell" style={active?.session ? themeVariables(active.session.kernel) : undefined} data-theme={theme} data-theme-pack={active?.session ? currentTheme(active.session.kernel).packId : undefined} data-density="compact">
+      {!active?.session && (
+        <header className="titlebar" role="menubar" aria-label="Application menu" inert={manager.isClosing}>
+          <div className="brand" role="img" aria-label="Oxbit">
+            <OxbitMark decorative />
+          </div>
+          {projectMenu}
+        </header>
+      )}
       {error && (
         <div className="desktop-alert" role="alert">
           <span>{error}</span>
@@ -425,13 +409,17 @@ function App() {
         </div>
       )}
       <main className="desktop-content" inert={manager.isClosing}>
-        {active?.session ? (
-          <ActiveWorkbench
-            session={active.session}
-            onConnect={() => setPanel("trust")}
-            onOpenWorkspace={() => perform(native.open())}
-          />
-        ) : (
+        {view.projects.filter(entry => entry.session).map(entry => (
+          <ProjectPanels key={entry.project.key} entry={entry} active={entry.project.key === active?.project.key}>
+            {entry.project.key === active?.project.key && <ActiveWorkbench
+              session={entry.session!}
+              onConnect={() => setPanel("trust")}
+              onOpenWorkspace={() => perform(native.open())}
+              workspaceControl={projectMenu}
+            />}
+          </ProjectPanels>
+        ))}
+        {!active?.session && (
           <div className="desktop-welcome">
             <div className="oxbit-logo" role="img" aria-label="Oxbit" />
             <h1>
@@ -643,14 +631,24 @@ function App() {
     </div>
   );
 }
+function ProjectPanels({ entry, active, children }: { entry: ReturnType<typeof manager.snapshot>["projects"][number]; active: boolean; children: ReactNode }) {
+  const workbench = entry.session!.workbench;
+  useEffect(() => {
+    workbench.panelWindows.activateOwner = () => { if (manager.active?.project.key !== entry.project.key) void native.activate(entry.project.key); };
+    return () => { workbench.panelWindows.activateOwner = undefined; };
+  }, [workbench, entry.project.key]);
+  return <PanelProvider workbench={workbench} active={active}>{children}</PanelProvider>;
+}
 function ActiveWorkbench({
   session,
   onConnect,
   onOpenWorkspace,
+  workspaceControl,
 }: {
   session: Session;
   onConnect: () => void;
   onOpenWorkspace: () => void;
+  workspaceControl: ReactNode;
 }) {
   useSyncExternalStore(session.workbench.subscribe, session.workbench.snapshot);
   setLocale(session.kernel.configuration.get<string>("workbench.locale"));
@@ -660,6 +658,7 @@ function ActiveWorkbench({
       runtime={session.runtime}
       onConnect={onConnect}
       onOpenWorkspace={onOpenWorkspace}
+      workspaceControl={workspaceControl}
     />
   );
 }

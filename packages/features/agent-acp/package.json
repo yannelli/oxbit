@@ -1,0 +1,25 @@
+{
+  "name": "@oxbit/feature-agent-acp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.tsx",
+  "scripts": {},
+  "dependencies": {
+    "@oxbit/documents": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
+    "diff": "8.0.4",
+    "dompurify": "^3.2.7",
+    "markdown-it": "^10.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

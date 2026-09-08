@@ -2,6 +2,12 @@ import { translate as tr } from "@oxbit/ui";
 import type { ComponentType } from "react";
 import type { EditorView } from "@codemirror/view";
 import type { DocumentService } from "@oxbit/documents";
+import {
+  emptyPanelLayout, panelGroups, panelContainers, panelLocation, panelGroup,
+  reconcilePanels, movePanel, revealPanel, redockPanel, resizePanelSplit, validPanelLayout,
+  dockSides, type PanelLayout, type PanelTarget, type DockSide,
+} from "./panel-layout.js";
+import { PanelWindows } from "./panel-windows.js";
 import { documentViewFor } from "./contributions.js";
 import type {
   FileEntry,
@@ -49,6 +55,8 @@ export interface Notification {
 export interface WorkbenchState {
   groups: Group[];
   activeGroup: string;
+  panelLayout: PanelLayout;
+  panelOverlay: boolean;
   sidebar: boolean;
   sidebarId: string;
   sidebarWidth: number;
@@ -91,6 +99,8 @@ export interface WorkbenchState {
 const initial = (): WorkbenchState => ({
   groups: [{ id: "g1", tabs: [] }],
   activeGroup: "g1",
+  panelLayout: emptyPanelLayout(),
+  panelOverlay: (globalThis.innerWidth || 1440) >= 1100,
   sidebar: (globalThis.innerWidth || 1440) >= 1100,
   sidebarId: "explorer",
   sidebarWidth: 260,
@@ -113,6 +123,7 @@ const initial = (): WorkbenchState => ({
 export class WorkbenchController {
   state = initial();
   listeners = new Set<() => void>();
+  readonly panelWindows = new PanelWindows(this);
   editors = new Map<string, EditorView>();
   persistenceTimer?: ReturnType<typeof setTimeout>;
   disposed = false;
@@ -135,9 +146,30 @@ export class WorkbenchController {
   };
   snapshot = () => this.state;
   set(patch: Partial<WorkbenchState>) {
+    if (patch.sidebar === true || patch.panel === true) patch = { ...patch, panelOverlay: true };
     const expansionChanged =
       patch.expanded !== undefined &&
       patch.expanded.join("\0") !== this.state.expanded.join("\0");
+    if (!patch.panelLayout) {
+      let layout = this.state.panelLayout;
+      if (patch.sidebarId) layout = revealPanel(layout, patch.sidebarId);
+      if (patch.panelId) layout = revealPanel(layout, patch.panelId);
+      if (patch.sidebar !== undefined || patch.panel !== undefined || patch.sidebarWidth !== undefined || patch.panelHeight !== undefined) {
+        layout = structuredClone(layout);
+        const side = layout.docks[this.primaryDock];
+        if (patch.sidebar !== undefined) side.visible = patch.sidebar;
+        if (patch.sidebarWidth !== undefined) side.size = patch.sidebarWidth;
+        if (patch.panel !== undefined) layout.docks.bottom.visible = patch.panel;
+        if (patch.panelHeight !== undefined) layout.docks.bottom.size = patch.panelHeight;
+      }
+      patch = { ...patch, panelLayout: layout };
+    }
+    const primary = patch.panelLayout!.docks[this.primaryDock];
+    const bottom = patch.panelLayout!.docks.bottom;
+    patch = { ...patch, sidebar: primary.visible, sidebarWidth: primary.size,
+      sidebarId: panelGroups(primary.root).find(g => g.panels.includes(patch.sidebarId ?? this.state.sidebarId))?.active ?? panelGroups(primary.root)[0]?.active ?? this.state.sidebarId,
+      panel: bottom.visible, panelHeight: bottom.size,
+      panelId: panelGroups(bottom.root).find(g => g.panels.includes(patch.panelId ?? this.state.panelId))?.active ?? panelGroups(bottom.root)[0]?.active ?? this.state.panelId };
     this.state = { ...this.state, ...patch, revision: this.state.revision + 1 };
     if (expansionChanged && !this.disposed) {
       for (const directory of this.directories.keys())
@@ -244,25 +276,17 @@ export class WorkbenchController {
       };
     });
     groups = this.normalizeGroups(groups);
-    const panels = contributions.filter((item) => item.kind === "panel");
-    const views = contributions.filter((item) => item.kind === "activityView");
-    if (
-      changed ||
-      !panels.some((panel) => panel.id === this.state.panelId) ||
-      !views.some((view) => view.id === this.state.sidebarId)
-    )
-      this.set({
-        groups,
-        activeGroup: groups.some((group) => group.id === this.state.activeGroup)
-          ? this.state.activeGroup
-          : groups[0]!.id,
-        panelId: panels.some((panel) => panel.id === this.state.panelId)
-          ? this.state.panelId
-          : panels[0]?.id || "",
-        sidebarId: views.some((view) => view.id === this.state.sidebarId)
-          ? this.state.sidebarId
-          : views[0]?.id || "",
-      });
+    const toolPanels = contributions.filter(item => ["activityView", "panel"].includes(item.kind));
+    const starting = this.state.panelLayout;
+    if (this.primaryDock === "right" && !panelContainers(starting).some(c => c.root)) {
+      this.set({ panelLayout: { ...starting, docks: { ...starting.docks, left: { ...starting.docks.left, visible: false }, right: { ...starting.docks.right, visible: true } }, activeDock: "right" } });
+    }
+    const panelLayout = reconcilePanels(this.state.panelLayout, toolPanels, this.primaryDock);
+    if (panelLayout !== this.state.panelLayout) this.set({ panelLayout });
+    if (changed) this.set({
+      groups,
+      activeGroup: groups.some(group => group.id === this.state.activeGroup) ? this.state.activeGroup : groups[0]!.id,
+    });
     for (const contribution of contributions.filter(
       (item) => item.kind === "tab" && item.component,
     )) {
@@ -300,6 +324,7 @@ export class WorkbenchController {
     const {
       groups,
       activeGroup,
+      panelLayout,
       sidebar,
       sidebarId,
       sidebarWidth,
@@ -333,6 +358,7 @@ export class WorkbenchController {
           })),
       })),
       activeGroup,
+      panelLayout,
       sidebar,
       sidebarId,
       sidebarWidth,
@@ -352,6 +378,7 @@ export class WorkbenchController {
     if (saved?.groups?.length) {
       const surfaces = new Set(
         [
+          ...(validPanelLayout(saved.panelLayout) ? panelContainers(saved.panelLayout).flatMap(c => panelGroups(c.root).flatMap(g => g.panels)) : []),
           saved.panelId,
           saved.sidebarId,
           ...saved.groups.flatMap((group) =>
@@ -400,8 +427,23 @@ export class WorkbenchController {
           ? group.active
           : group.tabs[0]?.id,
       }));
+      let panelLayout: PanelLayout;
+      if (validPanelLayout(saved.panelLayout)) panelLayout = saved.panelLayout;
+      else {
+        panelLayout = emptyPanelLayout();
+        const side = panelLayout.docks[this.primaryDock];
+        panelLayout.docks.left.visible = false;
+        side.visible = saved.sidebar ?? true;
+        side.size = Math.max(180, Math.min(800, saved.sidebarWidth || 260));
+        if (saved.sidebarId) side.root = panelGroup([saved.sidebarId]);
+        panelLayout.docks.bottom.visible = saved.panel ?? false;
+        panelLayout.docks.bottom.size = Math.max(100, Math.min(800, saved.panelHeight || 220));
+        if (saved.panelId) panelLayout.docks.bottom.root = panelGroup([saved.panelId]);
+      }
+      panelLayout = reconcilePanels(panelLayout, this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind)), this.primaryDock);
       this.set({
         ...saved,
+        panelLayout,
         groups: normalized,
         activeGroup: normalized.some((group) => group.id === saved.activeGroup)
           ? saved.activeGroup
@@ -504,6 +546,7 @@ export class WorkbenchController {
     return undefined;
   };
   async openFile(path: string, options: OpenOptions = {}) {
+    this.panelWindows.focusOwner();
     const start = performance.now();
     let failure: string | undefined;
     try {
@@ -666,36 +709,73 @@ export class WorkbenchController {
       ),
     });
   }
+  get primaryDock(): DockSide {
+    return this.kernel.configuration.get<string>("workbench.sidebarLocation") === "right" ? "right" : "left";
+  }
+  panelVisible(id: string) {
+    const layout = this.state.panelLayout, location = panelLocation(layout, id);
+    if (!location) return false;
+    const container = panelContainers(layout).find(c => c.id === location.container);
+    const active = panelGroups(container?.root).find(g => g.id === location.group)?.active === id;
+    return active && (dockSides.includes(location.container as DockSide)
+      ? !this.state.focus && layout.docks[location.container as DockSide].visible && ((globalThis.innerWidth || 1440) >= 1100 || (this.state.panelOverlay && layout.activeDock === location.container))
+      : this.panelWindows.has(location.container));
+  }
   openPanel(id: string) {
-    if (this.kernel.contributions.list("activityView").some((c) => c.id === id))
-      this.openSidebar(id);
-    else {
-      this.set({ panel: true, panelId: id });
-      void this.kernel.extensions
-        .trigger("onView:" + id)
-        .then(() => {
-          if (this.disposed || !this.state.panel || this.state.panelId !== id)
-            return;
-          if (
-            this.kernel.contributions
-              .list("activityView")
-              .some((c) => c.id === id)
-          )
-            this.set({ panel: false, sidebar: true, sidebarId: id });
-        })
-        .catch((error) => this.notify(String(error), "error"));
-    }
+    const reveal = () => {
+      if (this.disposed) return;
+      const panels = this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind));
+      const layout = revealPanel(reconcilePanels(this.state.panelLayout, panels, this.primaryDock), id);
+      if (!panelLocation(layout, id)) { this.set({ panel: true, panelId: id }); return; }
+      this.set({ panelLayout: layout, panelOverlay: true });
+      const location = panelLocation(layout, id);
+      if (location && !dockSides.includes(location.container as DockSide)) this.panelWindows.focusOrRestore(location.container);
+    };
+    reveal();
+    void this.kernel.extensions.trigger("onView:" + id).then(reveal).catch(error => this.notify(String(error), "error"));
   }
   togglePanel(id: string) {
-    if (this.state.panel && this.state.panelId === id)
-      this.set({ panel: false });
+    const location = panelLocation(this.state.panelLayout, id);
+    if (location && this.panelVisible(id) && dockSides.includes(location.container as DockSide)) this.toggleDock(location.container as DockSide);
+    else if (!location && this.state.panel && this.state.panelId === id) this.set({ panel: false });
     else this.openPanel(id);
   }
-  openSidebar(id: string) {
-    this.set({ sidebar: true, sidebarId: id });
-    void this.kernel.extensions
-      .trigger("onView:" + id)
-      .catch((error) => this.notify(String(error), "error"));
+  openSidebar(id: string) { this.openPanel(id); }
+  toggleDock(side: DockSide) {
+    const panelLayout = structuredClone(this.state.panelLayout);
+    if ((globalThis.innerWidth || 1440) < 1100) {
+      if (this.state.panelOverlay && panelLayout.activeDock === side && panelLayout.docks[side].visible) {
+        this.set({ panelOverlay: false });
+        return;
+      }
+      panelLayout.docks[side].visible = true;
+      panelLayout.activeDock = side;
+      this.set({ panelLayout, panelOverlay: true });
+      return;
+    }
+    panelLayout.docks[side].visible = !panelLayout.docks[side].visible;
+    panelLayout.activeDock = side;
+    this.set({ panelLayout, panelOverlay: true });
+  }
+  getPanelLayout(): PanelLayout { return structuredClone(this.state.panelLayout); }
+  movePanel(id: string, target: PanelTarget) {
+    this.set({ panelLayout: movePanel(this.state.panelLayout, id, target), panelOverlay: true });
+  }
+  resizeDock(side: DockSide, size: number) {
+    const panelLayout = structuredClone(this.state.panelLayout);
+    panelLayout.docks[side].size = Math.max(side === "bottom" ? 100 : 180, Math.min(1000, size));
+    this.set({ panelLayout, maxPanel: false });
+  }
+  resizePanelSplit(id: string, ratio: number) {
+    this.set({ panelLayout: resizePanelSplit(this.state.panelLayout, id, ratio) });
+  }
+  detachPanel(id: string) { return this.panelWindows.detach(id); }
+  redockPanel(id: string) { this.set({ panelLayout: redockPanel(this.state.panelLayout, id) }); }
+  resetPanelLayout() {
+    const panelLayout = reconcilePanels(emptyPanelLayout(), this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind)), this.primaryDock);
+    panelLayout.docks.left.visible = this.primaryDock === "left";
+    panelLayout.docks.right.visible = this.primaryDock === "right";
+    this.set({ panelLayout });
   }
   closeView(id: string) {
     const groups = this.normalizeGroups(
@@ -723,9 +803,11 @@ export class WorkbenchController {
     y: number,
     commands: string[] = [],
   ) {
+    if (this.panelWindows.focusOwner()) { x = 60; y = 80; }
     this.set({ menu: { name: "context", location, x, y, ids: commands } });
   }
   openPalette(mode = "commands") {
+    this.panelWindows.focusOwner();
     this.set({
       palette: {
         mode,
@@ -765,11 +847,13 @@ export class WorkbenchController {
     choices = ["OK", "Cancel"],
     danger = false,
   ): Promise<string | undefined> {
+    this.panelWindows.focusOwner();
     return new Promise((resolve) =>
       this.set({ dialog: { title, message, choices, danger, resolve } }),
     );
   }
   async prompt(title: string, value = ""): Promise<string | undefined> {
+    this.panelWindows.focusOwner();
     return new Promise((resolve) =>
       this.set({
         dialog: {
@@ -919,8 +1003,10 @@ export class WorkbenchController {
     const tabs = this.state.groups
       .flatMap((g) => g.tabs)
       .filter((t, i, all) => all.findIndex((x) => x.id === t.id) === i);
+    this.resetPanelLayout();
     this.set({
       ...initial(),
+      panelLayout: this.state.panelLayout,
       files: this.state.files,
       projectName: this.state.projectName,
       recent: this.state.recent,
@@ -931,6 +1017,7 @@ export class WorkbenchController {
   }
   dispose() {
     this.disposed = true;
+    this.panelWindows.dispose();
     clearTimeout(this.persistenceTimer);
     clearTimeout(this.refreshTimer);
     void this.persist();

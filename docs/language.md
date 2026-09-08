@@ -4,6 +4,10 @@ The shared registry selects matching managed and local providers for each docume
 
 The document service sends unshared document updates once per document. Mounted CodeMirror views share diagnostics and remove their view registration when destroyed. Shared files use one canonical runtime stream per attached server instance. The browser flushes shared changes before language requests.
 
+Files containing multiple languages stay a single source document with their host language ID. For example, `.astro` files use the Astro server for TypeScript frontmatter, template expressions, HTML, scripts and styles. The framework server owns its embedded documents and maps completion edits, diagnostics and navigation back to the original file. Vue similarly uses its managed server and TypeScript companion. Support for embedded regions depends on the selected server.
+
+Protocol-defined `data` fields are opaque server metadata and round-trip unchanged during completion, code-action, hint, link, symbol and hierarchy resolution, including diagnostics supplied with code-action requests. Virtual URIs in this metadata are not filesystem targets. Actual document, location and workspace-edit URIs still pass the runtime's path checks; notifications and server-initiated edits retain those checks too.
+
 Requests check server capabilities. Cancellation, document changes, connection loss and server failure abort pending requests. Replies from an older document version or server instance are discarded. Server failure clears command availability; Restart starts the provider and opens current documents again. Unsupported position encodings fail startup.
 
 Rename, code actions and formatting capture local document versions, disk revisions and canonical LSP versions separately. Applying an edit checks all three, then calls `DocumentService.applyEdits`. Resource changes check source revisions and destinations. Create-file edits open a new shared document. Unsaved buffers stay unsaved after edits.

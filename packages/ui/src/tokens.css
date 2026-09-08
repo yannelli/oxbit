@@ -1,4 +1,5 @@
 @import "./theme-defaults.generated.css";
+@import "./classicos98.css";
 
 html,body{margin:0;min-height:100%;background:var(--bg-app,#14161a);font-family:var(--font-body-font-family,system-ui,sans-serif);-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -11,6 +12,9 @@ button:disabled{cursor:not-allowed}
 *::-webkit-scrollbar{width:10px;height:10px}*::-webkit-scrollbar-thumb{background:var(--bd-strong);border-radius:5px;border:2px solid transparent;background-clip:padding-box}*::-webkit-scrollbar-track{background:transparent}
 [data-theme="dark"]{--brand-accent:#8bd5ca;--brand-logo:url(/brand/oxbit-logo.svg)}
 [data-theme="light"]{--brand-accent:#0f7b6c;--brand-logo:url(/brand/oxbit-logo-dark.svg)}
+/* Windows-era 3D edge colours, consumed only by classicos98.css. */
+[data-theme-pack="oxbit.classicos98"]{--w98-hilight:#ffffff;--w98-light:#dfdfdf;--w98-shadow:#808080;--w98-dkshadow:#000000;--w98-caption-end:#1084d0;--w98-tip:#ffffe1;--w98-tip-fg:#000000}
+[data-theme-pack="oxbit.classicos98"][data-theme="dark"]{--w98-hilight:var(--bd-strong);--w98-light:var(--bd-strong);--w98-shadow:var(--bd);--w98-caption-end:var(--accent);--w98-tip:var(--bg-raised);--w98-tip-fg:var(--popover-foreground)}
 [data-density="compact"]{--row:22px;--ui:12px;--tab:34px;--pad:8px;--ctl:24px}
 [data-density="comfortable"]{--row:28px;--ui:13px;--tab:38px;--pad:12px;--ctl:28px}
 [data-mode="phone"]{--row:44px;--tab:44px;--ctl:44px;--ui:14px}

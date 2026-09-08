@@ -6,6 +6,8 @@ mod commands;
 mod environment;
 mod icon_packs;
 mod model;
+#[cfg(all(feature = "native-test", target_os = "macos"))]
+mod panel_test_delegate;
 mod supervisor;
 mod updates;
 
@@ -32,25 +34,155 @@ fn application_url(url: &tauri::Url) -> bool {
             && url.port() == Some(9280)
 }
 
+#[tauri::command]
+fn desktop_close_panel(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    id: String,
+) -> Result<(), String> {
+    if !app
+        .state::<Desktop>()
+        .model
+        .lock()
+        .unwrap()
+        .windows
+        .contains_key(window.label())
+        || !id.starts_with("panel-")
+        || id.len() >= 80
+        || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
+        return Err("Invalid panel owner or window identifier".into());
+    }
+    let prefix = format!("{}-{id}-", window.label());
+    for (label, child) in app.webview_windows() {
+        if label.starts_with(&prefix) {
+            child.destroy().map_err(|error| error.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
     if app.get_webview_window(label).is_some() {
         return Ok(());
     }
     let app_nav = app.clone();
     let app_new = app.clone();
+    let panel_owner = label.to_owned();
+    let reload_app = app.clone();
+    let child_prefix = format!("{label}-panel-");
     let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("Oxbit")
         .inner_size(1380.0, 900.0)
         .min_inner_size(720.0, 480.0)
+        .on_page_load(move |_, payload| {
+            // A reloaded owner gets a fresh JS session. Retire any old related
+            // documents before the saved panel layout opens its replacements.
+            if payload.event() == tauri::webview::PageLoadEvent::Started {
+                for (label, child) in reload_app.webview_windows() {
+                    if label.starts_with(&child_prefix) {
+                        let _ = child.destroy();
+                    }
+                }
+            }
+        })
         .on_navigation(move |url| {
-            if application_url(url) {
+            if application_url(url) || (url.scheme() == "about" && url.path() == "blank") {
                 true
             } else {
                 let _ = commands::external(&app_nav, url);
                 false
             }
         })
-        .on_new_window(move |url, _| {
+        .on_new_window(move |url, features| {
+            // Only this inert same-origin shell may retain an opener. It does not
+            // bootstrap another project or receive native command capabilities.
+            if url.scheme() == "about"
+                && url.path() == "blank"
+                && url
+                    .fragment()
+                    .is_some_and(|f| f.starts_with("oxbit-panel="))
+            {
+                let id = url
+                    .fragment()
+                    .and_then(|f| f.strip_prefix("oxbit-panel="))
+                    .map(str::to_owned);
+                if let Some(id) = id.filter(|id| {
+                    id.starts_with("panel-")
+                        && id.len() < 80
+                        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                }) {
+                    let panel_label =
+                        format!("{}-{}-{}", panel_owner, id, uuid::Uuid::new_v4().simple());
+                    let owner = panel_owner.clone();
+                    let nav_app = app_new.clone();
+                    let link_app = app_new.clone();
+                    let builder = WebviewWindowBuilder::new(
+                        &app_new,
+                        &panel_label,
+                        WebviewUrl::External("about:blank".parse().unwrap()),
+                    )
+                    .window_features(features)
+                    .title("Oxbit — Panels")
+                    .min_inner_size(320.0, 240.0)
+                    .disable_drag_drop_handler()
+                    .on_navigation(move |target| {
+                        if target.scheme() == "about" && target.path() == "blank" {
+                            true
+                        } else {
+                            let _ = commands::external(&link_app, target);
+                            false
+                        }
+                    })
+                    .on_new_window(move |target, _| {
+                        let _ = commands::external(&nav_app, &target);
+                        tauri::webview::NewWindowResponse::Deny
+                    });
+                    let panel = match builder.build() {
+                        Ok(panel) => panel,
+                        Err(error) => {
+                            let _ = app_new.emit_to(
+                                &owner,
+                                "desktop-error",
+                                format!("Could not open floating panel: {error}"),
+                            );
+                            return tauri::webview::NewWindowResponse::Deny;
+                        }
+                    };
+                    {
+                        if let (Ok(position), Ok(scale)) =
+                            (panel.outer_position(), panel.scale_factor())
+                        {
+                            let pos = position.to_logical::<i32>(scale);
+                            let visible = app_new
+                                .available_monitors()
+                                .unwrap_or_default()
+                                .iter()
+                                .any(|m| {
+                                    let origin = m.position().to_logical::<i32>(m.scale_factor());
+                                    let size = m.size().to_logical::<u32>(m.scale_factor());
+                                    pos.x >= origin.x
+                                        && pos.y >= origin.y
+                                        && pos.x < origin.x + size.width as i32 - 80
+                                        && pos.y < origin.y + size.height as i32 - 80
+                                });
+                            if !visible {
+                                let _ = panel.center();
+                            }
+                        }
+                        if let Some(parent) = app_new.get_webview_window(&owner) {
+                            let child = panel.clone();
+                            parent.on_window_event(move |event| {
+                                if matches!(event, tauri::WindowEvent::Destroyed) {
+                                    let _ = child.destroy();
+                                }
+                            });
+                        }
+                        return tauri::webview::NewWindowResponse::Create { window: panel };
+                    }
+                }
+                return tauri::webview::NewWindowResponse::Deny;
+            }
             let _ = commands::external(&app_new, &url);
             tauri::webview::NewWindowResponse::Deny
         });
@@ -88,6 +220,18 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
     let window = builder
         .build()
         .map_err(|e| format!("Could not create an Oxbit window: {e}"))?;
+    #[cfg(target_os = "macos")]
+    window
+        .with_webview(|view| unsafe {
+            // A saved layout must be able to reopen its related windows without a
+            // fresh input gesture. The navigation/new-window callbacks still restrict URLs.
+            let webview = &*(view.inner() as *const objc2_web_kit::WKWebView);
+            webview
+                .configuration()
+                .preferences()
+                .setJavaScriptCanOpenWindowsAutomatically(true);
+        })
+        .map_err(|error| error.to_string())?;
     {
         let desktop = app.state::<Desktop>();
         let mut model = desktop.model.lock().unwrap();
@@ -150,7 +294,13 @@ fn focused_label(app: &AppHandle) -> String {
     app.webview_windows()
         .values()
         .find(|w| w.is_focused().unwrap_or(false))
-        .map(|w| w.label().to_owned())
+        .map(|w| {
+            w.label()
+                .split("-panel-")
+                .next()
+                .unwrap_or(w.label())
+                .to_owned()
+        })
         .unwrap_or_else(|| "main".into())
 }
 
@@ -245,12 +395,17 @@ fn main() {
                 .pubkey(option_env!("OXBIT_UPDATER_PUBLIC_KEY").unwrap_or(""))
                 .build(),
         );
+    #[cfg(all(feature = "native-test", target_os = "macos"))]
+    let builder = builder.plugin(panel_test_delegate::hook(false));
     #[cfg(feature = "native-test")]
     let builder = builder
         .plugin(tauri_plugin_wdio::init())
         .plugin(tauri_plugin_wdio_webdriver::init());
+    #[cfg(all(feature = "native-test", target_os = "macos"))]
+    let builder = builder.plugin(panel_test_delegate::hook(true));
     let app = builder
         .invoke_handler(tauri::generate_handler![
+            desktop_close_panel,
             #[cfg(feature = "native-test")]
             commands::desktop_test_crash,
             commands::desktop_snapshot,
@@ -296,8 +451,16 @@ fn main() {
             });
             app.set_menu(menu(app.handle())?)?;
             app.on_menu_event(|app, event| {
-                let label = focused_label(app);
                 let id = event.id().as_ref();
+                if id == "desktop:close-window" {
+                    if let Some(panel) = app.webview_windows().values().find(|window| {
+                        window.label().contains("-panel-") && window.is_focused().unwrap_or(false)
+                    }) {
+                        let _ = panel.close();
+                        return;
+                    }
+                }
+                let label = focused_label(app);
                 if id == "desktop:quit" {
                     let _ = closing::begin(app, &label, "quit", None);
                 } else {

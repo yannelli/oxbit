@@ -18,7 +18,12 @@ import {
   createFeature as themesFeature,
   createVSCodeFeature,
   createVSCodeHighContrastFeature,
+  createClassicOS98Feature,
+  classicOS98IconPack,
+  CLASSICOS98_PACK_ID,
+  CLASSICOS98_REVISION,
 } from "@oxbit/feature-themes";
+import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
 import { createFeature as languageFeature } from "@oxbit/feature-language";
 import { createFeature as searchFeature } from "@oxbit/feature-search";
 import { createFeature as previewsFeature } from "@oxbit/feature-previews";
@@ -31,9 +36,26 @@ import { createFeature as terminalFeature } from "@oxbit/feature-terminal";
 import { createFeature as tasksFeature } from "@oxbit/feature-tasks";
 import { createFeature as gitFeature } from "@oxbit/feature-git";
 import { createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
+import { createFeature as agentACPFeature } from "@oxbit/feature-agent-acp";
 import bundleInspector from "@oxbit/bundle-inspector";
 import { ScopedConfigurationPersistence } from "./configuration.js";
 export { ScopedConfigurationPersistence } from "./configuration.js";
+const SEED_KEY = "oxbit.iconPack.seeded";
+/** Origin-wide, matching the icon pack store, so every project shares one answer. */
+const seedMarker = () => (typeof localStorage === "undefined" ? undefined : localStorage);
+
+/** Installs the bundled pack once. Uninstalling it is remembered until the revision changes. */
+async function seedIconPack(store: PackStore) {
+  try {
+    const marker = seedMarker();
+    if (marker?.getItem(SEED_KEY) === CLASSICOS98_REVISION) return;
+    const installed = (await store.read()).find(pack => pack.id === CLASSICOS98_PACK_ID);
+    if (installed?.revision !== CLASSICOS98_REVISION) await store.put(classicOS98IconPack);
+    marker?.setItem(SEED_KEY, CLASSICOS98_REVISION);
+  } catch {
+    // Icon packs stay optional; the workbench keeps its own glyphs.
+  }
+}
 export interface Session {
   kernel: Kernel;
   documents: DocumentService;
@@ -122,9 +144,11 @@ export async function createWorkbenchSession({
   kernel.context.set("workspace", true);
   kernel.context.set("connected", !!runtime?.connected);
   kernel.context.set("editor", false);
-  const iconThemes = new IconThemeService(kernel, iconPackStore ?? new BrowserPackStore(), message => workbench.notify(message, "warning", { source: "Icon Packs", actions: [{ title: "Manage Icon Packs", command: "iconPacks.manage" }] }));
+  const packStore = iconPackStore ?? new BrowserPackStore();
+  const iconThemes = new IconThemeService(kernel, packStore, message => workbench.notify(message, "warning", { source: "Icon Packs", actions: [{ title: "Manage Icon Packs", command: "iconPacks.manage" }] }));
   kernel.services.register("iconThemes", iconThemes);
   try {
+    await seedIconPack(packStore);
     await iconThemes.initialize().catch(error => workbench.notify(`Icon packs could not be loaded: ${String(error)}`, "warning"));
     await documents.restore();
     const options = { kernel, documents, filesystem, runtime, workbench };
@@ -141,6 +165,8 @@ export async function createWorkbenchSession({
       themesFeature(options),
       createVSCodeFeature(options),
       createVSCodeHighContrastFeature(options),
+      createClassicOS98Feature(options),
+      keymapsFeature(options),
       createWorkbenchFeature(workbench),
       editorFeature(options),
       explorerFeature(options),
@@ -155,13 +181,16 @@ export async function createWorkbenchSession({
       tasksFeature(options),
       gitFeature(options),
       collaborationFeature(options),
+      agentACPFeature(options),
       bundleInspector,
     ];
     for (const feature of features) kernel.extensions.register(feature);
     const disabled =
       (await persistence.get<string[]>("extension-disabled")) || [];
+    const enabled = (await persistence.get<string[]>("extension-enabled")) || [];
     for (const feature of features)
-      if (disabled.includes(feature.manifest.id))
+      if (disabled.includes(feature.manifest.id) ||
+          (feature.manifest.enabledByDefault === false && !enabled.includes(feature.manifest.id)))
         await kernel.extensions.disable(feature.manifest.id);
     for (const [savedId, url] of Object.entries(
       (await persistence.get<Record<string, string>>("extension-artifacts")) ||

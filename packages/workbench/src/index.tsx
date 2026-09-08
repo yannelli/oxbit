@@ -37,6 +37,10 @@ import {
 } from "./controller.js";
 import catalog from "./catalog.json";
 import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
+import { PanelProvider, PanelDock } from "./panels.js";
+export { PanelProvider } from "./panels.js";
+export * from "./panel-layout.js";
+export { configurePanelWindows, type PanelWindowHost } from "./panel-windows.js";
 import { AboutDialog } from "./about.js";
 import { symbolKind, useDocumentSymbols } from "./symbols.js";
 export { symbolKind, useDocumentSymbols } from "./symbols.js";
@@ -46,11 +50,18 @@ import {
   keyboardShortcut,
   shortcutCandidates,
   resolveWorkbenchShortcut,
+  commandBinding,
   displayShortcut,
 } from "./shortcuts.js";
 export * from "./controller.js";
 export { workspaceEntries } from "./files.js";
-export { normalizeShortcut, displayShortcut } from "./shortcuts.js";
+export {
+  normalizeShortcut,
+  displayShortcut,
+  activeKeymap,
+  commandBinding,
+} from "./shortcuts.js";
+export type { ActiveKeymap } from "./shortcuts.js";
 export function useWorkbench(workbench: WorkbenchController) {
   return useSyncExternalStore(workbench.subscribe, workbench.snapshot);
 }
@@ -94,15 +105,19 @@ export function createWorkbenchFeature(
       add(
         "view.toggleSidebar",
         "Toggle Sidebar",
-        () => workbench.set({ sidebar: !workbench.state.sidebar }),
+        () => workbench.toggleDock(workbench.primaryDock),
         "Ctrl+B",
       );
       add(
         "view.togglePanel",
         "Toggle Panel",
-        () => workbench.set({ panel: !workbench.state.panel }),
+        () => workbench.toggleDock("bottom"),
         "Ctrl+J",
       );
+      add("view.toggleLeftPanels", "Toggle Left Panels", () => workbench.toggleDock("left"));
+      add("view.toggleRightPanels", "Toggle Right Panels", () => workbench.toggleDock("right"));
+      add("view.resetPanelLayout", "Reset Panel Layout", () => workbench.resetPanelLayout());
+      add("view.restoreFloatingPanels", "Restore Floating Panels", () => workbench.panelWindows.restoreAll());
       add(
         "view.focusMode",
         "Toggle Focus Mode",
@@ -203,6 +218,10 @@ function useKeyboard(workbench: WorkbenchController) {
       )
         return;
       const target = event.target as HTMLElement;
+      // A composer owns its submit shortcut even when a global command shares it.
+      if (target.closest("[data-local-submit]") && event.key === "Enter" &&
+          (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey)
+        return;
       const state = workbench.state;
       if (
         state.dialog ||
@@ -282,12 +301,8 @@ function useKeyboard(workbench: WorkbenchController) {
         workbench.set({ notificationCenter: false });
         return;
       }
-      if ((globalThis.innerWidth || 1440) < 1100 && state.sidebar) {
-        workbench.set({ sidebar: false });
-        return;
-      }
-      if ((globalThis.innerWidth || 1440) < 1100 && state.panel) {
-        workbench.set({ panel: false });
+      if ((globalThis.innerWidth || 1440) < 1100 && state.panelOverlay && state.panelLayout.docks[state.panelLayout.activeDock].visible) {
+        workbench.toggleDock(state.panelLayout.activeDock);
         return;
       }
       if (state.focus && performance.now() - escapeTime.current < 600)
@@ -304,7 +319,7 @@ function useKeyboard(workbench: WorkbenchController) {
     };
   }, [workbench]);
 }
-class Boundary extends Component<
+export class Boundary extends Component<
   { children: ReactNode; name: string },
   { error?: string }
 > {
@@ -333,11 +348,13 @@ export function Workbench({
   runtime,
   onConnect,
   onOpenWorkspace,
+  workspaceControl,
 }: {
   workbench: WorkbenchController;
   runtime?: RpcClient;
   onConnect?: () => void;
   onOpenWorkspace?: () => void;
+  workspaceControl?: ReactNode;
 }) {
   const s = useWorkbench(workbench),
     kernel = workbench.kernel;
@@ -366,14 +383,10 @@ export function Workbench({
   const t = catalog.strings[locale];
   setLocale(locale);
   const views = kernel.contributions.list("activityView");
-  const panels = kernel.contributions.list("panel");
-  const sidebar = views.find((v) => v.id === s.sidebarId);
 
   const dirty = [...workbench.documents.documents.values()].filter(
     (d) => d.dirty,
   ).length;
-  const conf =
-    kernel.configuration.get<string>("workbench.sidebarLocation") === "right";
   const status = kernel.contributions.list("statusItem");
   const command = (id: string) => () => void workbench.run(id);
   const label = (view: Contribution) =>
@@ -389,37 +402,6 @@ export function Workbench({
       } as Record<string, string>
     )[view.id] ||
     "package";
-  const startResize = (
-    event: React.PointerEvent,
-    kind: "sidebar" | "panel",
-  ) => {
-    event.preventDefault();
-    const start = kind === "sidebar" ? event.clientX : event.clientY;
-    const initial = kind === "sidebar" ? s.sidebarWidth : s.panelHeight;
-    const move = (e: PointerEvent) => {
-      if (kind === "sidebar")
-        workbench.set({
-          sidebarWidth: Math.max(
-            180,
-            Math.min(520, initial + (e.clientX - start) * (conf ? -1 : 1)),
-          ),
-        });
-      else
-        workbench.set({
-          panelHeight: Math.max(
-            100,
-            Math.min(600, initial + start - e.clientY),
-          ),
-          maxPanel: false,
-        });
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up, { once: true });
-  };
   return (
     <IconProvider
       kernel={kernel}
@@ -433,13 +415,15 @@ export function Workbench({
           ]),
       )}
     >
+      <PanelProvider workbench={workbench}>
       <div
         ref={rootRef}
         data-tooltip-root=""
         style={themeVariables(kernel)}
-        className={`workbench ${s.focus ? "focus-mode" : ""} ${conf ? "sidebar-right" : ""}`}
+        className={`workbench dock-workbench ${s.focus ? "focus-mode" : ""}`}
         data-screen-label="Workbench"
         data-theme={theme}
+        data-theme-pack={currentTheme(kernel).packId}
         data-density={
           kernel.configuration.get("workbench.density") || "compact"
         }
@@ -515,10 +499,12 @@ export function Workbench({
                   )}
                 </div>
               ))}
-            <button className="workspace-title" onClick={onOpenWorkspace}>
-              {s.projectName}
-              <Icon name="chevD" size={12} />
-            </button>
+            {workspaceControl ?? (
+              <button className="workspace-title" onClick={onOpenWorkspace}>
+                {s.projectName}
+                <Icon name="chevD" size={12} />
+              </button>
+            )}
             <button
               className="title-search"
               onClick={command("workbench.quickOpen")}
@@ -555,9 +541,15 @@ export function Workbench({
               <span className="title-divider" />
               <IconButton
                 icon="layoutSide"
-                label={tr("Toggle sidebar")}
-                aria-pressed={s.sidebar}
-                onClick={command("view.toggleSidebar")}
+                label={tr("Toggle left panels")}
+                aria-pressed={s.panelLayout.docks.left.visible}
+                onClick={command("view.toggleLeftPanels")}
+              />
+              <IconButton
+                icon="layoutSide"
+                label={tr("Toggle right panels")}
+                aria-pressed={s.panelLayout.docks.right.visible}
+                onClick={command("view.toggleRightPanels")}
               />
               <IconButton
                 icon="layoutPanel"
@@ -604,16 +596,11 @@ export function Workbench({
                       data-tooltip={label(view)}
                       title=""
                       aria-label={label(view)}
-                      aria-pressed={s.sidebarId === view.id && s.sidebar}
+                      aria-pressed={workbench.panelVisible(view.id)}
                       className={
-                        s.sidebarId === view.id && s.sidebar ? "active" : ""
+                        workbench.panelVisible(view.id) ? "active" : ""
                       }
-                      onClick={() =>
-                        workbench.set({
-                          sidebar: s.sidebarId === view.id ? !s.sidebar : true,
-                          sidebarId: view.id,
-                        })
-                      }
+                      onClick={() => workbench.togglePanel(view.id)}
                     >
                       <Icon name={icon(view)} size={18} />
                       {view.id === "explorer" && dirty > 0 && (
@@ -678,100 +665,7 @@ export function Workbench({
                 )}
               </nav>
             )}
-            {s.sidebar && !s.focus && (
-              <>
-                {mode !== "desktop" && (
-                  <button
-                    className="sidebar-scrim"
-                    aria-label={tr("Close sidebar")}
-                    onClick={() => workbench.set({ sidebar: false })}
-                  />
-                )}
-                <aside
-                  className="sidebar"
-                  aria-label={sidebar?.title || s.sidebarId}
-                  style={{
-                    width:
-                      mode === "phone"
-                        ? "100%"
-                        : mode === "tablet"
-                          ? 320
-                          : s.sidebarWidth,
-                  }}
-                >
-                  <div className="sidebar-heading">
-                    <span>{sidebar ? label(sidebar) : s.sidebarId}</span>
-                    <ToolbarContributions
-                      workbench={workbench}
-                      location={"sidebar:" + s.sidebarId}
-                    />
-                    <span className="push" />
-                    {s.sidebarId === "explorer" && (
-                      <>
-                        <IconButton
-                          icon="newFile"
-                          label={tr("New File")}
-                          onClick={command("file.new")}
-                        />
-                        <IconButton
-                          icon="newFolder"
-                          label={tr("New Folder")}
-                          onClick={command("file.newFolder")}
-                        />
-                        <IconButton
-                          icon="collapse"
-                          label={tr("Collapse folders")}
-                          onClick={() => workbench.set({ expanded: [] })}
-                        />
-                      </>
-                    )}
-                    {mode !== "desktop" && (
-                      <IconButton
-                        icon="x"
-                        label={tr("Close sidebar")}
-                        onClick={() => workbench.set({ sidebar: false })}
-                      />
-                    )}
-                  </div>
-                  <div className="sidebar-content">
-                    {sidebar?.component ? (
-                      <Boundary name={sidebar.title}>
-                        <sidebar.component
-                          kernel={kernel}
-                          workbench={workbench}
-                          documents={workbench.documents}
-                        />
-                      </Boundary>
-                    ) : (
-                      <EmptyState title={tr("View unavailable")} />
-                    )}
-                  </div>
-                  {mode === "desktop" && (
-                    <div
-                      className="sidebar-sash"
-                      role="separator"
-                      aria-label={tr("Resize sidebar")}
-                      aria-orientation="vertical"
-                      tabIndex={0}
-                      onPointerDown={(e) => startResize(e, "sidebar")}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowLeft" || e.key === "ArrowRight")
-                          workbench.set({
-                            sidebarWidth: Math.max(
-                              180,
-                              Math.min(
-                                520,
-                                s.sidebarWidth +
-                                  (e.key === "ArrowRight" ? 10 : -10),
-                              ),
-                            ),
-                          });
-                      }}
-                    />
-                  )}
-                </aside>
-              </>
-            )}
+            <PanelDock side="left" mode={mode} />
             <main className="main-workbench">
               <div
                 className="editor-groups"
@@ -791,119 +685,9 @@ export function Workbench({
                   </Fragment>
                 ))}
               </div>
-              {s.panel && !s.focus && (
-                <>
-                  {mode !== "desktop" && (
-                    <button
-                      className="panel-scrim"
-                      aria-label={tr("Close panel")}
-                      onClick={() => void workbench.run("view.togglePanel")}
-                    />
-                  )}
-                  <section
-                    className={`bottom-panel ${s.maxPanel ? "maximized" : ""}`}
-                    aria-label={tr("Panel")}
-                    style={{
-                      height: s.maxPanel
-                        ? "100%"
-                        : mode === "desktop"
-                          ? s.panelHeight
-                          : mode === "tablet"
-                            ? "45%"
-                            : "50%",
-                    }}
-                  >
-                    <div
-                      className="panel-sash"
-                      role="separator"
-                      aria-label={tr("Resize panel")}
-                      aria-orientation="horizontal"
-                      tabIndex={0}
-                      onPointerDown={(e) => startResize(e, "panel")}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowUp" || e.key === "ArrowDown")
-                          workbench.set({
-                            panelHeight: Math.max(
-                              100,
-                              Math.min(
-                                600,
-                                s.panelHeight +
-                                  (e.key === "ArrowUp" ? 10 : -10),
-                              ),
-                            ),
-                          });
-                      }}
-                    />
-                    <div className="panel-header">
-                      <div
-                        className="panel-tabs"
-                        role="tablist"
-                        aria-label={tr("Panel views")}
-                      >
-                        {panels.map((p) => (
-                          <button
-                            key={p.id}
-                            role="tab"
-                            aria-selected={p.id === s.panelId}
-                            className={p.id === s.panelId ? "selected" : ""}
-                            onClick={() =>
-                              void workbench.run("workbench.surface." + p.id)
-                            }
-                          >
-                            {(t as Record<string, string>)[p.id] || tr(p.title)}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="panel-actions">
-                        <ToolbarContributions
-                          workbench={workbench}
-                          location={"panel:" + s.panelId}
-                        />
-                        <IconButton
-                          icon={s.maxPanel ? "minimize" : "maximize"}
-                          label={tr("Maximize panel")}
-                          onClick={() =>
-                            workbench.set({ maxPanel: !s.maxPanel })
-                          }
-                        />
-                        <IconButton
-                          icon="x"
-                          label={tr("Close panel")}
-                          onClick={() => workbench.set({ panel: false })}
-                        />
-                      </div>
-                    </div>
-                    <div className="panel-content">
-                      {panels.map((p) => {
-                        const C = p.component;
-                        return (
-                          C && (
-                            <div
-                              key={p.id}
-                              className="panel-instance"
-                              style={{
-                                display: p.id === s.panelId ? "block" : "none",
-                              }}
-                            >
-                              <Boundary name={p.title}>
-                                <C kernel={kernel} workbench={workbench} />
-                              </Boundary>
-                            </div>
-                          )
-                        );
-                      })}
-                      {!panels.some((p) => p.id === s.panelId) && (
-                        <EmptyState title={tr("Panel unavailable")}>
-                          <button className="button" onClick={onConnect}>
-                            {tr("Connect runtime")}
-                          </button>
-                        </EmptyState>
-                      )}
-                    </div>
-                  </section>
-                </>
-              )}
+              <PanelDock side="bottom" mode={mode} />
             </main>
+            <PanelDock side="right" mode={mode} />
           </div>
         ) : (
           <div className="welcome">
@@ -1026,6 +810,7 @@ export function Workbench({
         <Notifications workbench={workbench} />
         <TooltipLayer rootRef={rootRef} delay={kernel.configuration.get<number>("workbench.tooltipDelay") ?? 400} />
       </div>
+      </PanelProvider>
     </IconProvider>
   );
 }
@@ -1670,10 +1455,10 @@ function CommandMenu({
             </span>
             <kbd>
               {displayShortcut(
-                workbench.state.keybindings[id] ??
-                  cmd?.shortcut ??
-                  info?.win ??
-                  "",
+                commandBinding(workbench.kernel, workbench.state.keybindings, {
+                  id,
+                  shortcut: cmd?.shortcut,
+                }),
               )}
             </kbd>
             {!available.enabled && <small>{available.reason}</small>}
@@ -1766,10 +1551,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
             id: c.id,
             title: c.title,
             detail: c.category,
-            keys:
-              s.keybindings[c.id] ??
-              c.shortcut ??
-              catalog.commands.find((i) => i.id === c.id)?.win,
+            keys: commandBinding(workbench.kernel, s.keybindings, c),
             enabled: workbench.kernel.commands.available(c.id).enabled,
             run: () => workbench.run(c.id),
           }))
@@ -2157,7 +1939,7 @@ function EditorStatus({ workbench }: { workbench: WorkbenchController }) {
     </>
   );
 }
-function ToolbarContributions({
+export function ToolbarContributions({
   workbench,
   location,
 }: {

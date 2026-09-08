@@ -50,6 +50,9 @@
       "path": "packages/features/themes"
     },
     {
+      "path": "packages/features/keymaps"
+    },
+    {
       "path": "packages/features/language"
     },
     {
@@ -87,6 +90,9 @@
     },
     {
       "path": "packages/icon-themes"
+    },
+    {
+      "path": "packages/features/agent-acp"
     }
   ]
 }

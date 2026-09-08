@@ -45,6 +45,7 @@ pub fn begin(app: &AppHandle, window: &str, kind: &str, key: Option<&str>) -> Re
     } else {
         app.webview_windows()
             .keys()
+            .filter(|label| model.windows.contains_key(*label))
             .map(|label| {
                 (
                     label.clone(),

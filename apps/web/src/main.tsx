@@ -15,6 +15,7 @@ import {
   workspaceEntries,
   themeMode,
   themeVariables,
+  currentTheme,
 } from "@oxbit/workbench";
 import { Dialog, OxbitLogo } from "@oxbit/ui";
 import {
@@ -388,6 +389,7 @@ function SessionView({
         <div
           className="runtime-connect"
           data-theme={theme}
+          data-theme-pack={currentTheme(session.kernel).packId}
           data-density="compact"
           style={{
             ...themeVariables(session.kernel),

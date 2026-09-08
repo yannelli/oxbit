@@ -14,7 +14,7 @@ const themeEntry={type:'array',maxItems:100,items:{type:'object',required:['id',
 const schemas={
  manifest:{type:'object',required:['publisher','name','version','contributes'],properties:{publisher:id,name:id,version:text,displayName:text,description:{type:'string'},license:text,contributes:{type:'object',properties:{iconThemes:themeEntry,productIconThemes:themeEntry},anyOf:[{required:['iconThemes']},{required:['productIconThemes']}],additionalProperties:true}},additionalProperties:true},
  file:{type:'object',required:['iconDefinitions'],properties:{$schema:text,iconDefinitions:{type:'object',additionalProperties:definition},fonts:{type:'array',maxItems:100,items:font},...associations,light:{type:'object',properties:associations,additionalProperties:false},highContrast:{type:'object',properties:associations,additionalProperties:false},hidesExplorerArrows:{type:'boolean'},showLanguageModeIcons:{type:'boolean'}},additionalProperties:true},
- product:{type:'object',required:['iconDefinitions','fonts'],properties:{$schema:text,iconDefinitions:{type:'object',additionalProperties:{type:'object',required:['fontCharacter'],properties:glyph,additionalProperties:false}},fonts:{type:'array',minItems:1,maxItems:100,items:font}},additionalProperties:true}
+ product:{type:'object',required:['iconDefinitions'],properties:{$schema:text,iconDefinitions:{type:'object',additionalProperties:definition},fonts:{type:'array',maxItems:100,items:font}},additionalProperties:true}
 };
 const ajv=new Ajv2020({code:{source:true,esm:true},allErrors:true,strict:false,unicode:false});
 for(const [name,schema] of Object.entries(schemas)){

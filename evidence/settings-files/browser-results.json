@@ -2,13 +2,13 @@
   "config": {
     "argv": [
       "/Users/ryanyannelli/.nvm/versions/node/v24.16.0/bin/node",
-      "/Users/ryanyannelli/Development/oxbit-project-settings/node_modules/@playwright/test/cli.js",
+      "/Users/ryanyannelli/Development/oxbit/node_modules/@playwright/test/cli.js",
       "test",
       "-c",
       "scripts/language/settings-playwright.config.ts"
     ],
-    "configFile": "/Users/ryanyannelli/Development/oxbit-project-settings/scripts/language/settings-playwright.config.ts",
-    "rootDir": "/Users/ryanyannelli/Development/oxbit-project-settings/tests/browser",
+    "configFile": "/Users/ryanyannelli/Development/oxbit/scripts/language/settings-playwright.config.ts",
+    "rootDir": "/Users/ryanyannelli/Development/oxbit/tests/browser",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
@@ -24,7 +24,7 @@
     "preserveOutput": "always",
     "projects": [
       {
-        "outputDir": "/Users/ryanyannelli/Development/oxbit-project-settings/evidence/settings-files/browser-artifacts",
+        "outputDir": "/Users/ryanyannelli/Development/oxbit/evidence/settings-files/browser-artifacts",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -32,7 +32,7 @@
         },
         "id": "",
         "name": "",
-        "testDir": "/Users/ryanyannelli/Development/oxbit-project-settings/tests/browser",
+        "testDir": "/Users/ryanyannelli/Development/oxbit/tests/browser",
         "testIgnore": [],
         "testMatch": [
           "settings-files.spec.ts"
@@ -97,12 +97,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2459,
+                  "duration": 2150,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-08T06:40:59.331Z",
+                  "startTime": "2026-09-08T05:54:41.460Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -131,12 +131,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2087,
+                  "duration": 1945,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-09-08T06:41:02.191Z",
+                  "startTime": "2026-09-08T05:54:43.779Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -154,8 +154,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-09-08T06:40:57.025Z",
-    "duration": 7344.085999999999,
+    "startTime": "2026-09-08T05:54:39.250Z",
+    "duration": 6541.023,
     "expected": 2,
     "skipped": 0,
     "unexpected": 0,

@@ -8,6 +8,7 @@ describe("SSH connector in the native WebView", () => {
       () => browser.execute(() => !!globalThis.__oxbitDesktop),
       { timeout: 30000 },
     );
+    await $("#project-switcher").click();
     await $("button=Connect over SSH…").click();
     await $(".ssh-form").waitForExist();
     await browser.execute(() =>
@@ -65,6 +66,7 @@ describe("SSH connector in the native WebView", () => {
           globalThis.__sshOriginalOpen;
       });
     }
+    await $("#project-switcher").click();
     await $("button=Connect over SSH…").click();
     await $(".ssh-form").waitForExist();
     await browser.execute(() =>

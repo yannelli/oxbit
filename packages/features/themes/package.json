@@ -7,13 +7,14 @@
   "scripts": {},
   "dependencies": {
     "@oxbit/documents": "workspace:*",
+    "@oxbit/icon-themes": "workspace:*",
     "@oxbit/sdk": "workspace:*",
+    "@oxbit/themes": "workspace:*",
     "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
     "fflate": "^0.8.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "@oxbit/themes": "workspace:*",
-    "@oxbit/workbench": "workspace:*"
+    "react-dom": "19.1.0"
   },
   "license": "MIT",
   "author": {

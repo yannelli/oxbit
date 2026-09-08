@@ -277,6 +277,9 @@ importers:
       '@oxbit/documents':
         specifier: workspace:*
         version: link:../documents
+      '@oxbit/feature-agent-acp':
+        specifier: workspace:*
+        version: link:../features/agent-acp
       '@oxbit/feature-collaboration':
         specifier: workspace:*
         version: link:../features/collaboration
@@ -295,6 +298,9 @@ importers:
       '@oxbit/feature-git':
         specifier: workspace:*
         version: link:../features/git
+      '@oxbit/feature-keymaps':
+        specifier: workspace:*
+        version: link:../features/keymaps
       '@oxbit/feature-language':
         specifier: workspace:*
         version: link:../features/language
@@ -355,6 +361,36 @@ importers:
       yjs:
         specifier: ^13.6.27
         version: 13.6.32
+
+  packages/features/agent-acp:
+    dependencies:
+      '@oxbit/documents':
+        specifier: workspace:*
+        version: link:../../documents
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+      '@oxbit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      '@oxbit/workbench':
+        specifier: workspace:*
+        version: link:../../workbench
+      diff:
+        specifier: 8.0.4
+        version: 8.0.4
+      dompurify:
+        specifier: ^3.2.7
+        version: 3.4.15
+      markdown-it:
+        specifier: ^10.0.0
+        version: 10.0.0
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
 
   packages/features/collaboration:
     dependencies:
@@ -544,6 +580,15 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+
+  packages/features/keymaps:
+    dependencies:
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+      '@oxbit/workbench':
+        specifier: workspace:*
+        version: link:../../workbench
 
   packages/features/language:
     dependencies:
@@ -745,6 +790,9 @@ importers:
       '@oxbit/documents':
         specifier: workspace:*
         version: link:../../documents
+      '@oxbit/icon-themes':
+        specifier: workspace:*
+        version: link:../../icon-themes
       '@oxbit/sdk':
         specifier: workspace:*
         version: link:../../sdk

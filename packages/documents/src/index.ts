@@ -332,6 +332,7 @@ export class DocumentService {
   async save(
     path: string,
     signal = new AbortController().signal,
+    options: { skipHooks?: boolean } = {},
   ): Promise<void> {
     path = documentPath(path);
     const document = await this.open(path);
@@ -347,14 +348,16 @@ export class DocumentService {
     try {
       const version = document.version;
       const before = document.text.toString();
-      const text = this.kernel
-        ? await this.kernel.hooks.runBeforeSave({
-            documentId: document.id,
-            path,
-            text: before,
-            signal,
-          })
-        : before;
+      // Reviewed snapshots and their undo must persist exactly what was approved.
+      const text =
+        this.kernel && !options.skipHooks
+          ? await this.kernel.hooks.runBeforeSave({
+              documentId: document.id,
+              path,
+              text: before,
+              signal,
+            })
+          : before;
       if (signal.aborted)
         throw new DOMException("Save cancelled", "AbortError");
       if (document.version !== version)

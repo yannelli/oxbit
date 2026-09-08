@@ -1,6 +1,6 @@
 /** Reviewed VS Code product IDs. null explicitly preserves the Oxbit glyph. */
 export const productIconIds: Record<string, string | null> = {
-  languageServer: 'server', files: 'files', search: 'search', git: 'source-control', ext: 'extensions',
+  agent: null, languageServer: 'server', files: 'files', search: 'search', git: 'source-control', ext: 'extensions',
   gear: 'settings-gear', settings: 'settings-gear', terminal: 'terminal', x: 'close',
   chevR: 'chevron-right', chevD: 'chevron-down', chevU: 'chevron-up', plus: 'add', minus: 'remove', check: 'check',
   splitR: 'split-horizontal', splitD: 'split-vertical', layoutSide: 'layout-sidebar-left', layoutPanel: 'layout-panel',

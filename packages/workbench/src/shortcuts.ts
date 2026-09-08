@@ -1,4 +1,4 @@
-import type { Command, Kernel } from "@oxbit/sdk";
+import type { Command, Kernel, KeymapContributionData } from "@oxbit/sdk";
 import catalog from "./catalog.json";
 export function normalizeShortcut(value: string): string {
   return value
@@ -37,21 +37,51 @@ export function keyboardShortcut(
     .filter(Boolean)
     .join("+");
 }
+export interface ActiveKeymap {
+  stableId: string;
+  title: string;
+  bindings: Record<string, string>;
+}
+export function activeKeymap(kernel: Kernel): ActiveKeymap | undefined {
+  const selected = kernel.configuration.get<string>("workbench.keymap");
+  if (!selected || selected === "default") return undefined;
+  for (const item of kernel.contributions.list("keymap")) {
+    const data = item.data as KeymapContributionData | undefined;
+    if (data?.stableId === selected)
+      return { stableId: data.stableId, title: item.title, bindings: data.bindings };
+  }
+  return undefined;
+}
+export function commandBinding(
+  kernel: Kernel,
+  overrides: Record<string, string>,
+  command: { id: string; shortcut?: string },
+  keymap: ActiveKeymap | undefined = activeKeymap(kernel),
+): string {
+  return (
+    overrides[command.id] ??
+    keymap?.bindings[command.id] ??
+    command.shortcut ??
+    catalog.commands.find((item) => item.id === command.id)?.win ??
+    ""
+  );
+}
 export function shortcutCandidates(
   kernel: Kernel,
   overrides: Record<string, string>,
   focus: "editor" | "terminal" | "explorer" | "other" = "other",
 ): { command: Command; key: string; priority: number }[] {
   const commands = kernel.commands.list();
+  const keymap = activeKeymap(kernel);
+  const bound = (id: string) =>
+    Object.hasOwn(overrides, id) ||
+    (!!keymap && Object.hasOwn(keymap.bindings, id));
   const result = commands.map((command) => ({
     command,
-    key:
-      overrides[command.id] ??
-      command.shortcut ??
-      catalog.commands.find((item) => item.id === command.id)?.win ??
-      "",
+    key: commandBinding(kernel, overrides, command, keymap),
     priority:
       (Object.hasOwn(overrides, command.id) ? 10000 : 0) +
+      (keymap && Object.hasOwn(keymap.bindings, command.id) ? 5000 : 0) +
       (command.priority || 0),
   }));
   for (const item of kernel.contributions.list("shortcut")) {
@@ -63,7 +93,7 @@ export function shortcutCandidates(
     if (
       command &&
       key &&
-      !Object.hasOwn(overrides, command.id) &&
+      !bound(command.id) &&
       kernel.context.matches(item.when)
     )
       result.push({

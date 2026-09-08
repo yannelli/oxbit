@@ -28,8 +28,9 @@ describe('Native icon packs', () => {
     await browser.execute(() => { globalThis.iconViolations = []; document.addEventListener('securitypolicyviolation', e => globalThis.iconViolations.push(e.violatedDirective)); });
     await importFile('vscode-minimal.zip'); await importFile('material-product-icons.vsix');
     const ids = await browser.execute(async () => {
-      const k = globalThis.__oxbit.kernel, s = k.services.get('iconThemes');
-      const file = s.themes('fileIconTheme')[0].id, product = s.themes('productIconTheme')[0].id;
+      const k = globalThis.__oxbit.kernel, s = k.services.get('iconThemes'), bundled = 'oxbit.classicos98/';
+      const imported = kind => s.themes(kind).find(t => !t.id.startsWith(bundled)).id;
+      const file = imported('fileIconTheme'), product = imported('productIconTheme');
       if (k.configuration.get('workbench.iconTheme') !== 'oxbit.default') throw new Error('Install changed selection');
       k.configuration.set('workbench.iconTheme', file); k.configuration.set('workbench.productIconTheme', product);
       await k.configuration.flush(); return { file, product };
@@ -44,11 +45,12 @@ describe('Native icon packs', () => {
     await browser.execute(async p => { await globalThis.__oxbitDesktop.native.open(p); }, path.join(process.env.OXBIT_NATIVE_FIXTURES, 'Beta 项目'));
     await ready();
     assert.deepEqual(await browser.execute(() => { const k = globalThis.__oxbit.kernel; return { file: k.configuration.get('workbench.iconTheme'), product: k.configuration.get('workbench.productIconTheme') }; }), ids);
-    assert.equal(await browser.execute(() => globalThis.__oxbit.kernel.services.get('iconThemes').list().length), 2);
+    assert.equal(await browser.execute(() => globalThis.__oxbit.kernel.services.get('iconThemes').list().length), 3);
     await browser.refresh(); await ready();
     assert.deepEqual(await browser.execute(() => { const k = globalThis.__oxbit.kernel; return { file: k.configuration.get('workbench.iconTheme'), product: k.configuration.get('workbench.productIconTheme') }; }), ids);
     const recovery = await browser.execute(async () => {
-      const k = globalThis.__oxbit.kernel, s = k.services.get('iconThemes'), id = s.list().find(p => p.themes.some(t => t.kind === 'fileIconTheme')).id;
+      const k = globalThis.__oxbit.kernel, s = k.services.get('iconThemes'), selected = k.configuration.get('workbench.iconTheme');
+      const id = s.list().find(p => p.themes.some(t => t.id === selected)).id;
       await s.enable(id, false); const fallback = !s.file({ path: 'hello.ts' }, 'dark'); await s.enable(id, true);
       return { fallback, restored: !!s.file({ path: 'hello.ts' }, 'dark') };
     });

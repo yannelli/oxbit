@@ -11,12 +11,12 @@
   "method": "keydown to second requestAnimationFrame; workbench openFile to following animation frame",
   "typing": {
     "samples": 60,
-    "p95": 16.69999998807907,
+    "p95": 16.100000023841858,
     "target": 50
   },
   "switching": {
     "samples": 30,
-    "p95": 16.099999964237213,
+    "p95": 25.09999990463257,
     "target": 100
   }
 }

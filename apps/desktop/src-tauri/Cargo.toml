@@ -10,7 +10,7 @@ license = "MIT"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
-native-test = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver"]
+native-test = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver", "dep:objc2", "dep:objc2-foundation"]
 
 [build-dependencies]
 tauri-build = { version = "=2.6.3", features = [] }
@@ -29,6 +29,11 @@ uuid = { version = "1", features = ["v4"] }
 libc = "0.2"
 tauri-plugin-wdio = { version = "=1.4.0", optional = true }
 tauri-plugin-wdio-webdriver = { version = "=1.4.0", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-web-kit = "=0.3.2"
+objc2 = { version = "=0.6.4", optional = true }
+objc2-foundation = { version = "=0.3.2", optional = true }
 
 [profile.release]
 strip = "none" # Preserve proc-macro metadata with the pinned Rust toolchain.

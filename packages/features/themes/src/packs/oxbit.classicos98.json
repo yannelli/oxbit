@@ -1,0 +1,867 @@
+{
+  "$schema": "/schemas/theme-pack.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "oxbit.classicos98",
+  "name": "ClassicOS 98",
+  "version": "1.0.0",
+  "attribution": "An original palette in the visual style of late-1990s desktop systems. No Microsoft assets, fonts or artwork are included or redistributed.",
+  "themes": [
+    {
+      "id": "classicos98",
+      "name": "ClassicOS 98",
+      "mode": "light",
+      "base": "builtin:light",
+      "pairedTheme": "classicos98-eggplant",
+      "colors": {
+        "workbench.background": "#c0c0c0",
+        "surface.background": "#c0c0c0",
+        "editor.background": "#ffffff",
+        "popover.background": "#c0c0c0",
+        "input.background": "#ffffff",
+        "control.hover.background": "#ffffff59",
+        "control.active.background": "#80808059",
+        "list.selection.background": "#000080",
+        "border.default": "#808080",
+        "border.strong": "#000000",
+        "text.primary": "#000000",
+        "text.secondary": "#000000",
+        "text.muted": "#3d3d3d",
+        "text.disabled": "#808080",
+        "accent.primary": "#000080",
+        "accent.foreground": "#ffffff",
+        "accent.background": "#00008024",
+        "focus.border": "#000000",
+        "diagnostic.error": "#800000",
+        "diagnostic.warning": "#805000",
+        "diagnostic.info": "#000080",
+        "diagnostic.success": "#006000",
+        "git.modified": "#805000",
+        "git.added": "#006000",
+        "git.deleted": "#800000",
+        "git.conflict": "#804000",
+        "diagnostic.error.background": "#8000001f",
+        "diagnostic.warning.background": "#8050001f",
+        "diff.added.background": "#0060001f",
+        "diff.deleted.background": "#8000001f",
+        "diagnostic.info.background": "#0000801f",
+        "editor.activeLine.background": "#0000000a",
+        "editor.search.background": "#ffff0073",
+        "editor.search.activeBackground": "#ffc000b3",
+        "editor.occurrence.background": "#00000014",
+        "selection.background": "#000080",
+        "editor.guide": "#c0c0c0",
+        "overlay.background": "#00000059",
+        "button.primary.background": "#c0c0c0",
+        "button.primary.foreground": "#000000",
+        "button.primary.hoverBackground": "#c0c0c0",
+        "link.foreground": "#0000c0",
+        "link.hoverForeground": "#800080",
+        "selection.foreground": "#ffffff",
+        "editor.selection.background": "#000080",
+        "editor.selection.foreground": "#ffffff",
+        "editor.selection.inactiveBackground": "#80808066",
+        "editor.cursor": "#000000",
+        "editor.gutter.background": "#c0c0c0",
+        "editor.gutter.foreground": "#000000",
+        "popover.foreground": "#000000",
+        "input.foreground": "#000000",
+        "input.placeholder": "#808080",
+        "control.disabled.foreground": "#808080",
+        "tab.active.foreground": "#000000",
+        "tab.inactive.foreground": "#000000",
+        "tab.hover.background": "#ffffff59",
+        "preview.background": "#ffffff",
+        "preview.foreground": "#000000",
+        "collaboration.cursor": "#000080",
+        "collaboration.selection": "#00008059",
+        "terminal.background": "#000000",
+        "terminal.foreground": "#c0c0c0",
+        "terminal.cursor": "#c0c0c0",
+        "terminal.cursorAccent": "#000000",
+        "terminal.selectionBackground": "#000080",
+        "terminal.selectionForeground": "#ffffff",
+        "terminal.selectionInactiveBackground": "#80808066",
+        "terminal.search.background": "#ffff0073",
+        "terminal.search.activeBackground": "#ffc000b3",
+        "terminal.search.border": "#ffffff",
+        "terminal.black": "#000000",
+        "terminal.red": "#800000",
+        "terminal.green": "#008000",
+        "terminal.yellow": "#808000",
+        "terminal.blue": "#000080",
+        "terminal.magenta": "#800080",
+        "terminal.cyan": "#008080",
+        "terminal.white": "#c0c0c0",
+        "terminal.brightBlack": "#808080",
+        "terminal.brightRed": "#ff0000",
+        "terminal.brightGreen": "#00ff00",
+        "terminal.brightYellow": "#ffff00",
+        "terminal.brightBlue": "#0000ff",
+        "terminal.brightMagenta": "#ff00ff",
+        "terminal.brightCyan": "#00ffff",
+        "terminal.brightWhite": "#ffffff",
+        "fileBadge.default.foreground": "#000080",
+        "fileBadge.default.background": "#00008022",
+        "fileBadge.typescript.foreground": "#000080",
+        "fileBadge.typescript.background": "#00008022",
+        "fileBadge.javascript.foreground": "#805000",
+        "fileBadge.javascript.background": "#80500022",
+        "fileBadge.css.foreground": "#800080",
+        "fileBadge.css.background": "#80008022",
+        "fileBadge.html.foreground": "#800000",
+        "fileBadge.html.background": "#80000022"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#000080",
+          "weight": 700
+        },
+        "string": {
+          "foreground": "#800000"
+        },
+        "number": {
+          "foreground": "#800080"
+        },
+        "comment": {
+          "foreground": "#006000",
+          "italic": true
+        },
+        "type": {
+          "foreground": "#008080"
+        },
+        "function": {
+          "foreground": "#000080"
+        },
+        "property": {
+          "foreground": "#000000"
+        },
+        "variable": {
+          "foreground": "#000000"
+        },
+        "ident": {
+          "foreground": "#000000"
+        },
+        "text": {
+          "foreground": "#000000"
+        },
+        "tag": {
+          "foreground": "#800000"
+        },
+        "attr": {
+          "foreground": "#800080"
+        },
+        "punct": {
+          "foreground": "#000000"
+        },
+        "operator": {
+          "foreground": "#000000"
+        },
+        "heading": {
+          "foreground": "#000080",
+          "weight": 700
+        },
+        "link": {
+          "foreground": "#0000c0",
+          "underline": true
+        },
+        "strong": {
+          "foreground": "#000000",
+          "weight": 700
+        },
+        "emphasis": {
+          "foreground": "#000000",
+          "italic": true
+        }
+      },
+      "typography": {
+        "body": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "label": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "small": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.3,
+          "ligatures": false
+        },
+        "heading": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 16,
+          "weight": 700,
+          "lineHeight": 1.25,
+          "ligatures": false
+        },
+        "document": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 12,
+          "lineHeight": 1.5,
+          "ligatures": false
+        },
+        "mono": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "editor": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 13,
+          "lineHeight": 1.4,
+          "ligatures": false
+        },
+        "terminal": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1,
+          "ligatures": false
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 2,
+            "y": 2,
+            "blur": 0,
+            "spread": 0,
+            "color": "#00000059"
+          }
+        ]
+      }
+    },
+    {
+      "id": "classicos2000",
+      "name": "ClassicOS 2000",
+      "mode": "light",
+      "base": "classicos98",
+      "pairedTheme": "classicos98-eggplant",
+      "colors": {
+        "control.active.background": "#40404059",
+        "list.selection.background": "#0a246a",
+        "border.strong": "#404040",
+        "accent.primary": "#0a246a",
+        "accent.background": "#0a246a24",
+        "diagnostic.info": "#0a246a",
+        "diagnostic.info.background": "#0a246a1f",
+        "selection.background": "#0a246a",
+        "editor.selection.background": "#0a246a",
+        "collaboration.cursor": "#0a246a",
+        "collaboration.selection": "#0a246a59",
+        "terminal.selectionBackground": "#0a246a",
+        "terminal.blue": "#0a246a",
+        "fileBadge.default.foreground": "#0a246a",
+        "fileBadge.default.background": "#0a246a22",
+        "fileBadge.typescript.foreground": "#0a246a",
+        "fileBadge.typescript.background": "#0a246a22"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#0a246a",
+          "weight": 700
+        },
+        "function": {
+          "foreground": "#0a246a"
+        },
+        "heading": {
+          "foreground": "#0a246a",
+          "weight": 700
+        }
+      }
+    },
+    {
+      "id": "classicos98-eggplant",
+      "name": "ClassicOS 98 Eggplant",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "pairedTheme": "classicos98",
+      "colors": {
+        "workbench.background": "#524565",
+        "surface.background": "#524565",
+        "editor.background": "#2b2438",
+        "popover.background": "#524565",
+        "input.background": "#2b2438",
+        "control.hover.background": "#ffffff1f",
+        "control.active.background": "#00000038",
+        "list.selection.background": "#4a5d33",
+        "border.default": "#2c2438",
+        "border.strong": "#8f7fa6",
+        "text.primary": "#ffffff",
+        "text.secondary": "#ffffff",
+        "text.muted": "#d6cce4",
+        "text.disabled": "#9a8fab",
+        "accent.primary": "#c8b6de",
+        "accent.foreground": "#2b2438",
+        "accent.background": "#c8b6de29",
+        "focus.border": "#ffffff",
+        "diagnostic.error": "#f0a0a0",
+        "diagnostic.warning": "#e0c880",
+        "diagnostic.info": "#a8c8f0",
+        "diagnostic.success": "#a8d8a0",
+        "git.modified": "#e0c880",
+        "git.added": "#a8d8a0",
+        "git.deleted": "#f0a0a0",
+        "git.conflict": "#e0a878",
+        "diagnostic.error.background": "#f0a0a024",
+        "diagnostic.warning.background": "#e0c88024",
+        "diff.added.background": "#a8d8a024",
+        "diff.deleted.background": "#f0a0a024",
+        "diagnostic.info.background": "#a8c8f024",
+        "editor.activeLine.background": "#ffffff0d",
+        "editor.search.background": "#e0c88047",
+        "editor.search.activeBackground": "#e0c8808c",
+        "editor.occurrence.background": "#ffffff1a",
+        "selection.background": "#4a5d33",
+        "editor.guide": "#3d3350",
+        "overlay.background": "#00000080",
+        "button.primary.background": "#524565",
+        "button.primary.foreground": "#ffffff",
+        "button.primary.hoverBackground": "#524565",
+        "link.foreground": "#c8b6de",
+        "link.hoverForeground": "#ffffff",
+        "selection.foreground": "#ffffff",
+        "editor.selection.background": "#4a5d33",
+        "editor.selection.foreground": "#ffffff",
+        "editor.selection.inactiveBackground": "#ffffff1a",
+        "editor.cursor": "#ffffff",
+        "editor.gutter.background": "#524565",
+        "editor.gutter.foreground": "#e0d8ea",
+        "popover.foreground": "#ffffff",
+        "input.foreground": "#ffffff",
+        "input.placeholder": "#b3a6c4",
+        "control.disabled.foreground": "#9a8fab",
+        "tab.active.foreground": "#ffffff",
+        "tab.inactive.foreground": "#ffffff",
+        "tab.hover.background": "#ffffff1f",
+        "preview.background": "#2b2438",
+        "preview.foreground": "#ffffff",
+        "collaboration.cursor": "#c8b6de",
+        "collaboration.selection": "#4a5d3359",
+        "terminal.background": "#2b2438",
+        "terminal.foreground": "#e8e0f0",
+        "terminal.cursor": "#c8b6de",
+        "terminal.cursorAccent": "#2b2438",
+        "terminal.selectionBackground": "#4a5d33",
+        "terminal.selectionForeground": "#ffffff",
+        "terminal.selectionInactiveBackground": "#ffffff1a",
+        "terminal.search.background": "#e0c88047",
+        "terminal.search.activeBackground": "#e0c8808c",
+        "terminal.search.border": "#c8b6de",
+        "terminal.black": "#2b2438",
+        "terminal.red": "#c07070",
+        "terminal.green": "#7fa070",
+        "terminal.yellow": "#b09850",
+        "terminal.blue": "#7088b8",
+        "terminal.magenta": "#a070b0",
+        "terminal.cyan": "#70a0a8",
+        "terminal.white": "#d6cce4",
+        "terminal.brightBlack": "#8f7fa6",
+        "terminal.brightRed": "#f0a0a0",
+        "terminal.brightGreen": "#a8d8a0",
+        "terminal.brightYellow": "#e0c880",
+        "terminal.brightBlue": "#a8c8f0",
+        "terminal.brightMagenta": "#d0a8e0",
+        "terminal.brightCyan": "#a0d0d8",
+        "terminal.brightWhite": "#ffffff",
+        "fileBadge.default.foreground": "#c8b6de",
+        "fileBadge.default.background": "#c8b6de22",
+        "fileBadge.typescript.foreground": "#a8c8f0",
+        "fileBadge.typescript.background": "#a8c8f022",
+        "fileBadge.javascript.foreground": "#e0c880",
+        "fileBadge.javascript.background": "#e0c88022",
+        "fileBadge.css.foreground": "#d0a8e0",
+        "fileBadge.css.background": "#d0a8e022",
+        "fileBadge.html.foreground": "#f0a0a0",
+        "fileBadge.html.background": "#f0a0a022"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#c8b6de",
+          "weight": 700
+        },
+        "string": {
+          "foreground": "#c8b088"
+        },
+        "number": {
+          "foreground": "#d0a8e0"
+        },
+        "comment": {
+          "foreground": "#a8c090",
+          "italic": true
+        },
+        "type": {
+          "foreground": "#a0d0d8"
+        },
+        "function": {
+          "foreground": "#a8c8f0"
+        },
+        "property": {
+          "foreground": "#e8e0f0"
+        },
+        "variable": {
+          "foreground": "#ffffff"
+        },
+        "ident": {
+          "foreground": "#ffffff"
+        },
+        "text": {
+          "foreground": "#ffffff"
+        },
+        "tag": {
+          "foreground": "#f0a0a0"
+        },
+        "attr": {
+          "foreground": "#e0c880"
+        },
+        "punct": {
+          "foreground": "#d6cce4"
+        },
+        "operator": {
+          "foreground": "#e8e0f0"
+        },
+        "heading": {
+          "foreground": "#c8b6de",
+          "weight": 700
+        },
+        "link": {
+          "foreground": "#a8c8f0",
+          "underline": true
+        },
+        "strong": {
+          "foreground": "#ffffff",
+          "weight": 700
+        },
+        "emphasis": {
+          "foreground": "#ffffff",
+          "italic": true
+        }
+      },
+      "typography": {
+        "body": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "label": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "small": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.3,
+          "ligatures": false
+        },
+        "heading": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 16,
+          "weight": 700,
+          "lineHeight": 1.25,
+          "ligatures": false
+        },
+        "document": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 12,
+          "lineHeight": 1.5,
+          "ligatures": false
+        },
+        "mono": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "editor": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 13,
+          "lineHeight": 1.4,
+          "ligatures": false
+        },
+        "terminal": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1,
+          "ligatures": false
+        }
+      },
+      "effects": {
+        "shadow": [
+          {
+            "x": 2,
+            "y": 2,
+            "blur": 0,
+            "spread": 0,
+            "color": "#00000059"
+          }
+        ]
+      }
+    },
+    {
+      "id": "classicos98-hc-black",
+      "name": "ClassicOS 98 High Contrast Black",
+      "mode": "dark",
+      "base": "builtin:dark",
+      "highContrast": true,
+      "pairedTheme": "classicos98",
+      "colors": {
+        "workbench.background": "#000000",
+        "surface.background": "#000000",
+        "editor.background": "#000000",
+        "popover.background": "#000000",
+        "input.background": "#000000",
+        "control.hover.background": "#ffffff24",
+        "control.active.background": "#ffffff3d",
+        "list.selection.background": "#008080",
+        "border.default": "#ffffff",
+        "border.strong": "#ffffff",
+        "text.primary": "#ffffff",
+        "text.secondary": "#ffffff",
+        "text.muted": "#ffffff",
+        "text.disabled": "#00ff00",
+        "accent.primary": "#ffff00",
+        "accent.foreground": "#000000",
+        "accent.background": "#ffff002e",
+        "focus.border": "#ffff00",
+        "diagnostic.error": "#ff8080",
+        "diagnostic.warning": "#ffff00",
+        "diagnostic.info": "#00ffff",
+        "diagnostic.success": "#00ff00",
+        "git.modified": "#ffff00",
+        "git.added": "#00ff00",
+        "git.deleted": "#ff8080",
+        "git.conflict": "#ff8000",
+        "diagnostic.error.background": "#ff808029",
+        "diagnostic.warning.background": "#ffff0029",
+        "diff.added.background": "#00ff0029",
+        "diff.deleted.background": "#ff808029",
+        "diagnostic.info.background": "#00ffff29",
+        "editor.activeLine.background": "#ffffff12",
+        "editor.search.background": "#ffff0059",
+        "editor.search.activeBackground": "#ffff00a6",
+        "editor.occurrence.background": "#ffffff29",
+        "selection.background": "#008080",
+        "editor.guide": "#585858",
+        "overlay.background": "#000000b3",
+        "button.primary.background": "#000000",
+        "button.primary.foreground": "#ffffff",
+        "button.primary.hoverBackground": "#000000",
+        "link.foreground": "#00ffff",
+        "link.hoverForeground": "#ffff00",
+        "selection.foreground": "#ffffff",
+        "editor.selection.background": "#008080",
+        "editor.selection.foreground": "#ffffff",
+        "editor.selection.inactiveBackground": "#ffffff29",
+        "editor.cursor": "#ffff00",
+        "editor.gutter.background": "#000000",
+        "editor.gutter.foreground": "#ffffff",
+        "popover.foreground": "#ffffff",
+        "input.foreground": "#ffffff",
+        "input.placeholder": "#ffffff",
+        "control.disabled.foreground": "#00ff00",
+        "tab.active.foreground": "#ffffff",
+        "tab.inactive.foreground": "#ffffff",
+        "tab.hover.background": "#ffffff24",
+        "preview.background": "#000000",
+        "preview.foreground": "#ffffff",
+        "collaboration.cursor": "#ffff00",
+        "collaboration.selection": "#00808066",
+        "terminal.background": "#000000",
+        "terminal.foreground": "#ffffff",
+        "terminal.cursor": "#ffff00",
+        "terminal.cursorAccent": "#000000",
+        "terminal.selectionBackground": "#008080",
+        "terminal.selectionForeground": "#ffffff",
+        "terminal.selectionInactiveBackground": "#ffffff29",
+        "terminal.search.background": "#ffff0059",
+        "terminal.search.activeBackground": "#ffff00a6",
+        "terminal.search.border": "#ffff00",
+        "terminal.black": "#000000",
+        "terminal.red": "#ff8080",
+        "terminal.green": "#00ff00",
+        "terminal.yellow": "#ffff00",
+        "terminal.blue": "#8080ff",
+        "terminal.magenta": "#ff80ff",
+        "terminal.cyan": "#00ffff",
+        "terminal.white": "#c0c0c0",
+        "terminal.brightBlack": "#808080",
+        "terminal.brightRed": "#ff8080",
+        "terminal.brightGreen": "#00ff00",
+        "terminal.brightYellow": "#ffff00",
+        "terminal.brightBlue": "#8080ff",
+        "terminal.brightMagenta": "#ff80ff",
+        "terminal.brightCyan": "#00ffff",
+        "terminal.brightWhite": "#ffffff",
+        "fileBadge.default.foreground": "#ffff00",
+        "fileBadge.default.background": "#ffff0029",
+        "fileBadge.typescript.foreground": "#00ffff",
+        "fileBadge.typescript.background": "#00ffff29",
+        "fileBadge.javascript.foreground": "#ffff00",
+        "fileBadge.javascript.background": "#ffff0029",
+        "fileBadge.css.foreground": "#ff80ff",
+        "fileBadge.css.background": "#ff80ff29",
+        "fileBadge.html.foreground": "#ff8080",
+        "fileBadge.html.background": "#ff808029"
+      },
+      "syntax": {
+        "keyword": {
+          "foreground": "#ffff00",
+          "weight": 700
+        },
+        "string": {
+          "foreground": "#ff80ff"
+        },
+        "number": {
+          "foreground": "#00ff00"
+        },
+        "comment": {
+          "foreground": "#00ff00",
+          "italic": true
+        },
+        "type": {
+          "foreground": "#00ffff"
+        },
+        "function": {
+          "foreground": "#00ffff"
+        },
+        "property": {
+          "foreground": "#ffffff"
+        },
+        "variable": {
+          "foreground": "#ffffff"
+        },
+        "ident": {
+          "foreground": "#ffffff"
+        },
+        "text": {
+          "foreground": "#ffffff"
+        },
+        "tag": {
+          "foreground": "#ff8080"
+        },
+        "attr": {
+          "foreground": "#ffff00"
+        },
+        "punct": {
+          "foreground": "#ffffff"
+        },
+        "operator": {
+          "foreground": "#ffffff"
+        },
+        "heading": {
+          "foreground": "#ffff00",
+          "weight": 700
+        },
+        "link": {
+          "foreground": "#00ffff",
+          "underline": true
+        },
+        "strong": {
+          "foreground": "#ffffff",
+          "weight": 700
+        },
+        "emphasis": {
+          "foreground": "#ffffff",
+          "italic": true
+        }
+      },
+      "typography": {
+        "body": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "label": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "small": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 11,
+          "lineHeight": 1.3,
+          "ligatures": false
+        },
+        "heading": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 16,
+          "weight": 700,
+          "lineHeight": 1.25,
+          "ligatures": false
+        },
+        "document": {
+          "family": [
+            "Tahoma",
+            "MS Sans Serif",
+            "Microsoft Sans Serif",
+            "Segoe UI",
+            "sans-serif"
+          ],
+          "size": 12,
+          "lineHeight": 1.5,
+          "ligatures": false
+        },
+        "mono": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1.35,
+          "ligatures": false
+        },
+        "editor": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 13,
+          "lineHeight": 1.4,
+          "ligatures": false
+        },
+        "terminal": {
+          "family": [
+            "Fixedsys",
+            "Lucida Console",
+            "Courier New",
+            "monospace"
+          ],
+          "size": 12,
+          "lineHeight": 1,
+          "ligatures": false
+        }
+      },
+      "effects": {
+        "shadow": []
+      }
+    }
+  ]
+}

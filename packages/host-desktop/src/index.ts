@@ -70,6 +70,7 @@ export const native = {
   move: (key: string) => invoke<void>("desktop_move_project", { key }),
   close: (kind: CloseRequest["reason"], key?: string) =>
     invoke<void>("desktop_request_close", { kind, key }),
+  closePanel: (id: string) => invoke<void>("desktop_close_panel", { id }),
   vote: (id: string, accepted: boolean) =>
     invoke<void>("desktop_close_vote", { id, accepted }),
   finished: (id: string, error?: string) =>
@@ -194,10 +195,12 @@ export class ProjectSessionManager {
   };
   private publish(patch: Partial<WindowView> = {}) {
     this.view = { ...this.view, ...patch };
-    for (const entry of this.entries.values())
+    for (const entry of this.entries.values()) {
       entry.session?.setActive(
         entry.project.key === this.view.active && !this.frozen,
       );
+      entry.session?.workbench.panelWindows.setSuspended(this.frozen);
+    }
     for (const listener of this.listeners) listener();
   }
   get isClosing() {

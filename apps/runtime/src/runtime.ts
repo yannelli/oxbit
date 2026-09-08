@@ -34,6 +34,8 @@ import { SettingsStore } from "./settings.js";
 import { JsonSchemas } from "./json-schemas.js";
 import os from "node:os";
 import { Collaboration } from "./collaboration.js";
+import { AgentACP } from "./agent-acp.js";
+import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 
 export interface RuntimeOptions {
@@ -239,6 +241,10 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
+  const agents = new AgentACP(files, (connectionId, name, params) => {
+    const connection = connections.get(connectionId);
+    if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
+  });
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -618,6 +624,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
     if (method.startsWith("tasks.")) return { cap: "tasks", trust: !["tasks.catalog", "tasks.list", "tasks.attach", "tasks.worktrees"].includes(method) };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
+    if (method.startsWith("acp.")) return { cap: "extensions", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
     if (method.startsWith("extensions."))
@@ -652,6 +659,7 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Workspace is not granted");
     const required = permission(method),
       session = authorized(connection, required.cap, required.trust);
+    if (method.startsWith("acp.")) owner(connection);
     if (method.startsWith("project.")) owner(connection);
     if (method.startsWith("settings.")) owner(connection);
     switch (method) {
@@ -672,6 +680,19 @@ export async function createRuntime(options: RuntimeOptions) {
       }
       case "project.relations":
         return project.relations(requireString(params, "path"));
+      case "acp.start":
+        return agents.start(connection.id, params as unknown as ACPLaunch, signal);
+      case "acp.call":
+        return agents.call(connection.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>, signal);
+      case "acp.respond":
+        return agents.respond(connection.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
+      case "acp.cancel":
+        return agents.cancel(connection.id, requireString(params, "id"));
+      case "acp.stop":
+        return agents.stop(connection.id, requireString(params, "id"));
+      case "acp.disconnect":
+        agents.disconnect(connection.id);
+        return {};
       case "workspace.info":
         return sessionInfo(session);
       case "workspace.trust":
@@ -680,6 +701,7 @@ export async function createRuntime(options: RuntimeOptions) {
           throw new RpcError("INVALID_PARAMS", "trusted must be boolean");
         trusted = params.trusted;
         if (!trusted) {
+          agents.dispose();
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
           for (const s of sessions.values()) { processes.revoke(s.id); tasks.revoke(s.id); }
@@ -828,6 +850,16 @@ export async function createRuntime(options: RuntimeOptions) {
         return worktrees.remove(session.id, requireString(params, "id"), signal);
       case "git.status":
         return git.status(signal);
+      case "git.log":
+        return git.log(params, signal);
+      case "git.show":
+        return git.show(params.ref, signal);
+      case "git.commitDiff":
+        return git.commitDiff(params, signal);
+      case "git.stashes":
+        return git.stashes(signal);
+      case "git.stashDiff":
+        return git.stashDiff(params, signal);
       case "git.diff":
         return git.diff(
           requireString(params, "path"),
@@ -844,6 +876,26 @@ export async function createRuntime(options: RuntimeOptions) {
       case "git.push":
       case "git.fetch":
       case "git.clone":
+      case "git.stageAll":
+      case "git.unstageAll":
+      case "git.hunk":
+      case "git.branchCreate":
+      case "git.branchTrack":
+      case "git.branchRename":
+      case "git.branchDelete":
+      case "git.merge":
+      case "git.continue":
+      case "git.abort":
+      case "git.cherryPick":
+      case "git.revert":
+      case "git.stashSave":
+      case "git.stashApply":
+      case "git.stashPop":
+      case "git.stashDrop":
+      case "git.remoteAdd":
+      case "git.remoteRemove":
+      case "git.publish":
+      case "git.pull":
         return git.action(method.slice(4), params, signal, (data) =>
           event(connection, "git.progress", { id: requestId, data }),
         );
@@ -1199,6 +1251,7 @@ export async function createRuntime(options: RuntimeOptions) {
     ws.on("error", () => {});
     ws.on("close", () => {
       clearTimeout(authDeadline);
+      agents.disconnect(connection.id);
       lsp.detach(connection.id);
       connections.delete(connection.id);
       for (const pending of connection.edits.values()) {pending.cleanup();pending.resolve({applied:false,failureReason:"Document client disconnected"});} connection.edits.clear();
@@ -1352,6 +1405,7 @@ export async function createRuntime(options: RuntimeOptions) {
         for (const controller of c.pending.values()) controller.abort();
         c.ws.terminate();
       }
+      agents.dispose();
       extensions.dispose();
       processes.close();
       await tasks.close();
