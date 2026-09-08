@@ -1,4 +1,5 @@
 import type { WorkbenchController } from "./controller.js";
+import { installTextInputPolicy } from "@oxbit/ui";
 import {
   detachPanel,
   panelGroups,
@@ -145,6 +146,7 @@ export class PanelWindows {
       const closed = () => {
         if (!this.stopped) this.returnWindow(id);
       };
+      const disposeTextInput = installTextInputPolicy(child.document);
       child.addEventListener("pagehide", closed);
       // Existing shortcuts are owned by the workspace. Text input and local handlers get first refusal.
       const keyboard = (event: KeyboardEvent) => {
@@ -180,6 +182,7 @@ export class PanelWindows {
       child.addEventListener("keydown", keyboard);
       this.cleanups.set(id, () => {
         observer.disconnect();
+        disposeTextInput();
         child.removeEventListener("pagehide", closed);
         child.removeEventListener("keydown", keyboard);
         child.removeEventListener("focus", focused);

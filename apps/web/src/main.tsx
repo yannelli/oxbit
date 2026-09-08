@@ -1,4 +1,4 @@
-import { translate as tr, setLocale } from "@oxbit/ui";
+import { translate as tr, setLocale, installTextInputPolicy } from "@oxbit/ui";
 import * as ReactHost from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
@@ -28,6 +28,7 @@ import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
+installTextInputPolicy(document);
 const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();

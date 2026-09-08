@@ -12,7 +12,7 @@ import {
 } from "@oxbit/host-desktop";
 import type { Session } from "@oxbit/app-workbench";
 import { configurePanelWindows, currentTheme, PanelProvider, Workbench, workspaceEntries, themeMode, themeVariables } from "@oxbit/workbench";
-import { Dialog, OxbitMark, setLocale } from "@oxbit/ui";
+import { Dialog, OxbitMark, setLocale, installTextInputPolicy } from "@oxbit/ui";
 import { ProjectMenu } from "./project-menu.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
@@ -20,6 +20,7 @@ import "./desktop.css";
 import { SshDialog } from "./ssh-dialog.js";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
+installTextInputPolicy(document);
 if (import.meta.env.VITE_DESKTOP_TEST === "1")
   await import("@wdio/tauri-plugin");
 const manager = new ProjectSessionManager();
