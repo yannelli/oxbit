@@ -28,6 +28,7 @@ import {
   OxbitMark,
   OxbitLogo,
   TooltipLayer,
+  useVisualViewport,
 } from "@oxbit/ui";
 import {
   WorkbenchController,
@@ -362,6 +363,7 @@ export function Workbench({
     kernel = workbench.kernel;
   useKeyboard(workbench);
   const rootRef = useRef<HTMLDivElement>(null);
+  useVisualViewport(rootRef);
   const [width, setWidth] = useState(innerWidth);
   const [conn, setConn] = useState(
     runtime?.connected ? "Connected" : "Browser workspace",
@@ -382,32 +384,6 @@ export function Workbench({
     const root = rootRef.current;
     if (!root || !coarsePointer()) return;
     return installLongPress(root);
-  }, []);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const root = rootRef.current;
-    if (!viewport || !root || !matchMedia("(pointer: coarse)").matches) return;
-    // iOS keeps the layout viewport at full height while the software keyboard covers the
-    // bottom; the visual viewport reports the visible area instead.
-    const update = () => {
-      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
-      if (covered > 80) {
-        root.style.setProperty("--viewport-height", `${viewport.height}px`);
-        root.style.setProperty("--viewport-offset", `${viewport.offsetTop}px`);
-        root.dataset.keyboard = "1";
-      } else {
-        root.style.removeProperty("--viewport-height");
-        root.style.removeProperty("--viewport-offset");
-        delete root.dataset.keyboard;
-      }
-    };
-    viewport.addEventListener("resize", update);
-    viewport.addEventListener("scroll", update);
-    update();
-    return () => {
-      viewport.removeEventListener("resize", update);
-      viewport.removeEventListener("scroll", update);
-    };
   }, []);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
   const theme = themeMode(kernel);
@@ -534,7 +510,7 @@ export function Workbench({
               ))}
             {workspaceControl ?? (
               <button className="workspace-title" onClick={onOpenWorkspace}>
-                {s.projectName}
+                <span className="truncate">{s.projectName}</span>
                 <Icon name="chevD" size={12} />
               </button>
             )}
@@ -604,6 +580,14 @@ export function Workbench({
               />
             </div>
           </header>
+        )}
+        {mode === "phone" && onConnect && runtime?.connected && !kernel.context.get("trusted") && (
+          <button className="workspace-trust" onClick={onConnect}>
+            <Icon name="lock" />
+            <span>{tr("Restricted")}</span>
+            <strong className="push">{tr("Trust workspace tools")}</strong>
+            <Icon name="chevR" />
+          </button>
         )}
         {s.workspaceOpen ? (
           <div className="workspace-body">
@@ -1518,6 +1502,8 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
   }>({ query: "", paths: [] });
   const ref = useRef<HTMLInputElement>(null),
     prior = useRef<HTMLElement | null>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  useVisualViewport(scrimRef);
   useEffect(() => {
     prior.current = document.activeElement as HTMLElement;
     ref.current?.focus();
@@ -1663,6 +1649,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
   };
   return (
     <div
+      ref={scrimRef}
       className="palette-scrim"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) workbench.set({ palette: undefined });
@@ -1737,8 +1724,11 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
               role="option"
               aria-selected={i === selected}
               aria-disabled={!row.enabled}
+              disabled={!row.enabled}
               className={i === selected ? "selected" : ""}
-              onMouseEnter={() => setIndex(i)}
+              onPointerEnter={(event) => {
+                if (event.pointerType === "mouse") setIndex(i);
+              }}
               onClick={() => run(row)}
             >
               {mode === "files" || mode === "recent" ? (

@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
   type ButtonHTMLAttributes,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { productIconIds } from "./product-icons.js";
 import { icons } from "./icons.js";
@@ -96,6 +97,39 @@ export function EmptyState({
     </div>
   );
 }
+/** Keep touch surfaces inside the area left visible by browser chrome and the keyboard. */
+export function useVisualViewport(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const element = ref.current;
+    const ownerWindow = element?.ownerDocument.defaultView;
+    const viewport = ownerWindow?.visualViewport;
+    if (!element || !ownerWindow || !viewport) return;
+    const update = () => {
+      if (!ownerWindow.matchMedia("(pointer: coarse)").matches) return;
+      // Pinch zoom must remain under the user's control.
+      if (Math.abs(viewport.scale - 1) > 0.01) return;
+      element.style.setProperty("--viewport-height", `${viewport.height}px`);
+      element.style.setProperty("--viewport-offset", `${viewport.offsetTop}px`);
+      element.style.setProperty("--viewport-left", `${viewport.offsetLeft}px`);
+      element.style.setProperty("--viewport-width", `${viewport.width}px`);
+      if (ownerWindow.innerHeight - viewport.height - viewport.offsetTop > 80)
+        element.dataset.keyboard = "1";
+      else delete element.dataset.keyboard;
+    };
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    ownerWindow.addEventListener("resize", update);
+    update();
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      ownerWindow.removeEventListener("resize", update);
+      for (const property of ["--viewport-height", "--viewport-offset", "--viewport-left", "--viewport-width"])
+        element.style.removeProperty(property);
+      delete element.dataset.keyboard;
+    };
+  }, [ref]);
+}
 export function Dialog({
   title,
   children,
@@ -112,6 +146,8 @@ export function Dialog({
   initialFocus?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  useVisualViewport(scrimRef);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
@@ -151,6 +187,7 @@ export function Dialog({
   }, [initialFocus]);
   return (
     <div
+      ref={scrimRef}
       className="modal-scrim"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();

@@ -144,6 +144,7 @@ export async function createWorkbenchSession({
   if (runtime) kernel.services.register("runtime", runtime);
   kernel.context.set("workspace", true);
   kernel.context.set("connected", !!runtime?.connected);
+  kernel.context.set("trusted", !!runtime?.session?.trusted);
   kernel.context.set("editor", false);
   const packStore = iconPackStore ?? new BrowserPackStore();
   const iconThemes = new IconThemeService(kernel, packStore, message => workbench.notify(message, "warning", { source: "Icon Packs", actions: [{ title: "Manage Icon Packs", command: "iconPacks.manage" }] }));
@@ -160,6 +161,10 @@ export async function createWorkbenchSession({
         state === "connected" && !!runtime.session?.trusted,
       );
       kernel.events.emit("connection.change", { state });
+    });
+    const trust = runtime?.subscribe("workspace.trust", ({ trusted }) => {
+      kernel.context.set("trusted", trusted === true);
+      workbench.touch();
     });
     const features = [
       settingsFeature(options),
@@ -388,6 +393,7 @@ export async function createWorkbenchSession({
         change.dispose();
         configurationChange();
         connection?.();
+        trust?.();
         documentChange();
         await session.persist();
         iconThemes.dispose();

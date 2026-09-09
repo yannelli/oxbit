@@ -438,12 +438,33 @@ function ConnectionDialog({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [trusted, setTrusted] = useState(!!runtime?.session?.trusted);
+  useEffect(() => {
+    const off = runtime?.subscribe("workspace.trust", ({ trusted }) => {
+      setTrusted(trusted === true);
+    });
+    return () => { off?.(); };
+  }, [runtime]);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
       await connect(url, code);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const toggleTrust = async () => {
+    if (!runtime || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await runtime.trust(!trusted);
+      setTrusted(!!runtime.session?.trusted);
+      workbench.kernel.context.set("trusted", !!runtime.session?.trusted);
+      workbench.touch();
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -468,19 +489,13 @@ function ConnectionDialog({
           </p>
           <button
             className="button primary"
-            onClick={() =>
-              void runtime
-                .trust(!trusted)
-                .then(() => {
-                  setTrusted(!trusted);
-                  if (runtime.session) runtime.session.trusted = !trusted;
-                  workbench.kernel.context.set("trusted", !trusted);
-                  workbench.touch();
-                })
-                .catch((e) => setError(String(e)))
-            }
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => void toggleTrust()}
           >
-            {trusted
+            {busy
+              ? tr("Working…")
+              : trusted
               ? tr("Revoke workspace trust")
               : tr("Trust workspace tools")}
           </button>

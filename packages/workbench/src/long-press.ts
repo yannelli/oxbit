@@ -11,42 +11,38 @@ export function installLongPress(root: HTMLElement, options: LongPressOptions = 
   const delay = options.delay ?? 500;
   const tolerance = options.tolerance ?? 8;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let pointerId: number | undefined;
+  let origin: { pointerId: number; x: number; y: number } | undefined;
   let suppressClick = false;
   const cancel = () => {
     clearTimeout(timer);
     timer = undefined;
-    pointerId = undefined;
+    origin = undefined;
   };
   const down = (event: PointerEvent) => {
+    // A new gesture must never inherit suppression from a previous long press.
+    suppressClick = false;
+    cancel();
     if (event.pointerType !== "touch" || !event.isPrimary) return;
     const target = event.target as Element | null;
     if (!target || target.closest(EXCLUDED)) return;
-    cancel();
-    pointerId = event.pointerId;
     const { clientX, clientY } = event;
+    origin = { pointerId: event.pointerId, x: clientX, y: clientY };
     timer = setTimeout(() => {
       timer = undefined;
-      pointerId = undefined;
-      suppressClick = true;
-      target.dispatchEvent(
+      origin = undefined;
+      // Suppress only the click belonging to a menu that actually opened.
+      suppressClick = !target.dispatchEvent(
         new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX, clientY, button: 2 }),
       );
     }, delay);
-    const origin = { x: clientX, y: clientY };
-    const move = (moved: PointerEvent) => {
-      if (moved.pointerId !== pointerId) return;
-      if (Math.hypot(moved.clientX - origin.x, moved.clientY - origin.y) > tolerance) cancel();
-    };
-    root.addEventListener("pointermove", move, { passive: true });
-    const done = () => {
-      root.removeEventListener("pointermove", move);
-      root.removeEventListener("pointerup", done);
-      root.removeEventListener("pointercancel", done);
-      cancel();
-    };
-    root.addEventListener("pointerup", done);
-    root.addEventListener("pointercancel", done);
+  };
+  const move = (event: PointerEvent) => {
+    if (!origin || event.pointerId !== origin.pointerId) return;
+    if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > tolerance) cancel();
+  };
+  const cancelled = () => {
+    cancel();
+    suppressClick = false;
   };
   const click = (event: MouseEvent) => {
     if (!suppressClick) return;
@@ -55,10 +51,16 @@ export function installLongPress(root: HTMLElement, options: LongPressOptions = 
     event.stopPropagation();
   };
   root.addEventListener("pointerdown", down);
+  root.addEventListener("pointermove", move, { passive: true });
+  root.addEventListener("pointerup", cancel);
+  root.addEventListener("pointercancel", cancelled);
   root.addEventListener("click", click, true);
   return () => {
     cancel();
     root.removeEventListener("pointerdown", down);
+    root.removeEventListener("pointermove", move);
+    root.removeEventListener("pointerup", cancel);
+    root.removeEventListener("pointercancel", cancelled);
     root.removeEventListener("click", click, true);
   };
 }
