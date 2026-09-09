@@ -8,7 +8,7 @@ import {
   dockSides, type PanelLayout, type PanelTarget, type DockSide,
 } from "./panel-layout.js";
 import { PanelWindows } from "./panel-windows.js";
-import { documentViewFor } from "./contributions.js";
+import { documentViewFor, isBinaryDocumentView } from "./contributions.js";
 import type {
   FileEntry,
   FileChange,
@@ -25,6 +25,7 @@ export interface OpenOptions {
   to?: number;
   preview?: boolean;
   groupId?: string;
+  text?: boolean;
 }
 export interface Tab {
   id: string;
@@ -218,6 +219,10 @@ export class WorkbenchController {
     this.kernel.context.set("explorer", !!this.state.selectedPath);
     this.kernel.context.set("markdown", !!tab?.path?.endsWith(".md"));
     this.kernel.context.set(
+      "binaryDocument",
+      !!tab?.path && isBinaryDocumentView(this.kernel, tab.contributionId),
+    );
+    this.kernel.context.set(
       "formattable",
       hasEditor && /\.(tsx?|jsx?|json|css|html|md)$/.test(tab!.path!),
     );
@@ -390,7 +395,7 @@ export class WorkbenchController {
         await this.kernel.extensions.trigger("onView:" + id);
       for (const group of saved.groups)
         for (const tab of group.tabs)
-          if (tab.path)
+          if (tab.path && !isBinaryDocumentView(this.kernel, tab.contributionId))
             try {
               await this.documents.open(tab.path);
             } catch {}
@@ -408,7 +413,9 @@ export class WorkbenchController {
               ...(contribution?.component
                 ? { component: contribution.component }
                 : {}),
-              ...(tab.path && !this.documents.get(tab.path)
+              ...(tab.path &&
+              !contribution?.component &&
+              !this.documents.get(tab.path)
                 ? { error: "File is unavailable. Retry to load it." }
                 : {}),
             };
@@ -548,18 +555,25 @@ export class WorkbenchController {
   async openFile(path: string, options: OpenOptions = {}) {
     this.panelWindows.focusOwner();
     const start = performance.now();
+    // A binary view reads the bytes itself; decoding the file as text would fail and stall the group.
+    const binary = options.text
+      ? undefined
+      : documentViewFor(this.kernel, path, { binary: true });
     let failure: string | undefined;
-    try {
-      await this.documents.open(path);
-    } catch (error) {
-      failure = error instanceof Error ? error.message : String(error);
-    }
+    if (!binary)
+      try {
+        await this.documents.open(path);
+      } catch (error) {
+        failure = error instanceof Error ? error.message : String(error);
+      }
     if (this.disposed) return;
     this.revealFile(path);
     const gid = options.groupId || this.state.activeGroup;
     if (!this.state.groups.some((group) => group.id === gid))
       throw new Error("Editor group does not exist");
-    const custom = !failure ? documentViewFor(this.kernel, path) : undefined;
+    const custom =
+      binary ??
+      (!failure && !options.text ? documentViewFor(this.kernel, path) : undefined);
     if (custom?.component) {
       this.openView(
         path,

@@ -12,7 +12,7 @@ test("icon tooltips cover toolbars, activity views, and tab actions", async ({
   await ready(page);
   for (const label of [
     "Toggle theme",
-    "Toggle sidebar",
+    "Toggle left panels",
     "Explorer",
     "Settings",
     "New File",

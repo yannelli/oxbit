@@ -3,8 +3,9 @@
 Oxbit's source is [MIT licensed](LICENSE), copyright 2026 Ryan Yannelli
 <ryanyannelli@gmail.com> ([yannelli](https://github.com/yannelli)).
 
-Dependencies keep their own licenses. Their package contents and
-`pnpm-lock.yaml` identify the installed versions.
+Dependencies keep their own licenses. Their package contents,
+`pnpm-lock.yaml`, and the `Cargo.lock` files of the desktop and iOS crates
+identify the installed versions.
 
 The bundled fonts use the SIL Open Font License 1.1:
 
@@ -24,6 +25,17 @@ The full [license notice](packages/features/themes/LICENSE.vscode.txt) is includ
 ## Managed language servers
 
 Separately installed language servers and their pinned dependency trees are documented in [managed server notices](apps/runtime/src/managed/NOTICES.md). Original package licenses are retained in the runtime cache; Intelephense is acquired directly from upstream and is not redistributed in Oxbit's open-source server bundles.
+
+## Example icon pack
+
+`examples/icon-packs/jetbrains-icons.zip` repackages the file icon themes of
+[JetBrains Icon Theme](https://github.com/peakoss/vscode-jetbrains-icon-theme/tree/f7cc2cfb53390322fd8b9966494e80f73d71ff84)
+v2.40.0, copyright 2021-2024 Chad Adams and contributors, under the MIT License.
+The Elixir and BEAM icons within it are Apache-2.0 licensed by KronicDeth. The
+upstream `LICENSE.md` is inside the archive, and the source URLs and hashes are
+recorded in `examples/icon-packs/upstream.json`. Only the 2023+ UI theme data and
+its referenced SVGs are redistributed; extension code is not executed. The archive
+is not installed on first launch and is not part of any application build.
 
 ## Icon-pack verification fixtures
 

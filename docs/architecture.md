@@ -14,7 +14,7 @@ Oxbit runs a React 19 / CodeMirror 6 browser workbench and a Node 24 runtime. Th
 | `packages/host-runtime` | Authenticated browser WebSocket client and runtime filesystem adapter |
 | `packages/ui` | Design tokens, icons and accessible primitives |
 | `packages/workbench` | Layout, groups, tabs, palettes, menus, notifications and contribution mounting |
-| `packages/features/*` | Independently registered editor, explorer, settings, themes, extensions, language, search, previews, formatters, terminal, tasks, Git and collaboration |
+| `packages/features/*` | Independently registered editor, explorer, settings, themes, extensions, language, search, previews, images, formatters, terminal, tasks, Git and collaboration |
 | `examples/bundle-inspector` | External SDK extension and installable ESM artifact |
 
 The browser imports public SDK contracts and host adapters. Node filesystem, process, socket-server and PTY dependencies stay in the runtime build. First-party features register through the same ExtensionContext as Bundle Inspector. Shared services are registered by explicit string IDs; disabling an extension disposes its registrations and subscriptions. A component error boundary contains render failures; trusted extension JavaScript shares browser privileges.
@@ -25,7 +25,7 @@ Runtime requests have IDs and optional cancellation. Process output uses sequenc
 
 # Host direction
 
-`HostAdapter` separates rendering, persistence, filesystem and runtime transports. `Workbench` accepts a controller and host callbacks, so an embedding host can provide surrounding layout and CSS tokens. An Electron host can supply the runtime boundary and native directory access; a mobile host can implement the same document and persistence contracts.
+`HostAdapter` separates rendering, persistence, filesystem and runtime transports. `Workbench` accepts a controller and host callbacks, so an embedding host can provide surrounding layout and CSS tokens. An Electron host can supply the runtime boundary and native directory access. The iOS host in `apps/ios` implements the filesystem and persistence contracts over Rust commands and a Swift folder plugin without a runtime; see [iOS](ios.md).
 
 Native packaging, React Native integration, debugging/AI providers, marketplace distribution and certified Paseo compatibility are deferred. Before claiming Paseo 0.7.0 compatibility, verify its exact SDK exports, lifecycle/disposal rules, contribution surfaces, theme/layout ownership, host permissions, transport behavior, document identity and embedding behavior against a running v0.7.0 host. No Paseo compatibility check has been run.
 

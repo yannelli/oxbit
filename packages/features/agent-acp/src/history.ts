@@ -1,4 +1,9 @@
-import type { ACPContext, ACPProviderId, Persistence } from "@oxbit/sdk";
+import type {
+  ACPContext,
+  ACPProviderId,
+  ACPSubagent,
+  Persistence,
+} from "@oxbit/sdk";
 
 export type Message = {
   id?: string;
@@ -9,6 +14,7 @@ export type Message = {
 export type Activity =
   | { kind: "message"; message: Message }
   | { kind: "tool"; id: string }
+  | { kind: "subagent"; id: string }
   | { kind: "notice"; text: string };
 export type Conversation = {
   id: string;
@@ -21,6 +27,8 @@ export type Conversation = {
   context: ACPContext[];
   activity: Activity[];
   tools: [string, Record<string, any>][];
+  subagents?: ACPSubagent[];
+  subagentsTruncated?: boolean;
   truncated?: boolean;
 };
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -55,7 +63,22 @@ export class ConversationHistory {
               Array.isArray(entry.tools) &&
               Array.isArray(entry.context),
           )
-          .slice(0, 30);
+          .slice(0, 30)
+          .map((entry) => ({
+            ...entry,
+            subagents: Array.isArray(entry.subagents)
+              ? entry.subagents
+                  .filter(
+                    (c) =>
+                      c &&
+                      typeof c.id === "string" &&
+                      typeof c.name === "string" &&
+                      Array.isArray(c.activity),
+                  )
+                  .slice(-256)
+                  .map((c) => ({ ...c, historical: true }))
+              : [],
+          }));
     } catch {
       this.error = "Conversation history could not be loaded";
     }
@@ -63,6 +86,25 @@ export class ConversationHistory {
   save(entry: Conversation) {
     // Clone before enqueueing: streamed content must not mutate a pending write.
     const copy = JSON.parse(JSON.stringify(entry)) as Conversation;
+    copy.subagents = (copy.subagents ?? []).slice(-256).map((child) => ({
+      ...child,
+      historical: true,
+      activity: child.activity.slice(-32),
+    }));
+    // Child history shares the conversation budget. Keep identities after pruning details.
+    let childBytes = JSON.stringify(copy.subagents).length;
+    for (const child of copy.subagents) {
+      if (childBytes <= 750000) break;
+      const before = JSON.stringify(child).length;
+      child.activity = [];
+      child.result = undefined;
+      child.truncated = true;
+      childBytes += JSON.stringify(child).length - before;
+    }
+    while (childBytes > 750000 && copy.subagents.length) {
+      childBytes -= JSON.stringify(copy.subagents.shift()).length + 1;
+      copy.subagentsTruncated = true;
+    }
     while (copy.activity.length > 100) {
       copy.activity.shift();
       copy.truncated = true;

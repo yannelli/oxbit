@@ -60,7 +60,11 @@ export interface ACPConnection {
   agentInfo?: { name: string; title?: string; version?: string };
   capabilities?: {
     loadSession?: boolean;
-    sessionCapabilities?: { list?: object; resume?: object };
+    sessionCapabilities?: {
+      list?: object;
+      resume?: object;
+      subagents?: object;
+    };
     promptCapabilities?: { embeddedContext?: boolean };
   };
   modes?: { currentModeId: string; availableModes: ACPOption[] };
@@ -84,4 +88,61 @@ export interface ACPContext {
   endLine?: number;
   version?: number;
   kind?: "file" | "selection" | "diagnostics";
+}
+
+export type ACPSubagentState =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "disconnected"
+  | "unknown";
+export type ACPSubagentPhase =
+  "unknown" | "thinking" | "executing_tools" | "responding" | "awaiting_input";
+/** Bounded display data. These records never authorize a session or a tool. */
+export interface ACPSubagentActivity {
+  id: string;
+  kind: "message" | "tool" | "terminal" | "notice";
+  role?: "agent" | "user" | "thought";
+  text?: string;
+  title?: string;
+  status?: string;
+  input?: string;
+  output?: string;
+  locations?: { path: string; line?: number }[];
+}
+export interface ACPSubagent {
+  id: string;
+  parentId?: string;
+  rootSessionId: string;
+  sessionId?: string;
+  provider: ACPProviderId;
+  providerId?: string;
+  toolCallIds: string[];
+  name: string;
+  task: string;
+  model?: string;
+  state: ACPSubagentState;
+  phase: ACPSubagentPhase;
+  evidence: "native" | "provider" | "tool";
+  visibility: "full" | "limited";
+  /** Stable discovery order, preserved when a provisional task gains an agent ID. */
+  order?: number;
+  observedAt: string;
+  updatedAt: string;
+  endedAt?: string;
+  durationMs?: number;
+  result?: string;
+  activity: ACPSubagentActivity[];
+  truncated?: boolean;
+  historical?: boolean;
+}
+export interface ACPSubagentEvent {
+  id: string;
+  rootSessionId: string;
+  subagent: ACPSubagent;
+  activeCount: number;
+  removedIds: string[];
+  truncated: boolean;
 }

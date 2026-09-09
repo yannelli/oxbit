@@ -4,6 +4,7 @@ node_modules/
 .oxbit-runtime/
 test-results/
 playwright-report/
+release/
 .env
 
 **/dist-types/
@@ -20,6 +21,15 @@ apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/tauri.release.conf.json
 apps/desktop/native-results/
 apps/desktop/artifacts/
+
+# iOS build products; gen/apple stays committed
+apps/ios/src-tauri/target/
+apps/ios/src-tauri/gen/schemas/
+apps/ios/src-tauri/gen/apple/build/
+apps/ios/src-tauri/gen/apple/DerivedData/
+apps/ios/src-tauri/gen/apple/*.xcodeproj/xcuserdata/
+apps/ios/src-tauri/gen/apple/*.xcodeproj/project.xcworkspace/xcuserdata/
+apps/ios/src-tauri/gen/apple/Externals/
 
 # Isolated icon-theme production verification bundles
 **/dist-icon-tests/

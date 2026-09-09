@@ -42,6 +42,8 @@ export { PanelProvider } from "./panels.js";
 export * from "./panel-layout.js";
 export { configurePanelWindows, type PanelWindowHost } from "./panel-windows.js";
 import { AboutDialog } from "./about.js";
+import { KeyBar } from "./key-bar.js";
+import { coarsePointer, installLongPress } from "./long-press.js";
 import { symbolKind, useDocumentSymbols } from "./symbols.js";
 export { symbolKind, useDocumentSymbols } from "./symbols.js";
 export { currentTheme, themeTypography, themeMode, themeVariables } from "./contributions.js";
@@ -376,6 +378,37 @@ export function Workbench({
       off?.();
     };
   }, [runtime, workbench]);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !coarsePointer()) return;
+    return installLongPress(root);
+  }, []);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const root = rootRef.current;
+    if (!viewport || !root || !matchMedia("(pointer: coarse)").matches) return;
+    // iOS keeps the layout viewport at full height while the software keyboard covers the
+    // bottom; the visual viewport reports the visible area instead.
+    const update = () => {
+      const covered = window.innerHeight - viewport.height - viewport.offsetTop;
+      if (covered > 80) {
+        root.style.setProperty("--viewport-height", `${viewport.height}px`);
+        root.style.setProperty("--viewport-offset", `${viewport.offsetTop}px`);
+        root.dataset.keyboard = "1";
+      } else {
+        root.style.removeProperty("--viewport-height");
+        root.style.removeProperty("--viewport-offset");
+        delete root.dataset.keyboard;
+      }
+    };
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    update();
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
   const theme = themeMode(kernel);
   const locale =
@@ -517,17 +550,19 @@ export function Workbench({
               <kbd>Ctrl P</kbd>
             </button>
             <div className="title-actions">
-              <button
-                className={`connection-button ${runtime?.connected ? "connected" : ""}`}
-                onClick={onConnect}
-                aria-label={tr("Runtime connection")}
-              >
-                <Icon
-                  name={runtime?.connected ? "cloudCheck" : "cloud"}
-                  size={14}
-                />
-                <span>{tr(conn)}</span>
-              </button>
+              {onConnect && (
+                <button
+                  className={`connection-button ${runtime?.connected ? "connected" : ""}`}
+                  onClick={onConnect}
+                  aria-label={tr("Runtime connection")}
+                >
+                  <Icon
+                    name={runtime?.connected ? "cloudCheck" : "cloud"}
+                    size={14}
+                  />
+                  <span>{tr(conn)}</span>
+                </button>
+              )}
               <ToolbarContributions workbench={workbench} location="titlebar" />
               <IconButton
                 icon="bell"
@@ -703,10 +738,12 @@ export function Workbench({
                     <Icon name="folder" />
                     {t.openFolder}
                   </button>
-                  <button className="button" onClick={command("git.clone")}>
-                    <Icon name="git" />
-                    {t.cloneRepo}
-                  </button>
+                  {runtime && (
+                    <button className="button" onClick={command("git.clone")}>
+                      <Icon name="git" />
+                      {t.cloneRepo}
+                    </button>
+                  )}
                 </div>
                 <div>
                   <h2>{t.recent}</h2>
@@ -727,13 +764,15 @@ export function Workbench({
         )}
         {!s.focus && (
           <footer className="statusbar">
-            <button onClick={onConnect} title={tr("Runtime connection")}>
-              <Icon
-                name={runtime?.connected ? "cloudCheck" : "cloudOff"}
-                size={13}
-              />
-              <span>{runtime?.connected ? tr("Connected") : tr("Local")}</span>
-            </button>
+            {onConnect && (
+              <button onClick={onConnect} title={tr("Runtime connection")}>
+                <Icon
+                  name={runtime?.connected ? "cloudCheck" : "cloudOff"}
+                  size={13}
+                />
+                <span>{runtime?.connected ? tr("Connected") : tr("Local")}</span>
+              </button>
+            )}
             {runtime && <GitBranch workbench={workbench} />}
             <button
               onClick={command("view.problems")}
@@ -807,6 +846,7 @@ export function Workbench({
         )}
         {s.dialog && <WorkbenchDialog workbench={workbench} />}
         {s.aboutOpen && <AboutDialog workbench={workbench} />}
+        <KeyBar />
         <Notifications workbench={workbench} />
         <TooltipLayer rootRef={rootRef} delay={kernel.configuration.get<number>("workbench.tooltipDelay") ?? 400} />
       </div>
@@ -911,7 +951,7 @@ function EditorGroup({
             <div
               className={`editor-tab ${tab.id === group.active ? "active" : ""} ${tab.preview ? "preview" : ""} ${tab.pinned ? "pinned" : ""} ${doc?.state === "missing" ? "missing" : ""}`}
               key={tab.id}
-              draggable
+              draggable={!coarsePointer()}
               onDragStart={(e) =>
                 e.dataTransfer.setData(
                   "oxbit/tab",

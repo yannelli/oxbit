@@ -9,7 +9,7 @@ import type {
   FileSnapshot,
   WriteOptions,
 } from "@oxbit/sdk";
-import { RpcError } from "@oxbit/protocol";
+import { READ_CHUNK_BYTES, RpcError } from "@oxbit/protocol";
 
 export function revision(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -239,6 +239,48 @@ export class WorkspaceFiles {
       ...decode(bytes, encoding),
       revision: revision(bytes),
       readonly: await this.readonly(full),
+    };
+  }
+  async readBytes(
+    relative: string,
+    offset: number,
+    length: number,
+  ): Promise<{ base64: string; size: number; token: string }> {
+    const full = await this.resolve(relative);
+    const stat = await fs.stat(full);
+    if (!stat.isFile())
+      throw new RpcError("NOT_FILE", "Path is not a regular file");
+    if (stat.size > 20 * 1024 * 1024)
+      throw new RpcError(
+        "FILE_TOO_LARGE",
+        "Files above 20 MiB must be opened outside this editor",
+      );
+    if (!Number.isInteger(offset) || offset < 0 || offset > stat.size)
+      throw new RpcError("INVALID_PARAMS", "offset is outside the file");
+    if (!Number.isInteger(length) || length <= 0)
+      throw new RpcError("INVALID_PARAMS", "length must be a positive integer");
+    const count = Math.min(length, READ_CHUNK_BYTES, stat.size - offset);
+    const buffer = Buffer.allocUnsafe(count);
+    const handle = await fs.open(full, "r");
+    let read = 0;
+    try {
+      while (read < count) {
+        const { bytesRead } = await handle.read(
+          buffer,
+          read,
+          count - read,
+          offset + read,
+        );
+        if (!bytesRead) break;
+        read += bytesRead;
+      }
+    } finally {
+      await handle.close();
+    }
+    return {
+      base64: buffer.subarray(0, read).toString("base64"),
+      size: stat.size,
+      token: `${stat.size}:${stat.mtimeMs}:${stat.ino}`,
     };
   }
   async locked<T>(key: string, action: () => Promise<T>): Promise<T> {

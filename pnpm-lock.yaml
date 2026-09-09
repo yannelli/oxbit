@@ -121,6 +121,43 @@ importers:
         specifier: 1.4.0
         version: 1.4.0(tsx@4.23.13)
 
+  apps/ios:
+    dependencies:
+      '@oxbit/app-workbench':
+        specifier: workspace:*
+        version: link:../../packages/app-workbench
+      '@oxbit/host-browser':
+        specifier: workspace:*
+        version: link:../../packages/host-browser
+      '@oxbit/host-ios':
+        specifier: workspace:*
+        version: link:../../packages/host-ios
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@oxbit/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
+      '@oxbit/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@oxbit/workbench':
+        specifier: workspace:*
+        version: link:../../packages/workbench
+      '@tauri-apps/api':
+        specifier: 2.11.1
+        version: 2.11.1
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
+    devDependencies:
+      '@tauri-apps/cli':
+        specifier: 2.11.4
+        version: 2.11.4
+
   apps/runtime:
     dependencies:
       '@oxbit/core':
@@ -138,12 +175,12 @@ importers:
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
-      jsonc-parser:
-        specifier: ^3.3.1
-        version: 3.3.1
       ignore:
         specifier: 7.0.5
         version: 7.0.5
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       node-pty:
         specifier: ^1.1.0
         version: 1.1.0
@@ -298,6 +335,9 @@ importers:
       '@oxbit/feature-git':
         specifier: workspace:*
         version: link:../features/git
+      '@oxbit/feature-images':
+        specifier: workspace:*
+        version: link:../features/images
       '@oxbit/feature-keymaps':
         specifier: workspace:*
         version: link:../features/keymaps
@@ -581,6 +621,21 @@ importers:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
 
+  packages/features/images:
+    dependencies:
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+      '@oxbit/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
+
   packages/features/keymaps:
     dependencies:
       '@oxbit/sdk':
@@ -832,6 +887,24 @@ importers:
       '@oxbit/icon-themes':
         specifier: workspace:*
         version: link:../icon-themes
+      '@oxbit/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@tauri-apps/api':
+        specifier: 2.11.1
+        version: 2.11.1
+
+  packages/host-ios:
+    dependencies:
+      '@oxbit/host-browser':
+        specifier: workspace:*
+        version: link:../host-browser
+      '@oxbit/icon-themes':
+        specifier: workspace:*
+        version: link:../icon-themes
+      '@oxbit/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@oxbit/sdk':
         specifier: workspace:*
         version: link:../sdk

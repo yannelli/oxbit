@@ -66,6 +66,9 @@
       "path": "../features/previews"
     },
     {
+      "path": "../features/images"
+    },
+    {
       "path": "../features/formatters"
     },
     {

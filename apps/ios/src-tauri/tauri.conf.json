@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Oxbit",
+  "version": "../../../package.json",
+  "identifier": "com.yannelli.oxbit",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:9281",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Oxbit",
+        "url": "index.html"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'",
+      "capabilities": [
+        "ios"
+      ]
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "licenseFile": "../../../LICENSE",
+    "license": "MIT",
+    "publisher": "Ryan Yannelli",
+    "category": "DeveloperTool",
+    "shortDescription": "A code editor for iPhone and iPad",
+    "longDescription": "Oxbit code editor for local files and Files app folders.",
+    "copyright": "Copyright © 2026 Ryan Yannelli",
+    "homepage": "https://ryanyannelli.com",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns"
+    ],
+    "iOS": {
+      "minimumSystemVersion": "26.0",
+      "developmentTeam": "2P58V89SR7"
+    }
+  }
+}

@@ -153,7 +153,7 @@ describe("ACP editor integration", () => {
       kernel.commands.list().some((c) => c.id.startsWith("agentACP.")),
     ).toBe(false);
     await kernel.extensions.activate(extension.manifest.id);
-    expect(kernel.contributions.list("activityView")).toHaveLength(1);
+    expect(kernel.contributions.list("activityView")).toHaveLength(2);
     kernel.dispose();
   });
 });
@@ -522,6 +522,242 @@ describe("ACP conversation workflows", () => {
     await agent.undoChange(agent.changes[0].id);
     expect(text).toBe("before");
     expect(agent.changes[0].undone).toBe(true);
+    agent.dispose();
+  });
+});
+
+describe("dispatched subagents in the editor", () => {
+  const child = (id = "a", parentId?: string): any => ({
+    id,
+    parentId,
+    rootSessionId: "session",
+    sessionId: id,
+    provider: "codex",
+    name: id,
+    task: "Inspect routing",
+    toolCallIds: [],
+    state: "running",
+    phase: "thinking",
+    evidence: "native",
+    visibility: "full",
+    observedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    activity: [],
+  });
+  const receive = (
+    listeners: Map<string, any>,
+    subagent: any,
+    activeCount = 1,
+  ) =>
+    listeners.get("acp.subagent")({
+      id: "connection",
+      rootSessionId: "session",
+      subagent,
+      activeCount,
+      removedIds: [],
+      truncated: false,
+    });
+  it("isolates child transcripts, synchronizes selection and keeps approvals after a root turn", async () => {
+    const { agent, listeners, runtime } = setup();
+    let finish!: (value: any) => void;
+    runtime.request.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    agent.draft = "Delegate";
+    const turn = agent.send();
+    receive(listeners, child());
+    receive(listeners, child("b", "a"), 2);
+    agent.selectSubagent("b");
+    expect(agent.expandedSubagents.has("a")).toBe(true);
+    listeners.get("acp.update")!({
+      id: "connection",
+      rootSessionId: "session",
+      sessionId: "b",
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { text: "Private child activity" },
+      },
+    });
+    expect(agent.messages.some((m) => m.text.includes("Private child"))).toBe(
+      false,
+    );
+    const request = {
+      id: "connection",
+      sessionId: "b",
+      rootSessionId: "session",
+      subagentId: "b",
+      requestId: "permission",
+      method: "session/request_permission",
+      params: { options: [] },
+    };
+    listeners.get("acp.request")!(request);
+    finish({ stopReason: "end_turn" });
+    await turn;
+    expect(agent.busy).toBe(false);
+    expect(agent.requests).toEqual([request]);
+    await expect(agent.newSession()).rejects.toThrow("pending requests");
+    listeners.get("acp.requestsExpired")!({
+      id: "connection",
+      requestIds: ["permission"],
+    });
+    expect(agent.requests).toEqual([]);
+    agent.dispose();
+  });
+  it("never revives historical children and reconciles replay with saved drafts", async () => {
+    const values = new Map();
+    const persistence = {
+      get: async (key: string) => values.get(key),
+      set: async (key: string, value: any) => {
+        values.set(key, value);
+      },
+    };
+    const { agent, listeners, runtime } = setup(undefined, persistence);
+    runtime.request.mockResolvedValueOnce(agent.connection);
+    await agent.newSession();
+    receive(listeners, child());
+    agent.draft = "Saved draft";
+    await agent.saveConversation();
+    const saved = agent.history.entries[0];
+    expect(saved.subagents?.[0].historical).toBe(true);
+    const other = setup(undefined, persistence);
+    await other.agent.history.ready;
+    expect(other.runtime.request).not.toHaveBeenCalled();
+    await other.agent.viewConversation(saved);
+    expect(other.agent.subagents.get("a")?.historical).toBe(true);
+    expect(other.agent.activeSubagentCount).toBe(0);
+    other.agent.connection = {
+      ...agent.connection!,
+      capabilities: { loadSession: true },
+    };
+    other.runtime.request.mockImplementation(async (_method, params) => {
+      if (params?.method === "session/load") {
+        receive(other.listeners, { ...child(), historical: true }, 0);
+        return other.agent.connection;
+      }
+      return {};
+    });
+    await other.agent.restoreConversation(saved);
+    expect(other.agent.subagents.size).toBe(1);
+    expect(
+      other.agent.activity.filter((a) => a.kind === "subagent"),
+    ).toHaveLength(1); // Replay reconciles the existing child without duplicating it.
+    expect(other.agent.draft).toBe("Saved draft");
+    expect(other.agent.activeSubagentCount).toBe(0);
+    agent.dispose();
+    other.agent.dispose();
+  });
+  it("rejects a second child's stale proposal to the same shared document", async () => {
+    let text = "disk";
+    const doc = {
+      dirty: false,
+      state: "ready",
+      version: 1,
+      savedRevision: "disk-revision",
+      text: { toString: () => text },
+      replace(value: string) {
+        text = value;
+        this.version++;
+      },
+    };
+    const { agent, listeners, runtime } = setup(doc);
+    for (const id of ["a", "b"])
+      listeners.get("acp.request")!({
+        id: "connection",
+        requestId: id,
+        sessionId: id,
+        rootSessionId: "session",
+        subagentId: id,
+        method: "fs/write_text_file",
+        params: { path: "hello.txt", content: id },
+      });
+    await expect.poll(() => agent.requests.length).toBe(2);
+    await agent.applyFile(agent.requests[0]);
+    await agent.applyFile(agent.requests[0]);
+    expect(text).toBe("a");
+    expect(runtime.request).toHaveBeenCalledWith(
+      "acp.respond",
+      expect.objectContaining({
+        requestId: "b",
+        error: expect.stringContaining("changed during review"),
+      }),
+    );
+    agent.dispose();
+  });
+  it("keeps selection stable when input arrives and ignores another root's events", () => {
+    const { agent, listeners } = setup();
+    receive(listeners, child());
+    agent.selectSubagent("a");
+    receive(listeners, { ...child("b", "a"), phase: "awaiting_input" }, 2);
+    expect(agent.selectedSubagent).toBe("a");
+    expect(agent.expandedSubagents.has("a")).toBe(true);
+    listeners.get("acp.subagent")!({
+      id: "connection",
+      rootSessionId: "foreign",
+      subagent: child("evil"),
+      activeCount: 3,
+      removedIds: [],
+    });
+    expect(agent.subagents.has("evil")).toBe(false);
+    listeners.get("acp.exit")!({ id: "connection", reason: "Disconnected" });
+    expect(agent.activeSubagentCount).toBe(0);
+    expect(agent.subagents.get("a")?.state).toBe("disconnected");
+    agent.dispose();
+  });
+  it("does not reinsert an expired child proposal after a delayed editor read", async () => {
+    const { agent, listeners, options } = setup();
+    let opened!: (doc: any) => void;
+    (options.documents.open as any).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          opened = resolve;
+        }),
+    );
+    listeners.get("acp.request")!({
+      id: "connection",
+      sessionId: "a",
+      rootSessionId: "session",
+      subagentId: "a",
+      requestId: "late-child",
+      method: "fs/write_text_file",
+      params: { path: "hello.txt", content: "stale" },
+    });
+    listeners.get("acp.requestsExpired")!({
+      id: "connection",
+      requestIds: ["late-child"],
+    });
+    opened({
+      dirty: false,
+      state: "ready",
+      text: { toString: () => "disk" },
+      version: 1,
+      savedRevision: "revision",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(agent.requests).toEqual([]);
+    agent.dispose();
+  });
+  it("preserves timeline position and selection when a task gains its provider ID", () => {
+    const { agent, listeners } = setup();
+    receive(listeners, { ...child("provisional"), toolCallIds: ["task"] }, 0);
+    agent.selectSubagent("provisional");
+    agent.activity.push({ kind: "notice", text: "After dispatch" });
+    listeners.get("acp.subagent")!({
+      id: "connection",
+      rootSessionId: "session",
+      subagent: { ...child("identified"), toolCallIds: ["task"] },
+      activeCount: 0,
+      removedIds: ["provisional"],
+      truncated: false,
+    });
+    expect(agent.selectedSubagent).toBe("identified");
+    expect(agent.activity).toEqual([
+      { kind: "subagent", id: "identified" },
+      { kind: "notice", text: "After dispatch" },
+    ]);
     agent.dispose();
   });
 });

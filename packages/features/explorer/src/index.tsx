@@ -101,6 +101,8 @@ export function Explorer({
       },
     });
   };
+  // Touch devices reorder and move files through long-press menus; HTML5 drag stays for mice.
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   const t =
     workbench.kernel.configuration.get("workbench.locale") === "de"
       ? { open: "Geöffnete Editoren", outline: "Gliederung" }
@@ -219,7 +221,7 @@ export function Explorer({
                 }
                 aria-selected={selected}
                 tabIndex={selected || (!s.selectedPath && index === 0) ? 0 : -1}
-                draggable
+                draggable={!touch}
                 className={`tree-row ${selected ? "selected" : ""} ${doc?.state === "missing" ? "missing" : ""} ${doc?.state === "conflict" ? "external-change" : ""}`}
                 style={{ paddingLeft: entry.path.split("/").length * 12 + 4 }}
                 title={entry.path}

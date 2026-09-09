@@ -354,6 +354,8 @@ export interface FileSystem {
   list(path?: string): Promise<FileEntry[]>;
   read(path: string): Promise<FileSnapshot>;
   readDisk?(path: string): Promise<FileSnapshot>;
+  /** Undecoded file contents. Hosts without byte access omit it. */
+  readBytes?(path: string, signal?: AbortSignal): Promise<Uint8Array>;
   write(
     path: string,
     text: string,
@@ -449,6 +451,8 @@ export interface WorkbenchService {
       to?: number;
       preview?: boolean;
       groupId?: string;
+      /** Skip document views registered for this path and open the text editor. */
+      text?: boolean;
     },
   ): void | Promise<void>;
   openPanel(id: string): void;

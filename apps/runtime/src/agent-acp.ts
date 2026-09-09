@@ -7,6 +7,7 @@ import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
 import { trackChild } from "./owned-processes.js";
+import { SubagentRegistry } from "./acp-subagents.js";
 
 type Params = Record<string, any>;
 type Pending = {
@@ -16,6 +17,7 @@ type Pending = {
 };
 type Approval = { rpcId: string | number; method: string; params: Params };
 type Terminal = {
+  sessionId: string;
   child: ChildProcessWithoutNullStreams;
   output: string;
   truncated: boolean;
@@ -36,6 +38,7 @@ type Agent = {
   sequence: number;
   turn: number;
   newSessionUpdates?: Params[];
+  subagents?: SubagentRegistry;
 };
 const MAX_BYTES = 1024 * 1024;
 function strings(value: unknown): string[] {
@@ -199,6 +202,7 @@ export class AgentACP {
         clientCapabilities: {
           fs: { readTextFile: true, writeTextFile: true },
           terminal: true,
+          ...(preset.id === "codex" ? { subagents: {} } : {}),
         },
         clientInfo: { name: "oxbit", title: "Oxbit", version: "0.1.0" },
       });
@@ -285,7 +289,13 @@ export class AgentACP {
         !agent.connection.capabilities?.sessionCapabilities?.resume
       )
         throw new Error("This agent does not support resuming conversations");
+      if (agent.subagents?.activeCount)
+        throw new Error(
+          "Wait for active subagents or disconnect before changing conversations",
+        );
       const previous = { ...agent.connection };
+      const previousRegistry = agent.subagents;
+      const previousTerminals = agent.terminals;
       const target =
         method === "session/new"
           ? undefined
@@ -297,6 +307,8 @@ export class AgentACP {
       agent.busy = true;
       // Load replays history before its response. Route only the requested session.
       agent.connection.sessionId = target;
+      agent.subagents = target ? this.registry(agent, target, true) : undefined;
+      agent.terminals = new Map();
       if (!target) agent.newSessionUpdates = [];
       try {
         const result = await this.request(agent, method, {
@@ -313,18 +325,19 @@ export class AgentACP {
           models: result?.models,
           configOptions: result?.configOptions,
         });
+        agent.subagents ??= this.registry(agent, sessionId);
         for (const params of agent.newSessionUpdates ?? [])
-          if (params.sessionId === sessionId)
-            this.publish(agent, "acp.update", {
-              sessionId,
-              update: params.update,
-            });
-        for (const terminal of agent.terminals.values())
+          this.routeUpdate(agent, params.sessionId, params.update);
+        agent.subagents.replaying = false;
+        for (const terminal of previousTerminals.values())
           killProcess(terminal.child);
-        agent.terminals.clear();
         return agent.connection;
       } catch (error) {
         Object.assign(agent.connection, previous);
+        for (const terminal of agent.terminals.values())
+          killProcess(terminal.child);
+        agent.terminals = previousTerminals;
+        agent.subagents = previousRegistry;
         throw error;
       } finally {
         agent.newSessionUpdates = undefined;
@@ -416,6 +429,7 @@ export class AgentACP {
         30 * 60 * 1000,
       );
     } finally {
+      this.expireRequests(agent, sessionId);
       agent.busy = false;
       signal?.removeEventListener("abort", abort);
     }
@@ -427,6 +441,7 @@ export class AgentACP {
       params: { sessionId: agent.connection.sessionId },
     });
     for (const [requestId, request] of agent.approvals) {
+      if (request.params.sessionId !== agent.connection.sessionId) continue;
       this.send(agent, {
         id: request.rpcId,
         ...(request.method === "session/request_permission"
@@ -434,14 +449,23 @@ export class AgentACP {
           : { error: { code: -32800, message: "Cancelled" } }),
       });
       agent.approvals.delete(requestId);
+      agent.subagents?.waiting(
+        request.params.sessionId,
+        requestId,
+        false,
+        request.params.toolCallId ?? request.params.toolCall?.toolCallId,
+      );
     }
     for (const terminal of agent.terminals.values())
-      killProcess(terminal.child);
-    this.publish(agent, "acp.cancelled", {});
+      if (terminal.sessionId === agent.connection.sessionId)
+        killProcess(terminal.child);
+    this.publish(agent, "acp.cancelled", {
+      sessionId: agent.connection.sessionId,
+    });
     // A compliant agent completes session/prompt with stopReason=cancelled. Bound noncompliant agents.
     const turn = agent.turn;
     const timer = setTimeout(() => {
-      if (agent.busy && agent.turn === turn)
+      if ((agent.busy || agent.subagents?.activeCount) && agent.turn === turn)
         this.stopAgent(
           agent,
           "Agent did not finish cancellation; reconnect to continue",
@@ -449,6 +473,61 @@ export class AgentACP {
     }, 5000);
     timer.unref();
     return {};
+  }
+  private registry(agent: Agent, root: string, replaying = false) {
+    const registry = new SubagentRegistry(
+      agent.connection.provider,
+      root,
+      (event) =>
+        this.publish(agent, "acp.subagent", { rootSessionId: root, ...event }),
+    );
+    registry.replaying = replaying;
+    return registry;
+  }
+  private routeUpdate(agent: Agent, sessionId: string, update: Params) {
+    if (
+      !update ||
+      typeof update !== "object" ||
+      !agent.subagents?.observe(sessionId, update)
+    )
+      return;
+    this.publish(agent, "acp.update", {
+      rootSessionId: agent.subagents.root,
+      sessionId,
+      update,
+    });
+    if (
+      update.sessionUpdate === "subagent_state_update" &&
+      !agent.subagents.acceptsRequest(update.subagentSessionId)
+    ) {
+      this.expireRequests(agent, update.subagentSessionId);
+      for (const terminal of agent.terminals.values())
+        if (terminal.sessionId === update.subagentSessionId)
+          killProcess(terminal.child);
+    }
+  }
+  private expireRequests(agent: Agent, sessionId: string) {
+    const requestIds: string[] = [];
+    for (const [id, request] of agent.approvals) {
+      if (request.params.sessionId !== sessionId) continue;
+      if (!agent.stopped)
+        this.send(agent, {
+          id: request.rpcId,
+          ...(request.method === "session/request_permission"
+            ? { result: { outcome: { outcome: "cancelled" } } }
+            : { error: { code: -32800, message: "Session turn ended" } }),
+        });
+      agent.approvals.delete(id);
+      requestIds.push(id);
+      agent.subagents?.waiting(
+        sessionId,
+        id,
+        false,
+        request.params.toolCallId ?? request.params.toolCall?.toolCallId,
+      );
+    }
+    if (requestIds.length)
+      this.publish(agent, "acp.requestsExpired", { requestIds });
   }
   private async relative(value: unknown, missing = false) {
     if (typeof value !== "string" || !path.isAbsolute(value))
@@ -489,32 +568,30 @@ export class AgentACP {
         agent.newSessionUpdates.push(params);
         return;
       }
-      if (
-        message.method === "session/update" &&
-        (!agent.connection.sessionId ||
-          params.sessionId === agent.connection.sessionId)
+      if (message.method === "session/update")
+        this.routeUpdate(agent, params.sessionId, params.update);
+      else if (
+        message.method.startsWith("cursor/") &&
+        agent.connection.provider === "cursor"
       )
-        this.publish(agent, "acp.update", {
-          sessionId: params.sessionId,
-          update: params.update,
-        });
-      else if (message.method.startsWith("cursor/"))
-        this.publish(agent, "acp.update", {
-          update: { sessionUpdate: message.method, ...params },
-        });
+        this.routeUpdate(
+          agent,
+          params.sessionId ?? agent.connection.sessionId,
+          { ...params, sessionUpdate: message.method },
+        );
       return;
     }
     try {
-      const requiresSession =
-        message.method.startsWith("fs/") ||
-        message.method.startsWith("terminal/") ||
-        message.method === "session/request_permission";
-      if (
-        (requiresSession || params.sessionId !== undefined) &&
-        (!agent.connection.sessionId ||
-          params.sessionId !== agent.connection.sessionId)
-      )
+      const registry = agent.subagents;
+      const cursorRequest =
+        message.method.startsWith("cursor/") &&
+        agent.connection.provider === "cursor";
+      const sessionId =
+        params.sessionId ??
+        (cursorRequest ? agent.connection.sessionId : undefined);
+      if (!registry?.acceptsRequest(sessionId))
         throw new Error("Unknown ACP session");
+      params.sessionId = sessionId;
       if (message.method.startsWith("terminal/")) {
         const result = await this.terminal(agent, message.method, params);
         this.send(agent, { id: message.id, result });
@@ -552,13 +629,30 @@ export class AgentACP {
           requireString(params, "content", MAX_BYTES);
       }
       if (agent.stopped) return;
+      if (registry !== agent.subagents || !registry.acceptsRequest(sessionId))
+        throw new Error("ACP session ended");
       const requestId = randomUUID();
       agent.approvals.set(requestId, {
         rpcId: message.id,
         method: message.method,
         params,
       });
+      if (message.method !== "fs/read_text_file")
+        registry.waiting(
+          sessionId,
+          requestId,
+          true,
+          params.toolCallId ?? params.toolCall?.toolCallId,
+        );
       this.publish(agent, "acp.request", {
+        sessionId,
+        rootSessionId: registry.root,
+        subagentId:
+          registry.idForSession(sessionId) ??
+          registry.idForTool(
+            sessionId,
+            params.toolCallId ?? params.toolCall?.toolCallId,
+          ),
         requestId,
         method: message.method,
         params,
@@ -601,6 +695,12 @@ export class AgentACP {
         : { result }),
     });
     agent.approvals.delete(requestId);
+    agent.subagents?.waiting(
+      request.params.sessionId,
+      requestId,
+      false,
+      request.params.toolCallId ?? request.params.toolCall?.toolCallId,
+    );
     return {};
   }
   private async terminal(
@@ -608,6 +708,8 @@ export class AgentACP {
     method: string,
     params: Params,
   ): Promise<unknown> {
+    const registry = agent.subagents;
+    const sessionId = params.sessionId;
     if (method === "terminal/create") {
       if (agent.terminals.size >= 16)
         throw new Error("Agent terminal limit reached");
@@ -634,7 +736,12 @@ export class AgentACP {
         throw new Error(
           "Terminal output limit must be between 1 and 1048576 bytes",
         );
-      if (agent.stopped) throw new Error("Agent connection has ended");
+      if (
+        agent.stopped ||
+        registry !== agent.subagents ||
+        !registry?.acceptsRequest(sessionId)
+      )
+        throw new Error("Agent connection has ended");
       const child = spawn(command, strings(params.args ?? []), {
         cwd,
         env,
@@ -646,6 +753,7 @@ export class AgentACP {
       child.stdin.end();
       const terminalId = randomUUID();
       const terminal: Terminal = {
+        sessionId,
         child,
         limit,
         output: "",
@@ -653,14 +761,26 @@ export class AgentACP {
         exited: Promise.resolve(),
       };
       agent.terminals.set(terminalId, terminal);
-      const publish = () =>
+      const publish = () => {
+        if (agent.stopped || registry !== agent.subagents) return;
+        registry.terminal(
+          sessionId,
+          terminalId,
+          command,
+          terminal.output,
+          !!terminal.exitStatus,
+        );
         this.publish(agent, "acp.terminal", {
+          sessionId,
+          rootSessionId: registry.root,
+          subagentId: registry.idForSession(sessionId),
           terminalId,
           command,
           output: terminal.output,
           truncated: terminal.truncated,
           exitStatus: terminal.exitStatus,
         });
+      };
       const append = (data: string) => {
         terminal.output += data;
         const bytes = Buffer.from(terminal.output);
@@ -693,7 +813,8 @@ export class AgentACP {
       return { terminalId };
     }
     const terminal = agent.terminals.get(params.terminalId);
-    if (!terminal) throw new Error("Unknown agent terminal");
+    if (!terminal || terminal.sessionId !== sessionId)
+      throw new Error("Unknown agent terminal");
     if (method === "terminal/output")
       return {
         output: terminal.output,
@@ -712,6 +833,7 @@ export class AgentACP {
   private stopAgent(agent: Agent, reason: string) {
     if (agent.stopped) return;
     agent.stopped = true;
+    agent.subagents?.disconnect();
     for (const pending of agent.pending.values()) {
       clearTimeout(pending.timer);
       pending.reject(new Error(reason));

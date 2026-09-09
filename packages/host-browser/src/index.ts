@@ -322,6 +322,10 @@ export class BrowserFileSystem implements FileSystem {
     if (!file) throw new Error(`File not found: ${path}`);
     return { path, ...file };
   }
+  async readBytes(path: string): Promise<Uint8Array> {
+    const file = await this.read(path);
+    return encodeText(file.text, file.encoding, file.eol);
+  }
   async write(
     path: string,
     text: string,
@@ -623,6 +627,12 @@ export class DirectoryFileSystem implements FileSystem {
       path,
       await (await directory.getFileHandle(name)).getFile(),
     );
+  }
+  async readBytes(path: string): Promise<Uint8Array> {
+    path = normalizePath(path);
+    const { directory, name } = await this.parent(path);
+    const file = await (await directory.getFileHandle(name)).getFile();
+    return new Uint8Array(await file.arrayBuffer());
   }
   async write(
     path: string,

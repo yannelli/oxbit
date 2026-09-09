@@ -10,16 +10,19 @@ import type { Contribution, Kernel } from "@oxbit/sdk";
 export function documentViewFor(
   kernel: Kernel,
   path: string,
+  options: { binary?: boolean } = {},
 ): Contribution | undefined {
   return kernel.contributions.list("documentView").find((contribution) => {
     const data = contribution.data as
       | {
           default?: boolean;
+          binary?: boolean;
           extensions?: string[];
           matches?: (path: string) => boolean;
         }
       | undefined;
     if (data?.default || !contribution.component) return false;
+    if (options.binary && !data?.binary) return false;
     try {
       return (
         data?.matches?.(path) ||
@@ -37,6 +40,17 @@ export function documentViewFor(
       return false;
     }
   });
+}
+/** A binary view reads the file itself, so the text document is never opened for it. */
+export function isBinaryDocumentView(
+  kernel: Kernel,
+  contributionId: string | undefined,
+): boolean {
+  if (!contributionId) return false;
+  const contribution = kernel.contributions
+    .list("documentView")
+    .find((item) => item.id === contributionId);
+  return !!(contribution?.data as { binary?: boolean } | undefined)?.binary;
 }
 export function menuContributions(
   kernel: Kernel,

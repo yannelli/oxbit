@@ -28,4 +28,4 @@ Test coverage includes document/core contracts and real runtime services. Earlie
 
 Unicode, multi-cursor, browser IME commit/cancel and emulated touch checks passed. Real OS IME and physical touch devices were not tested. See [paint and file-switch measurements](../evidence/performance.json) and the [two-minute session](../evidence/sustained-session.json). Targets are 50 ms typing-to-paint and 100 ms cached switching. Large-workspace and physical-device performance are unverified.
 
-Native packaging, React Native, certified Paseo 0.7.0 support, a public marketplace and further debugging/AI providers are deferred. Future host checks are in [architecture.md](architecture.md).
+React Native, certified Paseo 0.7.0 support, a public marketplace and further debugging/AI providers are deferred. The iOS app covers local files only; its remote runtime and SSH phases are listed in [ios.md](ios.md). Future host checks are in [architecture.md](architecture.md).

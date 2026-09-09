@@ -75,7 +75,8 @@ button or sign in using the provider CLI, then retry the conversation.
 - Tool file locations open in the editor. **Review changes** opens source control.
 - Agent terminal commands run in the workspace, show bounded output, and support
   output, wait, kill, and release through ACP.
-- **Stop** cancels a turn and clears pending approvals. **Disconnect** ends the
+- **Stop** cancels the parent turn and clears its pending approvals. Child requests
+  remain attributed to their sessions until those sessions finish or disconnect. **Disconnect** ends the
   conversation. Disabling the extension, losing the client connection, revoking
   trust, or closing the runtime terminates owned agent and terminal processes.
   Late responses from an ended connection cannot change a newer conversation.
@@ -86,6 +87,73 @@ checks apply to Oxbit's ACP filesystem and terminal working-directory APIs;
 they are not a process sandbox. An agent's own tools can edit files or execute
 commands independently, according to that agent's permission policy. The review
 UI applies to writes requested through Oxbit's ACP client API.
+
+## Dispatched subagents
+
+**Subagents** inside the conversation and **Agent ACP: Open Agents** in the command
+palette show the same agent tree. The dedicated **Agents** activity view is
+registered only while Agent ACP is enabled. It follows the selected conversation;
+it does not launch additional agents. Select a child to inspect its task, reported
+model, latest observed activity, available messages/tools, and returned result.
+Delegation entries in the parent timeline open the corresponding child.
+
+Arrow keys navigate the tree; Right/Left expand and collapse children, Home/End
+move to its ends, and Enter/Space select. Selection and expansion are shared by
+both surfaces. Requests expand their ancestor path without stealing focus.
+
+| Adapter | Tracking available |
+| --- | --- |
+| Codex ACP 1.10.0 | Negotiated native child sessions, nested descendants, child messages/thinking/tools, lifecycle outcomes, and reopened generations; structured collaboration metadata is retained as a fallback. |
+| Cursor ACP | `cursor/task` metadata correlated with tool calls, including agent identity, task, model, duration, returned output, and explicit outcomes when provided. |
+| Amp ACP 0.9.0 | Adapter-specific `Task` tool recognition, task inputs, tool status and returned output. |
+
+The UI distinguishes native child events, provider metadata, and delegation-tool
+observations. Cursor and Amp usually provide **Limited visibility**: tool
+completion or receiving a task notification alone never confirms that a background
+child finished. Unreported state stays **Unknown**. Silence never indicates a
+failure, and no synthetic heartbeat is displayed.
+
+Lifecycle states are pending, running, completed, failed, cancelled, disconnected,
+and unknown. Thinking, executing tools, responding, and awaiting input are separate
+activity phases derived from events. The counts of active children come from live
+lifecycle tracking, not saved transcript previews.
+
+Child filesystem requests, permissions, questions, and terminals retain session
+identity and use the existing review workflow. Reviews identify the requesting
+child, including in the main editor. Concurrent proposals for the same file still
+check the shared document version and disk revision. Terminals cannot be accessed
+by sibling sessions. Only children registered by a known parent receive access to
+client APIs; tool-derived identities never grant access.
+
+The parent may finish while its children are running or waiting for approval.
+Their tracking and requests remain active. New/Read/Resume wait for confirmed
+active children and pending requests; **Disconnect** remains available. The Stop
+command disconnects when only children are active. Cancellation is only reported
+as successful when the provider confirms it; a lost connection is shown as
+disconnected. Unresponsive cancellation remains bounded by the runtime timeout.
+
+History saves bounded child summaries and activity with each conversation. Old
+history records without children remain compatible. **Historical** rows never
+claim to be live. Resume reconciles the provider replay with existing records and
+preserves the draft without dispatching children or replaying prompts.
+
+Display retention is capped at 256 children and 32 activity entries per child,
+with a shared 512,000-character serialized activity budget. Saved child previews
+use at most approximately 750,000 serialized characters inside the existing
+4 MiB conversation-history budget. Truncation is visible. Live native-session
+registration and fallback lifecycle tracking are separate from display pruning;
+each is capped at 1,024 identities per connection/conversation. Unknown-session
+updates have a small bounded buffer and never authorize requests.
+
+This feature observes provider dispatch. It does not install provider hooks,
+monitor externally launched agents, provide manual dispatch, or expose individual
+child messaging/cancellation controls. Adapter versions remain pinned.
+
+Provider contracts were checked against the pinned
+[Codex child-session interfaces](https://github.com/agentclientprotocol/codex-acp/blob/v1.10.0/src/subagents/AcpSubagents.ts),
+[Codex collaboration mappings](https://github.com/agentclientprotocol/codex-acp/blob/v1.10.0/src/CodexToolCallMapper.ts),
+[Cursor ACP extensions](https://cursor.com/docs/cli/acp), and
+[Amp tool mapping](https://github.com/tao12345666333/amp-acp/blob/v0.9.0/src/to-acp.ts).
 
 ## Conversation history
 
@@ -136,13 +204,13 @@ undone without overwriting later work. Protocol behavior follows the primary
 Focused runtime and editor tests:
 
 ```sh
-pnpm exec vitest run apps/runtime/tests/agent-acp.test.ts packages/features/agent-acp/src
+pnpm exec vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `pnpm build`):
 
 ```sh
-pnpm exec playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts --reporter=list
+pnpm exec playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts tests/browser/agent-acp-subagents.spec.ts --reporter=list
 ```
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,
@@ -150,3 +218,6 @@ permission responses, file edits, terminals, cancellation, and failure handling
 without contacting a model provider. Real Codex, Cursor, and Amp adapters have
 also completed initialization against this bridge; model prompts and account
 billing were not part of that handshake check.
+
+Dispatched-subagent validation, exact installed adapter versions, and visual
+captures are recorded in [the acceptance notes](../evidence/agent-acp/subagents/acceptance.md).

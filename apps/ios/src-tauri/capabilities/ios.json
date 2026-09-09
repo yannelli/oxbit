@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/ios-schema.json",
+  "identifier": "ios",
+  "description": "Oxbit iOS main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "opener:allow-open-url",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "oxbit-files:default"
+  ]
+}

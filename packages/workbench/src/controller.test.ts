@@ -269,6 +269,76 @@ describe("workbench document and contribution lifecycle", () => {
         .some((tab) => tab.contributionId === "preview"),
     ).toBe(false);
   });
+  it("opens a binary document view without decoding the file as text", async () => {
+    const { workbench, kernel, documents, filesystem } = await setup();
+    await filesystem.write("logo.svg", "<svg viewBox='0 0 1 1'/>", {
+      expectedRevision: null,
+    });
+    const component = () => null;
+    kernel.contributions.register({
+      id: "images",
+      kind: "documentView",
+      title: "Images",
+      component,
+      data: { binary: true, extensions: ["svg", "png"] },
+    });
+    const open = vi.spyOn(documents, "open");
+    await workbench.openFile("logo.svg");
+    expect(open).not.toHaveBeenCalled();
+    expect(workbench.activeTab()).toMatchObject({
+      id: "logo.svg",
+      component,
+      contributionId: "images",
+    });
+    expect(kernel.context.get("binaryDocument")).toBe(true);
+
+    workbench.closeView("logo.svg");
+    await workbench.openFile("logo.svg", { text: true });
+    expect(open).toHaveBeenCalledWith("logo.svg");
+    expect(workbench.activeTab()?.component).toBeUndefined();
+    expect(workbench.activeTab()?.error).toBeUndefined();
+    expect(kernel.context.get("binaryDocument")).toBe(false);
+  });
+  it("restores a binary view tab without reopening its text document", async () => {
+    const { workbench, kernel, persistence, documents, filesystem } =
+      await setup();
+    await filesystem.write("logo.svg", "<svg viewBox='0 0 1 1'/>", {
+      expectedRevision: null,
+    });
+    const component = () => null;
+    kernel.contributions.register({
+      id: "images",
+      kind: "documentView",
+      title: "Images",
+      component,
+      data: { binary: true, extensions: ["svg"] },
+    });
+    await workbench.openFile("logo.svg");
+    await workbench.persist();
+    const open = vi.spyOn(documents, "open");
+    const restored = new WorkbenchController(
+      kernel,
+      documents,
+      filesystem,
+      persistence,
+    );
+    disposables.push(restored);
+    await restored.restore();
+    expect(open).not.toHaveBeenCalled();
+    expect(restored.activeTab()).toMatchObject({
+      id: "logo.svg",
+      component,
+      contributionId: "images",
+    });
+    expect(restored.activeTab()?.error).toBeUndefined();
+  });
+  it("reads undecoded bytes for a binary view without a text document", async () => {
+    const { filesystem } = await setup();
+    await filesystem.write("data.svg", "<svg/>\n", { expectedRevision: null });
+    expect([...(await filesystem.readBytes("data.svg"))]).toEqual([
+      ...new TextEncoder().encode("<svg/>\n"),
+    ]);
+  });
   it("opens missing files in a retryable tab and toggles a panel", async () => {
     const { workbench } = await setup();
     await workbench.openFile("missing.ts");

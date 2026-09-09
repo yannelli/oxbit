@@ -1,0 +1,20 @@
+{
+  "name": "@oxbit/feature-images",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.tsx",
+  "scripts": {},
+  "dependencies": {
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

@@ -1,0 +1,13 @@
+#!/bin/sh
+# cargo-mobile2 spawns Xcode tools with only HOME, PATH, and TERM, so DEVELOPER_DIR from the
+# calling shell is lost. When xcode-select points at the Command Line Tools, pick a full Xcode.
+if [ -z "$DEVELOPER_DIR" ]; then
+  case "$(/usr/bin/xcode-select -p 2>/dev/null)" in
+    *.app/*) ;;
+    *)
+      for dir in /Applications/Xcode.app/Contents/Developer /Applications/Xcode-beta.app/Contents/Developer; do
+        if [ -d "$dir" ]; then export DEVELOPER_DIR="$dir"; break; fi
+      done ;;
+  esac
+fi
+exec /usr/bin/xcrun "$@"

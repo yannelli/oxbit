@@ -1,0 +1,15 @@
+{
+  "name": "@oxbit/host-ios",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/protocol": "workspace:*",
+    "@oxbit/host-browser": "workspace:*",
+    "@oxbit/icon-themes": "workspace:*",
+    "@tauri-apps/api": "2.11.1"
+  },
+  "license": "MIT"
+}

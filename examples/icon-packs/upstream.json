@@ -1,0 +1,857 @@
+{
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/theme-dark.json",
+      "sha256": "acb4811201ba7e0ce9851a7b006a753578613123fcdc0e8b90480cfd1a615604"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/theme-light.json",
+      "sha256": "eac53eabbf7ab0fd2b44eba348a2f8d9ff00790a8a7c6215ce97725a97729b28"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folder_dark.svg",
+      "sha256": "6eddb3bec10e7cbb803d9e178b9fdadaec16b817e562805b6f54c6318e03190e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/module_dark.svg",
+      "sha256": "1da54b5812464d4a0daa616892bb62a54be55c3e82cff77ebd503f17725b36d4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderVendor_dark.svg",
+      "sha256": "e3c744194e679aa78086afb7f74609f18174e18e09aa8135b0a40a779519294f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderTest_dark.svg",
+      "sha256": "b37c906319c9189c67c59a63084b8bd1835ad19fa65d8b8f7f155288c78e580a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderControllers_dark.svg",
+      "sha256": "3a479824765019a978041e116d581b5e93e34c14be1c3d91fd534faafec63afe"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderMailers_dark.svg",
+      "sha256": "c808ab55d590bdf503d0f70cd07f9a2d6a5d9bc43b6ec50bb7a221fb0a13d41c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderHelpers_dark.svg",
+      "sha256": "5d9565fd0175225e41ca810ad8e9ed7015149bca03de5ba017ad2035e659b1f4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderMigrations_dark.svg",
+      "sha256": "0830140cd8ebf3f31aa1a7d22eabe988dfc512d6a6470c3c4a1e1c54f3f4a730"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderGithub_dark.svg",
+      "sha256": "201b65360873760d78e522f2e5ca1fd8e999c86a96366af91c8a391f411e8fe0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/handlebarsJson_dark.svg",
+      "sha256": "1204b944c095188624ec4e2b171b4015c9ce654b8f445859a8d493bca0172312"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/text_dark.svg",
+      "sha256": "43b96d1675aff1d83472e04f8c281035d263977476cab988eef7fea0fa1db05a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/kotlin_dark.svg",
+      "sha256": "2e73d32d955709dc9d4d5736089409bf45d941a5c3558c088b52a9be2bacd085"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/kotlinScript_dark.svg",
+      "sha256": "7df2ee364a267dcab16d544b01215ee62cff9c595bd90f47b40ccefdcd34ebd7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ignored_dark.svg",
+      "sha256": "7aae78691e5c5171f3128c408210787773b566353a39f22d1a375a862bf417af"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/css.svg",
+      "sha256": "c212942165d9e46d1bd79f2e6093ff12fd0ddf6ff65a2914e5d62b7b38775b00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/erbFile_dark.svg",
+      "sha256": "bafcae5bd269dd6b6cef31726423baccf2b34a0fc50f59a5d2b73e120553478f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/scss.svg",
+      "sha256": "1b24385374eaae1c4d41c061307f7b7768de1a266668b9584b68c12bb23fbba5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/json_dark.svg",
+      "sha256": "9de6870de74068688f6c4c39c8a29e719722312f9e98060bb4568f1b28c7499a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/html_dark.svg",
+      "sha256": "0a1949eff35974966c68c553234c833b365aaab54458462924f715633556a667"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsx_dark.svg",
+      "sha256": "326927e0962f534e6d3f8b65fc6079beec4cd674040392999478a34625f4288e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ruby_dark.svg",
+      "sha256": "d397cf5ded975c4120de42647790060d8546015b2da1e3ecfb68169a4223e2f3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rakeTask_dark.svg",
+      "sha256": "44fb25dcb00f4c9a18af7d399a77b4227751f22d19b7b848536467cb6baad11e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rubyGems_dark.svg",
+      "sha256": "36f93e8814ab7fd3693b3bc1f9eb0154091a23f050834a49cbe3d0fb112df3a2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/less_dark.svg",
+      "sha256": "06cde70e19ac6fe78c44e80c2425c5943368048f3da64451d892f4ed2b8bb76a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/javaScript_dark.svg",
+      "sha256": "a12e32fd219a6b8f49e269678adbfdcf3c7f4d0604ed7348c5465c0429ca219a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/typeScript_dark.svg",
+      "sha256": "397920d7dd12e977eecd90809e9c2079aa1a00128e19228241fd2d1a8792e3da"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/csv_dark.svg",
+      "sha256": "54a0960c36ec292942ec1f35332e1a6ee891e12b64b3dcc93fe5f36b0aab1875"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vueJs.svg",
+      "sha256": "0882f041619188f9ed395a43ecfd9ff482ec1210520702aa277db83e77bfd427"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/editorConfig_dark.svg",
+      "sha256": "07e5d2700db0053570d7b6c09bf98f12d0ed5a7acd34a31b92de2fd0b1e04657"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/image_dark.svg",
+      "sha256": "80ee84e428280776ddbfea130f51cd772ff6f40f644d631bc1d8585b4594a792"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/font_dark.svg",
+      "sha256": "88f8942916b46165e02f8f28cd5bf7dbdedc709aa870349c3c32e94e06939119"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/yaml_dark.svg",
+      "sha256": "5cca78c27c2fa5369adac4f1924f51bc67c07685f9f127ccc87d857c1d8970f9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/java_dark.svg",
+      "sha256": "955da55a836b3d3677b10c94ced9f5e7f9397051a9a7ca5871680f4cd4d779a1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/xml_dark.svg",
+      "sha256": "dbca1551a1d9c0364d97db12854dafc96fabfed434a04d3fb3643dbbfc0866c8"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/sql_dark.svg",
+      "sha256": "81138d0b838f0c46c79fb5fcda6de6990f43f1fafec30ff1fc124f88b2966ec9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/slim_dark.svg",
+      "sha256": "bf12b3b48a3ebfdab6d1d1dea000dfb7766ba0155d5122a16e00bfce403767fc"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/solution_dark.svg",
+      "sha256": "ddfefc89aa588ba306648fa6b0640959641a547ac5da23bf41c02d9bd2117c0d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/bun.svg",
+      "sha256": "6987ae7e429f0bcf678d205507c6383f6bfe1415b6d21c0e1f593a41f1842cfa"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/yarn.svg",
+      "sha256": "9f6f0a449d77d2a898828c9c469b04f5f52c63e4d3d6c9ef75e45a4024e80d47"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/markdown_dark.svg",
+      "sha256": "629de62fb0ae31bb4ebaa9bc92cbf0dff4ff3301bd2c29b1b921294930691f09"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/gitignore.svg",
+      "sha256": "1c7eb73e5e4559105fe1bb758cf2412bc56c47fc99e1be15a0cbfb34b960dbfb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/gleam_dark.svg",
+      "sha256": "c4455a179a45b2c297eb4ae2285884f596d3ad1cd0f6d17f6e4b30d80bc573a0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/properties_dark.svg",
+      "sha256": "07e5d2700db0053570d7b6c09bf98f12d0ed5a7acd34a31b92de2fd0b1e04657"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/shell_dark.svg",
+      "sha256": "325a528f09c6dbd4299a0773efae906c70384d6f050855927ed4d965de18e4c7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/h_dark.svg",
+      "sha256": "4e015777be3d74aefb44dec3acded82e452108535e4aaaf9901bc6e18a607006"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c_dark.svg",
+      "sha256": "d02f02de6a877889457406227507ce21e7735b6ba847e99d265548d9f3abb6e5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cpp_dark.svg",
+      "sha256": "3b8cca55e7e37ae6b1b7516a567554d15e22746763976a6e857d81d70ecc49e0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cu_dark.svg",
+      "sha256": "7d5ad6ef59a4025c57b416d45929b3852a218c1a8d9fe205ed0c795e29083640"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cuh_dark.svg",
+      "sha256": "14b308cbe07aae5ffec9cb45f48280efda8de496eb623fe800e63596f5654e54"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/scala_dark.svg",
+      "sha256": "beb4a73dd815cbee207cc9f4a3a10d039cdd7d172fa0053ce80d5ef705a65c54"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/archive_dark.svg",
+      "sha256": "e8f3573212822e6331d0251dbd1afecd76588b5f190ffd8e7bc905b2e40883ca"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/toml_dark.svg",
+      "sha256": "646d06f3377d8aef68256e390062da93e7dbeb9684b3eda88c468223258dffbf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/python.svg",
+      "sha256": "d93864dc6979295a99fa90ea6106150305a416b760147478c4cdfe827a71ef79"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/terraform_dark.svg",
+      "sha256": "8539fb232d5664a99ee11a854b2017065fe7c35e995079ca5be7e18cd93c6f8a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/go_dark.svg",
+      "sha256": "c32ee7f887a3a0f6e739d77e7c38c6bf70c70e222d465ee2e1a43ba7701c604b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goMod_dark.svg",
+      "sha256": "cf56ff19177b00052f2d3d176589e2a7e4af851dd84aded71628bf5fc56c7b68"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goSum_dark.svg",
+      "sha256": "3415d3bdafac81cf723ee08a85c59494cfbfabef13cf4157291cbcaebd88b0c4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goWork_dark.svg",
+      "sha256": "8a4fa930b3baca30cd647785b06f67a8712b1a3b9f3cdb00cfd7f43af686f49d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/http_dark.svg",
+      "sha256": "4c24177deaa43f8bc7ca20f07efe38513060f7cb4b7dd45b901c9bc22f3c638b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/dart_dark.svg",
+      "sha256": "577c4a3dda28a8f55da933e95160bd152f4e5730a171ee68305c1446218b2215"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/docker_dark.svg",
+      "sha256": "c7180d7ce6e0fbfbc9c365b2eff4f6ae28517e3d65ebc7e9bc8a4e2434075a36"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/actionScript_dark.svg",
+      "sha256": "ffda845fa8ddf352189ae4ed96f80edfe9c9841f2e24b229cea8d5931c9d3869"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/php_dark.svg",
+      "sha256": "ae5b3c48823e6904afed47a2a4f217c22a27cdf5cc6b22ca9de1d8c5313e6853"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/makefile_dark.svg",
+      "sha256": "d63a7770ec37576a191a98296c5258fb64a1eff6b273c53c07e0ddb9204ac81a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/config_dark.svg",
+      "sha256": "8bde2df5b9f1b7e7511a4013e7085dfdd0e424f390f5f6fbe995ed4351e17bec"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/anyType_dark.svg",
+      "sha256": "e9d28b93b5a6cd69fc966b01b27c62eb09aa91eae40ae40e0d84bc346f20350b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/svelte.svg",
+      "sha256": "acadc4e84487133d2a3552ac5b06709a3cf2faed65031287a125b34cb01aec6b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rustFile_dark.svg",
+      "sha256": "cd78434e3fd97bb9f87778b9621eb81755dcbf44e4ef0559972d830af52d6cf0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cargo_dark.svg",
+      "sha256": "776738c2fb23062503f9a3825ec4b148be7ddb6ccae70b3246471d2a4611820a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cargoLock_dark.svg",
+      "sha256": "fa2fc9bd079b887ffc6fe7b915075f975b9cd99f15ef523495e5bae15f3466c0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/CMake_dark.svg",
+      "sha256": "27d44238f28abb87210a69085a12e89572578a44922ac572626836ea5fb1d4c7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/pnpm_dark.svg",
+      "sha256": "55332156e538863a6b558409bfdd6e84590c5e687907e064c772fea1fd46e0f9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tailwind.svg",
+      "sha256": "385b65d2e8d4c329a8f8b5abe99204fa9dc115fdff5c2cb46c8fe9dd6626d0a7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vite_dark.svg",
+      "sha256": "051a6a8461a080abf03008fd0beb1468c71a80d259c3fc4de9960ba0231e6c63"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/postcss.svg",
+      "sha256": "d61d51b7f87586c79fb5cbf418530c808aa8d91aa6959ec74b71d69ab6ad5232"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/angularJS.svg",
+      "sha256": "1d3b7cfcabeac3c18041511f7114307260340c589c9f60a30e8749a63d463405"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/biomejs.svg",
+      "sha256": "b7be2478012d03c0b9deb7c725ec20aca0d7095638e1ef556053855d67bf6245"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/eslint.svg",
+      "sha256": "f45136455628f594a870e175e2b8e1090849efe3e0753788b3cb469f227ac082"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/prettier_dark.svg",
+      "sha256": "1ecac02dd6112cea23fb414ceb0f458ddd003a068346af07d2a47a997b2455d6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cs_dark.svg",
+      "sha256": "065591823385992c546743a047f40d38d6193b873ff229da13307763b201fdf7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cshtml_dark.svg",
+      "sha256": "948a37b526f3560d62cd3741ddff8136337587b1cda015d4a712042d0cc5b966"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/csproj_dark.svg",
+      "sha256": "d1ecb8da67e7e8110c13b6c42e4e1480a1358939323c99930b677457b41e3c9b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/elixir_dark.svg",
+      "sha256": "536ae07342a2fc5cf963c9db0d4984fcd9d6b0ee855574179e27c7e9480b9533"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/beam.svg",
+      "sha256": "2c194ac91b7adf1fe9578e65ba2aba6f148aebb54c6c86187844ee68912fe7e8"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/eex_dark.svg",
+      "sha256": "d47aefe62e2002744de0d470eb797bfcfe9cc448b27972955ed9b2aaebe0798c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/swift.svg",
+      "sha256": "905a78a42f3e2148e62a7aa33d3e0267f24aad0011875c73952ce7a3acbddf32"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/clojure.svg",
+      "sha256": "5679abea2a72aefe43aff4661babd525b4c490494e79ea74e7db42b4d6ca039d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ml.svg",
+      "sha256": "836e92e7e93b9291bb46a6b28280555f733fe447e5142a4695bbe888a2ef30c5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/mli.svg",
+      "sha256": "56c9be5a336ccb2dfcc8f66d706bd47c1a0ccd9afbf872abde70ff40b9c99777"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/dune.svg",
+      "sha256": "7af23de559e82bd5066dc011b790250e4f8a94412139033297c4568c8656b5ec"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/opam.svg",
+      "sha256": "bf4a8c1bfc6b07396e6af32006119631a577358f3e5fe606e2f54692bc1272fc"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/protoFile_dark.svg",
+      "sha256": "24a9d0c0ae4e5755ff7613d9b628aaaae3781c6ab27c6388a3ab975ee7cafd50"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/hcl_dark.svg",
+      "sha256": "7075f47da42e83f3c33ab472faaa255a8c48b0cf4095b61a0926bbe4188552a2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rego.svg",
+      "sha256": "21a8968e28ade5769cd4825b3a8b753b4af578c203962e1f8c21274f4040e325"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/application_dark.svg",
+      "sha256": "dfa62b3c061d8c1c4fcede96d44f30df2a4921de070452356849a7edd74da059"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jupyter.svg",
+      "sha256": "67b26175c501f98c6b5f1d519de5777726e35e382fd342ab060725fc1ed059f3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/mdx.svg",
+      "sha256": "ab49ff4c9e11a702de8919ef274bf0f76ec5b2b591ddaba109d07fc08a9e9589"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/erlang.svg",
+      "sha256": "fd14c386838f73ebfecb5de22483f478e733627a44e7272742090dbdfaaf2212"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/lua.svg",
+      "sha256": "90b0355b7b81233e2a318e7b737e53628e44f7f386b7687502ae93452a34b069"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/haskell.svg",
+      "sha256": "04b66da6d4570443b3a47e3c98c1fb540730bb01b71464531f9fd4f7f413cc4b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/graphql.svg",
+      "sha256": "0ef103b27ccb6291b6ea6c3be1dadb7620835e73b0e7b8982a17436ea3758056"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/projectProperties_dark.svg",
+      "sha256": "a275e5ac54815b564dd16bb44d70ce3ae5d3e4131083b0b219e46758d6056e8b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsTest_dark.svg",
+      "sha256": "6fb55a0c2daec3e805f17d286622aa936ce65b1be6c142b24138787ce1b650a9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsxTest_dark.svg",
+      "sha256": "8713d15bb4e4d333aa7c9fe68bd21e754ef448e1b1be7fe79e9d6e4f9cd0a1e0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsTest_dark.svg",
+      "sha256": "274cc5ee64965d8c94b5240007fa7351306d75007f48bbc402f2987779c0801c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsxTest_dark.svg",
+      "sha256": "9f7ea79dc3c7e132d1734c73c22a68fcfda1e76c9bd5c911bf549ca11b2a592a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsx_dark.svg",
+      "sha256": "405daa657358e9e3076f56ac25682aeef09333d4394c84ac462f03461cc1142b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/dbms_dark.svg",
+      "sha256": "ba14e9f5dcaac870b5701e26b83406285a831ff51918de26a5f3a6cb62540a34"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/lock_dark.svg",
+      "sha256": "8851b0471066af31aef2590fe7fff53bff3a28c63ce513d3b0ca09423374cee3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ino_dark.svg",
+      "sha256": "1808f77ddbb7c62897b7d5d7882e0bf8390d9049c4794f90de2daa0ccee68b7d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/opentofu.svg",
+      "sha256": "94055f52d7b0b1cbb9d0c7015f08057829d5006e06312874d7d3df59e1352b13"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/zig.svg",
+      "sha256": "fe056717fc19dba90a30efbcd36ceb702d2de545b3036d1c270dbe9f4eb4dfc6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3_dark.svg",
+      "sha256": "f2fb51765185e332ab2dfd6ce0958b0784d4ac803c44b6c2ac674816719d712c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Test_dark.svg",
+      "sha256": "7128423d5245da86a5125c9498a48e6c4f831d26df204f2d4259f165dfdcc5e1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Interface_dark.svg",
+      "sha256": "cf30e76d4578f3df703aa52df905201577b66d795c4a150805095652fe0dca8e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Library_dark.svg",
+      "sha256": "7a8efd1a4646992d073022dfb39a690232fc9e82e4b734c7e8d5351b7e8da318"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vlang_dark.svg",
+      "sha256": "877f4da323f36b8ca263ee315899ea097dc8be1305a4edd1c483118a290dccdf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/nodejs_dark.svg",
+      "sha256": "170618b6ae829659973f6a95fb81379bf348ba4b2b994b4a5be969d83b955eb2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/npm_dark.svg",
+      "sha256": "ee723cbfbd8afe5d606c97fcc0f118a51fdae71ed7e4caf9a938714ee68cdafd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vercel.svg",
+      "sha256": "df4be6099eb15906ca739936cd5be0de3f2acdc89e4f807a61013255c3f23e81"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folder.svg",
+      "sha256": "b80f80081b9e93d30745631e1342a2d09741477cce5df34e043b78f2e4aedb4d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/module.svg",
+      "sha256": "4ebf45ae4bc84db7531ce13152d16ab288591c8cb5b1ea16ccc18fa0a9d7b6b2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderVendor.svg",
+      "sha256": "74d6f0fde3cd27c89c48d82a12f0ad987f983c4b4b43fd716a73f8d9678eaec0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderTest.svg",
+      "sha256": "2e47fb2cad9ecd3b5cc6032e05b85529f402c0b557b1a3f9f239ba29848943ef"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderControllers.svg",
+      "sha256": "102cfcd4ae78c993e857e5eddd4e5131fe1545cce7204b8635ce341500d7f5ef"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderMailers.svg",
+      "sha256": "c61baf2315a6e4911044a967ed4f4dcce29f0e215b42643c9133040fc7a7a74c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderHelpers.svg",
+      "sha256": "47315e31608bc96e428c48afa16c82bcf7b1e9bcf833fb1bebc4d4a9c3586aa4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderMigrations.svg",
+      "sha256": "fc0318d18d2357f5b03e1b5f31f3baabbba75e7fe161231829e79254270d2751"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/folderGithub.svg",
+      "sha256": "0ebb1390a4ccf23df6e0bf35917ef0dc318ba774cfa787da5cfac1f317bff233"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/handlebarsJson.svg",
+      "sha256": "a2652f1bb192e2dfaaea5fccfd7af74e6f475272ef880dbbf1a6f2e99a5fc44b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/text.svg",
+      "sha256": "fc9937cd9294c61b9abecb3aca0e5faabb6acfce99f4e71352cc921e66414a75"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/kotlin.svg",
+      "sha256": "87aca9c017be4c34a8d50a7d94fcc681162a797b7364be0ea79ae859e601c0cb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/kotlinScript.svg",
+      "sha256": "d2fa6a2171873c0ebf5536630169e71f93a881fbbd3ef81e6b76e3b748714afc"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ignored.svg",
+      "sha256": "c6df5a884f55e7f7a55f519cbfcdf39c895f92832370d422a648f885a4e467e4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/erbFile.svg",
+      "sha256": "1e0323aa33e111ebf8685d552d5d1f2677bc641dab46a3dfcf15b7cfa36bb3d3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/json.svg",
+      "sha256": "8ebd68e829c352dd7f65d5bdf1946737af71b367c11c1dd2af55fb5ad69601f9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/html.svg",
+      "sha256": "dacb3c996daa519230d423c1590fa294287bef1498fba55c7b034fb61e2ec383"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsx.svg",
+      "sha256": "8d41dd56fe202d0da000b514bc68386257ecc9cb9fcfd7aca89bf495e92d0a09"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ruby.svg",
+      "sha256": "71f79c57e4415e516d3325dd21585177b101b9a2b956ad11e902e765eb0575a5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rakeTask.svg",
+      "sha256": "103f05aac428f08a602adb6ffe313675ca6f949717f7e7424efadd0b92e3df6a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rubyGems.svg",
+      "sha256": "65864ad54fc146e6bac5c5623234d4692623d29bf7be40df452bb2417291f522"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/less.svg",
+      "sha256": "857606c9b9588fd0f208812ebba20727833ed1adb74a014152982f4fb7691cdf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/javaScript.svg",
+      "sha256": "e4b86affd1382039d240681f10a8e7032c032631d01a497176e8a87b29cd5524"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/typeScript.svg",
+      "sha256": "acaf550becf8a92e069983dbb4fc4db700632f3d5b1c60bb029356b759e261d7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/csv.svg",
+      "sha256": "ccbfccbcdc559199e42d359d9edb316330f0de4ad37648c381960965a68d3040"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/editorConfig.svg",
+      "sha256": "41141592fe2ea4f98aaeb13f2b3b9d1c485cbd28f22fcb37b471d26959c0a33b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/image.svg",
+      "sha256": "a3e31921752ef555a986e32e29df315ca71049ec790ee8d700576a77b511e307"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/font.svg",
+      "sha256": "d37dc3e334d879060a7ddd66a56a34d729b6ea70c7eae1e07fc0e2c052905d7a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/yaml.svg",
+      "sha256": "6be1d456c77fbea46f3b849e21f28fb9e8c9c357a3944a2c11f6cbf298a2b966"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/java.svg",
+      "sha256": "05c71ace6654a0cc99e590eb47e747b50c45a4addcda09a79e10f32869a2d980"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/xml.svg",
+      "sha256": "0c66056b491752a009be6081a15f0e97e8f46f473461fd91087447dccb63fadf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/sql.svg",
+      "sha256": "ece4370b2be6c28673c647362a945beeaf34e7934ac9771b0203adb974cb7c4d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/slim.svg",
+      "sha256": "b2fac51297901b8d6f3e6122f174da8ad1dffac7e51e7127b0d7bc59d0c7fab8"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/solution.svg",
+      "sha256": "d32c1e0a199b3e29a82a69a2e903e34bb0dffb05fdbfb8f05f47a19e59f9a86f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/markdown.svg",
+      "sha256": "e7d87ff1bffd95263c12e71db115b27f4d84387eb00b7d716a32bbad0dc96080"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/gleam.svg",
+      "sha256": "7e8a2792e5804db8a4c1d1d1fb87fda8e5b7a7b6cfcbff6a347a688497e03ed6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/properties.svg",
+      "sha256": "41141592fe2ea4f98aaeb13f2b3b9d1c485cbd28f22fcb37b471d26959c0a33b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/shell.svg",
+      "sha256": "f0442b66deb5923b7eb5b5ac5f131936c04e25cd41232331133b865f6484e25d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/h.svg",
+      "sha256": "21b328e7417fd2c8253754118a90bb590ca1c3aaf9c79277b6d2fe92dca34733"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c.svg",
+      "sha256": "ad5e878774cee16b5e18dbb2e4b59857d3f2125d3cddf962b5c7bfbad7f77d21"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cpp.svg",
+      "sha256": "41d08bf86dfc189f18317e7864f65746476d35f454200fc134f5539baa125572"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cu.svg",
+      "sha256": "240b8ae5b3c259e4f5e60b3b82629657781364f2db963dc2cfd1e3731414b391"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cuh.svg",
+      "sha256": "14b308cbe07aae5ffec9cb45f48280efda8de496eb623fe800e63596f5654e54"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/scala.svg",
+      "sha256": "b81f3fcc6bcc3281becff1832a1810256d1c291b33741ce88fa64dd47d6985b6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/archive.svg",
+      "sha256": "3d46f6622b943a96a5728e1304d4d07c53e797c47e12d11a2ddf834c07ae91b0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/toml.svg",
+      "sha256": "2ff7edb36fd15d896b36febcbed5d8fba84441ebcf1ddc4004cf4d0a50f7945c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/terraform.svg",
+      "sha256": "609d5917cfdc1eac9aa1a8ac12ee2899ee2d84040c6129a96d5bb5865d7816a6"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/go.svg",
+      "sha256": "a110fdd879215a37ca159c0cf8fed610e3e7eeab5018d5e5f43cd111cbc8253e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goMod.svg",
+      "sha256": "7c4bbe801c813fd647a714d4d0e65fd40ccf71ff8af78e8447c54d7686f76d46"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goSum.svg",
+      "sha256": "d79aa579d9690452f6a7b41cc4f43eee46c1fc3b6daff2befabafce6f8b47bd5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/goWork.svg",
+      "sha256": "bc0c49724e50dff096a311bbaeca0aaedfa1db5cc62964463cc34ccf5329071f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/http.svg",
+      "sha256": "4fa5d6ec504611aec2e59e4e6da0098a2a1136dd02ea76a86737c90f9e306dbb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/dart.svg",
+      "sha256": "577c4a3dda28a8f55da933e95160bd152f4e5730a171ee68305c1446218b2215"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/docker.svg",
+      "sha256": "c7180d7ce6e0fbfbc9c365b2eff4f6ae28517e3d65ebc7e9bc8a4e2434075a36"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/actionScript.svg",
+      "sha256": "3e2b24428e25c5cf1982d287dcc80f8dd5d6285d0b1cdc63e6433761a31ee2e9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/php.svg",
+      "sha256": "91f52a00a3f13ed161a7b3b4c983d29b1a1784823ff07bb3a9ffa2e07d79ab8f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/makefile.svg",
+      "sha256": "d92be76860a12bfae445c26b09aa0eafd4be44481d449cc0f7bfa333fc8bef1a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/config.svg",
+      "sha256": "23a3a15a4fa11890f70842b2c12f5e49054bb3801e8a6c11ea46004adc37a559"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/anyType.svg",
+      "sha256": "688f57c923c6ce4e4efce2d9344bd21fa6014d2f893efcaf5bdb0d414ea42d6f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/rustFile.svg",
+      "sha256": "13b5d74c93d1fc7e8c4528592b318adbade479eaf8fc5cc1c857c97cf5e7cb38"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cargo.svg",
+      "sha256": "6a91d3d2cac2c703aea822973529ea50442b4b0479c43339f8ae8ecacfdedabb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cargoLock.svg",
+      "sha256": "18702265bcf76b802e2b0b8953846d00645efe588be6813de38d69aa3070ddd9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/CMake.svg",
+      "sha256": "27d44238f28abb87210a69085a12e89572578a44922ac572626836ea5fb1d4c7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/pnpm.svg",
+      "sha256": "9c269fc94ff25b847f2af5d938644a757817bde04a632f2f73ff6566210b94a5"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vite.svg",
+      "sha256": "051a6a8461a080abf03008fd0beb1468c71a80d259c3fc4de9960ba0231e6c63"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/prettier.svg",
+      "sha256": "1c48d19f49c42548792cbc8421198b512ce70a67a5dd46da91969971ba525bd3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cs.svg",
+      "sha256": "d19eb3becb21a398e75ce6b261a78c375aa11e52b4c5cacccb5954b227a73d30"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/cshtml.svg",
+      "sha256": "b6bdbf1344a881affcc6e31dec4b22e206cd64afd76fbe8134c61b70ccdd88cd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/csproj.svg",
+      "sha256": "ac1b27fc275806592ac45f5a800f0dbd90e4ba2c9c5d5898e33e24cf9885fc83"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/elixir.svg",
+      "sha256": "fc406c46d4f97dc22cd342cafe2f91b6ba333f64130b0280e79fc06a20c363bd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/eex.svg",
+      "sha256": "753f28d1bb1e2e739701ea80ebd355898cb97de1b1b32211ed0a170aeb38b121"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/protoFile.svg",
+      "sha256": "d46bdee3b95d0613d0d4a1f011a9f56542e7f0c8d42ee97db30325fb09958120"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/hcl_light.svg",
+      "sha256": "776c6a0a5343a3e7d5e2c4d5d6c6d4342b09cf3e86d412770f5151d1b2a265e4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/application.svg",
+      "sha256": "9656e429b439382e69f2dfd962c9c08f10d5dde9d76ba15ce0c4bf9f365aefde"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/projectProperties.svg",
+      "sha256": "32195d266d3789f38fc593c947e663be56e2c1261c54364d28f56bc04d2f2f94"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsTest.svg",
+      "sha256": "2d3a92a6f15760997c5ec109826314260e5cca04c41efb486c241ea02a755d81"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/tsxTest.svg",
+      "sha256": "47af4683c51770ad7930a732a07f4b18142282d4d57b739bf9c39428ca79dee4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsTest.svg",
+      "sha256": "fa2748f214b178527922eca591f2c7874d698f5dee6098886306d832edb201f1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsxTest.svg",
+      "sha256": "3ebb7397f24cbdc82cbfd7e0797110bcfc229ff334810dae7227b5cb6e6f936b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/jsx.svg",
+      "sha256": "7e09a7104c19f7d2c72815b1746b55658cca3db9b9f4a92d49ddd9db2115f678"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/dbms.svg",
+      "sha256": "e40c258c0bdcdc2abd7f962c941a76fb1b39a3db9da43633395394f6f586fd63"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/lock.svg",
+      "sha256": "b9920fc35d186860f055f25b201b0debf4886f88ca327516c522e1ec027cdcb3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/ino.svg",
+      "sha256": "75f122ba32a66541e6806350597b41e4cd939baadff7f200ee760631a6a2cad7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3.svg",
+      "sha256": "0424d7d44a22c34b65c67d19f55a4cb9acb603423b9557528c2c0605e6ab9a4e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Test.svg",
+      "sha256": "0e329f694d07336cd8c8a081689502868dcb621ce17d0186f1e7b555edd1f73b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Interface.svg",
+      "sha256": "a596d8647ca5b153c3c953b9191332fe276b12685a0711d6643a5592c4af4a76"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/c3Library.svg",
+      "sha256": "b6ad79e6a5ff101ad8650e239503d9e53455878c8feef5aa9f1c5cf10966ef02"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/vlang.svg",
+      "sha256": "877f4da323f36b8ca263ee315899ea097dc8be1305a4edd1c483118a290dccdf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/nodejs.svg",
+      "sha256": "e87ad06ea65fa05f5306d41afac3d93844f80d95b5c17b7446cf7bb542aa12c4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/assets/2023/icons/npm.svg",
+      "sha256": "ee723cbfbd8afe5d606c97fcc0f118a51fdae71ed7e4caf9a938714ee68cdafd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/peakoss/vscode-jetbrains-icon-theme/f7cc2cfb53390322fd8b9966494e80f73d71ff84/LICENSE.md",
+      "sha256": "50369bfc6ddf594b09cfcb223f43b0685936aa73795e3e61699089ac1be340d5"
+    }
+  ],
+  "notes": "JetBrains Icon Theme v2.40.0 by Chad Adams and contributors, commit f7cc2cfb53390322fd8b9966494e80f73d71ff84. The 2023+ UI theme data and its referenced SVGs only, repackaged under an Oxbit manifest with a third theme that merges the light and dark variants. MIT, with the Apache-2.0 Elixir and BEAM icons noted in LICENSE.md."
+}

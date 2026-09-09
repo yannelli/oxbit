@@ -1,0 +1,27 @@
+{
+  "name": "@oxbit/ios",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 9281 --strictPort",
+    "build": "vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@oxbit/app-workbench": "workspace:*",
+    "@oxbit/host-browser": "workspace:*",
+    "@oxbit/host-ios": "workspace:*",
+    "@oxbit/workbench": "workspace:*",
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/themes": "workspace:*",
+    "@tauri-apps/api": "2.11.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  },
+  "license": "MIT"
+}

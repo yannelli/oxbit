@@ -1,6 +1,8 @@
 export const PROTOCOL_VERSION = 1;
 export const MAX_MESSAGE_BYTES = 2 * 1024 * 1024;
 export const MAX_BUFFER_BYTES = 1024 * 1024;
+/** Base64 of one chunk plus envelope stays below MAX_BUFFER_BYTES, so fs.readBytes never trips the slow-consumer close. */
+export const READ_CHUNK_BYTES = 512 * 1024;
 export type ClientMessage =
   | {
       v: 1;

@@ -1,4 +1,10 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   ACP_PROVIDERS,
   type ACPProviderId,
@@ -21,6 +27,7 @@ import {
   ChangeSummary,
 } from "./views.js";
 
+import { Subagents } from "./subagents.js";
 import { agentConfiguration, settingId } from "./configuration.js";
 function RequestCard({
   request,
@@ -53,6 +60,12 @@ function RequestCard({
                 : "Permission required",
         )}
       </strong>
+      {request.subagentId && (
+        <p className="acp-request-agent">
+          {tr("From subagent")}:{" "}
+          {agent.subagents.get(request.subagentId)?.name ?? request.subagentId}
+        </p>
+      )}
       {method === "fs/write_text_file" ? (
         <>
           <p>{params.path}</p>
@@ -382,6 +395,11 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             <span>{tr(agent.status)}</span>
           </div>
           <IconButton
+            icon="agent"
+            label="Open Agents"
+            onClick={() => agent.openAgents()}
+          />
+          <IconButton
             icon="clock"
             label="History"
             aria-expanded={showHistory}
@@ -395,7 +413,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 agent.busy ||
                 agent.connecting ||
                 agent.updatingSettings ||
-                agent.discovering
+                agent.discovering ||
+                agent.activeSubagentCount > 0
               }
               onClick={() => void agent.action(() => agent.newSession())}
             />
@@ -530,6 +549,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             </p>
           </div>
         )}
+        {agent.subagents.size > 0 && <Subagents agent={agent} compact />}
         <ActivityFeed agent={agent} />
         {agent.plan.length > 0 && (
           <details className="acp-card">
@@ -767,7 +787,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       </form>
       <div className="acp-footer">
         {connection ? (
-          <div className="acp-provider" title={providerFor(connection.provider).name}>
+          <div
+            className="acp-provider"
+            title={providerFor(connection.provider).name}
+          >
             <Icon name="agent" size={14} />
             <span>{providerFor(connection.provider).name}</span>
           </div>
@@ -789,8 +812,14 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             </summary>
             <div className="acp-settings" aria-busy={agent.updatingSettings}>
               {controls.map((control) => (
-                <div className="acp-setting" key={`${control.method}:${control.id}`}>
-                  <span className="acp-setting-label" title={control.description}>
+                <div
+                  className="acp-setting"
+                  key={`${control.method}:${control.id}`}
+                >
+                  <span
+                    className="acp-setting-label"
+                    title={control.description}
+                  >
                     {tr(control.name)}
                   </span>
                   <Select
@@ -803,7 +832,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                         document.activeElement instanceof HTMLElement
                           ? document.activeElement
                           : null;
-                      void agent.action(() => agent.setSessionControl(control, value));
+                      void agent.action(() =>
+                        agent.setSessionControl(control, value),
+                      );
                     }}
                   />
                 </div>
@@ -848,6 +879,35 @@ export function createFeature(options: FeatureOptions): Extension {
           order: 45,
           data: { icon: "agent" },
           component: () => <AgentPanel agent={agent} />,
+        }),
+      );
+      ctx.own(
+        ctx.contributions.register({
+          id: "agent-acp-agents",
+          kind: "activityView",
+          title: "Agents",
+          order: 46,
+          data: { icon: "agent" },
+          component: () => (
+            <Subagents
+              agent={agent}
+              renderRequest={(request) => (
+                <RequestCard
+                  key={request.requestId}
+                  request={request}
+                  agent={agent}
+                />
+              )}
+            />
+          ),
+        }),
+      );
+      ctx.own(
+        ctx.commands.register({
+          id: "agentACP.openAgents",
+          title: "Open Agents",
+          category: "Agent ACP",
+          run: () => agent.openAgents(),
         }),
       );
       ctx.own(

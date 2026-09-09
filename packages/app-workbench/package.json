@@ -25,6 +25,7 @@
     "@oxbit/feature-language": "workspace:*",
     "@oxbit/feature-search": "workspace:*",
     "@oxbit/feature-previews": "workspace:*",
+    "@oxbit/feature-images": "workspace:*",
     "@oxbit/feature-formatters": "workspace:*",
     "@oxbit/feature-terminal": "workspace:*",
     "@oxbit/feature-tasks": "workspace:*",

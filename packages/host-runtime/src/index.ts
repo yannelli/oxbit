@@ -7,7 +7,7 @@ import type {
   FileChange,
   Disposable,
 } from "@oxbit/sdk";
-import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, operationMethods, type ServerMessage } from "@oxbit/protocol";
+import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, READ_CHUNK_BYTES, operationMethods, type ServerMessage } from "@oxbit/protocol";
 type Pending = {
   resolve: (v: any) => void;
   reject: (e: unknown) => void;
@@ -326,6 +326,12 @@ export class RuntimeClient implements RpcClient {
     this.listeners.clear();
   }
 }
+function decodeBase64(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
 export class RuntimeFileSystem implements FileSystem {
   readonly id: string;
   beforeWrite?: () => Promise<void>;
@@ -352,6 +358,32 @@ export class RuntimeFileSystem implements FileSystem {
     return this.client.request<FileEntry[]>("fs.list", { path });
   }
   readDisk(path: string) { return this.client.request<FileSnapshot>("fs.read", {path}); }
+  async readBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    let size = 0;
+    let token: string | undefined;
+    do {
+      const chunk = await this.client.request<{ base64: string; size: number; token: string }>(
+        "fs.readBytes",
+        { path, offset: total, length: READ_CHUNK_BYTES },
+        { signal },
+      );
+      if (token !== undefined && chunk.token !== token)
+        throw new RpcError("CONFLICT", `File changed while loading: ${path}`);
+      token = chunk.token;
+      size = chunk.size;
+      const bytes = decodeBase64(chunk.base64);
+      if (!bytes.length && total < size)
+        throw new RpcError("IO", `Unexpected end of file: ${path}`);
+      chunks.push(bytes);
+      total += bytes.length;
+    } while (total < size);
+    const result = new Uint8Array(total);
+    let at = 0;
+    for (const chunk of chunks) { result.set(chunk, at); at += chunk.length; }
+    return result;
+  }
   async read(path: string) {
     const snapshot = await this.client.request<FileSnapshot>("fs.read", {
       path,

@@ -27,6 +27,7 @@ import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
 import { createFeature as languageFeature } from "@oxbit/feature-language";
 import { createFeature as searchFeature } from "@oxbit/feature-search";
 import { createFeature as previewsFeature } from "@oxbit/feature-previews";
+import { createFeature as imagesFeature } from "@oxbit/feature-images";
 import {
   createFeature as formattersFeature,
   createPrettierFeature,
@@ -177,6 +178,7 @@ export async function createWorkbenchSession({
       languageFeature(options),
       searchFeature(options),
       previewsFeature(options),
+      imagesFeature(options),
       terminalFeature(options),
       tasksFeature(options),
       gitFeature(options),

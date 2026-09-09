@@ -207,6 +207,17 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
             id={entry.id}
             agent={agent}
           />
+        ) : entry.kind === "subagent" ? (
+          agent.subagents.has(entry.id) && (
+            <button
+              key={`child:${entry.id}`}
+              className="button acp-delegation-link"
+              onClick={() => agent.openAgents(entry.id)}
+            >
+              <Icon name="agent" size={14} /> {tr("Delegated")}:{" "}
+              {agent.subagents.get(entry.id)!.name}
+            </button>
+          )
         ) : entry.kind === "notice" ? (
           <p className="acp-turn-note" key={index}>
             {tr(entry.text)}
@@ -259,7 +270,8 @@ export function ConversationBrowser({ agent }: { agent: AgentController }) {
     agent.busy ||
     agent.connecting ||
     agent.updatingSettings ||
-    agent.discovering;
+    agent.discovering ||
+    agent.activeSubagentCount > 0;
   const entries = agent.history.entries.filter(
     (e) =>
       (!agent.connection || e.root === agent.connection.root) &&

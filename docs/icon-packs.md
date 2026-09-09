@@ -4,6 +4,8 @@ Use **Preferences: Import Icon Pack…** or **Extensions → Icon Packs → Mana
 
 Oxbit ships one pack, **ClassicOS 98 Icons** (`oxbit.classicos98`), installed on first launch. It behaves like any imported pack in Extensions → Icon Packs. Uninstalling it is remembered for the origin, across projects and launches, until the bundled revision changes.
 
+A ready-made pack is in the repository at `examples/icon-packs/jetbrains-icons.zip` (`oxbit.jetbrains-icons`): IntelliJ-style file icons for 150 extensions, 87 file names and 14 folder names. Import it like any other archive. It is not installed on first launch and adds nothing to the application bundle. **JetBrains 2023+** follows the editor's light or dark mode; **JetBrains 2023+ Dark** and **JetBrains 2023+ Light** pin one variant. `tsx scripts/build-jetbrains-icon-pack.ts` rebuilds it from a pinned upstream commit, validating every SVG before writing; the source URLs and SHA-256 hashes land in `examples/icon-packs/upstream.json`.
+
 `workbench.iconTheme` and `workbench.productIconTheme` default to `oxbit.default`. Installed IDs are `publisher.package/themeId`; existing user/workspace configuration precedence applies. Disabled, missing, corrupt and removed packs fall back to Oxbit defaults while retaining the selected ID. Re-enable or reinstall the pack to restore it. Replacing a pack with an invalid archive or failing storage write preserves the prior installation.
 
 ## Authoring

@@ -1009,16 +1009,18 @@ function PanelTabs({
                   })),
               ),
               [
-                { value: "float", label: tr("Pop Out Panel") },
+                ...(workbench.panelWindows.canDetach ? [{ value: "float", label: tr("Pop Out Panel") }] : []),
                 ...(!isDock ? [{ value: "dock", label: tr("Dock Back") }] : []),
               ],
             ]}
           />
-          <IconButton
-            icon="goto"
-            label={tr("Pop Out Panel")}
-            onClick={() => void workbench.detachPanel(group.active)}
-          />
+          {workbench.panelWindows.canDetach && (
+            <IconButton
+              icon="goto"
+              label={tr("Pop Out Panel")}
+              onClick={() => void workbench.detachPanel(group.active)}
+            />
+          )}
           {container === "bottom" && (
             <IconButton
               icon={workbench.state.maxPanel ? "minimize" : "maximize"}

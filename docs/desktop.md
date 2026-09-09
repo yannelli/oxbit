@@ -2,7 +2,7 @@
 
 Oxbit uses Tauri 2 and the shared React workbench. The desktop targets are **Apple Silicon macOS 26+** and **Ubuntu 24.04+ x64**. Ubuntu 24.04 is the build baseline and minimum supported Linux distribution. Windows, Intel Macs, Linux arm64, and app stores are outside this implementation.
 
-The application identifier is `com.yannelli.oxbit`. `package.json` at the repository root supplies the application and release version. Browser and CLI commands keep their existing behavior. Read [desktop acceptance](../evidence/desktop-acceptance.md) for what has actually been tested; an unsigned build is not a distribution or update acceptance result.
+The application identifier is `com.yannelli.oxbit`. The iPhone and iPad app in `apps/ios` shares it; see [iOS](ios.md). `package.json` at the repository root supplies the application and release version. Browser and CLI commands keep their existing behavior. Read [desktop acceptance](../evidence/desktop-acceptance.md) for what has actually been tested; an unsigned build is not a distribution or update acceptance result.
 
 ## Develop and build
 
@@ -30,6 +30,7 @@ Desktop development uses the explicit `http://127.0.0.1:9280` Vite origin. It do
 | `pnpm desktop:test:installed -- /absolute/path/to/oxbit-desktop` | Check a Linux production installation with isolated state and minimal PATH |
 | `pnpm desktop:validate` | Validate staged resources and existing unsigned artifacts |
 | `pnpm desktop:release` | Require release credentials, sign resources, and build signed artifacts |
+| `pnpm release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this desktop bundle, and collect it under `release/v<version>/` without notarizing |
 
 On Linux run native tests with `xvfb-run -a dbus-run-session -- pnpm desktop:test:native`. Native tests use isolated temporary projects, application state, and the separate `com.yannelli.oxbit.native-test` application identity so a running release app does not intercept test launches. The `native-test` Rust feature and `VITE_DESKTOP_TEST=1` must be used together. Production compilation rejects the test feature and production validation rejects frontend test hooks. No remote page receives native capabilities.
 

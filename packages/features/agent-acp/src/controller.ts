@@ -4,6 +4,8 @@ import {
   type ACPLaunch,
   type ACPContext,
   type ACPSessionInfo,
+  type ACPSubagent,
+  type ACPSubagentEvent,
   type FeatureOptions,
 } from "@oxbit/sdk";
 import type { DocumentService } from "@oxbit/documents";
@@ -20,6 +22,9 @@ export type { Message } from "./history.js";
 export type AgentRequest = {
   id: string;
   requestId: string;
+  sessionId?: string;
+  rootSessionId?: string;
+  subagentId?: string;
   method: string;
   params: Record<string, any>;
   before?: string;
@@ -33,6 +38,8 @@ export class AgentController {
   private subscriptions: (() => void)[] = [];
   private disposed = false;
   private requestGeneration = 0;
+  private rootRequestGeneration = 0;
+  private pendingClientRequests = new Map<string, { expired: boolean }>();
   private connectionGeneration = 0;
   private sessionStarting = false;
   private startAbort?: AbortController;
@@ -47,6 +54,12 @@ export class AgentController {
   };
   readonly history: ConversationHistory;
   activity: Activity[] = [];
+  subagents = new Map<string, ACPSubagent>();
+  activeSubagentCount = 0;
+  subagentsTruncated = false;
+  selectedSubagent?: string;
+  expandedSubagents = new Set<string>();
+  subagentsOpen = false;
   title = "New conversation";
   archived = false;
   discovering = false;
@@ -99,11 +112,61 @@ export class AgentController {
           this.changed();
         }),
       );
-    on("acp.update", ({ update }) => this.update(update));
+    on("acp.update", ({ update, sessionId, rootSessionId }) => {
+      if (
+        !sessionId ||
+        sessionId === (rootSessionId ?? this.connection?.sessionId)
+      )
+        this.update(update);
+    });
+    on("acp.subagent", (event: ACPSubagentEvent) => {
+      if (
+        !this.sessionStarting &&
+        event.rootSessionId !== this.connection?.sessionId
+      )
+        return;
+      const mergedIds = event.removedIds.filter((id) =>
+        this.subagents
+          .get(id)
+          ?.toolCallIds.some((tool) =>
+            event.subagent.toolCallIds.includes(tool),
+          ),
+      );
+      this.activity = this.activity.flatMap((a) => {
+        if (a.kind !== "subagent" || !event.removedIds.includes(a.id))
+          return [a];
+        return mergedIds.includes(a.id)
+          ? [{ kind: "subagent" as const, id: event.subagent.id }]
+          : [];
+      });
+      if (this.selectedSubagent && mergedIds.includes(this.selectedSubagent))
+        this.selectedSubagent = event.subagent.id;
+      for (const request of this.requests)
+        if (request.subagentId && mergedIds.includes(request.subagentId))
+          request.subagentId = event.subagent.id;
+      for (const id of event.removedIds) this.subagents.delete(id);
+      this.subagents.set(event.subagent.id, event.subagent);
+      this.activeSubagentCount = event.activeCount;
+      this.subagentsTruncated = event.truncated;
+      if (
+        !event.subagent.parentId &&
+        !this.activity.some(
+          (a) => a.kind === "subagent" && a.id === event.subagent.id,
+        )
+      )
+        this.activity.push({ kind: "subagent", id: event.subagent.id });
+      if (event.subagent.phase === "awaiting_input") {
+        this.subagentsOpen = true;
+        this.expandAncestors(event.subagent.id);
+      }
+      if (this.selectedSubagent && !this.subagents.has(this.selectedSubagent))
+        this.selectedSubagent = undefined;
+    });
     on("acp.log", ({ text }) => {
       this.logs = (this.logs + text).slice(-65536);
     });
     on("acp.terminal", (data) => {
+      if (data.subagentId) return;
       this.terminals.set(data.terminalId, data);
       while (this.terminals.size > 32)
         this.terminals.delete(this.terminals.keys().next().value!);
@@ -112,8 +175,17 @@ export class AgentController {
       void this.clientRequest(request);
     });
     on("acp.cancelled", () => {
-      this.requestGeneration++;
-      this.requests = [];
+      this.rootRequestGeneration++;
+      this.requests = this.requests.filter((r) => this.isChildRequest(r));
+    });
+    on("acp.requestsExpired", ({ requestIds }) => {
+      for (const id of requestIds) {
+        const pending = this.pendingClientRequests.get(id);
+        if (pending) pending.expired = true;
+      }
+      this.requests = this.requests.filter(
+        (r) => !requestIds.includes(r.requestId),
+      );
     });
     on("acp.exit", ({ reason }) => {
       this.clearConnection(reason);
@@ -163,6 +235,8 @@ export class AgentController {
         context: this.context,
         activity: this.activity,
         tools: [...this.tools],
+        subagents: [...this.subagents.values()],
+        subagentsTruncated: this.subagentsTruncated,
       }),
     ) as Conversation;
     const generation = this.historyGeneration;
@@ -173,6 +247,12 @@ export class AgentController {
   private resetConversation() {
     this.messages = [];
     this.activity = [];
+    this.subagents.clear();
+    this.activeSubagentCount = 0;
+    this.subagentsTruncated = false;
+    this.selectedSubagent = undefined;
+    this.expandedSubagents.clear();
+    this.subagentsOpen = false;
     this.tools.clear();
     this.terminals.clear();
     this.requests = [];
@@ -193,6 +273,16 @@ export class AgentController {
         kind: "notice",
         text: "Connection ended during this turn. The prompt was not resent.",
       });
+    for (const child of this.subagents.values()) {
+      if (
+        !child.historical &&
+        ["pending", "running", "unknown"].includes(child.state)
+      ) {
+        child.state = "disconnected";
+        child.phase = "unknown";
+      }
+    }
+    this.activeSubagentCount = 0;
     void this.saveConversation();
     this.connectionGeneration++;
     this.requestGeneration++;
@@ -275,6 +365,12 @@ export class AgentController {
     return this.request("acp.call", { id: this.connection.id, method, params });
   }
   async newSession() {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
     const connection = this.connection;
     if (
       !connection ||
@@ -390,6 +486,12 @@ export class AgentController {
     }
   }
   async viewConversation(entry: Conversation) {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
     if (
       this.busy ||
       this.connecting ||
@@ -426,11 +528,24 @@ export class AgentController {
     this.context = copy.context;
     this.activity = copy.activity;
     this.tools = new Map(copy.tools);
+    this.subagents = new Map(
+      (copy.subagents ?? []).map((child) => [
+        child.id,
+        { ...child, historical: true },
+      ]),
+    );
+    this.subagentsTruncated = copy.subagentsTruncated ?? false;
     this.messages = this.activity.flatMap((a) =>
       a.kind === "message" ? [a.message] : [],
     );
   }
   async resumeSaved(entry: Conversation) {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
     if (
       this.busy ||
       this.connecting ||
@@ -456,6 +571,12 @@ export class AgentController {
     await this.connect({ provider: entry.provider, command, args }, entry);
   }
   async restoreConversation(entry: Conversation) {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
     if (
       !this.connection ||
       this.busy ||
@@ -729,14 +850,16 @@ export class AgentController {
     } finally {
       if (generation === this.connectionGeneration) {
         this.busy = this.cancelling = false;
-        this.requestGeneration++;
-        this.requests = [];
+        this.rootRequestGeneration++;
+        this.requests = this.requests.filter((r) => this.isChildRequest(r));
         this.changed();
         await this.saveConversation();
       }
     }
   }
   async cancel() {
+    if (this.connection && !this.busy && this.activeSubagentCount)
+      return this.disconnect();
     if (this.connection && this.busy && !this.cancelling) {
       const generation = this.connectionGeneration;
       this.cancelling = true;
@@ -822,7 +945,15 @@ export class AgentController {
     while (this.activity.length > 200) this.activity.shift();
   }
   private async clientRequest(request: AgentRequest) {
+    const pending = { expired: false };
+    this.pendingClientRequests.set(request.requestId, pending);
     const generation = this.requestGeneration;
+    const rootGeneration = this.rootRequestGeneration;
+    const valid = () =>
+      !pending.expired &&
+      generation === this.requestGeneration &&
+      (this.isChildRequest(request) ||
+        rootGeneration === this.rootRequestGeneration);
     try {
       if (request.method === "fs/read_text_file") {
         const document = await this.documents.open(request.params.path);
@@ -841,7 +972,7 @@ export class AgentController {
                 )
                 .join("\n")
             : text;
-        await this.respond(request, { content });
+        if (valid()) await this.respond(request, { content });
         return;
       }
       if (request.method === "fs/write_text_file") {
@@ -867,19 +998,18 @@ export class AgentController {
         request.revision = document?.savedRevision ?? null;
         request.version = document?.version;
       }
-      if (
-        !this.disposed &&
-        generation === this.requestGeneration &&
-        this.connection?.id === request.id
-      ) {
+      if (!this.disposed && valid() && this.connection?.id === request.id) {
         this.requests.push(request);
         this.changed();
       }
     } catch (error) {
-      if (this.disposed || generation !== this.requestGeneration) return;
+      if (this.disposed || !valid()) return;
       await this.respond(request, undefined, String(error)).catch(() => {});
       this.error = String(error);
       this.changed();
+    } finally {
+      if (this.pendingClientRequests.get(request.requestId) === pending)
+        this.pendingClientRequests.delete(request.requestId);
     }
   }
   async respond(request: AgentRequest, result?: unknown, error?: string) {
@@ -959,7 +1089,12 @@ export class AgentController {
     const change = this.changes.find((c) => c.id === id);
     if (!change || change.undone)
       throw new Error("This change is no longer available to undo");
-    if (this.busy || this.connecting || this.requests.length)
+    if (
+      this.busy ||
+      this.connecting ||
+      this.requests.length ||
+      this.activeSubagentCount
+    )
       throw new Error("Wait for the agent to finish before undoing changes");
     if (change.created)
       throw new Error("Review newly created files in Source Control");
@@ -984,7 +1119,8 @@ export class AgentController {
         !unchanged() ||
         doc.version !== version ||
         this.busy ||
-        this.connecting
+        this.connecting ||
+        this.activeSubagentCount
       )
         throw new Error("The editor changed while checking this undo");
       doc.replace(change.before);
@@ -1000,8 +1136,51 @@ export class AgentController {
     }
   }
 
+  private isChildRequest(request: AgentRequest) {
+    return (
+      !!request.sessionId &&
+      request.sessionId !==
+        (request.rootSessionId ?? this.connection?.sessionId)
+    );
+  }
+  expandAncestors(id: string) {
+    const seen = new Set<string>();
+    let parent = this.subagents.get(id)?.parentId;
+    while (parent && !seen.has(parent)) {
+      seen.add(parent);
+      this.expandedSubagents.add(parent);
+      parent = this.subagents.get(parent)?.parentId;
+    }
+  }
+  selectSubagent(id: string) {
+    if (!this.subagents.has(id)) return;
+    this.selectedSubagent = id;
+    this.subagentsOpen = true;
+    this.expandAncestors(id);
+    this.changed();
+  }
+  toggleSubagent(id: string) {
+    if (this.expandedSubagents.has(id)) {
+      this.expandedSubagents.delete(id);
+      const seen = new Set<string>();
+      let parent = this.subagents.get(this.selectedSubagent ?? "")?.parentId;
+      while (parent && !seen.has(parent)) {
+        if (parent === id) {
+          this.selectedSubagent = id;
+          break;
+        }
+        seen.add(parent);
+        parent = this.subagents.get(parent)?.parentId;
+      }
+    } else this.expandedSubagents.add(id);
+    this.changed();
+  }
+  openAgents(id?: string) {
+    if (id) this.selectSubagent(id);
+    this.options.workbench.openPanel("agent-acp-agents");
+  }
   async openLocation(absolute: string, line?: number) {
-    const root = this.connection?.root;
+    const root = this.connection?.root ?? this.activeConversation?.root;
     if (!root) return;
     const path = absolute.startsWith(root + "/")
       ? absolute.slice(root.length + 1)

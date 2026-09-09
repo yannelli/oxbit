@@ -1,0 +1,74 @@
+[
+  {
+    "provider": "codex",
+    "agentInfo": {
+      "name": "@agentclientprotocol/codex-acp",
+      "title": "Codex",
+      "version": "1.10.0"
+    },
+    "capabilities": {
+      "auth": {
+        "logout": {}
+      },
+      "providers": {},
+      "loadSession": true,
+      "promptCapabilities": {
+        "embeddedContext": true,
+        "image": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "list": {},
+        "close": {},
+        "delete": {},
+        "fork": {},
+        "additionalDirectories": {},
+        "subagents": {}
+      },
+      "mcpCapabilities": {
+        "acp": false,
+        "http": true,
+        "sse": false
+      },
+      "_meta": {
+        "authStatus": {}
+      }
+    }
+  },
+  {
+    "provider": "cursor",
+    "capabilities": {
+      "loadSession": true,
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "promptCapabilities": {
+        "audio": false,
+        "embeddedContext": false,
+        "image": true
+      },
+      "sessionCapabilities": {
+        "list": {}
+      }
+    }
+  },
+  {
+    "provider": "amp",
+    "agentInfo": {
+      "name": "amp-acp",
+      "title": "Amp ACP Agent",
+      "version": "0.9.0"
+    },
+    "capabilities": {
+      "promptCapabilities": {
+        "image": true,
+        "embeddedContext": true
+      },
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      }
+    }
+  }
+]

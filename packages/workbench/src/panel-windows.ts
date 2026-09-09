@@ -14,6 +14,8 @@ export interface PanelWindowHost {
   restoreAutomatically?: boolean;
   /** Keep the native file-drop handler while moving tool tabs with pointer events. */
   pointerDrag?: boolean;
+  /** Hosts without secondary windows set this to false to hide pop-out controls. */
+  detach?: boolean;
   close?(id: string): void | Promise<void>;
 }
 let host: PanelWindowHost | undefined;
@@ -33,6 +35,9 @@ export class PanelWindows {
   constructor(private readonly workbench: WorkbenchController) {}
   get pointerDrag() {
     return host?.pointerDrag ?? false;
+  }
+  get canDetach() {
+    return host?.detach ?? true;
   }
   private close(id: string, child: Window) {
     child.close();

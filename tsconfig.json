@@ -62,6 +62,9 @@
       "path": "packages/features/previews"
     },
     {
+      "path": "packages/features/images"
+    },
+    {
       "path": "packages/features/formatters"
     },
     {
@@ -93,6 +96,12 @@
     },
     {
       "path": "packages/features/agent-acp"
+    },
+    {
+      "path": "packages/host-ios"
+    },
+    {
+      "path": "apps/ios"
     }
   ]
 }

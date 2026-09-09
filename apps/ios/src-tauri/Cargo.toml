@@ -1,0 +1,31 @@
+[package]
+name = "oxbit-ios"
+version = "0.1.1"
+description = "Oxbit workbench for iOS and iPadOS"
+authors = ["Ryan Yannelli"]
+edition = "2021"
+rust-version = "1.97.1"
+license = "MIT"
+
+[lib]
+name = "oxbit_ios_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.5", features = [] }
+tauri-plugin-opener = "=2.5.5"
+tauri-plugin-clipboard-manager = "=2.3.3"
+tauri-plugin-oxbit-files = { path = "../plugins/oxbit-files" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+strip = "none"
+lto = true
+codegen-units = 1
+panic = "unwind"

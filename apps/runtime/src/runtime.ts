@@ -19,6 +19,7 @@ import {
   requireString,
   MAX_MESSAGE_BYTES,
   MAX_BUFFER_BYTES,
+  READ_CHUNK_BYTES,
   operationMethods,
   type ServerMessage,
 } from "@oxbit/protocol";
@@ -614,7 +615,7 @@ export async function createRuntime(options: RuntimeOptions) {
   ): { cap?: Capability; trust?: boolean } => {
     if (method.startsWith("fs."))
       return {
-        cap: ["fs.list", "fs.read", "fs.watch", "fs.unwatch"].includes(method)
+        cap: ["fs.list", "fs.read", "fs.readBytes", "fs.watch", "fs.unwatch"].includes(method)
           ? "filesystem.read"
           : "filesystem.write",
       };
@@ -737,6 +738,12 @@ export async function createRuntime(options: RuntimeOptions) {
         return files.read(
           requireString(params, "path"),
           params.encoding as Encoding | undefined,
+        );
+      case "fs.readBytes":
+        return files.readBytes(
+          requireString(params, "path"),
+          Number(params.offset ?? 0),
+          Number(params.length ?? READ_CHUNK_BYTES),
         );
       case "fs.write": {
         const snapshot = await files.write(

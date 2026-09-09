@@ -70,6 +70,14 @@ dependencies, project windows, signing, updates, and commands.
 [Desktop acceptance](evidence/desktop-acceptance.md) separates verified local
 behavior from outstanding installed-artifact and signing gates.
 
+## iOS and iPadOS
+
+A Tauri iOS app in `apps/ios` runs the same workbench on iPhone and iPad
+(iOS 26+). Version 1 edits the app's Documents folder and Files app folders on
+the device; terminals, Git, and language services wait for a later runtime
+phase. Run `pnpm ios:dev "Oxbit iPhone"` or `pnpm ios:simulator`. See
+[iOS setup, commands, and limits](docs/ios.md).
+
 ## Workspaces and editing
 
 - **Browser workspace:** files, settings, layout, and recovery drafts persist in
@@ -147,7 +155,8 @@ workspace. See [Source Control](docs/source-control.md) for workflows and limits
 
 **Agent ACP** adds Codex ACP, Cursor ACP, and Amp Agent ACP with resumable
 conversation history, inspectable editor context, chronological tool activity,
-diff review in the editor, guarded undo, and permission controls. It is
+diff review in the editor, guarded undo, permission controls, and dispatched
+subagent tracking in conversations and a dedicated Agents view. It is
 **disabled by default**. Enable it in Extensions, connect to a trusted runtime,
 and choose an agent. See [Agent ACP setup and tooling](docs/agent-acp.md).
 
@@ -190,6 +199,58 @@ Chromium 153 crash behind it, and the Playwright pin that closes it.
 performance measurements, and checks that were not run.
 [Feature status](docs/feature-status.md) separates implemented features,
 verification limits, and deferred work.
+
+## Releases
+
+```sh
+pnpm release patch            # 0.1.1 -> 0.1.2
+pnpm release minor
+pnpm release 2.0.0
+pnpm release patch --dry-run  # print the plan, write nothing
+pnpm release:all              # patch release with lint and tests first
+pnpm build:all                # build web, runtime, desktop and iOS without bumping
+```
+
+One command bumps the version, builds every artifact, and collects them under
+`release/v<version>/` as `web/`, `runtime/`, `extensions/`, `icon-packs/`,
+`desktop/` and `ios/`, alongside `manifest.json` and a `SHA256SUMS` file that
+`shasum -a 256 -c SHA256SUMS` checks. `bun run release patch` works the same way,
+though the steps it drives still shell out to pnpm. The version is written to the
+root `package.json`, `apps/runtime/package.json`, and the `package.json`,
+`Cargo.toml` and `Cargo.lock` of both `apps/desktop` and `apps/ios`; both
+`tauri.conf.json` files read the root version, and a failure anywhere after the
+bump restores all eight files.
+
+The desktop bundle is included when the host is macOS arm64 or x64 Linux with a
+Rust toolchain, and skipped with a printed reason otherwise. It runs
+`pnpm desktop:build`, so macOS artifacts carry the `bundle.macOS.signingIdentity`
+from `tauri.conf.json` and `manifest.json` records which identity that was. Any
+`APPLE_*` credentials in your shell are removed for that step, because they
+override the configuration and add a notarization round trip. Turning on
+`bundle.createUpdaterArtifacts` makes that build sign its own update artifacts,
+so the script then checks `TAURI_SIGNING_PRIVATE_KEY` before the bump rather than
+failing at the end of a long build. Notarized installers and signed updates come
+from `pnpm desktop:release` and the tagged CI build described in
+[Desktop setup, release, and recovery](docs/desktop.md).
+
+| Flag | Effect |
+| --- | --- |
+| `--out <dir>` | Collect into `<dir>/v<version>` instead of `release/` |
+| `--no-desktop` | Skip the desktop bundle |
+| `--no-ios` | Skip the iOS IPA |
+| `--check` | Run `pnpm lint` and `pnpm test` first; `pnpm build` already runs `tsc -b` |
+| `--commit` | Commit the five version files as `Release v<version>` |
+| `--tag` | Also create the annotated `v<version>` tag, which triggers the release workflow on push |
+| `--dry-run` | Print the plan and write nothing |
+
+The iOS IPA is included on macOS with a full Xcode, a generated project from
+`pnpm ios:init`, and an Apple Distribution signing identity, since `pnpm ios:build`
+exports with `app-store-connect`. Each missing piece prints its own skip reason.
+TestFlight uploads stay with `pnpm ios:upload` and `.github/workflows/ios.yml`.
+
+`--commit` and `--tag` require a clean tree and refuse an existing tag. Both run
+after the build, so a failed build leaves no tag behind. `release/` is ignored by
+Git.
 
 ## Design and technical references
 

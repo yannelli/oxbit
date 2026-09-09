@@ -17,11 +17,12 @@ The complete Phase 1 reference is preserved in `design/reference/`. Literal samp
 | Code editor | editable · read-only (banner, no caret) · externally changed (banner) · offline (banner) · conflict (toolbar + zones) · folded · find widget · widgets (hover/completion/signature/actions/rename/peek) · remote cursor · remote-edit flash | packages/features/editor, packages/features/language, packages/features/collaboration |
 | Diff | side-by-side · inline · git/saved/disk modes | packages/features/git |
 | Markdown | editor · preview · split | packages/features/previews |
+| Image | PNG/JPEG/GIF/WebP/AVIF/BMP/ICO/SVG · fit · 10–1600 % zoom · pixelated above 200 % · reload on external change · SVG open as text | packages/features/images |
 | Settings | user/workspace scope · search · modified · validation error | packages/features/settings |
 | Keyboard shortcuts | list · search · conflict rows · capture dialog (recording → keys → conflict → save/replace/keep both) | packages/features/settings |
 | Keymap | Oxbit default (unset) · VS Code · JetBrains · macOS · Sublime Text · Atom · Visual Studio · Emacs, selected by `workbench.keymap` | packages/features/keymaps |
 | Extension details | not installed · installing · installed-enabled · disabled · update available · incompatible · install failed (+retry) | packages/features/extensions |
-| Agent ACP | disabled by default · Codex/Cursor/Amp · streaming Markdown and ordered tools · inspectable context · searchable local/provider history · capability-gated resume · editor diff approval · guarded undo · phone layouts | packages/features/agent-acp, apps/runtime |
+| Agent ACP | disabled by default · Codex/Cursor/Amp · streaming Markdown and ordered tools · inspectable context · searchable local/provider history · capability-gated resume · dispatched subagent tree and Agents view · child approvals · editor diff approval · guarded undo · phone layouts | packages/features/agent-acp, apps/runtime |
 | Replace preview | per-file checkbox · apply/cancel · discard confirm | packages/features/search |
 | Plugin document view | Bundle report | examples/bundle-inspector |
 | File error view | missing (restore from git) · permission denied (retry) | packages/documents, packages/workbench |
@@ -53,6 +54,7 @@ Menu and palette presentation uses `packages/workbench/src/catalog.json`. Each f
 | `view.scm` | Show Source Control | `packages/features/git` |
 | `view.extensions` | Show Extensions | `packages/features/extensions` |
 | `agentACP.open` | Open Agent ACP | `packages/features/agent-acp` |
+| `agentACP.openAgents` | Inspect dispatched subagents | `packages/features/agent-acp` |
 | `view.problems` | Show Problems | `packages/features/language` |
 | `project.intelligence` | Project Intelligence | `packages/features/language` |
 | `view.output` | Show Output | `packages/features/tasks` |
@@ -120,6 +122,7 @@ Menu and palette presentation uses `packages/workbench/src/catalog.json`. Each f
 | `lsp.restart` | Restart Language Server | `packages/features/language` |
 | `preview.markdown` | Open Preview | `packages/features/previews` |
 | `preview.markdownSide` | Open Preview to the Side | `packages/features/previews` |
+| `image.openSource` | Open Image as Text | `packages/features/images` |
 | `extensions.install` | Install Extension… | `packages/features/extensions` |
 | `extensions.checkUpdates` | Check for Extension Updates | `packages/features/extensions` |
 | `workspace.open` | Open Folder… | `apps/web` |
@@ -176,7 +179,7 @@ Definitions and validation are owned by `packages/features/settings`. Consumers 
 | 6. Language | Pair and trust runtime; start TypeScript LSP; complete, hover, navigate, rename, format; stop or restart server | packages/features/language, apps/runtime |
 | 7. Terminal and tasks | Pair and trust runtime; create, resize, split and terminate PTYs; run, cancel and rerun tasks; disconnect and reconnect | packages/features/terminal, packages/features/tasks, apps/runtime |
 | 8. Source Control | Initialize/clone; file and hunk staging; commit history and patches; branch/remotes management; pull/publish; stashes; revert/cherry-pick; conflict resolution and operation recovery ([guide](source-control.md)) | packages/features/git, apps/runtime |
-| 9. Preview | Open Markdown editor or preview; inspect a bundle manifest through external example | packages/features/previews, examples/bundle-inspector |
+| 9. Preview | Open Markdown editor or preview; open an image or SVG; inspect a bundle manifest through external example | packages/features/previews, packages/features/images, examples/bundle-inspector |
 | 10. Settings | Search user/workspace/language settings; invalid numeric input; reset; capture conflicting shortcuts | packages/features/settings |
 | 11. Extensions | Load trusted ESM; inspect details; activation failure; compatible update; disable and remove | packages/features/extensions, packages/core |
 | 12. Real-time | Two authenticated browser sessions join a document; edit concurrently; disconnect one; reconnect; follow participant | packages/features/collaboration, packages/documents, apps/runtime |

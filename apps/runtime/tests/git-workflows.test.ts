@@ -7,6 +7,12 @@ import { Git } from "../src/git.js";
 import { WorkspaceFiles } from "../src/filesystem.js";
 import { runCommand } from "../src/processes.js";
 
+Object.assign(process.env, {
+  GIT_AUTHOR_NAME: "Oxbit Test",
+  GIT_AUTHOR_EMAIL: "oxbit@example.test",
+  GIT_COMMITTER_NAME: "Oxbit Test",
+  GIT_COMMITTER_EMAIL: "oxbit@example.test",
+});
 const directories: string[] = [];
 afterEach(async () => {
   for (const root of directories.splice(0))
