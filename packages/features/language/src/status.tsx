@@ -23,17 +23,37 @@ export function LanguageStatus({ language, o }: { language: LanguageService; o: 
   useEffect(() => {
     const element = popup.current;
     if (!open || !element) return;
-    const rect = trigger.current!.getBoundingClientRect();
-    const width = Math.min(384, innerWidth - 16);
-    Object.assign(element.style, {
-      width: `${width}px`, left: `${Math.max(8, Math.min(rect.right - width, innerWidth - width - 8))}px`,
-      bottom: `${innerHeight - rect.top + 6}px`, maxHeight: `${Math.max(100, rect.top - 16)}px`,
-    });
+    const viewport = window.visualViewport;
+    const position = () => {
+      const rect = trigger.current!.getBoundingClientRect();
+      const left = viewport?.offsetLeft ?? 0;
+      const top = viewport?.offsetTop ?? 0;
+      const viewportWidth = viewport?.width ?? innerWidth;
+      const viewportHeight = viewport?.height ?? innerHeight;
+      const width = Math.min(384, viewportWidth - 16);
+      const above = rect.top - top - 14;
+      const below = top + viewportHeight - rect.bottom - 14;
+      const openBelow = above < 200 && below > above;
+      Object.assign(element.style, {
+        width: `${width}px`, left: `${Math.max(left + 8, Math.min(rect.right - width, left + viewportWidth - width - 8))}px`,
+        top: openBelow ? `${rect.bottom + 6}px` : "auto",
+        bottom: openBelow ? "auto" : `${innerHeight - rect.top + 6}px`,
+        maxHeight: `${Math.max(0, openBelow ? below : above)}px`,
+      });
+    };
+    position();
     element.showPopover();
     element.focus();
     const resize = () => setOpen(false);
     window.addEventListener("resize", resize);
-    return () => { element.hidePopover(); window.removeEventListener("resize", resize); };
+    viewport?.addEventListener("resize", position);
+    viewport?.addEventListener("scroll", position);
+    return () => {
+      element.hidePopover();
+      window.removeEventListener("resize", resize);
+      viewport?.removeEventListener("resize", position);
+      viewport?.removeEventListener("scroll", position);
+    };
   }, [open]);
   const servers = language.servers;
   const running = servers.filter(s => s.state === "ready").length;

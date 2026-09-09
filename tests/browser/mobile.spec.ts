@@ -211,3 +211,126 @@ test("restricted workspaces expose trust, show progress, and retain trust after 
   await page.getByRole("button", { name: "Close dialog" }).tap();
   await expect(entry).toBeVisible();
 });
+
+test("one bottom bar reserves the home inset once and keeps all touch targets aligned", async ({ page }, info) => {
+  await ready(page);
+  await page.addStyleTag({ content: ":root{--safe-area-bottom:34px}" });
+  await page.evaluate(() => (window as any).__oxbit.workbench.set({ projectName: "A very long mobile workspace name" }));
+  const nav = page.getByRole("navigation", { name: "Primary views" });
+  for (const width of [320, 393]) {
+    await page.setViewportSize({ width, height: 852 });
+    await expect(page.locator(".statusbar")).toHaveCount(0);
+    const buttons = nav.getByRole("button");
+    await expect(buttons).toHaveCount(6);
+    await expect.poll(() => nav.evaluate(element => element.getBoundingClientRect().bottom)).toBe(852);
+    const bounds = (await nav.boundingBox())!;
+    expect(bounds.height).toBe(90);
+    const labels = await nav.locator(".phone-label").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
+    expect(Math.max(...labels) - Math.min(...labels)).toBeLessThanOrEqual(1);
+    for (const button of await buttons.all()) {
+      const box = (await button.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.y + box.height).toBeLessThanOrEqual(852 - 34);
+    }
+    for (const button of await page.locator(".titlebar button:visible").all()) {
+      await insideViewport(button);
+      expect((await button.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.locator(".main-workbench").evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(bounds.y + 1);
+    await nav.getByRole("button", { name: "Explorer", exact: true }).tap();
+    const panel = page.locator(".panel-dock.sidebar:visible").first();
+    expect((await panel.boundingBox())!.y + (await panel.boundingBox())!.height).toBeLessThanOrEqual(bounds.y + 1);
+    await nav.getByRole("button", { name: "Explorer", exact: true }).tap();
+  }
+  await page.screenshot({ path: info.outputPath("phone-bottom-bar.png"), animations: "disabled" });
+  await keyboardViewport(page, 400, 50);
+  await expect.poll(() => nav.evaluate(element => element.getBoundingClientRect().height)).toBe(56);
+  await insideViewport(nav);
+});
+
+test("extra tool panels stay in More without crowding phone navigation", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    (window as any).__oxbit.kernel.contributions.register({
+      id: "phone-extra-view", kind: "activityView", title: "Phone extra view", component: () => null,
+    });
+  });
+  const nav = page.getByRole("navigation", { name: "Primary views" });
+  await expect(nav.getByRole("button")).toHaveCount(6);
+  await nav.getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("combobox").fill(">Open Phone extra view");
+  await page.getByRole("option", { name: /Open Phone extra view/ }).tap();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("phone-extra-view"))).toBe(true);
+});
+
+test("language status opens below the phone header and above the desktop footer", async ({ page }, info) => {
+  await ready(page);
+  const trigger = page.getByRole("button", { name: /^Language Servers:/ });
+  const popup = page.getByRole("dialog", { name: "Language Servers", exact: true });
+  await page.locator(".titlebar").getByRole("button", { name: /^Language Servers:/ }).tap();
+  await insideViewport(popup);
+  expect((await popup.boundingBox())!.y).toBeGreaterThanOrEqual((await trigger.boundingBox())!.y + (await trigger.boundingBox())!.height);
+  await page.screenshot({ path: info.outputPath("phone-language-status.png"), animations: "disabled" });
+  await popup.getByRole("button", { name: "Close Language Servers" }).tap();
+  await keyboardViewport(page, 320, 80);
+  await trigger.tap();
+  await insideViewport(popup);
+  await keyboardViewport(page, 852);
+  await insideViewport(popup);
+  await popup.getByRole("button", { name: "Close Language Servers" }).tap();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator(".statusbar").getByRole("button", { name: /^Language Servers:/ }).tap();
+  await insideViewport(popup);
+  const bounds = (await popup.boundingBox())!;
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual((await trigger.boundingBox())!.y);
+});
+
+test("phone gutters fit three-digit numbers and folding without desktop spacing", async ({ page }, info) => {
+  await ready(page);
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit;
+    await app.filesystem.write("mobile-gutter.ts", "export function mobileFixture() {\n" + "  console.log('mobile');\n".repeat(150) + "}\n", { expectedRevision: null });
+    await app.workbench.openFile("mobile-gutter.ts", { preview: false });
+  });
+  const closePanel = page.locator(".bottom-panel").getByRole("button", { name: "Close panel", exact: true }).first();
+  if (await closePanel.isVisible()) await closePanel.tap();
+  const gutter = page.locator(".cm-gutters").first();
+  await expect.poll(() => gutter.evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(42);
+  expect(await page.locator(".cm-lineNumbers .cm-gutterElement").evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth))).toBe(true);
+  await page.screenshot({ path: info.outputPath("phone-line-numbers.png"), animations: "disabled" });
+  await page.locator('.cm-fold-marker[data-folded=false]:visible').first().tap();
+  await expect(page.locator(".cm-foldPlaceholder")).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(() => gutter.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThanOrEqual(56);
+});
+
+test("file rows and menu labels resist selection while code and inputs remain selectable", async ({ page }) => {
+  await ready(page);
+  await page.getByRole("button", { name: "Explorer", exact: true }).tap();
+  const row = page.locator('[role="treeitem"]').first();
+  await hold(row);
+  const menu = page.getByRole("menu");
+  const label = menu.getByRole("menuitem", { name: /New File/ }).locator("span").first();
+  await expect(label).toBeVisible();
+  await page.evaluate(() => getSelection()?.removeAllRanges());
+  const bounds = (await label.boundingBox())!;
+  await page.mouse.move(bounds.x + 3, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width - 3, bounds.y + bounds.height / 2, { steps: 10 });
+  expect(await page.evaluate(() => getSelection()?.toString())).toBe("");
+  expect(await row.evaluate(element => getComputedStyle(element).webkitUserSelect)).toBe("none");
+  await page.mouse.up();
+  await page.keyboard.press("Escape");
+  // Opening a command while dragging its label may display its dialog.
+  for (const close of await page.getByRole("button", { name: "Close dialog" }).all()) await close.tap();
+  await page.getByRole("button", { name: "Explorer", exact: true }).tap();
+  const code = page.locator(".cm-line").first();
+  await code.dblclick({ position: { x: 25, y: 8 } });
+  await expect.poll(() => page.evaluate(() => getSelection()?.toString().length ?? 0)).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Search files and commands", exact: true }).tap();
+  const input = page.getByRole("combobox");
+  await input.fill("selectable input");
+  await input.press("ControlOrMeta+a");
+  expect(await input.evaluate(element => (element as HTMLInputElement).selectionEnd! - (element as HTMLInputElement).selectionStart!)).toBe("selectable input".length);
+});

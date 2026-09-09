@@ -105,7 +105,7 @@ test("long documentation and status controls fit small viewports and support dis
     await expect(indicator(page)).toBeFocused();
     await indicator(page).click();
     await page.screenshot({ path: `evidence/language-design/servers-${width}.png` });
-    await page.mouse.click(width / 2, 100);
+    await page.locator(".titlebar .brand").click();
     await expect(popup).toHaveCount(0);
   }
 });

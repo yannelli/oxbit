@@ -540,8 +540,14 @@ export function Workbench({
                 </button>
               )}
               <ToolbarContributions workbench={workbench} location="titlebar" />
+              {mode === "phone" && status
+                .filter((contribution) => contribution.id === "language.status")
+                .map((contribution) => (
+                  <StatusContribution key={contribution.id} contribution={contribution} workbench={workbench} />
+                ))}
               <IconButton
                 icon="bell"
+                className="icon-button notification-trigger"
                 label={tr("Notifications ({0})", {
                   "0": s.notifications.length,
                 })}
@@ -607,7 +613,7 @@ export function Workbench({
                             view.id,
                           ),
                       )
-                      .slice(0, 3),
+                      .slice(0, mode === "phone" ? 0 : 3),
                   )
                   .map((view) => (
                     <button
@@ -625,10 +631,10 @@ export function Workbench({
                       {view.id === "explorer" && dirty > 0 && (
                         <span className="badge">{dirty}</span>
                       )}
-                      <span className="phone-label">{label(view)}</span>
+                      <span className="phone-label">{view.id === "scm" ? tr("Changes") : label(view)}</span>
                     </button>
                   ))}
-                {views.filter(
+                {mode !== "phone" && views.filter(
                   (view) =>
                     !["explorer", "search", "scm", "extensions"].includes(
                       view.id,
@@ -746,7 +752,7 @@ export function Workbench({
             </div>
           </div>
         )}
-        {!s.focus && (
+        {!s.focus && mode !== "phone" && (
           <footer className="statusbar">
             {onConnect && (
               <button onClick={onConnect} title={tr("Runtime connection")}>
