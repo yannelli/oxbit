@@ -505,3 +505,127 @@ test("rendered Markdown, popovers and keyboard focus use the selected theme", as
   await expect(theme).toBeFocused();
   await expect(theme).toHaveCSS("outline-color", "rgb(255, 68, 187)");
 });
+
+test("bundled creative themes and Rainbow icons switch, pair and persist", async ({
+  page,
+}) => {
+  await ready(page);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    await z.workbench.openFile("README.md", { preview: false });
+    z.documents
+      .get("README.md")
+      .replace(
+        "# Pride & retro\n\nA workbench for everyone.\n\n**Bold ideas**, *clear code*.\n",
+      );
+  });
+  const palettes = [
+    ["rainbow-dark", "dark", "#181920"],
+    ["rainbow-light", "light", "#fffafd"],
+    ["camo", "dark", "#22271d"],
+    ["terminal", "dark", "#09130d"],
+    ["eighties", "dark", "#1c122f"],
+    ["seventies", "light", "#fbf0d5"],
+    ["fallout", "dark", "#1e2319"],
+  ];
+  for (const [id, mode, background] of palettes) {
+    await page.evaluate(
+      (id) => (window as any).__oxbit.runCommand("theme." + id),
+      id,
+    );
+    await expect(page.locator(".workbench")).toHaveAttribute(
+      "data-theme",
+      mode,
+    );
+    await expect(page.locator(".workbench")).toHaveCSS(
+      "--bg-editor",
+      background,
+    );
+    const ribbon = await page.locator(".titlebar").evaluate((element) => {
+      const style = getComputedStyle(element, "::after");
+      return { background: style.backgroundImage, height: style.height, pointerEvents: style.pointerEvents };
+    });
+    if (id.startsWith("rainbow-")) {
+      expect(ribbon.background).toContain("linear-gradient");
+      expect(ribbon.height).toBe("4px");
+      expect(ribbon.pointerEvents).toBe("none");
+    } else expect(ribbon.background).toBe("none");
+    await expect(page.locator(".cm-content").first()).toContainText(
+      "A workbench for everyone.",
+    );
+    await page.screenshot({
+      path: "/private/tmp/oxbit-creative-" + id + ".png",
+    });
+  }
+  await page.evaluate(() =>
+    (window as any).__oxbit.runCommand("theme.rainbow.dark.apply"),
+  );
+  const selectedIcons = () =>
+    page.evaluate(() => {
+      const c = (window as any).__oxbit.kernel.configuration;
+      return [
+        c.get("workbench.iconTheme"),
+        c.get("workbench.productIconTheme"),
+      ];
+    });
+  expect(await selectedIcons()).toEqual([
+    "oxbit.rainbow-icons/files",
+    "oxbit.rainbow-icons/controls",
+  ]);
+  await expect
+    .poll(() => page.locator("img.themed-icon").count())
+    .toBeGreaterThan(0);
+  const broken = await page
+    .locator("img.themed-icon")
+    .evaluateAll((images: HTMLImageElement[]) =>
+      Promise.all(
+        images.map((image) =>
+          image.decode().then(
+            () => false,
+            () => true,
+          ),
+        ),
+      ),
+    );
+  expect(broken).not.toContain(true);
+  await page.screenshot({
+    path: "/private/tmp/oxbit-creative-rainbow-icons-dark.png",
+  });
+  await page.evaluate(() => (window as any).__oxbit.runCommand("theme.toggle"));
+  expect(await selected(page)).toBe("oxbit.creative/rainbow-light");
+  await expect(page.locator(".workbench")).toHaveAttribute(
+    "data-theme",
+    "light",
+  );
+  await page.screenshot({
+    path: "/private/tmp/oxbit-creative-rainbow-icons-light.png",
+  });
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
+  expect(await selected(page)).toBe("oxbit.creative/rainbow-light");
+  expect(await selectedIcons()).toEqual([
+    "oxbit.rainbow-icons/files",
+    "oxbit.rainbow-icons/controls",
+  ]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.evaluate(() =>
+    (window as any).__oxbit.kernel.services
+      .get("iconThemes")
+      .remove("oxbit.rainbow-icons"),
+  );
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
+  const installed = await page.evaluate(() =>
+    (window as any).__oxbit.kernel.services
+      .get("iconThemes")
+      .list()
+      .map((p: any) => p.id),
+  );
+  expect(installed).not.toContain("oxbit.rainbow-icons");
+  expect(installed).toContain("oxbit.classicos98");
+});

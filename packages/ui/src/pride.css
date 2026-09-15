@@ -1,0 +1,19 @@
+:is([data-theme-id="oxbit.creative/rainbow-dark"], [data-theme-id="oxbit.creative/rainbow-light"]) .titlebar {
+  position: relative;
+}
+:is([data-theme-id="oxbit.creative/rainbow-dark"], [data-theme-id="oxbit.creative/rainbow-light"]) .titlebar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--pride-progress);
+  pointer-events: none;
+}
+:is([data-theme-id="oxbit.creative/rainbow-dark"], [data-theme-id="oxbit.creative/rainbow-light"]) .active-group .editor-tab.active::before {
+  height: 3px;
+  background: var(--pride-rainbow);
+}
+:is([data-theme-id="oxbit.creative/rainbow-dark"], [data-theme-id="oxbit.creative/rainbow-light"]) .activity-bar > button.active::before {
+  width: 4px;
+  background: var(--pride-vertical);
+}

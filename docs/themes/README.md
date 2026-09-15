@@ -1,5 +1,22 @@
 # Authoring Oxbit theme packs
 
+## Rainbow and retro themes
+
+These built-in palettes are available in **Settings → Appearance → Color Theme** and the command palette:
+
+| Theme | Style |
+| --- | --- |
+| Rainbow Dark / Rainbow Light | Pride flag ribbons, charcoal/blush surfaces, pink and trans-blue accents, and rainbow syntax colors |
+| Camo | Olive, sage, khaki, and earth tones |
+| Terminal | Green phosphor, near-black surfaces, and monospace controls |
+| 80s Neon | Midnight purple, electric pink, and cyan |
+| 70s Harvest | Warm cream, burnt orange, avocado, and serif headings |
+| 60s Fallout | Civil-defense olive, faded amber, phosphor green, and monospace controls |
+
+Rainbow's dark/light variants are paired by **Toggle Light/Dark Theme**. The **Use Rainbow Dark Theme and Icons** and **Use Rainbow Light Theme and Icons** commands also select the bundled [Rainbow Pride file and application icons](../icon-packs.md). Selecting a color theme alone preserves existing icon choices.
+
+## Importing and authoring packs
+
 Use **Settings → Appearance → Manage Theme Packs**, or the **Import Theme Pack…** command. Choose a JSON file or ZIP, review any messages, then select **Apply**. Imports never change selection. Importing the same pack ID updates it atomically. Export includes local fonts and notices. Packs are stored in the browser/desktop webview profile's `oxbit-theme-packs` IndexedDB database, outside project folders. Tabs and desktop sessions share changes; synchronization between devices is not provided.
 
 Theme IDs have the form `pack.id/local-id`. Names are labels and may be duplicated. Explicit legacy built-in names migrate in their original settings scope. A disabled, removed or invalid pack leaves the requested ID intact and uses the last known mode's built-in fallback. Reinstalling restores it automatically.

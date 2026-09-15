@@ -433,6 +433,7 @@ export function Workbench({
         data-screen-label="Workbench"
         data-theme={theme}
         data-theme-pack={currentTheme(kernel).packId}
+        data-theme-id={currentTheme(kernel).id}
         data-density={
           kernel.configuration.get("workbench.density") || "compact"
         }

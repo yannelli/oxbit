@@ -227,6 +227,7 @@ function FloatingSurface({ id, root }: { id: string; root: PanelNode }) {
       ref={ref}
       className="workbench floating-workbench"
       data-theme={themeMode(workbench.kernel)}
+      data-theme-id={currentTheme(workbench.kernel).id}
       data-mode="desktop"
       data-density={
         workbench.kernel.configuration.get<string>("workbench.density") ??

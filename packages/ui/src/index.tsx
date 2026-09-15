@@ -14,6 +14,7 @@ import { productIconIds } from "./product-icons.js";
 import { icons } from "./icons.js";
 import { TooltipLayer } from "./tooltips.js";
 export { icons };
+export { productIconIds };
 export { OxbitMark, OxbitLogo } from "./brand.js";
 export { TooltipLayer };
 const contributedIcons = createContext<Record<string, string>>({});

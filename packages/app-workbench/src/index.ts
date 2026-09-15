@@ -20,8 +20,7 @@ import {
   createVSCodeHighContrastFeature,
   createClassicOS98Feature,
   classicOS98IconPack,
-  CLASSICOS98_PACK_ID,
-  CLASSICOS98_REVISION,
+  rainbowIconPack,
 } from "@oxbit/feature-themes";
 import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
 import { createFeature as languageFeature } from "@oxbit/feature-language";
@@ -46,16 +45,20 @@ const SEED_KEY = "oxbit.iconPack.seeded";
 /** Origin-wide, matching the icon pack store, so every project shares one answer. */
 const seedMarker = () => (typeof localStorage === "undefined" ? undefined : localStorage);
 
-/** Installs the bundled pack once. Uninstalling it is remembered until the revision changes. */
+/** Installs each bundled pack once. Uninstalling is remembered until its revision changes. */
 async function seedIconPack(store: PackStore) {
-  try {
-    const marker = seedMarker();
-    if (marker?.getItem(SEED_KEY) === CLASSICOS98_REVISION) return;
-    const installed = (await store.read()).find(pack => pack.id === CLASSICOS98_PACK_ID);
-    if (installed?.revision !== CLASSICOS98_REVISION) await store.put(classicOS98IconPack);
-    marker?.setItem(SEED_KEY, CLASSICOS98_REVISION);
-  } catch {
-    // Icon packs stay optional; the workbench keeps its own glyphs.
+  for (const pack of [classicOS98IconPack, rainbowIconPack]) {
+    try {
+      const marker = seedMarker();
+      // Keep the original ClassicOS marker for existing installations.
+      const key = pack.id === classicOS98IconPack.id ? SEED_KEY : `${SEED_KEY}.${pack.id}`;
+      if (marker?.getItem(key) === pack.revision) continue;
+      const installed = (await store.read()).find(item => item.id === pack.id);
+      if (installed?.revision !== pack.revision) await store.put(pack);
+      marker?.setItem(key, pack.revision);
+    } catch {
+      // Icon packs stay optional; the workbench keeps its own glyphs.
+    }
   }
 }
 export interface Session {

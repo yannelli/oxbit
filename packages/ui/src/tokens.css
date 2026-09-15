@@ -1,5 +1,6 @@
 @import "./theme-defaults.generated.css";
 @import "./classicos98.css";
+@import "./pride.css";
 
 html,body{margin:0;min-height:100%;background:var(--bg-app,#14161a);font-family:var(--font-body-font-family,system-ui,sans-serif);-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
@@ -25,3 +26,11 @@ button:disabled{cursor:not-allowed}
 @keyframes zin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes zsheet{from{transform:translateY(100%)}to{transform:none}}
 @keyframes zpulse{50%{opacity:.35}}
+
+/* Pride decoration is scoped to the two built-in Rainbow variants. */
+[data-theme-id="oxbit.creative/rainbow-dark"],
+[data-theme-id="oxbit.creative/rainbow-light"] {
+  --pride-rainbow: linear-gradient(90deg, #e40303 0% 16.66%, #ff8c00 16.66% 33.33%, #ffed00 33.33% 50%, #008026 50% 66.66%, #2448ff 66.66% 83.33%, #750787 83.33% 100%);
+  --pride-progress: linear-gradient(90deg, #171717 0% 3%, #784f32 3% 6%, #55cdfc 6% 9%, #f7a8b8 9% 12%, #ffffff 12% 15%, #e40303 15% 29.16%, #ff8c00 29.16% 43.33%, #ffed00 43.33% 57.5%, #008026 57.5% 71.66%, #2448ff 71.66% 85.83%, #750787 85.83% 100%);
+  --pride-vertical: linear-gradient(#e40303 0% 16.66%, #ff8c00 16.66% 33.33%, #ffed00 33.33% 50%, #008026 50% 66.66%, #2448ff 66.66% 83.33%, #750787 83.33% 100%);
+}

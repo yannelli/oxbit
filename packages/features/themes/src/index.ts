@@ -1,5 +1,11 @@
 import type { Extension, Kernel } from "@oxbit/sdk";
-import { coreThemes, loadBearingThemes, binxThemes } from "./bundled.js";
+import {
+  coreThemes,
+  loadBearingThemes,
+  binxThemes,
+  creativeThemes,
+} from "./bundled.js";
+import { rainbowIconPack } from "./rainbow/index.js";
 import { attachPackManager } from "./manager.js";
 import type { WorkbenchController } from "@oxbit/workbench";
 interface ColorTheme {
@@ -10,6 +16,8 @@ interface ColorTheme {
 
 export { loadBearingThemes } from "./bundled.js";
 export { binxThemes } from "./bundled.js";
+export { creativeThemes } from "./bundled.js";
+export { rainbowIconPack };
 export { vscodeThemes, vscodeHighContrastThemes } from "./bundled.js";
 export {
   createVSCodeFeature,
@@ -36,13 +44,18 @@ export function createFeature({
       id: "oxbit.themes",
       name: "Oxbit Themes",
       description:
-        "Graphite, Paper, Load Bearing, and Binx — light and dark themes from warm paper to deep black and arctic blue.",
+        "Graphite, Paper, Load Bearing, Binx, Rainbow Pride, Camo, Terminal, and retro themes from the 60s, 70s and 80s.",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
       activation: ["*"],
       capabilities: [],
-      contributions: [...coreThemes, ...loadBearingThemes, ...binxThemes],
+      contributions: [
+        ...coreThemes,
+        ...loadBearingThemes,
+        ...binxThemes,
+        ...creativeThemes,
+      ],
     },
     activate(ctx) {
       if (workbench) attachPackManager(ctx, kernel, workbench);
@@ -86,7 +99,7 @@ export function createFeature({
               ),
           }),
         );
-      for (const theme of binxThemes)
+      for (const theme of [...binxThemes, ...creativeThemes])
         ctx.own(
           ctx.commands.register({
             id: `theme.${theme.id.replace("oxbit.", "")}`,
@@ -97,6 +110,28 @@ export function createFeature({
                 "workbench.colorTheme",
                 theme.data.stableId,
               ),
+          }),
+        );
+      for (const mode of ["dark", "light"] as const)
+        ctx.own(
+          ctx.commands.register({
+            id: `theme.rainbow.${mode}.apply`,
+            title: `Use Rainbow ${mode === "dark" ? "Dark" : "Light"} Theme and Icons`,
+            category: "Preferences",
+            run: () => {
+              kernel.configuration.set(
+                "workbench.colorTheme",
+                `oxbit.creative/rainbow-${mode}`,
+              );
+              kernel.configuration.set(
+                "workbench.iconTheme",
+                rainbowIconPack.themes[0].id,
+              );
+              kernel.configuration.set(
+                "workbench.productIconTheme",
+                rainbowIconPack.themes[1].id,
+              );
+            },
           }),
         );
     },
