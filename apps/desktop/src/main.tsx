@@ -25,6 +25,30 @@ if (import.meta.env.VITE_DESKTOP_TEST === "1")
   await import("@wdio/tauri-plugin");
 const manager = new ProjectSessionManager();
 const windowEvents = { target: getCurrentWebviewWindow().label };
+if (/Mac/.test(navigator.platform)) {
+  const nativeWindow = getCurrentWebviewWindow();
+  document.documentElement.dataset.nativeTitlebar = "macos";
+  const syncFullscreen = async () => {
+    document.documentElement.dataset.windowFullscreen = String(await nativeWindow.isFullscreen());
+  };
+  void syncFullscreen().catch(console.error);
+  void nativeWindow.onResized(() => { void syncFullscreen().catch(console.error); });
+  document.addEventListener("mousedown", (event) => {
+    if (event.button !== 0 || !(event.target instanceof Element)) return;
+    const target = event.target;
+    const header = target.closest(".desktop-shell .titlebar");
+    // Focus mode hides the toolbar, but retains a small native window drag strip.
+    const focusStrip = document.documentElement.dataset.windowFullscreen !== "true"
+      && target.matches(".desktop-shell .workbench.focus-mode")
+      && event.clientY < target.getBoundingClientRect().top + 40;
+    if ((!header && !focusStrip) || target.closest(
+      "button, a, input, select, textarea, [role=menu], [role=menuitem], .menu-parent, .desktop-project-control",
+    )) return;
+    event.preventDefault();
+    void (event.detail === 2 ? nativeWindow.toggleMaximize() : nativeWindow.startDragging())
+      .catch(console.error);
+  });
+}
 // Native clipboard and system-browser routing also serve existing workbench features.
 Object.defineProperty(navigator, "clipboard", {
   configurable: true,

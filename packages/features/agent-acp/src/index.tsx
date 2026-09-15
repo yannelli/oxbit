@@ -18,6 +18,7 @@ import {
   type AgentRequest,
 } from "./controller.js";
 import { sessionControls } from "./session-controls.js";
+import { ComposerInput } from "./composer-input.js";
 import {
   ActivityFeed,
   FilePatch,
@@ -296,6 +297,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const [showContext, setShowContext] = useState(false);
   const [following, setFollowing] = useState(true);
   const contextId = useId();
+  const composerInput = useRef<HTMLTextAreaElement>(null);
   const contextTrigger = useRef<HTMLButtonElement>(null);
   const contextPopup = useRef<HTMLDivElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
@@ -701,26 +703,15 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             )}
           </p>
         )}
-        <textarea
-          data-local-submit
-          aria-label={tr("Message agent")}
-          placeholder={tr("Ask your agent to help with this workspace…")}
+        <ComposerInput
+          inputRef={composerInput}
+          commands={agent.commands}
           value={agent.draft}
-          onChange={(event) => {
-            agent.draft = event.target.value;
+          onChange={(value) => {
+            agent.draft = value;
             agent.changed();
           }}
-          onKeyDown={(event) => {
-            if (
-              event.key === "Enter" &&
-              (event.metaKey || event.ctrlKey) &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault();
-              void agent.action(() => agent.send());
-            }
-          }}
-          rows={2}
+          onSend={() => { void agent.action(() => agent.send()); }}
         />
         <div className="acp-composer-toolbar">
           <button
@@ -757,6 +748,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 if (command) {
                   agent.draft = "/" + command + " ";
                   agent.changed();
+                  composerInput.current?.focus();
                 }
               }}
             />

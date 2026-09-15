@@ -248,6 +248,7 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
         sessionUpdate: "available_commands_update",
         availableCommands: [
           { name: "review", description: "Review workspace" },
+          { name: "help", description: "List agent capabilities" },
         ],
       });
       update({
@@ -362,7 +363,7 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
       }
       update({
         sessionUpdate: "agent_message_chunk",
-        content: { type: "text", text: "Done." },
+        content: { type: "text", text: text.startsWith("/") ? `Command received: ${text}` : "Done." },
       });
       if (historyEnabled) {
         sessions[sessionId].messages.push({ role: "agent", text: "Done." });

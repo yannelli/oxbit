@@ -276,6 +276,10 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-setup input { width:100%; min-width:0; border:1px solid var(--bd); background:var(--bg-input); color:var(--fg); border-radius:5px; padding:8px; font:inherit; }
 .acp-composer { width:min(800px,calc(100% - 32px)); margin:8px auto 0; padding:6px; flex-shrink:0; max-height:45%; overflow:auto; border:1px solid var(--bd-strong); border-radius:8px; background:var(--bg-input); }
 .acp-composer:focus-within { border-color:var(--focus); }
+.acp-slash-commands { position:fixed; inset:auto; margin:0; padding:4px; overflow:auto; border:1px solid var(--bd-strong); border-radius:8px; background:var(--bg-surface); color:var(--fg); box-shadow:var(--shadow); font:inherit; }
+.acp-slash-commands > button { display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; min-height:44px; padding:8px; text-align:left; border-radius:4px; overflow-wrap:anywhere; }
+.acp-slash-commands > button[aria-selected=true] { background:var(--bg-selected); }
+.acp-slash-commands > button > span { color:var(--fg-2); font-size:var(--font-small-font-size); }
 .acp-composer textarea { display:block; width:100%; min-width:0; resize:vertical; min-height:54px; max-height:160px; margin:0; padding:8px; border:0; border-radius:0; background:transparent; color:var(--fg); font:inherit; line-height:1.5; }
 .acp-composer textarea:focus-visible { outline:none; }
 .acp-composer-toolbar { display:flex; align-items:center; gap:4px; }

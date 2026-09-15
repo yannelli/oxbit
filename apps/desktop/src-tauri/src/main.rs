@@ -283,7 +283,11 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
             objc2::MainThreadMarker::new().ok_or("Webviews must be created on the main thread")?;
         let configuration = unsafe { objc2_web_kit::WKWebViewConfiguration::new(main_thread) };
         configure_text_input(&configuration);
-        builder.with_webview_configuration(configuration)
+        builder
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true)
+            .traffic_light_position(tauri::LogicalPosition::new(12.0, 22.0))
+            .with_webview_configuration(configuration)
     };
     let window = builder
         .build()

@@ -10,6 +10,27 @@
   font-weight: var(--font-body-font-weight);
   position: relative;
 }
+/* The native traffic lights share the first row with the workbench toolbar. */
+html[data-native-titlebar="macos"] .desktop-shell .titlebar {
+  height: 40px;
+  padding: 0 10px 0 88px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html[data-native-titlebar="macos"] .desktop-shell .titlebar > .brand {
+  display: none;
+}
+html[data-native-titlebar="macos"] .desktop-shell .workbench.focus-mode::before {
+  content: "";
+  flex: 0 0 40px;
+  background: var(--bg-app);
+}
+html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell .titlebar {
+  padding-left: 10px;
+}
+html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell .workbench.focus-mode::before {
+  display: none;
+}
 .desktop-project-control { min-width: 0; max-width: 240px; flex: 0 1 auto; }
 .desktop-project-trigger { max-width: calc(100% - 6px); border-radius: 4px; }
 .desktop-project-trigger[aria-expanded="true"] { background: var(--bg-selected); }
