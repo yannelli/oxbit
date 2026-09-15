@@ -107,3 +107,44 @@ test("navigation selects deduplicated results, preserves history and loads hiera
   await expect.poll(activePath).toBe("target-a.nav");
   expect(errors).toEqual([]);
 });
+
+test("modifier-click uses the clicked symbol and split for definition navigation", async ({ page }) => {
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit;
+    await app.runtime.trust(true);
+    await app.filesystem.write("click.nav", "first second", { expectedRevision: null });
+    await app.filesystem.write("definition.nav", "second", { expectedRevision: null });
+    app.kernel.contributions.register({ id: "click.language", kind: "language", title: "Click fixture", data: { id: "nav", extensions: [".nav"] } });
+    app.kernel.contributions.register({ id: "click.server", kind: "transport", title: "Click fixture", data: { languages: ["nav"], createTransport: () => ({
+      async request(method: string, params: any) {
+        if (method === "initialize") return { capabilities: { textDocumentSync: 1, definitionProvider: true } };
+        if (method === "textDocument/definition") {
+          (window as any).__definitionRequest = params;
+          return { uri: "file:///workspace/definition.nav", range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } } };
+        }
+        return null;
+      }, notify() {}, onNotification() { return { dispose() {} }; }, dispose() {},
+    }) } });
+    await app.openFile("click.nav");
+    await app.kernel.services.get("language").serviceForPath("click.nav").start(true);
+    (window as any).__sourceGroup = app.workbench.state.activeGroup;
+    const otherGroup = app.workbench.split("row");
+    await app.workbench.openFile("README.md", { groupId: otherGroup, preview: false });
+  });
+  const point = await page.evaluate(() => {
+    const app = (window as any).__oxbit;
+    const view = app.workbench.editors.get((window as any).__sourceGroup);
+    const coords = view.coordsAtPos(8);
+    return { x: coords.left + 1, y: (coords.top + coords.bottom) / 2, mac: /Mac|iPhone|iPad/.test(navigator.platform) };
+  });
+  await page.mouse.click(point.x, point.y);
+  expect(await page.evaluate(() => (window as any).__definitionRequest)).toBeUndefined();
+  await page.keyboard.down(point.mac ? "Meta" : "Control");
+  await page.mouse.click(point.x, point.y);
+  await page.keyboard.up(point.mac ? "Meta" : "Control");
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.activePath())).toBe("definition.nav");
+  expect(await page.evaluate(() => (window as any).__definitionRequest.position.character)).toBe(8);
+  expect(await page.evaluate(() => (window as any).__oxbit.workbench.state.activeGroup)).toBe(await page.evaluate(() => (window as any).__sourceGroup));
+});

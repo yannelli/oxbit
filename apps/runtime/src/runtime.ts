@@ -576,7 +576,7 @@ export async function createRuntime(options: RuntimeOptions) {
           mime[path.extname(target)] ?? "application/octet-stream",
         "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "no-referrer",
-        "Content-Security-Policy": `default-src 'self'; script-src 'self' 'sha256-baG6zrI9qQ7n/0Uu0tcqeYXQC5vQ8ZWJY9nJ2PK7KPs=' blob: ${target.endsWith(".html") ? importMapHashes(content.toString("utf8")).join(" ") : ""}; style-src 'self' 'unsafe-inline' data:; img-src 'self' data: blob:; media-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'`,
+        "Content-Security-Policy": `default-src 'self'; script-src 'self' 'sha256-baG6zrI9qQ7n/0Uu0tcqeYXQC5vQ8ZWJY9nJ2PK7KPs=' blob: ${target.endsWith(".html") ? importMapHashes(content.toString("utf8")).join(" ") : ""}; style-src 'self' 'unsafe-inline' data:; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'`,
         "Cache-Control": target.endsWith("index.html")
           ? "no-cache"
           : "public, max-age=3600",

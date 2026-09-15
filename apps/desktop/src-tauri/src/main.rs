@@ -34,6 +34,33 @@ fn application_url(url: &tauri::Url) -> bool {
             && url.port() == Some(9280)
 }
 
+fn preview_url(url: &tauri::Url) -> bool {
+    // Embedded PDF/HTML previews use blobs minted by the application itself.
+    url.scheme() == "blob"
+        && tauri::Url::parse(url.path()).is_ok_and(|origin| application_url(&origin))
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::preview_url;
+
+    #[test]
+    fn only_application_blob_urls_can_navigate() {
+        assert!(preview_url(
+            &"blob:tauri://localhost/preview".parse().unwrap()
+        ));
+        for url in [
+            "blob:https://example.com/preview",
+            "blob:tauri://other/preview",
+            "blob:null/preview",
+            "https://example.com/preview.pdf",
+            "data:application/pdf;base64,JVBERi0=",
+        ] {
+            assert!(!preview_url(&url.parse().unwrap()), "{url}");
+        }
+    }
+}
+
 #[tauri::command]
 fn desktop_close_panel(
     app: AppHandle,
@@ -113,7 +140,10 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
             }
         })
         .on_navigation(move |url| {
-            if application_url(url) || (url.scheme() == "about" && url.path() == "blank") {
+            if application_url(url)
+                || preview_url(url)
+                || (url.scheme() == "about" && url.path() == "blank")
+            {
                 true
             } else {
                 let _ = commands::external(&app_nav, url);
@@ -155,7 +185,9 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
                     .min_inner_size(320.0, 240.0)
                     .disable_drag_drop_handler()
                     .on_navigation(move |target| {
-                        if target.scheme() == "about" && target.path() == "blank" {
+                        if preview_url(target)
+                            || (target.scheme() == "about" && target.path() == "blank")
+                        {
                             true
                         } else {
                             let _ = commands::external(&link_app, target);

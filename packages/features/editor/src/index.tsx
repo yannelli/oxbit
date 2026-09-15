@@ -503,6 +503,20 @@ export function CodeEditor({
             }
           }),
           EditorView.domEventHandlers({
+            mousedown: (event, clickedView) => {
+              const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+              if (event.button !== 0 || !(mac ? event.metaKey : event.ctrlKey) || event.altKey || event.shiftKey || !clickedView.contentDOM.contains(event.target as Node))
+                return false;
+              const pos = clickedView.posAtCoords({ x: event.clientX, y: event.clientY });
+              if (pos === null || !clickedView.state.wordAt(pos)) return false;
+              // Activate the clicked split before the command reads its cursor.
+              clickedView.focus();
+              clickedView.dispatch({ selection: { anchor: pos } });
+              if (!kernel.commands.available("editor.gotoDefinition").enabled) return false;
+              event.preventDefault();
+              void workbench.run("editor.gotoDefinition", { groupId: viewId });
+              return true;
+            },
             focus: () => {
               workbench.editors.set(viewId, view);
               if (workbench.state.activeGroup !== viewId)

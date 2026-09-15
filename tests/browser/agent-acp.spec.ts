@@ -20,6 +20,18 @@ const details = async (page: Page) => {
     page.getByRole("heading", { name: "Agent ACP", exact: true }).first(),
   ).toBeVisible();
 };
+test("agent chat and Agents use distinct icons", async ({ page }) => {
+  await ready(page);
+  await details(page);
+  await page.getByRole("button", { name: "Enable", exact: true }).click();
+  await page.evaluate(() => (window as any).__oxbit.workbench.openSidebar("agent-acp"));
+  const chat = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agent ACP", exact: true });
+  const agents = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agents", exact: true });
+  await expect(chat).toBeVisible();
+  await expect(agents).toBeVisible();
+  expect(await chat.locator("svg path").getAttribute("d")).not.toBe(await agents.locator("svg path").getAttribute("d"));
+  await page.screenshot({ path: "test-results/agent-icons.png" });
+});
 test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/disable", async ({
   page,
 }) => {

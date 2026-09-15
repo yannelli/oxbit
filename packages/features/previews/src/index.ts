@@ -6,6 +6,7 @@ import { translate as tr } from "@oxbit/ui";
 import { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
 import { createHtmlPreview } from "./html-preview.js";
 import { isHtmlPath } from "./html.js";
+import { audioTypes, createMediaPreview } from "./media-preview.js";
 export { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
 const renderer = new MarkdownIt({
   html: false,
@@ -45,6 +46,8 @@ export function renderMarkdown(text: string) {
 export function createFeature(o: FeatureOptions): Extension {
   const ownedViews = new Set<string>();
   const HtmlPreview = createHtmlPreview(o);
+  const PdfPreview = createMediaPreview(o, "pdf");
+  const AudioPreview = createMediaPreview(o, "audio");
   function Preview({ path }: { path: string }) {
     const [html, setHtml] = useState(""),
       [error, setError] = useState("");
@@ -222,8 +225,8 @@ export function createFeature(o: FeatureOptions): Extension {
     manifest: {
       manifestVersion: 1,
       id: "oxbit.previews",
-      name: "Markdown & HTML Preview",
-      description: "Live Markdown and HTML/CSS previews with local styles, images, fonts, and links.",
+      name: "Document & Media Previews",
+      description: "Markdown and HTML/CSS previews, PDF viewing, and audio playback for MP3, WAV, M4A, FLAC, Ogg, and more.",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
@@ -231,6 +234,14 @@ export function createFeature(o: FeatureOptions): Extension {
       capabilities: ["filesystem.read"],
     },
     activate(ctx) {
+      ctx.own(ctx.contributions.register({
+        id: "pdf.preview", kind: "documentView", title: "PDF Viewer", component: PdfPreview,
+        data: { binary: true, extensions: ["pdf"] },
+      }));
+      ctx.own(ctx.contributions.register({
+        id: "audio.preview", kind: "documentView", title: "Audio Player", component: AudioPreview,
+        data: { binary: true, extensions: Object.keys(audioTypes) },
+      }));
       ctx.own(ctx.contributions.register({
         id: "html.preview", kind: "documentView", title: "HTML preview", component: HtmlPreview,
       }));

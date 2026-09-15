@@ -1307,7 +1307,7 @@ export class LanguageService {
     const owner = this.providerContext?.owner ?? this, path = this.o.workbench.activePath(), view = this.o.workbench.activeEditor();
     if (path && view) { const service = owner.serviceForPath(path), pos = position(view.state.doc.toString(), view.state.selection.main.head); owner.navigationOrigin = { service, target: { uri: service.uri(path), range: { start: pos, end: pos } } }; }
   }
-  async navigate(target: NavigationTarget, remember = true): Promise<void> {
+  async navigate(target: NavigationTarget, remember = true, groupId?: string): Promise<void> {
     if (!target) throw new Error("No navigation target");
     const owner = this.providerContext?.owner ?? this;
     if (remember) this.rememberNavigationOrigin();
@@ -1321,12 +1321,12 @@ export class LanguageService {
       if (line) pos.line = Math.max(0, Number(line[1]) - 1);
       else { const heading = lines.findIndex((line: string) => /^#{1,6}\s/.test(line) && line.replace(/^#+\s+/, "").toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, "").replace(/ /g, "-") === hash); if (heading >= 0) pos.line = heading; }
     }
-    if (target.uri.startsWith((this.rootUri || "file:///workspace") + "/")) await this.o.workbench.openFile(this.path(target.uri), { line: pos.line + 1, col: pos.character + 1 });
+    if (target.uri.startsWith((this.rootUri || "file:///workspace") + "/")) await this.o.workbench.openFile(this.path(target.uri), { line: pos.line + 1, col: pos.character + 1, groupId });
     else {
       if (!(this.transport instanceof RuntimeLanguageTransport)) throw new Error("External sources require a trusted runtime preset");
       const grant = await this.o.runtime!.request<any>("lsp.external.authorize", { ...this.transport.scope, uri: target.uri });
       const source = await this.o.runtime!.request<any>("lsp.external.read", { ...this.transport.scope, handle: grant.handle });
-      this.o.workbench.openView(`external:${source.uri}`, source.name, ExternalSource, { source, line: pos.line + 1, col: pos.character + 1 });
+      this.o.workbench.openView(`external:${source.uri}`, source.name, ExternalSource, { source, line: pos.line + 1, col: pos.character + 1 }, { groupId });
     }
     if (remember) { owner.navigationHistory.splice(owner.navigationIndex + 1); if (previous && JSON.stringify(owner.navigationHistory.at(-1)?.target) !== JSON.stringify(previous.target)) owner.navigationHistory.push(previous); owner.navigationOrigin = undefined; owner.navigationHistory.push({ service: this, target }); if (owner.navigationHistory.length > 200) owner.navigationHistory.shift(); owner.navigationIndex = owner.navigationHistory.length - 1; }
   }
@@ -1744,9 +1744,11 @@ export function createFeature(o: FeatureOptions): Extension {
   function Results({
     items,
     service = language,
+    groupId,
   }: {
     items: any[];
     service?: LanguageService;
+    groupId?: string;
   }) {
     return React.createElement(
       "div",
@@ -1758,7 +1760,7 @@ export function createFeature(o: FeatureOptions): Extension {
             key: i,
             style: { display: "block" },
             onClick: () =>
-              void (r.service ?? service).navigate(navigationTargets(r)[0]).catch((error: unknown) => o.workbench.notify(String(error), "error")),
+              void (r.service ?? service).navigate(navigationTargets(r)[0], true, groupId).catch((error: unknown) => o.workbench.notify(String(error), "error")),
           },
           r.name ??
             `${decodeURI(r.uri ?? r.targetUri)}:${(r.range ?? r.targetSelectionRange).start.line + 1}`,
@@ -1833,7 +1835,7 @@ export function createFeature(o: FeatureOptions): Extension {
         "editor.symbols": "textDocument/documentSymbol",
         "editor.formatLsp": "textDocument/formatting",
       };
-      const command = (id: string, title: string, run: () => unknown) =>
+      const command = (id: string, title: string, run: (args?: unknown) => unknown) =>
         ctx.own(
           ctx.commands.register({
             id,
@@ -1877,8 +1879,10 @@ export function createFeature(o: FeatureOptions): Extension {
         ],
         ["editor.references", "textDocument/references", "Find References"],
       ])
-        command(id, title, async () => {
+        command(id, title, async (args) => {
           const { path, index, target } = active();
+          const groupId = typeof (args as { groupId?: unknown } | undefined)?.groupId === "string"
+            ? (args as { groupId: string }).groupId : undefined;
           if (!target.eligible(path, method).length && target.canUseLsp(path)) await target.start();
           const responses = await Promise.allSettled(target.eligible(path, method).map(async service => {
             const result = await service.at(method, path, index, method.endsWith("references") ? { context: { includeDeclaration: true } } : {}, undefined, false);
@@ -1890,10 +1894,10 @@ export function createFeature(o: FeatureOptions): Extension {
           const items = raw.filter(item => { const id = JSON.stringify([item.uri, item.range]); if (seen.has(id)) return false; seen.add(id); return true; });
           if (items.length === 1) {
             const r = items[0];
-            await r.service.navigate(r);
+            await r.service.navigate(r, true, groupId);
           } else {
             language.rememberNavigationOrigin();
-            o.workbench.openView("references", title, Results, { items, service: target });
+            o.workbench.openView("references", title, Results, { items, service: target, groupId }, { groupId });
           }
         });
       command("editor.rename", "Rename Symbol", async () => {

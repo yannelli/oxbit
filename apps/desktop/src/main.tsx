@@ -322,11 +322,11 @@ function App() {
       ["desktop.checkUpdates", "Check for Updates", () => checkUpdates()],
       [
         "desktop.reveal",
-        "Reveal in File Manager",
-        () =>
+        /Mac/.test(navigator.platform) ? "View in Finder" : "View in File Explorer",
+        (args?: unknown) =>
           native.reveal(
             active.project.key,
-            session.workbench.activePath() || "",
+            (args as { path?: string } | undefined)?.path ?? session.workbench.activePath() ?? "",
           ),
       ],
       [
@@ -343,6 +343,15 @@ function App() {
     const disposables = registrations.map(([id, title, run]) =>
       session.kernel.commands.register({ id, title, category: "Desktop", run }),
     );
+    if (!active.project.path.startsWith("ssh://")) {
+      for (const location of ["explorer", "tab", "editor"]) {
+        disposables.push(session.kernel.contributions.register({
+          id: `desktop.reveal.${location}`, kind: "menu", location,
+          title: /Mac/.test(navigator.platform) ? "View in Finder" : "View in File Explorer",
+          command: "desktop.reveal",
+        }));
+      }
+    }
     session.workbench.touch();
     if (import.meta.env.VITE_DESKTOP_TEST === "1")
       (globalThis as any).__oxbit = {

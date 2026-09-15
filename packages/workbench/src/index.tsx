@@ -1487,7 +1487,11 @@ function CommandMenu({
             key={entry}
             aria-disabled={!available.enabled}
             title={available.reason}
-            onClick={() => available.enabled && void workbench.run(id)}
+            onClick={() => available.enabled && void workbench.run(id,
+              id === "desktop.reveal" ? {
+                path: location === "explorer" ? workbench.state.selectedPath ?? "" : workbench.activePath() ?? "",
+              } : undefined,
+            )}
           >
             <span>
               {tr(contribution?.title || cmd?.title || info?.title || id)}

@@ -540,7 +540,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       >
         {!agent.messages.length && (
           <div className="acp-welcome">
-            <Icon name="agent" size={28} />
+            <Icon name="agentChat" size={28} />
             <h2>{tr("Work with your agent")}</h2>
             <p>
               {tr(
@@ -877,7 +877,7 @@ export function createFeature(options: FeatureOptions): Extension {
           kind: "activityView",
           title: "Agent ACP",
           order: 45,
-          data: { icon: "agent" },
+          data: { icon: "agentChat" },
           component: () => <AgentPanel agent={agent} />,
         }),
       );
