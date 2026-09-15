@@ -8,4 +8,5 @@ permissions = [
   "allow-close-folder",
   "allow-forget-folder",
   "allow-documents-path",
+  "allow-runtime-credentials",
 ]

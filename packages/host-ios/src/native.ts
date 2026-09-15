@@ -55,6 +55,8 @@ async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptio
 }
 
 export const native = {
+  runtimeCredentials: (request: { operation: "get" | "pair" | "forget"; url: string; code?: string }) =>
+    call<{ token?: string }>("plugin:oxbit-files|runtime_credentials", { request }),
   storageGet: <T>(scope: string, key: string) => call<T | null>("ios_storage_get", { scope, key }),
   storageSet: (scope: string, key: string, value: unknown) =>
     call<void>("ios_storage_set", { scope, key, value: value ?? null }),

@@ -6,6 +6,7 @@ import { native, type RecentWorkspace } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
+import { RuntimeConnection } from "./runtime-connection.js";
 import { closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
@@ -35,13 +36,22 @@ function App() {
   const [workspace, setWorkspace] = useState<OpenWorkspace>();
   const [recents, setRecents] = useState<RecentWorkspace[]>([]);
   const [sheet, setSheet] = useState(true);
+  const [connection, setConnection] = useState(false);
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [restoring, setRestoring] = useState(true);
   const current = useRef<OpenWorkspace>(undefined);
+  const opening = useRef(false);
   current.current = workspace;
 
   const open = useCallback(async (request: OpenRequest) => {
+    if (opening.current) return "A workspace is already opening.";
+    if (request.kind === "recent" && request.recent.id === current.current?.recent.id &&
+      (request.recent.kind !== "runtime" || current.current.session.runtime?.connected)) {
+      setSheet(false);
+      return;
+    }
+    opening.current = true;
     setError(undefined);
     setBusy(request.kind === "pick" ? "Choose a folder…" : "Opening…");
     try {
@@ -54,7 +64,9 @@ function App() {
     } catch (e) {
       const message = describe(e);
       if (!/cancelled/i.test(message)) setError(message);
+      return message;
     } finally {
+      opening.current = false;
       setBusy(undefined);
     }
   }, []);
@@ -96,6 +108,7 @@ function App() {
       ["workspace.open", "Open Folder…", () => open({ kind: "pick" })],
       ["workspace.switch", "Switch Workspace…", () => setSheet(true)],
       ["workspace.close", "Close Workspace", () => close()],
+      ["workspace.runtime", "Connect Runtime", () => setConnection(true)],
     ] as const;
     const disposables = registrations.map(([id, title, run]) =>
       session.kernel.commands.register({ id, title, category: "Workspace", run: () => void run() }),
@@ -117,14 +130,20 @@ function App() {
       onOpenRecent={(recent) => void open({ kind: "recent", recent })}
       onForget={(recent) => void forgetRecent(recent.id).then(setRecents, (e) => setError(describe(e)))}
       onDismiss={workspace ? () => setSheet(false) : undefined}
+      onConnect={() => setConnection(true)}
     />
   );
   return (
     <Shell session={workspace?.session}>
       {workspace && (
-        <ActiveWorkbench session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)} />
+        <ActiveWorkbench session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)} onConnect={() => setConnection(true)} />
       )}
       {(sheet || !workspace) && <div className={workspace ? "ios-sheet" : "ios-fullscreen"}>{start}</div>}
+      {connection && <RuntimeConnection session={workspace?.session} savedUrl={recents.find(recent => recent.kind === "runtime")?.url}
+        connect={async (url, code) => {
+          const error = await open({ kind: "runtime", url, code });
+          if (error) throw new Error(error);
+        }} disconnect={close} onClose={() => setConnection(false)} />}
     </Shell>
   );
 }
@@ -144,12 +163,14 @@ function Shell({ session, children }: { session?: Session; children: React.React
   );
 }
 
-function ActiveWorkbench({ session, name, onOpenWorkspace }: { session: Session; name: string; onOpenWorkspace: () => void }) {
+function ActiveWorkbench({ session, name, onOpenWorkspace, onConnect }: { session: Session; name: string; onOpenWorkspace: () => void; onConnect: () => void }) {
   useSyncExternalStore(session.workbench.subscribe, session.workbench.snapshot);
   setLocale(session.kernel.configuration.get<string>("workbench.locale"));
   return (
     <Workbench
       workbench={session.workbench}
+      runtime={session.runtime}
+      onConnect={onConnect}
       onOpenWorkspace={onOpenWorkspace}
       workspaceControl={
         <button className="workspace-title" onClick={onOpenWorkspace}>

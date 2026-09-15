@@ -1103,8 +1103,16 @@ function EditorGroup({
               onClick={() => void workbench.run("preview.markdown")}
             />
           )}
+          {current?.path && /\.html?$/i.test(current.path) && (
+            <IconButton icon="eye" label={tr("Open HTML preview")}
+              onClick={() => {
+                workbench.set({ activeGroup: group.id });
+                void workbench.run("preview.html");
+              }} />
+          )}
           <IconButton
             icon="splitR"
+            className="icon-button editor-split-action"
             label={tr("Split editor right")}
             onClick={() => {
               workbench.set({ activeGroup: group.id });
@@ -1122,6 +1130,7 @@ function EditorGroup({
                   x: e.clientX - 250,
                   y: e.clientY + 10,
                   ids: [
+                    ...(current?.path && /\.html?$/i.test(current.path) ? ["preview.html", "preview.htmlSide"] : []),
                     "file.save",
                     "editor.format",
                     "editor.splitRight",

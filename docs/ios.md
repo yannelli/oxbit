@@ -1,6 +1,6 @@
 # Oxbit for iOS and iPadOS
 
-Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. Version 1 edits local files only: the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and any folder chosen from the Files app. Terminals, tasks, Git, language servers, and collaboration need a runtime and are not available in this version.
+Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
 The minimum system version is iOS 26.0. The bundle identifier is `com.yannelli.oxbit`, the same App ID as the desktop app.
 
@@ -57,7 +57,23 @@ The start screen lists the Oxbit folder on the device, remembered Files app fold
 
 Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search runs on the device through the worker search path. Formatting uses the bundled Prettier and TypeScript formatter workers.
 
+Open an `.html` or `.htm` file and tap the eye button in the editor toolbar to preview it. **Open HTML Preview** also appears in the command palette and editor actions; **Open HTML Preview to the Side** keeps the source visible on larger screens. The preview updates from unsaved HTML/CSS edits and changed local images, loads workspace-relative stylesheets, images and fonts, and supports local page links with a Back button. It works with device folders and connected runtime workspaces without starting a server. JavaScript, forms, and remote resources are disabled in this HTML/CSS preview.
+
 On touch devices a press held on a tab, explorer row, or panel opens the context menu, editor tabs and explorer rows do not use drag and drop, and a key bar with Escape, Tab, arrows, undo, redo, symbols, and a one-shot ⌘ modifier appears above the software keyboard while an editor has focus. With a hardware keyboard on iPad, the usual ⌘ shortcuts apply.
+
+### Connect to your computer
+
+Start the CLI runtime from your project folder on the computer:
+
+```sh
+OXBIT_ORIGINS=tauri://localhost oxbit --host 0.0.0.0 --foreground --no-open
+```
+
+The origin setting also supports older CLI runtimes. In the iOS app, tap the connection button in the header or **Connect Runtime…** on the workspace screen. Enter the computer's network address, for example `http://192.168.1.10:9277`, and the owner pairing code printed by the runtime. Both devices need network access to that address. Allow Local Network access when iOS asks.
+
+Connecting opens the computer's workspace. Choose **Trust workspace tools** to permit code execution there. Device folders remain separate and available from the workspace screen. Saved runtime connections reconnect without reentering the pairing code; removing their last recent workspace deletes the saved credential. Disconnect closes the workspace and preserves the credential for next time.
+
+Pairing uses native URLSession, with redirects refused, and stores the token in the device Keychain. The WebView receives the token only in memory and authenticates its WebSocket using the existing runtime protocol. Plain HTTP is allowed for local and private network addresses; public endpoints should use HTTPS.
 
 ## Vendored crates
 
@@ -115,6 +131,5 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 ## Later phases
 
-- Remote runtime: pairing from Rust, the session token in the Keychain, `tauri://localhost` in the CLI runtime origin allowlist, and a wider `connect-src` policy. The shell then passes `runtime` and `onConnect` to the workbench.
 - SSH tunnel: a Rust port of the local half of `apps/runtime/src/ssh.ts` on `russh`, reusing the remote runtime payload and installer.
 - Touch drag and drop for editor tabs and explorer rows.

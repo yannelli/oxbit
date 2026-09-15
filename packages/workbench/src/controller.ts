@@ -218,6 +218,7 @@ export class WorkbenchController {
     this.kernel.context.set("split", this.state.groups.length > 1);
     this.kernel.context.set("explorer", !!this.state.selectedPath);
     this.kernel.context.set("markdown", !!tab?.path?.endsWith(".md"));
+    this.kernel.context.set("html", !!tab?.path && /\.html?$/i.test(tab.path));
     this.kernel.context.set(
       "binaryDocument",
       !!tab?.path && isBinaryDocumentView(this.kernel, tab.contributionId),
@@ -636,7 +637,7 @@ export class WorkbenchController {
         0,
         40,
       ),
-      ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false } : {}),
+      ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false, panelOverlay: false } : {}),
     });
     for (const preview of previousPreviews)
       if (
@@ -702,6 +703,7 @@ export class WorkbenchController {
       throw new Error("Editor group does not exist");
     this.set({
       activeGroup: gid,
+      ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false, panelOverlay: false } : {}),
       groups: this.state.groups.map((g) =>
         g.id === gid
           ? {

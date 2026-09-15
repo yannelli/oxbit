@@ -39,6 +39,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::close_folder,
             commands::forget_folder,
             commands::documents_path,
+            commands::runtime_credentials,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

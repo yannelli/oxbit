@@ -1,4 +1,26 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { htmlPreviewTests } from "./html-preview.js";
+
+htmlPreviewTests();
+
+test("the iOS shell fills the screen after a stale keyboard accessory inset", async ({ page }) => {
+  await ready(page);
+  await page.addStyleTag({ content: await readFile(new URL("../../apps/ios/src/ios.css", import.meta.url), "utf8") });
+  await page.evaluate(() => {
+    const workbench = document.querySelector(".workbench")!;
+    const shell = document.createElement("div");
+    shell.className = "ios-shell";
+    workbench.before(shell);
+    shell.append(workbench);
+  });
+  await keyboardViewport(page, 500);
+  await expect(page.locator(".workbench")).toHaveAttribute("data-keyboard", "1");
+  await expect.poll(() => page.locator(".workbench").evaluate(element => element.getBoundingClientRect().height)).toBe(500);
+  await keyboardViewport(page, 784);
+  await expect(page.locator(".workbench")).not.toHaveAttribute("data-keyboard", "1");
+  await expect.poll(() => page.locator(".activity-bar").evaluate(element => element.getBoundingClientRect().bottom)).toBe(852);
+});
 
 // Runs on the webkit-phone project only: a touch-first WebKit profile that approximates the
 // iOS WKWebView shell before device checks.
@@ -7,6 +29,43 @@ async function ready(page: Page) {
   await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await expect(page.locator(".cm-editor").first()).toBeVisible();
 }
+
+test("tapping an extension reveals its details above the mobile panels", async ({ page }) => {
+  await ready(page);
+  await page.getByRole("button", { name: "Extensions", exact: true }).tap();
+  const card = page.locator(".extension-card").first();
+  const title = await card.locator("strong").innerText();
+  await card.tap();
+  await expect(page.locator(".extension-details h1")).toHaveText(title);
+  await expect(page.locator(".panel-dock")).toHaveCount(0);
+  await page.getByRole("button", { name: "Extensions", exact: true }).tap();
+  await card.tap();
+  await expect(page.locator(".panel-dock")).toHaveCount(0);
+});
+
+test("split phone panels fill the space above navigation after the keyboard closes", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    const root = document.querySelector(".workbench")!;
+    const shell = document.createElement("div");
+    shell.style.cssText = "height:100%;display:flex;flex-direction:column;position:relative";
+    root.before(shell);
+    shell.append(root);
+    (root as HTMLElement).style.flex = "1";
+    document.documentElement.style.setProperty("--safe-area-bottom", "34px");
+    const workbench = (window as any).__oxbit.workbench;
+    workbench.movePanel("scm", { container: "left", edge: "right" });
+    workbench.openPanel("explorer");
+  });
+  await keyboardViewport(page, 500);
+  await keyboardViewport(page, 852);
+  const nav = page.locator(".activity-bar");
+  await expect.poll(async () => {
+    const top = (await nav.boundingBox())!.y;
+    const bottoms = await page.locator(".panel-dock.sidebar .dock-group").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().bottom));
+    return Math.max(...bottoms.map(bottom => Math.abs(top - bottom)));
+  }).toBeLessThanOrEqual(1);
+});
 
 test("reports a coarse pointer and keeps the layout inside the viewport", async ({ page }) => {
   await ready(page);

@@ -1,7 +1,9 @@
 html, body, #root { height: 100%; margin: 0; overscroll-behavior: none; }
 body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-shell { height: 100%; display: flex; flex-direction: column; position: relative; }
-.ios-shell > .workbench { flex: 1; min-height: 0; }
+.ios-shell > .workbench { flex: none; min-height: 0; }
+/* WKWebView can retain the keyboard accessory inset after the editor blurs. */
+.ios-shell > .workbench:not([data-keyboard="1"]) { height: 100%; }
 .ios-fullscreen { position: absolute; inset: 0; overflow: auto; background: var(--bg, #0f1115); }
 .ios-sheet {
   position: absolute; inset: 0; z-index: 900; overflow: auto;

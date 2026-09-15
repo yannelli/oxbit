@@ -4,6 +4,8 @@ import DOMPurify from "dompurify";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
 import { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
+import { createHtmlPreview } from "./html-preview.js";
+import { isHtmlPath } from "./html.js";
 export { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
 const renderer = new MarkdownIt({
   html: false,
@@ -42,6 +44,7 @@ export function renderMarkdown(text: string) {
 }
 export function createFeature(o: FeatureOptions): Extension {
   const ownedViews = new Set<string>();
+  const HtmlPreview = createHtmlPreview(o);
   function Preview({ path }: { path: string }) {
     const [html, setHtml] = useState(""),
       [error, setError] = useState("");
@@ -205,11 +208,22 @@ export function createFeature(o: FeatureOptions): Extension {
       { groupId, path, contributionId: "markdown.preview" },
     );
   };
+  const openHtml = (side = false) => {
+    const path = o.workbench.activePath();
+    if (!path || !isHtmlPath(path)) throw new Error("Open an HTML document first");
+    const groupId = side ? o.workbench.split("row") : undefined;
+    if (side && !groupId) return;
+    const id = "html-preview:" + path;
+    ownedViews.add(id);
+    o.workbench.openView(id, tr("{0} Preview", { 0: path.split("/").pop() }), HtmlPreview,
+      { path }, { groupId, path, contributionId: "html.preview" });
+  };
   return {
     manifest: {
       manifestVersion: 1,
       id: "oxbit.previews",
-      name: "Markdown Preview",
+      name: "Markdown & HTML Preview",
+      description: "Live Markdown and HTML/CSS previews with local styles, images, fonts, and links.",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
@@ -217,6 +231,15 @@ export function createFeature(o: FeatureOptions): Extension {
       capabilities: ["filesystem.read"],
     },
     activate(ctx) {
+      ctx.own(ctx.contributions.register({
+        id: "html.preview", kind: "documentView", title: "HTML preview", component: HtmlPreview,
+      }));
+      ctx.own(ctx.commands.register({
+        id: "preview.html", title: "Open HTML Preview", when: "html", shortcut: "Ctrl+Shift+V", run: () => openHtml(),
+      }));
+      ctx.own(ctx.commands.register({
+        id: "preview.htmlSide", title: "Open HTML Preview to the Side", when: "html", shortcut: "Ctrl+K V", run: () => openHtml(true),
+      }));
       ctx.own(
         ctx.contributions.register({
           id: "markdown.preview",

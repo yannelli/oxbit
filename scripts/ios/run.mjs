@@ -102,7 +102,8 @@ if (mode === "adhoc") {
 if (mode === "simulator") {
   // The CLI moves the archive product into place and fails when a previous build is still there.
   rmSync(new URL("../../apps/ios/src-tauri/gen/apple/build/arm64-sim", import.meta.url), { recursive: true, force: true });
-  tauri("ios", "build", "--debug", "--target", "aarch64-sim", "--no-sign", ...extra);
+  // Xcode embeds the simulator application identity needed for Keychain credentials.
+  tauri("ios", "build", "--debug", "--target", "aarch64-sim", ...extra);
 }
 if (mode === "upload") {
   const ipa = extra[0];

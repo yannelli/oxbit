@@ -41,6 +41,7 @@ import { createFeature as agentACPFeature } from "@oxbit/feature-agent-acp";
 import bundleInspector from "@oxbit/bundle-inspector";
 import { ScopedConfigurationPersistence } from "./configuration.js";
 export { ScopedConfigurationPersistence } from "./configuration.js";
+export { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 const SEED_KEY = "oxbit.iconPack.seeded";
 /** Origin-wide, matching the icon pack store, so every project shares one answer. */
 const seedMarker = () => (typeof localStorage === "undefined" ? undefined : localStorage);

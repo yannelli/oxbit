@@ -16,6 +16,13 @@ pub struct OxbitFiles<R: Runtime>(std::marker::PhantomData<fn() -> R>);
 const UNSUPPORTED: crate::Error = crate::Error::Unsupported("Files app folders need iOS");
 
 impl<R: Runtime> OxbitFiles<R> {
+    pub fn runtime_credentials(
+        &self,
+        _request: serde_json::Value,
+    ) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
     pub fn pick_folder(&self) -> crate::Result<Folder> {
         Err(UNSUPPORTED)
     }

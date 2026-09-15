@@ -73,9 +73,9 @@ describe("authenticated runtime with real services", () => {
     token: string,
     client: Client;
   const clients: Client[] = [];
-  async function connect(sessionToken = token) {
+  async function connect(sessionToken = token, origin = `http://127.0.0.1:${runtime.port}`) {
     const socket = new WebSocket(`ws://127.0.0.1:${runtime.port}/ws`, {
-      origin: `http://127.0.0.1:${runtime.port}`,
+      origin,
     });
     await new Promise<void>((resolve, reject) => {
       socket.once("open", resolve);
@@ -116,6 +116,18 @@ describe("authenticated runtime with real services", () => {
     token = (await response.json()).token;
     client = await connect();
   }, 20000);
+  it("pairs a native iOS client without cookies and requires trust before running tools", async () => {
+    const response = await fetch(`http://127.0.0.1:${runtime.port}/api/pair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: runtime.pairingCode }),
+    });
+    expect(response.status).toBe(200);
+    const native = await connect((await response.json()).token, "tauri://localhost");
+    expect((await native.request("fs.read", { path: "hello.ts" })).text).toContain("greeting");
+    await expect(native.request("terminal.create")).rejects.toMatchObject({ code: "UNTRUSTED" });
+    native.close();
+  });
   it("shares merged JSON settings and notifications through owner-only RPCs", async () => {
     const first = await client.request("settings.read");
     expect(first.files.map((file: any) => file.exists)).toEqual([true, true, false, false]);

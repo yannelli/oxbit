@@ -9,6 +9,7 @@ Pick Files app folders, reopen them from bookmarks, and locate the Documents dir
 - `allow-close-folder`
 - `allow-forget-folder`
 - `allow-documents-path`
+- `allow-runtime-credentials`
 
 ## Permission Table
 
@@ -145,6 +146,32 @@ Enables the pick_folder command without any pre-configured scope.
 <td>
 
 Denies the pick_folder command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-runtime-credentials`
+
+</td>
+<td>
+
+Enables the runtime_credentials command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-runtime-credentials`
+
+</td>
+<td>
+
+Denies the runtime_credentials command without any pre-configured scope.
 
 </td>
 </tr>

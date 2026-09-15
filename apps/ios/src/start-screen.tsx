@@ -12,6 +12,7 @@ export function StartScreen({
   onOpenRecent,
   onForget,
   onDismiss,
+  onConnect,
 }: {
   recents: RecentWorkspace[];
   busy?: string;
@@ -22,8 +23,10 @@ export function StartScreen({
   onOpenRecent: (recent: RecentWorkspace) => void;
   onForget: (recent: RecentWorkspace) => void;
   onDismiss?: () => void;
+  onConnect: () => void;
 }) {
   const folders = recents.filter((recent) => recent.kind === "bookmark");
+  const runtimes = recents.filter(recent => recent.kind === "runtime");
   return (
     <div className="ios-start" role="dialog" aria-label="Workspaces">
       <header className="ios-start-header">
@@ -73,6 +76,16 @@ export function StartScreen({
           Open Folder…
         </button>
         <p className="muted">Choose any folder from the Files app. Oxbit keeps access after you relaunch.</p>
+      </section>
+      <section aria-label="Remote workspaces">
+        <h2>On your computer</h2>
+        {runtimes.map(recent => <div className="ios-workspace-row" key={recent.id}>
+          <button className="ios-workspace" disabled={!!busy} onClick={() => onOpenRecent(recent)} aria-current={current === recent.id ? "true" : undefined}>
+            <Icon name="cloud" /><span>{recent.name}<small>{recent.url}</small></span>
+          </button>
+          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="close" size={14} /></button>
+        </div>)}
+        <button className="button primary ios-open-folder" onClick={onConnect} disabled={!!busy}><Icon name="cloud" />Connect Runtime…</button>
       </section>
       {busy && (
         <p className="muted" role="status">

@@ -355,10 +355,22 @@
           "markdownDescription": "Denies the pick_folder command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`",
+          "description": "Enables the runtime_credentials command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-runtime-credentials",
+          "markdownDescription": "Enables the runtime_credentials command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the runtime_credentials command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-runtime-credentials",
+          "markdownDescription": "Denies the runtime_credentials command without any pre-configured scope."
+        },
+        {
+          "description": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`"
+          "markdownDescription": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`"
         }
       ]
     }

@@ -3,8 +3,9 @@ import { SESSION_SCOPE } from "./persistence.js";
 
 export interface RecentWorkspace {
   id: string;
-  kind: "documents" | "bookmark";
+  kind: "documents" | "bookmark" | "runtime";
   name: string;
+  url?: string;
   bookmark?: string;
   lastOpened: number;
 }

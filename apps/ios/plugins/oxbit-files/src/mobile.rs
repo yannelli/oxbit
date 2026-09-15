@@ -27,6 +27,15 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct OxbitFiles<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> OxbitFiles<R> {
+    pub fn runtime_credentials(
+        &self,
+        request: serde_json::Value,
+    ) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("runtimeCredentials", request)
+            .map_err(Into::into)
+    }
+
     pub fn pick_folder(&self) -> crate::Result<Folder> {
         self.0
             .run_mobile_plugin("pickFolder", ())

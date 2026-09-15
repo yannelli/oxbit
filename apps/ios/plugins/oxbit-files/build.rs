@@ -4,6 +4,7 @@ const COMMANDS: &[&str] = &[
     "close_folder",
     "forget_folder",
     "documents_path",
+    "runtime_credentials",
 ];
 
 fn main() {

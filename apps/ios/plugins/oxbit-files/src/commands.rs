@@ -26,3 +26,11 @@ pub(crate) async fn forget_folder<R: Runtime>(app: AppHandle<R>, id: String) -> 
 pub(crate) async fn documents_path<R: Runtime>(app: AppHandle<R>) -> Result<DocumentsPath> {
     app.oxbit_files().documents_path()
 }
+
+#[command]
+pub(crate) async fn runtime_credentials<R: Runtime>(
+    app: AppHandle<R>,
+    request: serde_json::Value,
+) -> Result<serde_json::Value> {
+    app.oxbit_files().runtime_credentials(request)
+}
