@@ -1,5 +1,6 @@
 [toolchain]
 channel = "1.97.1"
-components = ["rustfmt", "clippy"]
+# swift-rs needs llvm-objcopy to globalize @_cdecl symbols; without it the arm64 link fails.
+components = ["rustfmt", "clippy", "llvm-tools"]
 profile = "minimal"
 targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios"]

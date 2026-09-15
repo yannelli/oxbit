@@ -41,6 +41,7 @@
     "ios:init": "node scripts/ios/run.mjs init",
     "ios:dev": "node scripts/ios/run.mjs dev",
     "ios:build": "node scripts/ios/run.mjs build",
+    "ios:adhoc": "node scripts/ios/run.mjs adhoc",
     "ios:check": "node scripts/ios/run.mjs check",
     "ios:simulator": "node scripts/ios/run.mjs simulator",
     "ios:upload": "node scripts/ios/run.mjs upload",

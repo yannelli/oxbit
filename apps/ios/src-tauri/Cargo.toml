@@ -1,6 +1,6 @@
 [package]
 name = "oxbit-ios"
-version = "0.1.1"
+version = "0.2.0"
 description = "Oxbit workbench for iOS and iPadOS"
 authors = ["Ryan Yannelli"]
 edition = "2021"
@@ -29,3 +29,15 @@ strip = "none"
 lto = true
 codegen-units = 1
 panic = "unwind"
+
+# Upstream's Xcode 27 fix promotes each package's own @_cdecl symbols and skips the
+# shared SwiftRs.o member, so _retain_object, _release_object and _string_from_bytes
+# stay local and the arm64 link fails. See apps/ios/vendor/swift-rs/src-rs/build.rs.
+[patch.crates-io]
+swift-rs = { path = "../vendor/swift-rs" }
+# tao 0.35.3 returns Retained::as_ptr from
+# application:configurationForConnectingSceneSession:options: and drops the Retained,
+# so UIKit retains a released UISceneConfiguration and the app segfaults on launch.
+# Only reached when Info.ios.plist sets UIApplicationSupportsMultipleScenes.
+# Fixed upstream in 0.36.0; drop this once tauri-runtime-wry takes tao 0.36.
+tao = { path = "../vendor/tao" }

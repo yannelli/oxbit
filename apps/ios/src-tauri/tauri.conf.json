@@ -43,7 +43,8 @@
     ],
     "iOS": {
       "minimumSystemVersion": "26.0",
-      "developmentTeam": "2P58V89SR7"
+      "developmentTeam": "2P58V89SR7",
+      "infoPlist": "./Info.ios.plist"
     }
   }
 }

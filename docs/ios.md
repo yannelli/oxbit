@@ -30,6 +30,7 @@ Install Node 24.20.0, pnpm 9.15.0, Rust 1.97.1 with the `aarch64-apple-ios` and 
 | `pnpm ios:simulator` | Debug build for the arm64 simulator at `gen/apple/build/arm64-sim/Oxbit.app` |
 | `pnpm ios:check` | Frontend build, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
 | `pnpm ios:build` | Signed App Store Connect archive and IPA |
+| `pnpm ios:adhoc` | Signed ad hoc archive and IPA for the devices in the provisioning profile |
 | `pnpm release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this IPA, and collect it under `release/v<version>/ios/` |
 | `pnpm ios:upload <ipa>` | Upload to TestFlight with `xcrun altool` |
 
@@ -58,12 +59,55 @@ Documents, layout, and unsaved drafts are restored after a relaunch. The app per
 
 On touch devices a press held on a tab, explorer row, or panel opens the context menu, editor tabs and explorer rows do not use drag and drop, and a key bar with Escape, Tab, arrows, undo, redo, symbols, and a one-shot ⌘ modifier appears above the software keyboard while an editor has focus. With a hardware keyboard on iPad, the usual ⌘ shortcuts apply.
 
+## Vendored crates
+
+`apps/ios/src-tauri/Cargo.toml` patches two crates through `[patch.crates-io]`.
+
+### swift-rs
+
+Xcode 27's SwiftPM internalizes `@_cdecl` exports in static products, so the arm64
+link fails with undefined symbols. swift-rs 1.0.8 promotes each package's own
+symbols back to global and skips the shared `SwiftRs.o` member that every archive
+embeds, leaving `_retain_object`, `_release_object` and `_string_from_bytes`
+local. `apps/ios/vendor/swift-rs` is swift-rs 1.0.8 with those three promoted and
+the archive index rebuilt, wired in through `[patch.crates-io]` in
+`apps/ios/src-tauri/Cargo.toml`. Drop the vendored copy once upstream covers the
+runtime module.
+
+The promotion runs `llvm-objcopy`, which ships in rustup's `llvm-tools`
+component. `rust-toolchain.toml` lists it, so a fresh checkout and CI both get it;
+without it the build script warns and the link fails the same way.
+
+### tao
+
+`Info.ios.plist` sets `UIApplicationSupportsMultipleScenes`, which makes tao
+register `application:configurationForConnectingSceneSession:options:`. In tao
+0.35.3 that method returns `Retained::as_ptr(&config)` and then drops the
+`Retained`, so UIKit retains a released `UISceneConfiguration` and the app
+segfaults in `objc_retain` under `-[UIApplication _connectUISceneFromFBSScene:]`
+before the first frame. `apps/ios/vendor/tao` is 0.35.3 with the upstream 0.36.0
+fix on that one line, `Retained::autorelease_ptr(config)`. Drop the vendored copy
+once `tauri-runtime-wry` takes tao 0.36 or later.
+
 ## Verification
 
 - `pnpm lint`, `pnpm typecheck`, `pnpm test` cover `packages/host-ios` and the workbench changes.
 - `pnpm ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host.
 - `pnpm test:browser --project webkit-phone` runs `tests/browser/mobile.spec.ts` on a touch-first WebKit profile.
 - Simulator and device checks are recorded in [the iOS spike](../evidence/ios-spike.md) and [iOS acceptance](../evidence/ios-acceptance.md).
+
+## Install on your own device
+
+`pnpm ios:adhoc` passes `--export-method release-testing`, which is Xcode's current name for Ad Hoc. The build signs with `Apple Distribution: Ryan Yannelli (2P58V89SR7)` and only installs on the device UDIDs listed in the profile, so a new phone needs the profile regenerated in the Developer Portal with that device added.
+
+Install the profile once, then build and install with the device connected and trusted:
+
+```sh
+cp ios-iphone-oxbit.mobileprovision "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"
+pnpm ios:adhoc
+xcrun devicectl list devices
+xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
+```
 
 ## TestFlight
 
