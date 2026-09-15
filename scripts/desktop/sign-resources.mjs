@@ -1,5 +1,7 @@
 import * as fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 if (process.platform !== "darwin")
@@ -28,6 +30,7 @@ let count = 0;
 async function sign(dir) {
   for (const item of await fs.readdir(dir, { withFileTypes: true })) {
     const file = path.join(dir, item.name);
+    if (item.isSymbolicLink()) continue;
     if (item.isDirectory()) await sign(file);
     else {
       const handle = await fs.open(file);
@@ -53,6 +56,34 @@ async function sign(dir) {
   }
 }
 await sign(directory);
+// Notarization unpacks archives and rejects unsigned Mach-O files inside them,
+// so the darwin remote payload is repacked around signed binaries. Its recorded
+// sha256 gates the push to a remote host, so the manifest is rewritten too.
+const remote = path.join(directory, "remote");
+const manifestFile = path.join(remote, "manifest.json");
+const manifest = JSON.parse(await fs.readFile(manifestFile, "utf8"));
+let repacked = 0;
+for (const platform of Object.keys(manifest.platforms)) {
+  if (!platform.startsWith("darwin")) continue;
+  const archive = path.join(remote, `${platform}.tar.gz`);
+  const stage = await fs.mkdtemp(path.join(os.tmpdir(), `oxbit-${platform}-`));
+  try {
+    execFileSync("tar", ["-xzf", archive, "-C", stage], { stdio: "inherit" });
+    await sign(stage);
+    execFileSync("tar", ["-czf", archive, "-C", stage, "."], {
+      stdio: "inherit",
+      env: { ...process.env, COPYFILE_DISABLE: "1" },
+    });
+    manifest.platforms[platform].sha256 = createHash("sha256")
+      .update(await fs.readFile(archive))
+      .digest("hex");
+    repacked++;
+  } finally {
+    await fs.rm(stage, { recursive: true, force: true });
+  }
+}
+if (repacked)
+  await fs.writeFile(manifestFile, JSON.stringify(manifest, null, 2) + "\n");
 console.log(
-  `Signed ${count} bundled native files (${identity ? "Developer ID" : "ad hoc development signing"}).`,
+  `Signed ${count} bundled native files in ${repacked} repacked remote payload(s) plus the runtime tree (${identity ? "Developer ID" : "ad hoc development signing"}).`,
 );

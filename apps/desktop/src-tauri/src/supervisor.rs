@@ -103,7 +103,13 @@ impl OwnedRuntime {
             .env_remove("OXBIT_LSP_COMMAND")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            // Runtime failures reach the user as an RPC message with no stack behind it.
+            // OXBIT_RUNTIME_STDERR keeps the child's diagnostics when one needs chasing.
+            .stderr(if std::env::var_os("OXBIT_RUNTIME_STDERR").is_some() {
+                Stdio::inherit()
+            } else {
+                Stdio::null()
+            })
             .process_group(0)
             .spawn()
             .map_err(|_| "Bundled runtime could not be started. Reinstall Oxbit.")?;

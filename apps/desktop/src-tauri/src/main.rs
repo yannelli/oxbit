@@ -77,6 +77,21 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
     if app.get_webview_window(label).is_some() {
         return Ok(());
     }
+    #[cfg(target_os = "macos")]
+    if objc2::MainThreadMarker::new().is_none() {
+        // Folder dialogs and async commands call this from worker threads. Build
+        // on the main thread so WKWebViewConfiguration never crosses threads.
+        let main_app = app.clone();
+        let label = label.to_owned();
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        app.run_on_main_thread(move || {
+            let _ = sender.send(create_window(&main_app, &label));
+        })
+        .map_err(|error| format!("Could not schedule an Oxbit window: {error}"))?;
+        return receiver
+            .recv()
+            .map_err(|error| format!("Could not finish creating an Oxbit window: {error}"))?;
+    }
     let app_nav = app.clone();
     let app_new = app.clone();
     let panel_owner = label.to_owned();
