@@ -1,0 +1,20 @@
+{
+  "name": "Oxbit",
+  "install": "bash .cursor/install.sh",
+  "ports": [
+    { "name": "web", "port": 9279 },
+    { "name": "runtime", "port": 9277 }
+  ],
+  "terminals": [
+    {
+      "name": "runtime",
+      "description": "Oxbit Node runtime for the /workspace project (files, terminals, tasks, Git, language services). Pair the web UI to http://127.0.0.1:9277 using the printed owner pairing code.",
+      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export PATH=\"$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; export OXBIT_WORKSPACE=/workspace OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 OXBIT_WATCH_POLLING=1; pnpm dev"
+    },
+    {
+      "name": "web",
+      "description": "Oxbit React web UI with hot reload. Open http://localhost:9279 and pair with the runtime terminal's pairing code.",
+      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export PATH=\"$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; pnpm dev:web"
+    }
+  ]
+}
