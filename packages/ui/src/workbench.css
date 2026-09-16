@@ -396,7 +396,10 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .dock-group .panel-header{flex:none;display:flex;flex-wrap:nowrap;gap:8px;min-height:36px;height:auto;padding:0 8px;text-transform:none;letter-spacing:normal;overflow:visible}
 .dock-group .panel-tabs{flex:1;min-width:0;overflow-x:auto;gap:12px;scrollbar-width:none}
 .dock-group .panel-tabs::-webkit-scrollbar{display:none}
-.dock-group .panel-tabs>button{flex:none;min-height:34px;white-space:nowrap;cursor:grab}
+.dock-group .panel-tabs>button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:34px;white-space:nowrap;cursor:grab}
+.panel-tab-icon{display:inline-grid;place-items:center;flex:none}
+/* Sidebar docks switch activity views from the activity bar, so their header shows the selected view only. */
+.panel-dock.sidebar .panel-tabs>button:not(.selected):has(>.panel-tab-icon),.panel-dock.sidebar .panel-actions>.panel-float{display:none}
 .dock-group .panel-tabs>button:active{cursor:grabbing}
 .dock-group .panel-actions{flex:none;display:flex;gap:2px;margin-left:auto;align-items:center}
 .panel-menu{position:fixed;inset:auto;margin:0;min-width:0;max-width:calc(100vw - 16px);color:var(--fg);font-size:var(--font-label-font-size)}
@@ -431,6 +434,74 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 @media(max-width:599px){.dock-workbench .panel-dock.sidebar{left:0;right:0;top:0;bottom:calc(56px + env(safe-area-inset-bottom))}.panel-restore-notice{left:8px;right:8px;bottom:64px}.dock-group .panel-header{padding-left:8px}}
 
 .panel-dock>.dock-split{overflow:auto;min-width:0!important}
+
+/* Rounded workbench. The ClassicOS pack keeps its square chrome. */
+.workbench{--radius-control:6px;--radius-tab:8px;--radius-popup:10px;--radius-panel:12px;--workbench-gap:8px;--workbench-tab-inset:3px;--workbench-tab-height:calc(var(--tab) - 6px);--workbench-header-height:calc(var(--workbench-tab-height) + 2 * var(--workbench-tab-inset) + 1px)}
+.workbench:not([data-theme-pack="oxbit.classicos98"]){
+  --radius:var(--radius-control);
+  & :is(.editor-group,.dock-group){border:1px solid var(--bd);border-radius:var(--radius-panel)}
+  & :is(.panel-dock.sidebar,.panel-dock.bottom-panel):not(.dock-drop-rail){border:0;border-radius:var(--radius-panel);background:transparent}
+  & .panel-drop-preview{border-radius:var(--radius-control)}
+
+  /* Headers: one height, one surface, one pill style for editor tabs and panel tabs. */
+  & :is(.tabbar,.dock-group .panel-header){height:var(--workbench-header-height);min-height:var(--workbench-header-height);align-items:center;padding:var(--workbench-tab-inset);gap:4px;background:var(--bg-surface);font-size:inherit}
+  & .tabbar{scrollbar-width:none}
+  & .tabbar:has(+.editor-document>.breadcrumbs){border-bottom:0;padding-bottom:calc(var(--workbench-tab-inset) + 1px)}
+  & .breadcrumbs{height:22px;background:var(--bg-surface)}
+  & .tabbar::-webkit-scrollbar{display:none}
+  & .editor-tab{height:var(--workbench-tab-height);border:0;border-radius:var(--radius-tab);overflow:hidden}
+  & .editor-tab.active{background:var(--bg-hover);color:var(--tab-inactive-foreground)}
+  & .active-group .editor-tab.active{background:var(--bg-selected);color:var(--tab-active-foreground)}
+  & .group-actions{flex:none;height:var(--workbench-tab-height);padding:0;gap:2px}
+  & .group-actions::before{content:'';position:absolute;right:100%;top:0;bottom:0;width:16px;background:linear-gradient(to left,var(--bg-surface),transparent);pointer-events:none}
+  & :is(.group-actions,.panel-actions) .icon-button{width:var(--ctl);height:min(var(--ctl),var(--workbench-tab-height))}
+  & .dock-group .panel-tabs{height:var(--workbench-tab-height);align-items:center;gap:4px}
+  & .dock-group .panel-tabs>button{height:var(--workbench-tab-height);min-height:0;margin:0;padding:0 8px;border-radius:var(--radius-tab);font-size:inherit;letter-spacing:inherit;text-transform:none}
+  & .dock-group .panel-tabs>button>.panel-tab-label{overflow:hidden;text-overflow:ellipsis}
+  & .dock-group .panel-tabs>button.selected{background:var(--bg-selected);color:var(--tab-active-foreground)}
+  & .panel-tabs>button.selected:after{display:none}
+  & .active-group .editor-tab.active:before{top:auto;bottom:0;left:6px;right:6px;height:2px;border-radius:2px}
+  &:not([data-theme-id^="oxbit.creative/rainbow"]) .active-group .editor-tab.active:before,&:not([data-theme-id^="oxbit.creative/rainbow"]) .activity-bar>button.active:before{display:none}
+
+  /* Lists and controls share the control radius. */
+  & :is(.tree-row,.outline-symbol){margin:0 4px;border-radius:var(--radius-control)}
+  & .outline-symbol{width:calc(100% - 8px)}
+  & .tree-row[aria-selected=true]:before{top:6px;bottom:6px;border-radius:1px}
+  & :is(.icon-button,.button,.tab-close,.menu-parent>button,.select-trigger,.select-option,.search-input,.palette-input>input,.palette-results>button,.command-menu>button,.panel-menu>button,.settings-body>nav button,.notification,.statusbar>.lsp-status-trigger,.document-banner button,.conflict-toolbar button,.panel-content button,.tasks-tabs button){border-radius:var(--radius-control)}
+  & :is(input,select,textarea){border-radius:var(--radius-control)}
+  & :is(.title-search,.activity-bar>button){border-radius:var(--radius-tab)}
+  & :is(.command-menu,.select-popup,.notification-center,.workbench-tooltip,.lsp-status-popover,.panel-restore-notice,.panel-menu,.acp-context-menu){border-radius:var(--radius-popup)}
+  & .activity-bar>button.active:before{left:0;top:9px;bottom:9px;border-radius:1px}
+
+  /* Sashes sit inside the gaps between panels. */
+  & :is(.group-sash,.dock-sash){border-radius:var(--radius-control);background:transparent}
+  & :is(.group-sash,.dock-sash):is(:hover,:focus-visible){background:var(--accent);outline:0}
+  & .group-sash{flex-basis:var(--workbench-gap)}
+  & .dock-split>.dock-sash.vertical{width:var(--workbench-gap)}
+  & .dock-split>.dock-sash.horizontal{height:var(--workbench-gap)}
+  & .dock-left>.dock-sash{right:-6px}
+  & .dock-right>.dock-sash{left:-6px}
+  & .dock-bottom>.dock-sash{top:-6px}
+
+  @media(min-width:600px){
+    & .workspace-body{gap:var(--workbench-gap);padding:var(--workbench-gap) var(--workbench-gap) var(--workbench-gap) 0}
+    & .main-workbench{gap:var(--workbench-gap)}
+    & .activity-bar{border:0;padding:calc(var(--workbench-tab-inset) + 1px) 0}
+    & .activity-bar>button{height:var(--tab)}
+    & :is(.titlebar,.statusbar){border:0}
+    &.floating-workbench{padding:var(--workbench-gap);gap:var(--workbench-gap)}
+  }
+  @media(min-width:600px) and (max-width:1099px){
+    & .panel-dock.sidebar{top:var(--workbench-gap);bottom:var(--workbench-gap)}
+    & .dock-left{left:56px}
+    & .dock-right{right:var(--workbench-gap)}
+  }
+  @media(max-width:599px){
+    & :is(.editor-group,.dock-group){border-radius:var(--radius-panel) var(--radius-panel) 0 0}
+    & :is(.group-actions,.panel-actions) .icon-button{width:36px;height:var(--workbench-tab-height)}
+  }
+}
+
 /* Tasks and services */
 .tasks-panel { display:flex; flex-direction:column; height:100%; min-height:0; color:var(--fg); background:var(--bg-surface); font-size:calc(var(--font-body-font-size) * 1.000000); }
 .tasks-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--bd); flex-wrap:wrap; flex-shrink:0; }
