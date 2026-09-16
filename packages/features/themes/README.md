@@ -1,8 +1,6 @@
-# JSON theme packs
+# Oxbit themes
 
 See [authoring and importing packs](../../../docs/themes/README.md), [token reference](../../../docs/themes/tokens.md), and [surface inventory](../../../docs/theme-coverage.md).
-
-# Oxbit Themes
 
 ## VS Code packs
 
@@ -15,7 +13,7 @@ Two independently enabled built-in extensions provide the VS Code palettes:
 
 Choose them in **Settings → Color Theme**, or search **Use VS Code** in the command palette. The light/dark toggle pairs Modern with Modern, Plus with Plus, 2026 with 2026, and High Contrast with High Contrast. Manage each pack separately in Extensions.
 
-These are adaptations of [Microsoft's default themes](https://github.com/microsoft/vscode/tree/5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1/extensions/theme-defaults/themes), pinned to commit `5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1`. `src/packs/oxbit.vscode.json` and `src/packs/oxbit.vscode-hc.json` contains the complete Oxbit palettes. Run `node scripts/import-vscode-themes.mjs` from the repository root to regenerate them. The importer resolves JSONC includes through Modern → Plus → Visual Studio and maps representative TextMate scopes to Oxbit's smaller syntax palette. Missing UI colors use the corresponding VS Code color-registry defaults or explicit fallback colors.
+These are adaptations of [Microsoft's default themes](https://github.com/microsoft/vscode/tree/5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1/extensions/theme-defaults/themes), pinned to commit `5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1`. `src/packs/oxbit.vscode.json` and `src/packs/oxbit.vscode-hc.json` contain the complete Oxbit palettes. Run `node scripts/import-vscode-themes.mjs` from the repository root to regenerate them. The importer resolves JSONC includes through Modern → Plus → Visual Studio and maps representative TextMate scopes to Oxbit's smaller syntax palette. Missing UI colors use the corresponding VS Code color-registry defaults or explicit fallback colors.
 
 Oxbit provides independent semantic roles for controls, links, and selected rows; these adaptations initially inherit their corresponding palette colors. Classic list selections and High Contrast editor selections use tinted fills to preserve text colors; High Contrast uses the upstream contrast border as its shared accent. Borders and focus indicators use the VS Code High Contrast defaults. These packs adapt colors to Oxbit's layout and CodeMirror renderer; they do not import VS Code's full TextMate/semantic highlighting engine. Source colors are preserved where mapped, including upstream muted text colors; the standard pack does not promise a uniform contrast ratio for every token.
 
@@ -52,10 +50,10 @@ This is an original palette and icon set in the visual style of late-1990s deskt
 
 ## Load Bearing
 
-Load Bearing is an original theme family inspired by [Claude](https://claude.com/): warm paper, quiet ink, terracotta accents, and restrained sage, ochre, blue, and plum syntax colors.
+Load Bearing is an original theme family inspired by [Claude](https://claude.com/): warm paper backgrounds, dark text, terracotta accents, and sage, ochre, blue, and plum syntax colors.
 
-Choose **Load Bearing (light)** or **Load Bearing (dark)** in **Settings → Color Theme**, or search for **Use Load Bearing** in the command palette. The existing light/dark toggle stays within the selected family. Installing this update leaves the current theme selection unchanged.
+Choose **Load Bearing (light)** or **Load Bearing (dark)** in **Settings → Color Theme**, or search for **Use Load Bearing** in the command palette. The existing light/dark toggle stays within the selected family.
 
-Both variants are bundled in `@oxbit/feature-themes` and use the existing theme contribution API. `src/load-bearing.ts` contains the complete workbench and editor palettes, including selections, search matches, diagnostics, and Git states. Oxbit logos and existing UI/code fonts remain intact.
+Both variants are bundled in `@oxbit/feature-themes` and use the existing theme contribution API. `src/packs/oxbit.load-bearing.json` contains the complete workbench and editor palettes, including selections, search matches, diagnostics, and Git states. Oxbit logos and existing UI/code fonts remain intact.
 
-This package does not modify the Tauri app, native window chrome, or terminal emulator renderer. The terminal currently supplies its own colors outside the workbench theme contribution API.
+The terminal uses the selected theme's ANSI colors and typography. Native window chrome retains its platform appearance.

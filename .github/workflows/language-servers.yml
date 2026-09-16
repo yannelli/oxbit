@@ -22,9 +22,10 @@ jobs:
         runner: [macos-26, ubuntu-24.04]
     runs-on: ${{ matrix.runner }}
     env:
-      OXBIT_LSP_CACHE: ${{ runner.temp }}/oxbit-language-cache
       OXBIT_LSP_REPORT: evidence/language-milestone1/real-servers.json
     steps:
+      - name: Configure isolated language server cache
+        run: echo "OXBIT_LSP_CACHE=$RUNNER_TEMP/oxbit-language-cache" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

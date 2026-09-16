@@ -1,283 +1,197 @@
 ![Oxbit: A code editor in your browser.](apps/web/public/brand/oxbit-github-banner.png)
 
-A web code editor built with React 19 and CodeMirror 6. Use a browser workspace
-on its own, or connect the Node runtime for real files, managed language
-services, terminals, tasks, Git, and collaboration.
+Oxbit is a code editor built with React and CodeMirror. It runs in a browser,
+on macOS and Linux, and on iPhone and iPad. Connect the Node runtime for files,
+terminals, Git, tasks, language services, and collaboration.
 
 ## Quick start
 
-Install **Node 24**, **pnpm 9.15**, **Git**, and **ripgrep** (`rg`). PTY builds
-also need Python, make, and a C++ compiler when a platform prebuild is absent.
-
-From the repository root:
+Install Node 24, pnpm 9.15, Git, and ripgrep (`rg`). Building the terminal addon
+from source also requires Python, make, and a C++ compiler.
 
 ```sh
+git clone https://github.com/yannelli/oxbit.git
+cd oxbit
 pnpm install --frozen-lockfile
 pnpm install:global
 ```
 
-That builds the workspace and puts `oxbit` on your `PATH`:
+This builds the workspace and installs the `oxbit` command:
 
 ```sh
-oxbit                     # open the current directory
-oxbit ~/code/my-project   # open a directory
-oxbit src/main.ts         # open the current directory with that file focused
+oxbit                     # Open the current directory
+oxbit ~/code/my-project   # Open a project
+oxbit src/main.ts         # Open a file in the current project
 ```
 
-`oxbit` starts a runtime for the workspace, opens the paired editor in your
-browser, and returns to the shell. A workspace already being served is reused,
-so running `oxbit` again in the same project reopens the same runtime. Then:
+Oxbit starts a runtime, opens the editor in your browser, and returns to the
+shell. Running it again in the same project reuses that runtime.
 
-1. Select **Trust workspace tools** in **Runtime connection** to enable terminals, tasks, Git, and language services.
-2. Use the command palette (`Ctrl+Shift+P`, or `Cmd+Shift+P` on macOS) to find actions.
+1. Select **Trust workspace tools** in **Runtime connection** to enable terminals,
+   tasks, Git, and language services.
+2. Open the command palette with `Ctrl+Shift+P` (`Cmd+Shift+P` on macOS).
 
-`pnpm install:global` links the checkout rather than copying it, so `oxbit` follows
-the repository in place. Rerun `pnpm build` after pulling; `npm uninstall -g oxbit`
-removes the command.
+The global install links this checkout. Run `pnpm build` after pulling changes.
+Run `npm uninstall -g oxbit` to remove the command.
 
-| Command            | Effect                                                                                 |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `oxbit --status`    | Report the runtime serving the workspace                                               |
-| `oxbit --stop`      | Stop it                                                                                |
-| `oxbit -f`          | Serve in the terminal and stay attached                                                |
-| `oxbit --no-open`   | Leave the browser closed                                                               |
-| `oxbit --port 9300` | Serve on a chosen port; applies when starting, so `--stop` first to move a running one |
-| `oxbit --help`      | Full usage                                                                             |
+| Command | Effect |
+| --- | --- |
+| `oxbit --status` | Report the runtime serving this workspace |
+| `oxbit --stop` | Stop the workspace runtime |
+| `oxbit -f` | Keep the runtime attached to the terminal |
+| `oxbit --no-open` | Start without opening a browser |
+| `oxbit --port 9300` | Choose a port for a new runtime; stop an existing one first |
+| `oxbit --help` | Show all options |
 
-The first workspace takes port **9277**; later ones take a free port, recorded in
-`~/.oxbit/workspaces/<id>/daemon.json` alongside the log. The URL `oxbit` prints
-carries the owner pairing code and the file to focus in its fragment; both are
-consumed on load and removed from the address bar. Opening
-**http://127.0.0.1:9277** without the fragment starts the `orbit-dash` sample
-workspace in IndexedDB instead; pair from **Runtime connection** with the printed
-code to reach the runtime's project.
+The first runtime uses port 9277. Later runtimes choose a free port and record it
+in `~/.oxbit/workspaces/<id>/daemon.json`. The printed URL includes a pairing code
+in its fragment, which the editor consumes and removes from the address bar.
+Opening `http://127.0.0.1:9277` without that fragment loads the browser sample
+workspace; use **Runtime connection** to pair it with your project.
 
-Without a global install, `OXBIT_WORKSPACE=/absolute/path pnpm start` serves the
-same runtime in the foreground. The default host is loopback;
-[runtime configuration](docs/runtime.md) covers ports, allowed origins, state
-storage, and network hosting.
+Without a global install, run `OXBIT_WORKSPACE=/absolute/path pnpm start` after
+building. See [runtime configuration](docs/runtime.md) for network hosting,
+allowed origins, and storage.
 
-## Desktop
+## Native apps
 
-A Tauri desktop host shares the existing editor and bundles Node, ripgrep, PTY,
-and managed language services. Targets are Apple Silicon macOS 26+ and **Ubuntu
-24.04+ x64**. Run `pnpm desktop:dev` or build local installers with
-`pnpm desktop:build`. The existing CLI keeps its browser behavior;
-`oxbit --desktop [path]` opens an installed desktop app.
+### Desktop
 
-[Desktop setup, release, and recovery](docs/desktop.md) documents native
-dependencies, project windows, signing, updates, and commands.
-[Desktop acceptance](evidence/desktop-acceptance.md) separates verified local
-behavior from outstanding installed-artifact and signing gates.
+The Tauri desktop app bundles Node, ripgrep, the terminal addon, and managed
+language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64.
+Run `pnpm desktop:dev` for development or `pnpm desktop:build` for local installers.
+Use `oxbit --desktop [path]` to open an installed app.
 
-## iOS and iPadOS
+**Connect over SSH…** opens a remote folder on Linux x64 or macOS Apple Silicon.
+Oxbit installs its headless runtime through SSH; the remote host does not need
+Node or npm for the bundled runtime.
 
-A Tauri iOS app in `apps/ios` runs the same workbench on iPhone and iPad
-(iOS 26+). Version 1 edits the app's Documents folder and Files app folders on
-the device; terminals, Git, and language services wait for a later runtime
-phase. Run `pnpm ios:dev "Oxbit iPhone"` or `pnpm ios:simulator`. See
-[iOS setup, commands, and limits](docs/ios.md).
+See [desktop setup](docs/desktop.md) and [SSH workspaces](docs/remote-ssh.md).
 
-## Workspaces and editing
+### iOS and iPadOS
 
-- **Browser workspace:** files, settings, layout, and recovery drafts persist in
-  IndexedDB. Use **Open Workspace** to import or export workspace JSON.
-- **Open directory:** uses browser directory access when supported. A persisted
-  browser workspace is the fallback. Reselect a directory if its permission expires.
-- **Runtime filesystem:** reads and saves real files under the selected root.
-  Saves check file revisions; external conflicts preserve local edits for resolution.
+The Tauri iOS app runs on iOS 26+. Edit the app's Documents folder or folders
+selected through Files. Connect to a runtime on another computer for terminals,
+Git, tasks, and language services. Pairing credentials are stored in Keychain.
 
-The editor supports JavaScript/TypeScript, web components, markup, shell,
-configuration and data formats through a shared [language registry](docs/language-support.md).
-[JSON settings](docs/settings.md) merge user preferences, private project overrides,
-and optional `.config/oxbit/settings.json` / `settings.local.json` files.
-It includes split views, multiple cursors, find/replace, formatter selection and
-Markdown previews. Settings support user, workspace and language scopes.
-Managed servers install pinned versions in a trusted runtime; local format
-providers also work without one. The LSP indicator shows only providers for
-the current document. See the [implementation and acceptance status](docs/language-support.md)
-for feature coverage and remaining rollout gates.
+Run `pnpm ios:dev "Oxbit iPhone"` or `pnpm ios:simulator` on macOS with Xcode.
+See [iOS setup and runtime connections](docs/ios.md).
 
-MDX and the official Laravel LSP install automatically. JSON/JSONC files discover
-and cache schemas from SchemaStore and document `$schema` references. Each runtime
-project keeps editable settings and generated dependency/file intelligence in
-`~/.oxbit/projects/<uuid>/`; open **Project Intelligence** from the command palette.
-See [project intelligence and language setup](docs/project-intelligence.md).
+## Features
 
-Runtime features include PTY sessions, cancellable tasks, Git changes and
-commits, clone/push/checkout, and authenticated Yjs collaboration. **Share
-Workspace** creates revocable grants for another browser session. Grants and
-workspace tool trust have separate controls. Trusted extensions and commands
-execute with their host's privileges; see [trust and security](docs/security.md).
-
-Unsaved drafts survive refresh and connection loss. Reconnect merges shared
-edits and reattaches surviving terminals. After runtime process loss, old
-terminals are shown as ended. Uncertain commands and commits are not repeated
-automatically. See [persistence and recovery](docs/persistence.md).
-
-## Development
-
-Run these in separate terminals from the repository root:
-
-```sh
-# Runtime, with access from the Vite development origin
-OXBIT_WORKSPACE=/absolute/path/to/your/project \
-OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
-```
-
-```sh
-# React application with hot reload
-pnpm dev:web
-```
-
-Open **http://localhost:9279** and pair with runtime URL
-**http://127.0.0.1:9277**. On systems that exhaust filesystem watchers, start
-the runtime with `OXBIT_WATCH_POLLING=1`. A production build is the fallback
-when development process watching also fails.
-
-| Location                                             | Responsibility                                   |
-| ---------------------------------------------------- | ------------------------------------------------ |
-| `apps/web`, `apps/runtime`                           | Browser entry point and authorized Node services |
-| `packages/core`, `packages/sdk`, `packages/protocol` | Coordination, public contracts, runtime messages |
-| `packages/documents`, `packages/host-*`              | Shared documents, persistence, host adapters     |
-| `packages/ui`, `packages/workbench`                  | Components, layout, contribution surfaces        |
-| `packages/features/*`                                | Independently registered editor features         |
-| `examples/bundle-inspector`                          | External SDK extension example                   |
-
-## Source Control
-
-Source Control includes per-hunk staging, commit history and file diffs, branch
-and remote management, pull/publish, stashes, and merge recovery. Open its
-**Changes**, **History**, **Branches**, and **Stashes** tabs in a trusted runtime
-workspace. See [Source Control](docs/source-control.md) for workflows and limits.
+- Browser workspaces persist files, settings, layout, and drafts in IndexedDB.
+  **Open Workspace** imports or exports workspace JSON.
+- **Open directory** uses browser directory access where supported. Runtime
+  workspaces read and write files on disk and check revisions before saving.
+- The editor includes split views, multiple cursors, find and replace, formatters,
+  Markdown and HTML previews, themes, and icon packs.
+- Managed language servers provide completion, diagnostics, navigation, and
+  formatting in trusted runtime workspaces. See [language support](docs/language-support.md).
+- [Source Control](docs/source-control.md) supports staging, commits, history,
+  branches, remotes, stashes, and merge recovery.
+- [Tasks](docs/tasks.md) imports project commands and runs services, dependencies,
+  and worktree lifecycle hooks.
+- [JSON settings](docs/settings.md) combine user preferences, private project
+  overrides, and optional project configuration files.
+- **Share Workspace** creates revocable collaboration grants. Tool trust and
+  access grants have separate controls. See [security](docs/security.md).
+- [Recovery](docs/persistence.md) preserves drafts and reconnects surviving
+  terminals. Commands with uncertain outcomes are not repeated automatically.
 
 ## Extensions
 
-**Agent ACP** adds Codex ACP, Cursor ACP, and Amp Agent ACP with resumable
-conversation history, inspectable editor context, chronological tool activity,
-diff review in the editor, guarded undo, permission controls, and dispatched
-subagent tracking in conversations and a dedicated Agents view. It is
-**disabled by default**. Enable it in Extensions, connect to a trusted runtime,
-and choose an agent. See [Agent ACP setup and tooling](docs/agent-acp.md).
+Enable **Agent ACP** in Extensions to use Codex ACP, Cursor ACP, or Amp Agent ACP
+in a trusted runtime workspace. It includes conversation history, editor context,
+permission controls, diff review, and subagent tracking. It is disabled by default.
+See [Agent ACP](docs/agent-acp.md) for setup.
 
-Bundle Inspector contributes a command, panel, setting, status item, output
-channel, and custom document view through the public SDK.
+[Bundle Inspector](examples/bundle-inspector) demonstrates the public SDK with a
+command, panel, setting, status item, output channel, and document view.
 
 ```sh
 pnpm build:example
 ```
 
-This builds `examples/bundle-inspector/dist/bundle-inspector.js` and copies it
-to the browser's public extension directory. In **Extensions**, remove the
-existing Bundle Inspector registration, then install
-`/extensions/bundle-inspector.js`. Disable it to remove its contributions and
-release its resources. The production build permits same-origin artifacts;
-Vite supports development sources. See [the SDK reference](docs/sdk.md) for
-manifests, activation, contributions, updates, and disposal.
+To load the built bundle, remove the existing Bundle Inspector registration in
+**Extensions**, then install `/extensions/bundle-inspector.js`. See the
+[SDK reference](docs/sdk.md) for extension development.
 
-## Verification
+## Development
 
-After installing dependencies, install the browser used by the test suite:
+Run these commands in separate terminals:
 
 ```sh
-pnpm exec playwright install chromium
+OXBIT_WORKSPACE=/absolute/path/to/your/project \
+OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
+```
+
+```sh
+pnpm dev:web
+```
+
+Open `http://localhost:9279` and pair with `http://127.0.0.1:9277` using the code
+printed by the runtime. Set `OXBIT_WATCH_POLLING=1` if the system exhausts file
+watchers.
+
+| Location | Contents |
+| --- | --- |
+| `apps/web`, `apps/runtime` | Browser application and Node runtime |
+| `apps/desktop`, `apps/ios` | Tauri native apps |
+| `packages/core`, `packages/sdk`, `packages/protocol` | Coordination, extension contracts, runtime messages |
+| `packages/documents`, `packages/host-*` | Shared documents, persistence, host adapters |
+| `packages/ui`, `packages/workbench`, `packages/app-workbench` | Components, layout, shared application |
+| `packages/features/*` | Editor features |
+| `examples/` | Extension and icon-pack examples |
+
+See [architecture](docs/architecture.md), [feature status](docs/feature-status.md),
+[dependencies](docs/dependencies.md), and [design assets](design/README.md).
+
+### Checks
+
+```sh
+pnpm exec playwright install chromium webkit
 pnpm check
 ```
 
-`pnpm check` runs lint, TypeScript checks, unit/integration tests, production
-builds, and browser journeys. Run a part with `pnpm lint`, `pnpm typecheck`,
-`pnpm test`, `pnpm build`, or `pnpm test:browser`. Browser journeys require a
-production build and use port 9278 plus isolated temporary workspaces. Tests
-run real processes and create Git repositories and commits.
+`pnpm check` runs lint, TypeScript checks, unit and integration tests, production
+builds, and browser tests. Browser tests use port 9278 and temporary workspaces;
+they run processes and create Git repositories. Reports and screenshots go into
+the ignored `evidence/` directory.
 
-The recorded desktop integration run passed 202 unit/integration tests and 44 browser journeys. See [desktop acceptance](evidence/desktop-acceptance.md) for native checks, build snapshots, and distribution limits.
-Native directory recovery now passes after a browser refresh.
-[Remaining gap](PHASE-2_REMAINING_GAP.md) records the earlier failure, the
-Chromium 153 crash behind it, and the Playwright pin that closes it.
-
-[Acceptance evidence](evidence/acceptance.md) records results, screenshots,
-performance measurements, and checks that were not run.
-[Feature status](docs/feature-status.md) separates implemented features,
-verification limits, and deferred work.
+Run individual checks with `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+`pnpm build`, or `pnpm test:browser`. Browser tests require a production build.
+Native checks are documented in the desktop and iOS guides.
 
 ## Releases
 
 ```sh
-pnpm release patch            # 0.1.1 -> 0.1.2
+pnpm release patch
 pnpm release minor
 pnpm release 2.0.0
-pnpm release patch --dry-run  # print the plan, write nothing
-pnpm release:all              # patch release with lint and tests first
-pnpm build:all                # build web, runtime, desktop and iOS without bumping
+pnpm release patch --dry-run
+pnpm release:all
 ```
 
-One command bumps the version, builds every artifact, and collects them under
-`release/v<version>/` as `web/`, `runtime/`, `extensions/`, `icon-packs/`,
-`desktop/` and `ios/`, alongside `manifest.json` and a `SHA256SUMS` file that
-`shasum -a 256 -c SHA256SUMS` checks. `bun run release patch` works the same way,
-though the steps it drives still shell out to pnpm. The version is written to the
-root `package.json`, `apps/runtime/package.json`, and the `package.json`,
-`Cargo.toml` and `Cargo.lock` of both `apps/desktop` and `apps/ios`; both
-`tauri.conf.json` files read the root version, and a failure anywhere after the
-bump restores all eight files.
-
-The desktop bundle is included when the host is macOS arm64 or x64 Linux with a
-Rust toolchain, and skipped with a printed reason otherwise. It runs
-`pnpm desktop:build`, so macOS artifacts carry the `bundle.macOS.signingIdentity`
-from `tauri.conf.json` and `manifest.json` records which identity that was. Any
-`APPLE_*` credentials in your shell are removed for that step, because they
-override the configuration and add a notarization round trip. Turning on
-`bundle.createUpdaterArtifacts` makes that build sign its own update artifacts,
-so the script then checks `TAURI_SIGNING_PRIVATE_KEY` before the bump rather than
-failing at the end of a long build. Notarized installers and signed updates come
-from `pnpm desktop:release` and the tagged CI build described in
-[Desktop setup, release, and recovery](docs/desktop.md).
+The release script updates 8 version files and collects builds in
+`release/v<version>/` with a manifest and SHA-256 checksums. Desktop and iOS
+builds run when the host has the required platform and toolchain; skipped builds
+print a reason. `pnpm release:all` runs lint and tests before a patch release.
 
 | Flag | Effect |
 | --- | --- |
-| `--out <dir>` | Collect into `<dir>/v<version>` instead of `release/` |
-| `--no-desktop` | Skip the desktop bundle |
-| `--no-ios` | Skip the iOS IPA |
-| `--check` | Run `pnpm lint` and `pnpm test` first; `pnpm build` already runs `tsc -b` |
-| `--commit` | Commit the five version files as `Release v<version>` |
-| `--tag` | Also create the annotated `v<version>` tag, which triggers the release workflow on push |
-| `--dry-run` | Print the plan and write nothing |
+| `--out <dir>` | Write artifacts to `<dir>/v<version>` |
+| `--no-desktop`, `--no-ios` | Skip the selected native build |
+| `--check` | Run lint and tests before building |
+| `--commit` | Commit the version files after a successful build |
+| `--tag` | Also create an annotated `v<version>` tag |
+| `--dry-run` | Print the plan without writing files |
 
-The iOS IPA is included on macOS with a full Xcode, a generated project from
-`pnpm ios:init`, and an Apple Distribution signing identity, since `pnpm ios:build`
-exports with `app-store-connect`. Each missing piece prints its own skip reason.
-TestFlight uploads stay with `pnpm ios:upload` and `.github/workflows/ios.yml`.
-
-`--commit` and `--tag` require a clean tree and refuse an existing tag. Both run
-after the build, so a failed build leaves no tag behind. `release/` is ignored by
-Git.
-
-## Design and technical references
-
-The original Phase 1 ZIP is preserved under `design/reference/`, including
-its HTML and supplied screenshots. Open `Oxbit Workbench.dc.html` for the
-original mockup. `design/baselines/` adds full-size captures at all four
-reference dimensions in both themes.
-
-- [Original Phase 2 requirements](PHASE-2_FULL_IMPLEMENTATION.md) and [audit changes](docs/phase-2-audit.md)
-- [Architecture and future host compatibility](docs/architecture.md)
-- [Design screens, commands, settings, and ownership](docs/feature-map.md)
-- [Dependency versions and compatibility](docs/dependencies.md)
-- [Language-server contracts](docs/language.md)
-
-React Native integration, certified Paseo 0.7.0 support,
-a public marketplace, and further debugging/AI providers remain deferred.
+`--commit` and `--tag` require a clean working tree. Push a version tag to trigger
+the release workflows. See [desktop releases](docs/desktop.md),
+[macOS signing](MACOS_SIGNING_AND_NOTARIZATION.md), and [iOS distribution](docs/ios.md)
+for signing credentials and platform requirements.
 
 ## License
 
-[MIT](LICENSE). Copyright © 2026 **Ryan Yannelli**
-([yannelli](https://github.com/yannelli), <ryanyannelli@gmail.com>).
-Bundled fonts and dependencies keep their [third-party licenses](THIRD_PARTY_NOTICES.md).
-
-## Remote workspaces
-
-Use **Connect over SSH…** in the desktop app to open a folder or file on Linux x64 or macOS Apple Silicon. Oxbit automatically installs a headless runtime through SSH and runs file operations, terminals, Git, search, and language services on the remote host. The host needs no Node/npm installation or outbound internet access for the bundled runtime. See [Remote SSH](docs/remote-ssh.md) for setup, supported systems, lifecycle, and verification.
-
-### Tasks and services
-
-The Tasks panel detects Paseo, VS Code, JetBrains, package scripts and other project commands; supports supervised services with dynamic ports, links, dependencies and worktree hooks; and saves to the detected source or a private project configuration. See [Tasks and lifecycle configuration](docs/tasks.md).
+[MIT](LICENSE). Copyright © 2026 Ryan Yannelli.
+Bundled fonts and dependencies retain their [third-party licenses](THIRD_PARTY_NOTICES.md).

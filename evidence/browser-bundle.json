@@ -1,5 +1,0 @@
-{
-  "check": "Browser module graph and top-level imports exclude runtime Node dependencies",
-  "modules": 250,
-  "findings": []
-}

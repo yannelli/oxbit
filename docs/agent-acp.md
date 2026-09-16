@@ -30,7 +30,7 @@ available in Settings under Agent ACP, together with the default provider.
 Commands launch directly without shell interpolation. For a local adapter,
 replace `npx` with its absolute executable path and set arguments to `[]`.
 If Cursor is installed as `cursor-agent`, use that executable with `["acp"]`.
-The first `npx` connection may download the pinned adapter. Nothing is downloaded
+The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
 
 Agents inherit the runtime environment and existing CLI credentials. Supply API
@@ -149,7 +149,7 @@ This feature observes provider dispatch. It does not install provider hooks,
 monitor externally launched agents, provide manual dispatch, or expose individual
 child messaging/cancellation controls. Adapter versions remain pinned.
 
-Provider contracts were checked against the pinned
+Adapter references:
 [Codex child-session interfaces](https://github.com/agentclientprotocol/codex-acp/blob/v1.10.0/src/subagents/AcpSubagents.ts),
 [Codex collaboration mappings](https://github.com/agentclientprotocol/codex-acp/blob/v1.10.0/src/CodexToolCallMapper.ts),
 [Cursor ACP extensions](https://cursor.com/docs/cli/acp), and
@@ -182,22 +182,9 @@ Markdown never executes HTML or loads remote images. Relative file links open
 inside the workspace; external HTTP(S) links open only when clicked. Multimodal
 attachments and arbitrary MCP server configuration remain outside this extension.
 
-## Design research
+## Protocol references
 
-This iteration reviewed Zed at revision
-`6f73c7d0a4aae8e32afb5d01b0fcb89e5e3642ff`, specifically its
-[ACP connection contracts](https://github.com/zed-industries/zed/blob/6f73c7d0a4aae8e32afb5d01b0fcb89e5e3642ff/crates/acp_thread/src/connection.rs),
-[change review](https://github.com/zed-industries/zed/blob/6f73c7d0a4aae8e32afb5d01b0fcb89e5e3642ff/crates/acp_thread/src/diff.rs),
-thread metadata, agent connection code, and message queue. No Zed code or layout
-was copied. The implementation follows Oxbit's shared document, persistence,
-workbench, and runtime ownership contracts.
-
-The focus is recoverable conversations, explicit inspectable editor context,
-chronological activity, and proposals that can be reviewed in the main editor and
-undone without overwriting later work. Protocol behavior follows the primary
-[session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup),
-[session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and
-[content](https://agentclientprotocol.com/protocol/v1/content) specifications.
+Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup), [session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and [content](https://agentclientprotocol.com/protocol/v1/content) contracts.
 
 ## Verification
 
@@ -215,9 +202,5 @@ pnpm exec playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-ac
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,
 permission responses, file edits, terminals, cancellation, and failure handling
-without contacting a model provider. Real Codex, Cursor, and Amp adapters have
-also completed initialization against this bridge; model prompts and account
-billing were not part of that handshake check.
-
-Dispatched-subagent validation, exact installed adapter versions, and visual
-captures are recorded in [the acceptance notes](../evidence/agent-acp/subagents/acceptance.md).
+without contacting a model provider. Live provider authentication, model prompts,
+and billing require separate checks.

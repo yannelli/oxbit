@@ -21,7 +21,7 @@ The host contract is `createWorkbenchSession` from `packages/app-workbench`. `Io
 
 Install Node 24.20.0, pnpm 9.15.0, Rust 1.97.1 with the `aarch64-apple-ios` and `aarch64-apple-ios-sim` targets, Xcode 26 or newer with an iOS 26 simulator runtime, `xcodegen`, and CocoaPods.
 
-`xcode-select` on the reference machine points at the Command Line Tools. `scripts/ios/run.mjs` sets `DEVELOPER_DIR` to the installed Xcode, and `scripts/ios/xcode-shim` re-applies it for `xcodebuild` and `xcrun`, because the Tauri CLI spawns those with only `HOME`, `PATH`, and `TERM`.
+`scripts/ios/run.mjs` sets `DEVELOPER_DIR` to the installed Xcode, and `scripts/ios/xcode-shim` re-applies it for `xcodebuild` and `xcrun`, because the Tauri CLI spawns those with only `HOME`, `PATH`, and `TERM`.
 
 | Command | Purpose |
 | --- | --- |
@@ -110,7 +110,7 @@ once `tauri-runtime-wry` takes tao 0.36 or later.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test` cover `packages/host-ios` and the workbench changes.
 - `pnpm ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host.
 - `pnpm test:browser --project webkit-phone` runs `tests/browser/mobile.spec.ts` on a touch-first WebKit profile.
-- Simulator and device checks are recorded in [the iOS spike](../evidence/ios-spike.md) and [iOS acceptance](../evidence/ios-acceptance.md).
+- Check folder access, draft recovery, runtime pairing, and keyboard input on a simulator and a physical device.
 
 ## Install on your own device
 
@@ -129,7 +129,7 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 `pnpm ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26` and uploads to TestFlight on `v*` tags when these secrets exist: `APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_BASE64`, `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`. Without them the tag job skips the upload and says so. `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; the build number comes from the workflow run number.
 
-## Later phases
+## Not implemented
 
 - SSH tunnel: a Rust port of the local half of `apps/runtime/src/ssh.ts` on `russh`, reusing the remote runtime payload and installer.
 - Touch drag and drop for editor tabs and explorer rows.

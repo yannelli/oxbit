@@ -102,13 +102,13 @@ describe("managed installation locks", () => {
 
 it("installs atomically once across concurrent callers and retains a working digest on failure", async () => {
   const { root } = await setup();
-  const cache = path.join(root, "atomic-cache"), installer = new ManagedInstaller(cache) as any;
+  const cache = path.join(root, "atomic-cache"), installer = new ManagedInstaller(cache, "linux-x64") as any;
   let builds = 0, release: () => void = () => {};
   const gate = new Promise<void>(resolve => { release = resolve; });
   const build = async (stage: string) => { builds++; await fs.writeFile(path.join(stage, "server"), "working"); await gate; };
   const first = installer.install("fixture", "first", build), second = installer.install("fixture", "first", build);
   await expect.poll(() => builds).toBe(1);
-  await expect(fs.access(path.join(cache, `fixture-${process.platform}-${process.arch}`, "first"))).rejects.toThrow();
+  await expect(fs.access(path.join(cache, "fixture-linux-x64", "first"))).rejects.toThrow();
   release(); const [a, b] = await Promise.all([first, second]); expect(a).toBe(b); expect(builds).toBe(1);
   await expect(installer.install("fixture", "next", async (stage: string) => { await fs.writeFile(path.join(stage, "server"), "partial"); throw new Error("Interrupted download"); })).rejects.toThrow("Interrupted download");
   expect(await fs.readFile(path.join(a, "server"), "utf8")).toBe("working");
@@ -120,7 +120,7 @@ it("installs atomically once across concurrent callers and retains a working dig
 
 it("repairs an interrupted installed tree after staging a complete replacement", async () => {
   const { root } = await setup();
-  const installer = new ManagedInstaller(path.join(root, "repair-cache")) as any;
+  const installer = new ManagedInstaller(path.join(root, "repair-cache"), "linux-x64") as any;
   const target = await installer.install("fixture", "digest", async (stage: string) => fs.writeFile(path.join(stage, "server"), "first"));
   await fs.writeFile(path.join(target, ".complete"), "interrupted");
   await expect(installer.install("fixture", "digest", async () => { throw new Error("Offline"); })).rejects.toThrow("Offline");

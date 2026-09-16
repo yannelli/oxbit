@@ -50,7 +50,7 @@ Omitted roles inherit a complete light/dark base. `base` can also name a local t
 
 Colors accept `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA` and `transparent`. Fonts and effects use structured values. CSS functions, selectors, URLs and arbitrary CSS are rejected. The schema rejects unknown properties and unsupported versions.
 
-Typography roles are `body`, `heading`, `label`, `small`, `mono`, `editor`, `terminal`, and `document`. Each supports family stacks, size in pixels, weight (100–900), style, line-height ratio, letter spacing in pixels, ligatures, and four-character variable-font axes. Explicit user/workspace/language settings take precedence; resetting restores theme typography. Existing editor line-height settings remain in pixels. Terminal font family falls back to effective editor family when the pack and settings do not specify one. xterm supports family, size, weight, line height, letter spacing and the ligatures addon; it does not expose italic style or variable axes.
+Typography roles are `body`, `heading`, `label`, `small`, `mono`, `editor`, `terminal`, and `document`. Each supports family stacks, size in pixels, weight (100-900), style, line-height ratio, letter spacing in pixels, ligatures, and four-character variable-font axes. Explicit user/workspace/language settings take precedence; resetting restores theme typography. Existing editor line-height settings remain in pixels. Terminal font family falls back to effective editor family when the pack and settings do not specify one. xterm supports family, size, weight, line height, letter spacing and the ligatures addon; it does not expose italic style or variable axes.
 
 Syntax roles expose foreground, background, weight, italic and underline. See [the surface inventory](../theme-coverage.md) for parser mappings. Markdown strong and emphasis retain their semantic styling. No TextMate grammar engine is included.
 
@@ -95,4 +95,4 @@ Theme contributions should carry a validated `resolved` theme and `stableId` in 
 
 Layout structure, brand imagery, external preview content, OS dialogs and terminal application truecolor output are outside v1.
 
-Repository verification: `pnpm test:themes:browser` builds the web client and runs isolated browser/runtime fixtures. [Verification record and native limitations](../../evidence/themes/acceptance.md).
+`pnpm test:themes:browser` builds the web client and runs browser/runtime fixtures. Native shell rendering and changes across native windows require separate platform checks.

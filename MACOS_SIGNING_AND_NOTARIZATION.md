@@ -1,67 +1,29 @@
-# macOS signing and notarization worksheet
+# macOS signing and notarization
 
-Oxbit (`com.yannelli.oxbit`) targets Apple Silicon and macOS 26 or newer.
-The root `package.json` supplies its version. Ubuntu's minimum remains 24.04.
+Use a Developer ID Application identity to distribute Oxbit outside the Mac App
+Store. The desktop app targets Apple Silicon and macOS 26+. Its version comes
+from the root `package.json`.
 
-Local signing needs nothing from a password manager: the Developer ID private key
-is already in the login Keychain. Only DMG notarization and CI need new secrets.
-Keep passwords, private keys, and certificate exports out of this document and Git.
+## Local setup
 
-## Your configuration
-
-| Setting                                                | Value                                                    |
-| ------------------------------------------------------ | -------------------------------------------------------- |
-| Bundle identifier                                      | `com.yannelli.oxbit`                                     |
-| Developer ID Application identity                      | `Developer ID Application: Ryan Yannelli (2P58V89SR7)`   |
-| Identity SHA-1                                         | `3BBDCC0627FDF29581877804EC3D107A0AD7137C`               |
-| Apple Developer team ID / App ID prefix                | `2P58V89SR7`                                             |
-| App Group                                              | `group.com.yannelli.oxbit`                               |
-| iCloud container                                       | `iCloud.com.yannelli.oxbit`                              |
-| Services ID                                            | `dev.oxbit.oxbitcloud`                                   |
-| Xcode Developer directory (optional, see below)        | `/Applications/Xcode-beta.app/Contents/Developer`        |
-| Local notarytool Keychain profile name                 | `oxbit-notary`                                           |
-
-Still outstanding, because each is a secret nobody has created yet:
-
-| Secret                                                          | Needed for               | Location |
-| ---------------------------------------------------------------- | ------------------------ | -------- |
-| App-specific password, or an App Store Connect API key (`.p8`)  | DMG notarization         | ____     |
-| Exported `.p12` (certificate + private key) and its password    | GitHub Actions signing   | ____     |
-| Tauri updater private key and password                          | Signed in-app updates    | ____     |
-
-Use a **Developer ID Application** identity for direct downloads. Apple Development
-and Apple Distribution identities serve different distribution workflows. Apple's
-[signing documentation](https://developer.apple.com/documentation/xcode/creating-distribution-signed-code-for-the-mac/)
-describes these requirements.
-
-## Local DMG workflow
-
-Xcode is not required. `codesign`, `xcrun notarytool`, and `stapler` all ship with
-the Command Line Tools, which is what `xcode-select -p` currently points at.
-Set `DEVELOPER_DIR` only to pin the installed Xcode 27.0 for this terminal; it does
-not change the machine's global `xcode-select` setting.
-
-Run from the repository root:
+Install the pinned Node, pnpm, and Rust toolchains and Apple's command-line tools.
+Import your Developer ID certificate and private key into your login Keychain.
+Replace the identity and team placeholders below with your own values.
 
 ```sh
-export APPLE_SIGNING_IDENTITY="Developer ID Application: Ryan Yannelli (2P58V89SR7)"
-export APPLE_TEAM_ID="2P58V89SR7"
+export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+export APPLE_TEAM_ID="TEAMID"
 export APPLE_KEYCHAIN_PROFILE="oxbit-notary"
-export DEVELOPER_DIR="/Applications/Xcode-beta.app/Contents/Developer" # optional
 
 security find-identity -v -p codesigning
 xcrun notarytool --version
 ```
 
-Signing reads the private key from the login Keychain, so run this from a terminal
-in your own login session. A background session — an agent's shell, `ssh`, a
-launchd job — sees the Keychain as locked and `codesign` fails with
-`errSecInternalComponent`. Check with `launchctl managername`; it must print `Aqua`.
-Unlock a background session explicitly with `security unlock-keychain`.
+Run signing commands in a session with access to the unlocked Keychain. If
+`codesign` reports `errSecInternalComponent`, check that the session can access
+the private key. Use `security unlock-keychain` to unlock it interactively.
 
-Create an app-specific password in your Apple account, then store it using the
-secure prompt below. Do **not** add a `--password` argument or paste the password
-into this file. This command validates the credentials and saves them in Keychain:
+Store notarization credentials through the secure prompt:
 
 ```sh
 xcrun notarytool store-credentials "$APPLE_KEYCHAIN_PROFILE" \
@@ -71,28 +33,24 @@ xcrun notarytool store-credentials "$APPLE_KEYCHAIN_PROFILE" \
 xcrun notarytool history --keychain-profile "$APPLE_KEYCHAIN_PROFILE"
 ```
 
-The profile belongs to this Mac and user; it is not transferred to GitHub Actions.
-Apple also supports App Store Connect API keys if you prefer that authentication
-method. See Apple's [custom notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
+The profile belongs to this Mac and user. Keep passwords, certificate exports,
+and private keys outside the repository.
 
-Install the repository's pinned Node, pnpm, and Rust toolchains, then build the
-version you intend to distribute. Review the current working tree and run the
-[desktop acceptance checks](docs/desktop.md) before releasing it.
+## Build and notarize
+
+Run the [desktop checks](docs/desktop.md) before building a release.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm desktop:build
 ```
 
-With `APPLE_SIGNING_IDENTITY` set, the build signs the bundled Node, ripgrep,
-PTY addon, and spawn helper before Tauri signs the app with hardened runtime.
-Node's entitlements are in `apps/desktop/src-tauri/NodeEntitlements.plist`;
-the main app uses `Entitlements.plist`. Complete all resource and permission
-changes **before** signing. Do not use `codesign --deep` to sign the app;
-`--deep` below is only for verification.
+`APPLE_SIGNING_IDENTITY` selects the identity used to sign the bundled Node,
+ripgrep, terminal addon, and spawn helper. Tauri then signs the app with hardened
+runtime. Complete resource changes before signing.
 
-Set the paths to that build. These defaults assume `CARGO_TARGET_DIR` is unset;
-replace `OXBIT_BUNDLE_DIR` with your absolute bundle directory if you use it.
+Set paths to the resulting app and DMG. These defaults assume `CARGO_TARGET_DIR`
+is unset; adjust `OXBIT_BUNDLE_DIR` if you use another build directory.
 
 ```sh
 OXBIT_VERSION="$(node -p 'require("./package.json").version')"
@@ -102,28 +60,27 @@ OXBIT_DMG="$OXBIT_BUNDLE_DIR/dmg/Oxbit_${OXBIT_VERSION}_aarch64.dmg"
 
 codesign --verify --deep --strict --verbose=2 "$OXBIT_APP"
 codesign --display --verbose=4 "$OXBIT_APP"
-
 node scripts/desktop/notarize.mjs --app "$OXBIT_APP" --dmg "$OXBIT_DMG"
 ```
 
-The script signs the outer DMG, submits it to Apple, waits up to 20 minutes,
-staples its ticket, and verifies both its signature and Gatekeeper assessment.
-It uses `APPLE_KEYCHAIN_PROFILE` locally; the existing Apple ID/password
-environment variables remain supported for CI. An upload alone is not acceptance.
+The script signs the DMG, submits it to Apple, waits up to 20 minutes, staples
+the ticket, and verifies the signature and Gatekeeper assessment. It reads
+`APPLE_KEYCHAIN_PROFILE` locally or `APPLE_ID`, `APPLE_PASSWORD`, and
+`APPLE_TEAM_ID` in CI.
 
-If the wait times out, Apple may still be processing the submission. Keep the
-submission ID printed by the command. Resume it instead of signing or uploading
-the same artifact again:
+If the wait times out, use the printed submission ID to check the existing upload:
 
 ```sh
-OXBIT_SUBMISSION_ID="" # Fill in the existing submission ID.
-: "${OXBIT_SUBMISSION_ID:?Fill in the submission ID}"
+OXBIT_SUBMISSION_ID="<submission ID>"
 xcrun notarytool info "$OXBIT_SUBMISSION_ID" \
   --keychain-profile "$APPLE_KEYCHAIN_PROFILE"
 xcrun notarytool wait "$OXBIT_SUBMISSION_ID" \
   --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --timeout 20m
+```
 
-# Run these only after Apple's status is Accepted.
+After Apple reports `Accepted`, finish verification:
+
+```sh
 xcrun stapler staple "$OXBIT_DMG"
 xcrun stapler validate "$OXBIT_DMG"
 codesign --verify --strict --verbose=2 "$OXBIT_DMG"
@@ -132,59 +89,34 @@ spctl --assess --type open --context context:primary-signature \
 shasum -a 256 "$OXBIT_DMG"
 ```
 
-For an invalid submission, retrieve the explanation with `xcrun notarytool log
-"$OXBIT_SUBMISSION_ID" --keychain-profile "$APPLE_KEYCHAIN_PROFILE"`. Fix the
-reported problem, rebuild/re-sign, and submit the new artifact. Do not distribute
-an artifact that failed notarization or Gatekeeper.
+For an invalid submission, retrieve the report with
+`xcrun notarytool log "$OXBIT_SUBMISSION_ID" --keychain-profile "$APPLE_KEYCHAIN_PROFILE"`.
+Fix the reported problem, rebuild, sign, and submit the new artifact.
 
-Mount the final DMG and verify the app **inside it**, then test a downloaded copy
-on another Mac. Check launch, editing, search, TypeScript, and a real terminal.
-Keep the download's quarantine attribute intact for the Gatekeeper test.
-Notarizing an app alone does not establish notarization of a subsequently created
-DMG; submit the final signed DMG as shown above.
+Mount the final DMG and verify the app inside it. Test a downloaded copy on
+another Mac with its quarantine attribute intact. Check launch, editing, search,
+TypeScript, and a terminal.
 
-## GitHub Actions release blanks
+## GitHub Actions
 
-Configure these in `yannelli/oxbit` repository settings. Enter actual secret values
-there, never here. The existing `.github/workflows/desktop.yml` consumes them.
+The [desktop workflow](.github/workflows/desktop.yml) reads these repository secrets:
 
-| Repository secret                                                          | Fill in secure source/location, not the value |
-| -------------------------------------------------------------------------- | --------------------------------------------- |
-| `APPLE_CERTIFICATE` — base64 `.p12` containing certificate and private key | ____________________                          |
-| `APPLE_CERTIFICATE_PASSWORD`                                               | ____________________                          |
-| `APPLE_SIGNING_IDENTITY`                                                   | ____________________                          |
-| `APPLE_ID`                                                                 | ____________________                          |
-| `APPLE_PASSWORD` — app-specific password                                   | ____________________                          |
-| `APPLE_TEAM_ID`                                                            | ____________________                          |
-| `TAURI_SIGNING_PRIVATE_KEY` — separate updater signing key                 | ____________________                          |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — if the updater key is encrypted     | ____________________                          |
+| Secret | Value |
+| --- | --- |
+| `APPLE_CERTIFICATE` | Base64-encoded `.p12` containing the certificate and private key |
+| `APPLE_CERTIFICATE_PASSWORD` | Password for that export |
+| `APPLE_SIGNING_IDENTITY` | Developer ID Application identity |
+| `APPLE_ID` | Apple Developer account email |
+| `APPLE_PASSWORD` | App-specific password |
+| `APPLE_TEAM_ID` | Developer team ID |
+| `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater private key |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Updater key password, if encrypted |
 
-| Repository variable / release field                         | Fill in              |
-| ----------------------------------------------------------- | -------------------- |
-| `OXBIT_UPDATER_PUBLIC_KEY` — public half of the updater key | ____________________ |
-| Root package version                                        | ____________________ |
-| Matching tag, `v<version>`                                  | ____________________ |
-| Person approving draft release publication                  | ____________________ |
+Set the repository variable `OXBIT_UPDATER_PUBLIC_KEY` to the corresponding public
+key. Apple signing and Tauri updater signing use separate keys.
+`pnpm desktop:release` requires both because it creates signed updater artifacts.
+The local DMG workflow above does not require an updater key.
 
-Apple signing and Tauri updater signing use separate keys. `pnpm desktop:release`
-requires both because it produces updater artifacts; the local DMG workflow above
-does not need an updater key. Back up existing keys securely; do not replace an
-updater key when already installed versions trust its public key. Version tags
-produce a draft release, which must be reviewed before publication.
-
-## Local test on 2026-09-07
-
-The existing **0.1.0** installer snapshot was signed using Xcode **27.0
-(27A5194q)** at `/Applications/Xcode-beta.app`, with **Developer ID Application:
-Ryan Yannelli (2P58V89SR7)**. No new certificate or production key was generated.
-
-The app was submitted through `xcodebuild -exportArchive` using Xcode's existing
-account and a temporary Developer ID archive. Apple issued its notarization
-ticket: app stapling, strict signature verification, and Gatekeeper's
-`Notarized Developer ID` assessment passed. Xcode's later account-refresh errors
-did not prevent direct retrieval of the issued ticket with `stapler`.
-
-The separate final-DMG submission still requires the Keychain profile above.
-See [local signing evidence](evidence/desktop/local-macos-signing.json) for the
-artifact hash, exact checks, and any remaining acceptance limits. This test uses
-the recorded installer snapshot, not subsequent edits in the working tree.
+Push a tag matching the root version (`v<version>`) to create a draft release.
+Review the artifacts before publishing. Keep the updater key used by installed
+versions when signing subsequent updates.

@@ -1,153 +1,0 @@
-debconf: delaying package configuration, since apt-utils is not installed
-Selecting previously unselected package oxbit.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 26708 files and directories currently installed.)
-Preparing to unpack .../deb/Oxbit_0.1.0_amd64.deb ...
-Unpacking oxbit (0.1.0) ...
-Setting up oxbit (0.1.0) ...
-Processing triggers for hicolor-icon-theme (0.17-2) ...
-dbus-daemon[18072]: [session uid=0 pid=18072] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=0 pid=18088 comm="/usr/bin/qemu-x86_64 /usr/bin/oxbit-desktop /usr/b")
-dbus-daemon[18072]: [session uid=0 pid=18072] Successfully activated service 'org.a11y.Bus'
-dbus-daemon[18072]: [session uid=0 pid=18072] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=0 pid=18088 comm="/usr/bin/qemu-x86_64 /usr/bin/oxbit-desktop /usr/b")
-dbus-daemon[18072]: [session uid=0 pid=18072] Activating service name='org.freedesktop.portal.Documents' requested by ':1.3' (uid=0 pid=18110 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-dbus-daemon[18072]: [session uid=0 pid=18072] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.4' (uid=0 pid=18119 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-document-por")
-dbus-daemon[18072]: [session uid=0 pid=18072] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
-dbus-daemon[18072]: [session uid=0 pid=18072] Successfully activated service 'org.freedesktop.portal.Documents'
-fusermount3: fuse device not found, try 'modprobe fuse' first
-error: fuse init failed: Can't mount path /root/.cache/doc
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:56.659: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:56.662: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
-dbus-daemon[18072]: [session uid=0 pid=18072] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.3' (uid=0 pid=18110 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-dbus-daemon[18102]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=0 pid=18144 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-
-(xdg-desktop-portal-gtk:18144): xdg-desktop-portal-gtk-WARNING **: 08:29:56.949: error: Could not connect: No such file or directory
-
-dbus-daemon[18102]: Successfully activated service 'org.a11y.atspi.Registry'
-SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
-dbus-daemon[18072]: [session uid=0 pid=18072] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.208: Failed to create RealtimeKit proxy: Could not connect: No such file or directory
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.210: No skeleton to export
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.210: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.219: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.231: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.240: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.250: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.261: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
-[W][09583.638980] pw.conf      | [          conf.c: 1031 try_load_conf()] can't load config client.conf: No such file or directory
-[E][09583.639473] pw.conf      | [          conf.c: 1060 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.295: Failed connect to PipeWire: Couldn't create PipeWire context
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.295: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.305: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18110): xdg-desktop-portal-WARNING **: 08:29:57.316: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
-dbus-daemon[18072]: [session uid=0 pid=18072] Successfully activated service 'org.freedesktop.portal.Desktop'
-{
-  "status": "passed",
-  "executable": "/usr/bin/oxbit-desktop",
-  "scope": "Installed production WebView opened and persisted a real project using application resources and a minimal environment",
-  "systemTools": [
-    {
-      "name": "node",
-      "present": false
-    },
-    {
-      "name": "pnpm",
-      "present": false
-    },
-    {
-      "name": "git",
-      "present": false
-    },
-    {
-      "name": "gh",
-      "present": false
-    }
-  ]
-}
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 31188 files and directories currently installed.)
-Removing oxbit (0.1.0) ...
-Processing triggers for hicolor-icon-theme (0.17-2) ...
-dbus-daemon[18445]: [session uid=0 pid=18445] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=0 pid=18464 comm="/usr/bin/qemu-x86_64 /tmp/appimage_extracted_6e5f4")
-dbus-daemon[18445]: [session uid=0 pid=18445] Successfully activated service 'org.a11y.Bus'
-dbus-daemon[18445]: [session uid=0 pid=18445] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=0 pid=18464 comm="/usr/bin/qemu-x86_64 /tmp/appimage_extracted_6e5f4")
-dbus-daemon[18445]: [session uid=0 pid=18445] Activating service name='org.freedesktop.portal.Documents' requested by ':1.3' (uid=0 pid=18500 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-dbus-daemon[18445]: [session uid=0 pid=18445] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.4' (uid=0 pid=18509 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-document-por")
-dbus-daemon[18445]: [session uid=0 pid=18445] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
-dbus-daemon[18445]: [session uid=0 pid=18445] Successfully activated service 'org.freedesktop.portal.Documents'
-fusermount3: fuse device not found, try 'modprobe fuse' first
-error: fuse init failed: Can't mount path /root/.cache/doc
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.464: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.466: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
-dbus-daemon[18445]: [session uid=0 pid=18445] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.3' (uid=0 pid=18500 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-dbus-daemon[18492]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=0 pid=18534 comm="/usr/bin/qemu-x86_64 /usr/libexec/xdg-desktop-port")
-
-(xdg-desktop-portal-gtk:18534): xdg-desktop-portal-gtk-WARNING **: 08:30:38.703: error: Could not connect: No such file or directory
-
-dbus-daemon[18492]: Successfully activated service 'org.a11y.atspi.Registry'
-SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
-dbus-daemon[18445]: [session uid=0 pid=18445] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.906: Failed to create RealtimeKit proxy: Could not connect: No such file or directory
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.907: No skeleton to export
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.907: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.914: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.920: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.926: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.932: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.939: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
-[W][09625.307020] pw.conf      | [          conf.c: 1031 try_load_conf()] can't load config client.conf: No such file or directory
-[E][09625.307448] pw.conf      | [          conf.c: 1060 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.963: Failed connect to PipeWire: Couldn't create PipeWire context
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.963: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.971: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
-
-(/usr/libexec/xdg-desktop-portal:18500): xdg-desktop-portal-WARNING **: 08:30:38.977: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
-dbus-daemon[18445]: [session uid=0 pid=18445] Successfully activated service 'org.freedesktop.portal.Desktop'
-{
-  "status": "passed",
-  "executable": "/artifacts/appimage/Oxbit_0.1.0_amd64.AppImage",
-  "runner": "/evidence/standalone-emulator/usr/bin/qemu-x86_64-static",
-  "scope": "Installed production WebView opened and persisted a real project using application resources and a minimal environment",
-  "systemTools": [
-    {
-      "name": "node",
-      "present": false
-    },
-    {
-      "name": "pnpm",
-      "present": false
-    },
-    {
-      "name": "git",
-      "present": false
-    },
-    {
-      "name": "gh",
-      "present": false
-    }
-  ]
-}

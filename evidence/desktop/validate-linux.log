@@ -1,8 +1,0 @@
-{
-  "status": "passed",
-  "scope": "Unsigned artifact structure; signing, Gatekeeper, and updates are not accepted",
-  "artifacts": [
-    "apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/Oxbit_0.1.0_amd64.AppImage",
-    "apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/Oxbit_0.1.0_amd64.deb"
-  ]
-}

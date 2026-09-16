@@ -44,7 +44,7 @@
       "entitlements": "Entitlements.plist",
       "infoPlist": "Info.plist",
       "hardenedRuntime": true,
-      "signingIdentity": "Apple Distribution: Ryan Yannelli (2P58V89SR7)"
+      "signingIdentity": "-"
     },
     "linux": {
       "deb": {

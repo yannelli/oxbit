@@ -2,7 +2,7 @@
 
 Oxbit uses Tauri 2 and the shared React workbench. The desktop targets are **Apple Silicon macOS 26+** and **Ubuntu 24.04+ x64**. Ubuntu 24.04 is the build baseline and minimum supported Linux distribution. Windows, Intel Macs, Linux arm64, and app stores are outside this implementation.
 
-The application identifier is `com.yannelli.oxbit`. The iPhone and iPad app in `apps/ios` shares it; see [iOS](ios.md). `package.json` at the repository root supplies the application and release version. Browser and CLI commands keep their existing behavior. Read [desktop acceptance](../evidence/desktop-acceptance.md) for what has actually been tested; an unsigned build is not a distribution or update acceptance result.
+The application identifier is `com.yannelli.oxbit`. The iPhone and iPad app in `apps/ios` shares it; see [iOS](ios.md). `package.json` at the repository root supplies the application and release version.
 
 ## Develop and build
 
@@ -42,7 +42,7 @@ An outer X11 display remains available for clipboard interoperability.
 ## Runtime packaging
 
 `scripts/desktop/binaries.json` pins Node, ripgrep, and Linux packaging helpers with SHA-256 checksums.
-`bundle-tools.mjs` seeds and verifies Tauri’s helper cache before packaging;
+`bundle-tools.mjs` seeds and verifies Tauri's helper cache before packaging;
 plugin scripts use immutable upstream commits. Changed upstream binary assets
 fail the checksum gate and require an explicit reviewed pin update. `desktop:prepare` stages ordinary files under `apps/desktop/src-tauri/resources/runtime`, including the production dependency tree, TypeScript, the language server, `node-pty`, spawn helpers, dependency notices, and a package inventory. There are no links to pnpm's store. Downloads cache in `.desktop-cache`; both cache and generated resources are ignored by Git.
 
@@ -86,12 +86,12 @@ The existing `oxbit` command still starts the browser editor. `oxbit --desktop [
 
 ## Signing and releases
 
-Use the root [macOS signing and notarization worksheet](../MACOS_SIGNING_AND_NOTARIZATION.md)
-for fill-in configuration, secure local Keychain setup, final-DMG submission, and
-the recorded local Xcode test. `scripts/desktop/notarize.mjs` accepts
+Use the [macOS signing and notarization guide](../MACOS_SIGNING_AND_NOTARIZATION.md)
+for signing configuration, local Keychain setup, final-DMG submission, and
+local build checks. `scripts/desktop/notarize.mjs` accepts
 `APPLE_KEYCHAIN_PROFILE` and explicit `--app` / `--dmg` paths for local builds.
 
-`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64. Pull requests produce unsigned artifacts without signing secrets. Matching version tags (`v<root package version>`) produce a **draft** release in `yannelli/oxbit`. Both platform jobs must pass before artifact upload and manifest generation. Publishing the draft remains a separate release decision.
+`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64. Pull requests build without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) produce a **draft** release in `yannelli/oxbit`. Both platform jobs must pass before artifact upload and manifest generation. Publishing the draft remains a separate release decision.
 
 Configure these GitHub Actions secrets:
 
@@ -125,13 +125,13 @@ exits 64 after `Finder got an error: AppleEvent timed out. (-1712)`. Set `CI=1`
 to pass `--skip-jenkins` and skip that cosmetic step; GitHub Actions already does.
 
 ```sh
-export APPLE_SIGNING_IDENTITY="Developer ID Application: Ryan Yannelli (2P58V89SR7)"
-export APPLE_TEAM_ID="2P58V89SR7"
+export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAM_ID)"
+export APPLE_TEAM_ID="TEAM_ID"
 CI=1 pnpm desktop:build
 ```
 
-## Release acceptance still required
+## Release checks
 
-Before publishing, run the recorded acceptance matrix on actual installed artifacts, including a clean Ubuntu 24.04 x64 installation under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/pnpm, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
+Before publishing, check the installed artifacts, including a clean Ubuntu 24.04 x64 installation under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/pnpm, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
 
-Finally install a signed previous version, open multiple projects with unsaved files and active tools, and accept a signed version-to-version update. Exercise Cancel, Save All, Discard, offline checks, invalid signatures, interrupted downloads, and an unwritable installation. Verify restored drafts/layout and no replayed tools after restart. These gates cannot be replaced by compilation or an unsigned installer; record platform/version and evidence in the acceptance file.
+Finally install a signed previous version, open multiple projects with unsaved files and active tools, and accept a signed version-to-version update. Exercise Cancel, Save All, Discard, offline checks, invalid signatures, interrupted downloads, and an unwritable installation. Verify restored drafts/layout and no replayed tools after restart. Record the platform, version, and results with the release.

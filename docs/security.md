@@ -1,5 +1,7 @@
 # Trust and recovery boundaries
 
+See the [security reporting policy](../SECURITY.md) to report a vulnerability privately.
+
 The runtime binds to loopback by default. Owner pairing creates a session token; the runtime stores a hash and issues an HttpOnly SameSite cookie. Browser reconnect also retains the token in session storage. Owner grants restrict filesystem reads/writes, collaboration, terminals, tasks, Git, language services and extension operations separately. Grants are revocable. Tool trust is a separate workspace decision.
 
 The process boundary enforces grants before dispatch. Filesystem paths pass traversal and realpath checks, including symlink targets and write parents. Writes compare a revision derived from file bytes and use an atomic rename. Supported text formats are UTF-8, UTF-8 with BOM, UTF-16LE with BOM and Latin-1; unrepresentable conversions fail. Workspace reads and search have file/result bounds.

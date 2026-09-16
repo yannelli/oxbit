@@ -14,8 +14,7 @@ The bundled fonts use the SIL Open Font License 1.1:
 - JetBrains Mono: copyright 2020 The JetBrains Mono Project Authors.
   [License](apps/web/public/fonts/jetbrainsmono-OFL.txt).
 
-The font license files ship with the browser build. The original design
-handoff remains unchanged under `design/reference/`.
+The font license files ship with the browser build.
 
 The VS Code and VS Code High Contrast theme packs adapt palettes from
 [Microsoft Visual Studio Code](https://github.com/microsoft/vscode/tree/5a67e0f1cc6b5db6bb8eea3c8c31e1019d8954d1/extensions/theme-defaults/themes),
