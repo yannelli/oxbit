@@ -1411,11 +1411,36 @@ function CommandMenu({
   location?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const contributions = menuContributions(workbench.kernel, location);
+  const hasItems = ids.some((id) => id !== "-") || contributions.length > 0;
   useEffect(() => {
+    if (!hasItems) {
+      workbench.set({ menu: undefined });
+      return;
+    }
     const prior = document.activeElement as HTMLElement;
     ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    return () => prior?.focus();
-  }, []);
+    const dismissOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || ref.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(".menu-parent > button")) return;
+      workbench.set({ menu: undefined });
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      workbench.set({ menu: undefined });
+    };
+    window.addEventListener("pointerdown", dismissOutside, true);
+    window.addEventListener("keydown", escape, true);
+    return () => {
+      window.removeEventListener("pointerdown", dismissOutside, true);
+      window.removeEventListener("keydown", escape, true);
+      prior?.focus();
+    };
+  }, [workbench, hasItems, location]);
+  if (!hasItems) return null;
   return (
     <div
       ref={ref}
@@ -1458,17 +1483,15 @@ function CommandMenu({
     >
       {[
         ...ids,
-        ...(menuContributions(workbench.kernel, location).length
+        ...(contributions.length
           ? [
-              "-",
-              ...menuContributions(workbench.kernel, location).map(
-                (item) => "@" + item.id,
-              ),
+              ...(ids.some((id) => id !== "-") ? ["-"] : []),
+              ...contributions.map((item) => "@" + item.id),
             ]
           : []),
       ].map((entry, i) => {
         const contribution = entry.startsWith("@")
-          ? menuContributions(workbench.kernel, location).find(
+          ? contributions.find(
               (item) => item.id === entry.slice(1),
             )
           : undefined;
