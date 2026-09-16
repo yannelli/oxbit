@@ -91,7 +91,7 @@ for signing configuration, local Keychain setup, final-DMG submission, and
 local build checks. `scripts/desktop/notarize.mjs` accepts
 `APPLE_KEYCHAIN_PROFILE` and explicit `--app` / `--dmg` paths for local builds.
 
-`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64. Pull requests produce unsigned artifacts without signing secrets. Matching version tags (`v<root package version>`) produce a **draft** release in `yannelli/oxbit`. Both platform jobs must pass before artifact upload and manifest generation. Publishing the draft remains a separate release decision.
+`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64. Pull requests build without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) produce a **draft** release in `yannelli/oxbit`. Both platform jobs must pass before artifact upload and manifest generation. Publishing the draft remains a separate release decision.
 
 Configure these GitHub Actions secrets:
 
