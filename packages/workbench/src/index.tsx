@@ -65,6 +65,16 @@ export {
   commandBinding,
 } from "./shortcuts.js";
 export type { ActiveKeymap } from "./shortcuts.js";
+const viewIcons: Record<string, string> = {
+  explorer: "files",
+  search: "search",
+  scm: "git",
+  extensions: "ext",
+};
+export function viewIcon(view: Contribution) {
+  return (view.data as any)?.icon || viewIcons[view.id] || "package";
+}
+
 export function useWorkbench(workbench: WorkbenchController) {
   return useSyncExternalStore(workbench.subscribe, workbench.snapshot);
 }
@@ -400,17 +410,6 @@ export function Workbench({
   const command = (id: string) => () => void workbench.run(id);
   const label = (view: Contribution) =>
     (t as Record<string, string>)[view.id] || tr(view.title);
-  const icon = (view: Contribution) =>
-    (view.data as any)?.icon ||
-    (
-      {
-        explorer: "files",
-        search: "search",
-        scm: "git",
-        extensions: "ext",
-      } as Record<string, string>
-    )[view.id] ||
-    "package";
   return (
     <IconProvider
       kernel={kernel}
@@ -628,7 +627,7 @@ export function Workbench({
                       }
                       onClick={() => workbench.togglePanel(view.id)}
                     >
-                      <Icon name={icon(view)} size={18} />
+                      <Icon name={viewIcon(view)} size={18} />
                       {view.id === "explorer" && dirty > 0 && (
                         <span className="badge">{dirty}</span>
                       )}

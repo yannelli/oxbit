@@ -18,7 +18,7 @@ import {
   translate as tr,
 } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
-import { Boundary, ToolbarContributions } from "./index.js";
+import { Boundary, ToolbarContributions, viewIcon } from "./index.js";
 import { currentTheme, themeMode, themeVariables } from "./contributions.js";
 import {
   dockSides,
@@ -890,52 +890,61 @@ function PanelTabs({
           role="tablist"
           aria-label={tr("Panel views")}
         >
-          {group.panels.map((id, index) => (
-            <button
-              key={id}
-              data-panel-tab={index}
-              role="tab"
-              aria-selected={id === group.active}
-              className={id === group.active ? "selected" : ""}
-              tabIndex={id === group.active ? 0 : -1}
-              {...dragProps(id, context)}
-              onClick={() => workbench.openPanel(id)}
-              onDragOver={(event) => {
-                if (event.dataTransfer.types.includes(mime)) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setEdge("center");
-                }
-              }}
-              onDrop={(event) => drop(event, { ...target("center"), index })}
-              onKeyDown={(event) => {
-                if (
-                  !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
-                    event.key,
+          {group.panels.map((id, index) => {
+            const item = contributions.find((c) => c.id === id);
+            const title = tr(item?.title ?? id);
+            return (
+              <button
+                key={id}
+                data-panel-tab={index}
+                role="tab"
+                aria-selected={id === group.active}
+                aria-label={title}
+                className={id === group.active ? "selected" : ""}
+                tabIndex={id === group.active ? 0 : -1}
+                {...dragProps(id, context)}
+                onClick={() => workbench.openPanel(id)}
+                onDragOver={(event) => {
+                  if (event.dataTransfer.types.includes(mime)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setEdge("center");
+                  }
+                }}
+                onDrop={(event) => drop(event, { ...target("center"), index })}
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                      event.key,
+                    )
                   )
-                )
-                  return;
-                event.preventDefault();
-                const next =
-                  event.key === "Home"
-                    ? 0
-                    : event.key === "End"
-                      ? group.panels.length - 1
-                      : (index +
-                          (event.key === "ArrowRight" ? 1 : -1) +
-                          group.panels.length) %
-                        group.panels.length;
-                workbench.openPanel(group.panels[next]);
-                (
-                  event.currentTarget.parentElement!.children[
-                    next
-                  ] as HTMLElement
-                ).focus();
-              }}
-            >
-              {tr(contributions.find((c) => c.id === id)?.title ?? id)}
-            </button>
-          ))}
+                    return;
+                  event.preventDefault();
+                  const next =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? group.panels.length - 1
+                        : (index +
+                            (event.key === "ArrowRight" ? 1 : -1) +
+                            group.panels.length) %
+                          group.panels.length;
+                  workbench.openPanel(group.panels[next]);
+                  const tabs = event.currentTarget.parentElement!;
+                  queueMicrotask(() =>
+                    (tabs.children[next] as HTMLElement).focus(),
+                  );
+                }}
+              >
+                {item?.kind === "activityView" && (
+                  <span className="panel-tab-icon">
+                    <Icon name={viewIcon(item)} />
+                  </span>
+                )}
+                <span className="panel-tab-label">{title}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="panel-actions">
           <ToolbarContributions
@@ -1017,6 +1026,7 @@ function PanelTabs({
           />
           {workbench.panelWindows.canDetach && (
             <IconButton
+              className="icon-button panel-float"
               icon="goto"
               label={tr("Pop Out Panel")}
               onClick={() => void workbench.detachPanel(group.active)}
