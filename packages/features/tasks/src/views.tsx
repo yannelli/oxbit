@@ -54,11 +54,36 @@ const stripAnsi = (text: string) =>
   text
     .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "")
     .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+const urlPattern = /(https?:\/\/[^\s<>"'`]*[^\s<>"'`.,;:!?)\]])/g;
 export function createTaskViews(model: TaskModel) {
   const o = model.options;
   function useModel() {
     const [, render] = useState(0);
     useEffect(() => model.subscribe(() => render((value) => value + 1)), []);
+  }
+  function Linkified({ line }: { line: string }) {
+    const parts = line.split(urlPattern);
+    return (
+      <>
+        {parts.map((part, index) =>
+          index % 2 ? (
+            <a
+              key={index}
+              className="task-url-link"
+              href={part}
+              onClick={(event) => {
+                event.preventDefault();
+                window.open(part, "_blank", "noopener,noreferrer");
+              }}
+            >
+              {part}
+            </a>
+          ) : (
+            part
+          ),
+        )}
+      </>
+    );
   }
   function Lines({ text }: { text: string }) {
     const lines = stripAnsi(text).split("\n").slice(-3000);
@@ -68,7 +93,7 @@ export function createTaskViews(model: TaskModel) {
           const match = line.match(
             /(?:^|\s)((?:[\w.-]+\/)*[\w.-]+\.[\w]+):(\d+)(?::(\d+))?/,
           );
-          return match ? (
+          return match && !urlPattern.test(line) ? (
             <button
               key={index}
               className="task-file-link"
@@ -84,7 +109,7 @@ export function createTaskViews(model: TaskModel) {
             </button>
           ) : (
             <React.Fragment key={index}>
-              {line}
+              <Linkified line={line} />
               {"\n"}
             </React.Fragment>
           );
