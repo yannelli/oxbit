@@ -1,6 +1,6 @@
 {
   "name": "oxbit",
-  "version": "0.2.5",
+  "version": "0.3.0-alpha.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
