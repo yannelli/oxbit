@@ -75,7 +75,7 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm build
-          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright install --with-deps chromium webkit
           pnpm test:browser
           pnpm test:tasks:browser
       - uses: actions/download-artifact@v4
