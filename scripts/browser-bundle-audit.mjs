@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import ts from "typescript";
 const findings = [],
   modules = new Set();
@@ -35,6 +35,7 @@ for (const file of await readdir("apps/web/dist/assets")) {
       findings.push({ file, module: statement.moduleSpecifier.text });
   }
 }
+await mkdir("evidence", { recursive: true });
 await writeFile(
   "evidence/browser-bundle.json",
   JSON.stringify(

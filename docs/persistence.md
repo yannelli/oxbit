@@ -45,6 +45,6 @@ reveals lower-priority values. Browser-only workspaces keep host storage.
 Search replacement previews retain per-file selection and document versions.
 Applying a preview changes unsaved documents and reports failures per file.
 Browser searches use worker batches, stop at 10,000 results, and report
-unreadable files. The Explorer shows up to 20,000 entries. Editors above 1,048,576 UTF-16 code units
+unreadable files. The Explorer loads folders as they are expanded. Editors above 1,048,576 UTF-16 code units
 use a reduced feature set with an explicit notice; filesystem reads stop at
 20 MiB.

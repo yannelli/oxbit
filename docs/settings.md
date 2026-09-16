@@ -3,10 +3,10 @@
 Oxbit merges settings in this order, from lowest to highest priority:
 
 1. Built-in defaults.
-2. `~/.oxbit/settings.json` — user preferences shared across projects.
-3. `~/.oxbit/projects/<uuid>/settings.json` — private workspace overrides, using the same UUID as `project.json` and `intelligence.json`.
-4. `<project>/.config/oxbit/settings.json` — optional settings you can commit to the repository.
-5. `<project>/.config/oxbit/settings.local.json` — optional local overrides with the highest file priority.
+2. `~/.oxbit/settings.json` - user preferences shared across projects.
+3. `~/.oxbit/projects/<uuid>/settings.json` - private workspace overrides, using the same UUID as `project.json` and `intelligence.json`.
+4. `<project>/.config/oxbit/settings.json` - optional settings you can commit to the repository.
+5. `<project>/.config/oxbit/settings.local.json` - optional local overrides with the highest file priority.
 
 Oxbit creates the two private settings files when the workspace settings are first loaded. It only uses the project-root files when you create them manually. Add `.config/oxbit/settings.local.json` to your project's `.gitignore` if you want it to stay untracked; Oxbit does not edit that file for you. UUIDs derive from the canonical workspace root, so a symlink to a project uses the same private settings while moving the project changes its UUID.
 
@@ -80,6 +80,6 @@ For isolated hosts/tests, `OXBIT_SETTINGS_FILE` overrides the user settings path
 
 ## Verification
 
-Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery and both conflict resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Evidence is in `evidence/settings-files/`. Native desktop execution and CI are separate checks.
+Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery and both conflict resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Native desktop execution requires a separate check.
 
 Schema tests check generation freshness, all built-in defaults, partial overrides and invalid values. `pnpm exec tsx scripts/language/settings-schema.ts` exercises the real JSON language server for automatic associations at every location, nested completion, hover, diagnostics, canonical and local `$schema` references with zero remote schema requests. The browser journey also checks the distributable schema and visible project/language completion with downloads disabled.

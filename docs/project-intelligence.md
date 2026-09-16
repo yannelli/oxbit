@@ -65,7 +65,7 @@ The existing `languageServers.json.settings.json.schemas` setting remains suppor
 
 The `mdx` registry entry selects the pinned [`@mdx-js/language-server` 0.6.4](https://github.com/mdx-js/mdx-analyzer/tree/main/packages/language-server), installed automatically through the existing managed installer. Its TypeScript integration is enabled and uses the project SDK when available, with a managed SDK fallback. MDX has Markdown/JSX syntax fallback, a distinct file badge/settings scope and Prettier's MDX parser.
 
-Real-server checks cover embedded JavaScript completion/resolution, hover, cross-file definitions and document replay after restart. This does not claim full MDX compilation semantics from the syntax fallback or static project index.
+The syntax fallback and static project index do not implement full MDX compilation semantics.
 
 ## Laravel and Blade
 
@@ -83,7 +83,7 @@ Laravel's server inspects a running project through its PHP environment. The app
 }
 ```
 
-Real Laravel 13 checks cover named-route completion, route hover, view definitions into Blade, Blade directive snippets and restart. **The pinned upstream server returned no Blade `@include` string completions in the acceptance fixture.** That operation is recorded as an upstream limitation and is not counted as passing.
+The pinned server supports named-route completion, route hover, view definitions into Blade, and Blade directive snippets. Blade `@include` string completion is a known limitation.
 
 ## Runtime API and verification
 
@@ -103,4 +103,4 @@ pnpm --filter @oxbit/web build
 pnpm exec playwright test --config scripts/language/project-playwright.config.ts
 ```
 
-For a real Laravel application, create a disposable Composer project in a directory named `oxbit-laravel-acceptance.*`, run `php artisan package:discover`, then run `scripts/language/laravel-intelligence.ts` with `OXBIT_LARAVEL_FIXTURE` pointing to it. That script deliberately modifies fixture routes/views. `OXBIT_LSP_REPORT` saves real-server results. The managed-server CI workflow includes the new presets and the MDX/schema/project checks; a workflow definition is not evidence of a CI run.
+For a real Laravel application, create a disposable Composer project in a directory named `oxbit-laravel-acceptance.*`, run `php artisan package:discover`, then run `scripts/language/laravel-intelligence.ts` with `OXBIT_LARAVEL_FIXTURE` pointing to it. That script deliberately modifies fixture routes/views. `OXBIT_LSP_REPORT` saves real-server results. The managed-server CI workflow includes the MDX and Laravel presets and the MDX/schema/project checks.

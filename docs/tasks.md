@@ -128,9 +128,9 @@ Running processes and the last 1 MiB of output per run survive client reconnects
 
 ## Verification and implementation references
 
-- `pnpm test:tasks` — config round trips, real process/services, and real Git worktree hooks.
-- `pnpm test:tasks:browser` — built browser UI against a real runtime (run `pnpm build` first).
-- `pnpm desktop:test:build && pnpm test:tasks:native` — native WebView/private storage workflow.
-- `pnpm remote:prepare && pnpm remote:test` — isolated offline SSH fixture, including service port forwarding.
+- `pnpm test:tasks` - config round trips, real process/services, and real Git worktree hooks.
+- `pnpm test:tasks:browser` - built browser UI against a real runtime (run `pnpm build` first).
+- `pnpm desktop:test:build && pnpm test:tasks:native` - native WebView/private storage workflow.
+- `pnpm remote:prepare && pnpm remote:test` - isolated offline SSH fixture, including service port forwarding.
 
 Design references: [Paseo worktree/scripts configuration](https://github.com/getpaseo/paseo/blob/main/public-docs/worktrees.md), [Paseo config schema](https://github.com/getpaseo/paseo/blob/main/packages/protocol/src/paseo-config-schema.ts), [VS Code tasks](https://code.visualstudio.com/docs/debugtest/tasks), [VS Code launch configurations](https://code.visualstudio.com/docs/debugtest/debugging-configuration), and [JetBrains shared run configurations](https://www.jetbrains.com/help/idea/run-debug-configuration.html). This is an independent implementation within Oxbit's existing authenticated runtime and task/output extension.

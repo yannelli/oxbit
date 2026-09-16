@@ -1,23 +1,23 @@
-# Design reference ownership
+# Feature ownership
 
-The complete Phase 1 reference is preserved in `design/reference/`. Literal sample-project file contents seed the first IndexedDB workspace in `apps/web/src/seed.json`. Browser services do not import the reference mock adapters, diagnostics tables, terminal transcripts or collaboration fixtures. `design/baselines/` contains additional captures at the reference dimensions; original supplied images remain in `design/screenshots/`.
+This map lists workbench surfaces, commands, settings, and their owning packages. `apps/web/src/seed.json` supplies the sample files for a new browser workspace.
 
 ## Screens and states
 
-| Reference screen | States | Owner |
+| Surface | States | Owner |
 | --- | --- | --- |
 | Empty workspace | idle · opening (progress 5→100 %, 4 steps) | packages/workbench, packages/ui |
 | Workbench shell | desktop · tablet · phone · focus mode | packages/workbench, packages/ui |
 | Title bar | menus (File/Edit/View/Go/Terminal/Help) open/closed · workspace switcher open · connection popover · notification centre | packages/workbench, packages/ui |
 | Activity bar | explorer · search · scm · extensions (+ badges: unsaved, changes, updates) | packages/workbench, packages/ui |
-| Sidebar | visible/hidden · docked (desktop) · overlay (tablet) · sheet (phone) · width 180–520 | packages/workbench, packages/ui |
+| Sidebar | visible/hidden · docked (desktop) · overlay (tablet) · sheet (phone) · width 180-520 | packages/workbench, packages/ui |
 | Explorer | tree expanded/collapsed · selected · active-file bar · dirty dot · git badge (M/U/D/C) · diag dot · read-only lock · missing (strikethrough) · externally changed (italic) · renaming · creating (+ inline error) · drag-move confirm | packages/features/explorer |
-| Editor group | 1–3 groups · row/column split · active outline | packages/workbench, packages/ui |
+| Editor group | 1-3 groups · row/column split · active outline | packages/workbench, packages/ui |
 | Tab | active · inactive · preview (italic) · pinned · dirty (● replaces ×) · presence dot · missing (strikethrough) · dragging | packages/workbench, packages/ui |
 | Code editor | editable · read-only (banner, no caret) · externally changed (banner) · offline (banner) · conflict (toolbar + zones) · folded · find widget · widgets (hover/completion/signature/actions/rename/peek) · remote cursor · remote-edit flash | packages/features/editor, packages/features/language, packages/features/collaboration |
 | Diff | side-by-side · inline · git/saved/disk modes | packages/features/git |
 | Markdown | editor · preview · split | packages/features/previews |
-| Image | PNG/JPEG/GIF/WebP/AVIF/BMP/ICO/SVG · fit · 10–1600 % zoom · pixelated above 200 % · reload on external change · SVG open as text | packages/features/images |
+| Image | PNG/JPEG/GIF/WebP/AVIF/BMP/ICO/SVG · fit · 10-1600 % zoom · pixelated above 200 % · reload on external change · SVG open as text | packages/features/images |
 | Settings | user/workspace scope · search · modified · validation error | packages/features/settings |
 | Keyboard shortcuts | list · search · conflict rows · capture dialog (recording → keys → conflict → save/replace/keep both) | packages/features/settings |
 | Keymap | Oxbit default (unset) · VS Code · JetBrains · macOS · Sublime Text · Atom · Visual Studio · Emacs, selected by `workbench.keymap` | packages/features/keymaps |
@@ -36,7 +36,7 @@ The complete Phase 1 reference is preserved in `design/reference/`. Literal samp
 | Dialog | close-dirty · confirm (danger) · info · pick list · key capture | packages/workbench, packages/ui |
 | Notifications | toasts (≤3 desktop, 1 phone, auto-dismiss when `ttl`) · centre | packages/workbench, packages/ui |
 | Connection popover | online · offline · reconnecting · failed · recovered | apps/web, packages/host-runtime |
-| Phone | top bar · bottom tab bar · More sheet · full-screen palette · virtual keyboard sim | packages/workbench, packages/ui |
+| Phone | top bar · bottom tab bar · More sheet · full-screen palette | packages/workbench, packages/ui |
 
 ## Commands
 
@@ -169,7 +169,7 @@ Definitions and validation are owned by `packages/features/settings`. Consumers 
 
 ## Scenarios and journeys
 
-| Reference group | Runtime trigger | Owner |
+| Workflow | Runtime trigger | Owner |
 | --- | --- | --- |
 | 1. Shell | Open or close a persisted workspace; resize browser; toggle focus, split direction and panels; refresh | apps/web, packages/workbench |
 | 2. Files | Create, rename, move and delete files; runtime permissions, external edits and deletion generate file states | packages/features/explorer, packages/documents, apps/runtime |
@@ -190,5 +190,3 @@ Definitions and validation are owned by `packages/features/settings`. Consumers 
 | J5 | Run trusted task; stream output; navigate a file location | packages/features/tasks, apps/runtime |
 | J6 | Disable and enable Bundle Inspector; contributed surfaces dispose and return | packages/features/extensions, examples/bundle-inspector, packages/core |
 | J7 | Disconnect one session; edit retained Yjs document; reconnect and converge | packages/features/collaboration, packages/documents, apps/runtime |
-
-The reference review drawer and simulated phone keyboard are design inspection tools. Browser resizing and the device input method exercise application behavior. Verification results are recorded separately under `evidence/`.

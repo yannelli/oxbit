@@ -62,7 +62,7 @@ Services use string IDs and `get<T>` or `optional<T>`. Events use the SDK `Event
 
 Browser ESM shares page privileges; runtime ESM shares Node process privileges. Manifest capabilities do not sandbox code. Runtime requests require workspace grants. Exception handling cannot stop an infinite loop or process exit. Load reviewed artifacts.
 
-Native packaging and React Native are deferred. Before claiming Paseo v0.7.0 compatibility, test its exact lifecycle, theme, layout, filesystem, process, transport and disposal APIs. Debugging and AI implementations are deferred.
+React Native integration, debugging providers, and certified Paseo compatibility are not implemented. [Agent ACP](agent-acp.md) provides the bundled agent integration.
 
 ## Provider contributions
 
@@ -100,8 +100,7 @@ Menus use `location` for a named menu or context surface. Shortcuts use
 `command` plus `data.key`. Toolbar items use a component or command. Tabs and
 custom document views mount their components in editor groups; view metadata
 selects matching paths. Themes supply semantic CSS tokens, and icon
-contributions supply SVG paths. See [the public types](../packages/sdk/src/index.ts)
-and [the original surface contract](../design/extension-surfaces.md).
+contributions supply SVG paths. See [the public types](../packages/sdk/src/index.ts).
 
 Workbench notifications accept an optional timeout and up to three command
 actions. Command IDs route those actions through the command registry.
