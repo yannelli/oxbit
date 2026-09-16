@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -65,6 +66,27 @@ function banner(width, height) {
     lettering("footer", "#91a4a3", 72, height - 37, 0.011));
 }
 
+function dmgBackground() {
+  const width = 660;
+  const height = 400;
+  const app = { x: 180, y: 215 };
+  const folder = { x: 480, y: 215 };
+  let grid = "";
+  for (let x = 60; x < width; x += 60) grid += `<path d="M${x} 0V${height}"/>`;
+  for (let y = 50; y < height; y += 60) grid += `<path d="M0 ${y}H${width}"/>`;
+  const slot = ({ x, y }) => `<rect x="${x - 76}" y="${y - 76}" width="152" height="152" rx="28"/>`;
+  return svg(width, height, "Drag Oxbit to Applications",
+    `<rect width="${width}" height="${height}" fill="${ink}"/>` +
+    `<g stroke="#1c2226" fill="none">${grid}</g>` +
+    `<g stroke="#2c3a3a" stroke-width="2" stroke-dasharray="6 8" fill="none">${slot(app)}${slot(folder)}</g>` +
+    `<g stroke="${mint}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">` +
+    `<path d="M${app.x + 96} ${app.y}H${folder.x - 96}"/>` +
+    `<path d="M${folder.x - 118} ${app.y - 20}L${folder.x - 96} ${app.y}L${folder.x - 118} ${app.y + 20}"/></g>` +
+    `<g fill="${mint}"><rect x="118" y="348" width="4" height="4"/><rect x="598" y="58" width="4" height="4"/></g>` +
+    mark(mint, "translate(36 30) scale(1)") +
+    lettering("wordmark", paper, 114, 84, 0.055));
+}
+
 write("oxbit-github-banner.svg", banner(1280, 640));
 write("oxbit-social-card.svg", banner(1200, 630));
 write("oxbit-avatar.svg", svg(512, 512, "Oxbit app icon", `<rect width="512" height="512" fill="${ink}"/>${mark(mint, "translate(32 32) scale(7)")}`));
@@ -74,6 +96,9 @@ write("favicon.svg", favicon, publicDir);
 for (const [name, width] of [["oxbit-github-banner", 1280], ["oxbit-social-card", 1200], ["oxbit-avatar", 512], ["oxbit-mark", 512], ["oxbit-logo", 1120], ["oxbit-logo-dark", 1120]]) {
   png(path.join(brandDir, `${name}.svg`), path.join(brandDir, `${name}.png`), width);
 }
+const dmgSvg = path.join(tmpdir(), "oxbit-dmg-background.svg");
+writeFileSync(dmgSvg, dmgBackground());
+execFileSync("convert", ["-background", "none", "-density", "288", dmgSvg, "-resize", "1320x", "-units", "PixelsPerInch", "-density", "144", `PNG32:${path.join(root, "apps/desktop/src-tauri/dmg-background.png")}`]);
 for (const [name, width] of [["apple-touch-icon", 180], ["icon-192", 192], ["icon-512", 512]]) {
   png(path.join(brandDir, "oxbit-avatar.svg"), path.join(publicDir, `${name}.png`), width);
 }

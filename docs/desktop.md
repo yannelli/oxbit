@@ -119,6 +119,10 @@ signed build must run in your GUI login session. `launchctl managername` prints
 `Aqua` there and `Background` in an agent shell, an `ssh` session, or a launchd
 job; in a background session `codesign` fails with `errSecInternalComponent`.
 
+The DMG window uses `apps/desktop/src-tauri/dmg-background.png`, a 2x render
+produced by `node design/brand/export.mjs`; icon positions live under
+`bundle.macOS.dmg` in `tauri.conf.json`.
+
 DMG bundling runs an AppleScript that arranges the Finder window. It needs
 Automation permission for the terminal application, and without it `bundle_dmg.sh`
 exits 64 after `Finder got an error: AppleEvent timed out. (-1712)`. Set `CI=1`
