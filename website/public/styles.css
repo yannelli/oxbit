@@ -260,8 +260,39 @@ code, pre, kbd { font-family: var(--mono); }
 }
 .platform:hover .platform-shot { transform: translateY(-6px); border-color: rgba(139, 213, 202, 0.4); }
 .platform-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
-.platform-shot-phone { padding: 28px 28px 0; background: radial-gradient(ellipse at top, rgba(139, 213, 202, 0.16), var(--surface) 70%); }
-.platform-shot-phone img { width: 62%; margin: 0 auto; height: auto; border-radius: 22px 22px 0 0; border: 1px solid var(--line-strong); border-bottom: 0; object-fit: unset; }
+.platform-shot-mac { display: flex; flex-direction: column; }
+.mac-bar {
+  flex: none; display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px;
+  background: linear-gradient(to bottom, #e9ebe6, #dcdfda); border-bottom: 1px solid #c4c8c2;
+  font-size: 11.5px; color: #596365;
+}
+.mac-bar .wdot { width: 10px; height: 10px; }
+.mac-bar span:last-child { margin-inline: auto; padding-right: 44px; }
+.platform-shot-mac img { flex: 1; min-height: 0; }
+
+.platform-shot-devices {
+  position: relative;
+  background: radial-gradient(ellipse at 30% 20%, rgba(139, 213, 202, 0.18), transparent 55%), var(--surface);
+}
+.device {
+  position: absolute; overflow: hidden; background: #050607;
+  border: 1px solid #3a4046;
+  box-shadow: inset 0 0 0 1px #0b0d10, 0 30px 60px -20px rgba(0, 0, 0, 0.9);
+}
+.device img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.device-tablet {
+  left: 7%; top: 11%; width: 64%; aspect-ratio: 3 / 4; padding: 9px; border-radius: 16px;
+}
+.device-tablet img { border-radius: 8px; }
+.device-phone {
+  right: 6%; top: 30%; width: 27%; aspect-ratio: 390 / 844; padding: 5px; border-radius: 22px;
+  border-color: #4a5058;
+}
+.device-phone img { border-radius: 17px; }
+.island {
+  position: absolute; z-index: 2; top: 11px; left: 50%; transform: translateX(-50%);
+  width: 34%; height: 8px; border-radius: 999px; background: #000;
+}
 
 /* Split */
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
