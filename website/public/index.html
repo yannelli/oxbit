@@ -71,7 +71,7 @@
         <div class="hero-cta" data-reveal>
           <div class="cmd" data-copy-root>
             <span class="cmd-prompt">$</span>
-            <code data-copy-text>git clone https://github.com/yannelli/oxbit.git && cd oxbit && pnpm install && pnpm install:global</code>
+            <code data-copy-text>curl -fsSL https://oxbit.dev/install.sh | bash</code>
             <button class="copy" type="button" aria-label="Copy install command" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
@@ -79,6 +79,7 @@
           <div class="hero-buttons">
             <a class="btn btn-primary" href="#get-started">Install Oxbit</a>
             <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases" rel="noopener">Download desktop app</a>
+            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
           </div>
         </div>
       </div>
@@ -202,6 +203,7 @@
             </div>
             <h3>iPhone &amp; iPad</h3>
             <p>Edit the app's Documents folder or folders from Files. Connect to a runtime on another computer for terminals, Git, tasks, and language services. Pairing credentials live in Keychain.</p>
+            <a class="btn btn-ghost btn-sm" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join TestFlight</a>
           </article>
         </div>
       </div>
@@ -288,9 +290,9 @@
           <div class="cta-copy">
             <p class="kicker">Quick start</p>
             <h2>Up in a minute.</h2>
-            <p class="lead">Install Node 24, pnpm 9.15, Git, and ripgrep. Then:</p>
+            <p class="lead">On macOS or Linux, install Node 24, pnpm 9.15.0, Git, and ripgrep. Then:</p>
             <ol class="steps">
-              <li><span>1</span>Clone and build the workspace</li>
+              <li><span>1</span>Run the install script</li>
               <li><span>2</span>Run <code class="inline">oxbit</code> in any project</li>
               <li><span>3</span>Select <strong>Trust workspace tools</strong> in Runtime connection</li>
               <li><span>4</span>Open the command palette with <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></li>
@@ -300,10 +302,7 @@
             <button class="copy" type="button" aria-label="Copy quick start" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
-            <pre><code data-copy-text>git clone https://github.com/yannelli/oxbit.git
-cd oxbit
-pnpm install --frozen-lockfile
-pnpm install:global
+            <pre><code data-copy-text>curl -fsSL https://oxbit.dev/install.sh | bash
 
 oxbit ~/code/my-project</code></pre>
           </div>
