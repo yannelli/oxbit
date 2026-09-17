@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oxbit — A code editor in your browser</title>
+  <meta name="description" content="Oxbit is a code editor built with React and CodeMirror. It runs in a browser, on macOS and Linux, and on iPhone and iPad. Connect the Node runtime for files, terminals, Git, tasks, language services, and collaboration." />
+  <meta name="theme-color" content="#0e1013" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Oxbit — A code editor in your browser" />
+  <meta property="og:description" content="Split views, multiple cursors, language servers, Git, tasks, and terminals. In a browser, on the desktop, and on iPad." />
+  <meta property="og:image" content="/brand/oxbit-social-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-orb bg-orb-b"></div>
+    <div class="bg-noise"></div>
+  </div>
+
+  <header class="nav" data-nav>
+    <div class="container nav-inner">
+      <a class="brand" href="/" aria-label="Oxbit home">
+        <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
+        <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#platforms">Platforms</a>
+        <a href="#runtime">Runtime</a>
+        <a href="#extensions">Extensions</a>
+        <a href="https://github.com/yannelli/oxbit/tree/main/docs" rel="noopener">Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/yannelli/oxbit" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <a class="btn btn-primary btn-sm" href="#get-started">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow" data-reveal>
+          <span class="dot"></span>
+          v0.3.0 alpha · MIT licensed · Open source
+        </p>
+        <h1 class="hero-title" data-reveal>
+          A code editor<br />
+          <span class="grad">in your browser.</span>
+        </h1>
+        <p class="hero-sub" data-reveal>
+          Oxbit is built with React and CodeMirror. It runs in a browser, on macOS and Linux,
+          and on iPhone and iPad. Connect the Node runtime for files, terminals, Git, tasks,
+          language services, and collaboration.
+        </p>
+        <div class="hero-cta" data-reveal>
+          <div class="cmd" data-copy-root>
+            <span class="cmd-prompt">$</span>
+            <code data-copy-text>git clone https://github.com/yannelli/oxbit.git && cd oxbit && pnpm install && pnpm install:global</code>
+            <button class="copy" type="button" aria-label="Copy install command" data-copy>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <div class="hero-buttons">
+            <a class="btn btn-primary" href="#get-started">Install Oxbit</a>
+            <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases" rel="noopener">Download desktop app</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="container hero-shot" data-reveal data-tilt>
+        <div class="window">
+          <div class="window-bar">
+            <span class="wdot"></span><span class="wdot"></span><span class="wdot"></span>
+            <span class="window-title">orbit-dash — useTelemetry.ts</span>
+            <span class="window-pill"><span class="pulse"></span>Connected</span>
+          </div>
+          <img src="/screens/desktop-dark.png" alt="Oxbit editing a TypeScript project with the explorer, editor, and terminal panels open" width="1440" height="900" loading="eager" fetchpriority="high" />
+        </div>
+        <div class="shot-glow" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- MARQUEE -->
+    <section class="marquee" aria-label="Built with">
+      <div class="marquee-track">
+        <span>React</span><span>CodeMirror</span><span>Node runtime</span><span>Tauri</span><span>TypeScript</span><span>Language servers</span><span>Git</span><span>ripgrep</span><span>IndexedDB</span><span>MIT</span>
+        <span>React</span><span>CodeMirror</span><span>Node runtime</span><span>Tauri</span><span>TypeScript</span><span>Language servers</span><span>Git</span><span>ripgrep</span><span>IndexedDB</span><span>MIT</span>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <p class="kicker">Features</p>
+          <h2>Everything a workbench needs.<br /><span class="muted">Nothing it doesn't.</span></h2>
+        </div>
+
+        <div class="bento">
+          <article class="card card-wide" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg></div>
+            <h3>Split views and multiple cursors</h3>
+            <p>Find and replace, formatters, Markdown and HTML previews, themes, and icon packs. The editor is CodeMirror, tuned for long sessions.</p>
+            <div class="card-art art-editor" aria-hidden="true">
+              <pre><code><span class="k">export</span> <span class="k">function</span> <span class="f">useTelemetry</span>(deviceId: <span class="t">string</span>) {
+  <span class="k">const</span> [data, setData] = <span class="f">useState</span>&lt;<span class="t">Telemetry</span>&gt;();
+  <span class="k">const</span> [loading, setLoading] = <span class="f">useState</span>(<span class="n">true</span>);
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="k">let</span> cancelled = <span class="n">false</span>;<span class="cursor"></span>
+    <span class="k">async</span> <span class="k">function</span> <span class="f">tick</span>() { <span class="c">/* … */</span> }
+  }, [deviceId]);
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="card" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+            <h3>Managed language servers</h3>
+            <p>Completion, diagnostics, navigation, and formatting in trusted runtime workspaces.</p>
+          </article>
+
+          <article class="card" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6M9 6h3a3 3 0 0 1 3 3v0"/></svg></div>
+            <h3>Source Control</h3>
+            <p>Staging, commits, history, branches, remotes, stashes, and merge recovery.</p>
+          </article>
+
+          <article class="card" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg></div>
+            <h3>Terminals and tasks</h3>
+            <p>Import project commands. Run services, dependencies, and worktree lifecycle hooks.</p>
+          </article>
+
+          <article class="card" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <h3>Share Workspace</h3>
+            <p>Revocable collaboration grants. Tool trust and access grants have separate controls.</p>
+          </article>
+
+          <article class="card card-wide" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></div>
+            <h3>Recovery that keeps its word</h3>
+            <p>Browser workspaces persist files, settings, layout, and drafts in IndexedDB. Runtime workspaces check revisions before saving, preserve drafts, and reconnect surviving terminals. Commands with uncertain outcomes are not repeated automatically.</p>
+            <ul class="chips" aria-label="Recovery details">
+              <li>Drafts preserved</li><li>Revision checks</li><li>Terminal reconnect</li><li>Workspace JSON import / export</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLATFORMS -->
+    <section class="section section-alt" id="platforms">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <p class="kicker">Platforms</p>
+          <h2>One editor. Every screen.</h2>
+          <p class="lead">The same workbench in a browser tab, in a native desktop window, and on an iPad next to your coffee.</p>
+        </div>
+
+        <div class="platforms">
+          <article class="platform" data-reveal>
+            <div class="platform-shot">
+              <img src="/screens/desktop-dark.png" alt="Oxbit on desktop" width="1440" height="900" loading="lazy" />
+            </div>
+            <h3>Browser</h3>
+            <p>Open a directory with browser directory access, or pair with a runtime for files on disk. Nothing to install.</p>
+          </article>
+          <article class="platform" data-reveal>
+            <div class="platform-shot platform-shot-mac">
+              <div class="mac-bar"><span class="wdot"></span><span class="wdot"></span><span class="wdot"></span><span>Oxbit</span></div>
+              <img src="/screens/desktop-light.png" alt="Oxbit desktop app in the light theme" width="1440" height="900" loading="lazy" />
+            </div>
+            <h3>macOS &amp; Linux</h3>
+            <p>The Tauri desktop app bundles Node, ripgrep, the terminal addon, and managed language services. <strong>Connect over SSH</strong> opens a remote folder; the host does not need Node.</p>
+          </article>
+          <article class="platform" data-reveal>
+            <div class="platform-shot platform-shot-devices">
+              <div class="device device-tablet">
+                <img src="/screens/tablet-dark.png" alt="Oxbit on iPad" width="768" height="1024" loading="lazy" />
+              </div>
+              <div class="device device-phone">
+                <span class="island" aria-hidden="true"></span>
+                <img src="/screens/phone-dark.png" alt="Oxbit on iPhone" width="390" height="844" loading="lazy" />
+              </div>
+            </div>
+            <h3>iPhone &amp; iPad</h3>
+            <p>Edit the app's Documents folder or folders from Files. Connect to a runtime on another computer for terminals, Git, tasks, and language services. Pairing credentials live in Keychain.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- RUNTIME -->
+    <section class="section" id="runtime">
+      <div class="container split">
+        <div class="split-copy" data-reveal>
+          <p class="kicker">Runtime</p>
+          <h2>One command.<br />Your project, served.</h2>
+          <p class="lead">
+            <code class="inline">oxbit</code> starts a runtime, opens the editor in your browser, and returns to the shell.
+            Run it again in the same project and it reuses the runtime. The printed URL carries a pairing code
+            that the editor consumes and removes from the address bar.
+          </p>
+          <dl class="specs">
+            <div><dt><code class="inline">oxbit ~/code/app</code></dt><dd>Open a project</dd></div>
+            <div><dt><code class="inline">oxbit src/main.ts</code></dt><dd>Open a file in the current project</dd></div>
+            <div><dt><code class="inline">oxbit --status</code></dt><dd>Report the runtime serving this workspace</dd></div>
+            <div><dt><code class="inline">oxbit --stop</code></dt><dd>Stop the workspace runtime</dd></div>
+            <div><dt><code class="inline">oxbit --desktop</code></dt><dd>Open an installed desktop app</dd></div>
+          </dl>
+        </div>
+        <div class="split-art" data-reveal>
+          <div class="term" data-terminal>
+            <div class="window-bar">
+              <span class="wdot"></span><span class="wdot"></span><span class="wdot"></span>
+              <span class="window-title">zsh — ~/code/orbit-dash</span>
+            </div>
+            <pre class="term-body" aria-live="polite"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXTENSIONS -->
+    <section class="section section-alt" id="extensions">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <p class="kicker">Extensions</p>
+          <h2>Bring your agents.<br /><span class="muted">Build your own.</span></h2>
+        </div>
+        <div class="ext-grid">
+          <article class="card card-tall" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg></div>
+            <h3>Agent ACP</h3>
+            <p>Use Codex ACP, Cursor ACP, or Amp Agent ACP in a trusted runtime workspace. Conversation history, editor context, permission controls, diff review, and subagent tracking. Disabled by default; enable it in Extensions.</p>
+            <ul class="agents">
+              <li>Codex ACP</li><li>Cursor ACP</li><li>Amp Agent ACP</li>
+            </ul>
+          </article>
+          <article class="card card-tall" data-reveal data-spot>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+            <h3>Public SDK</h3>
+            <p>Register commands, panels, settings, status items, output channels, and document views. The Bundle Inspector example ships in the repo.</p>
+            <pre class="snippet"><code><span class="k">import type</span> { Extension } <span class="k">from</span> <span class="s">'@oxbit/sdk'</span>;
+
+<span class="k">export default</span> {
+  manifest: {
+    manifestVersion: <span class="n">1</span>,
+    id: <span class="s">'example.hello'</span>,
+    version: <span class="s">'1.0.0'</span>,
+    sdk: <span class="s">'^1.0.0'</span>,
+    activation: [<span class="s">'onCommand:hello.show'</span>],
+  },
+  <span class="f">activate</span>(ctx) {
+    ctx.commands.<span class="f">register</span>({
+      id: <span class="s">'hello.show'</span>,
+      title: <span class="s">'Hello: Show'</span>,
+      run: () =&gt; <span class="s">'Hello'</span>,
+    });
+  },
+} <span class="k">satisfies</span> <span class="t">Extension</span>;</code></pre>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- GET STARTED -->
+    <section class="section" id="get-started">
+      <div class="container">
+        <div class="cta-panel" data-reveal data-spot>
+          <div class="cta-copy">
+            <p class="kicker">Quick start</p>
+            <h2>Up in a minute.</h2>
+            <p class="lead">Install Node 24, pnpm 9.15, Git, and ripgrep. Then:</p>
+            <ol class="steps">
+              <li><span>1</span>Clone and build the workspace</li>
+              <li><span>2</span>Run <code class="inline">oxbit</code> in any project</li>
+              <li><span>3</span>Select <strong>Trust workspace tools</strong> in Runtime connection</li>
+              <li><span>4</span>Open the command palette with <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></li>
+            </ol>
+          </div>
+          <div class="cta-code" data-copy-root>
+            <button class="copy" type="button" aria-label="Copy quick start" data-copy>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <pre><code data-copy-text>git clone https://github.com/yannelli/oxbit.git
+cd oxbit
+pnpm install --frozen-lockfile
+pnpm install:global
+
+oxbit ~/code/my-project</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" />
+        <p>A code editor in your browser.</p>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h4>Project</h4>
+          <a href="https://github.com/yannelli/oxbit" rel="noopener">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases" rel="noopener">Releases</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE" rel="noopener">MIT License</a>
+        </div>
+        <div>
+          <h4>Docs</h4>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/architecture.md" rel="noopener">Architecture</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/sdk.md" rel="noopener">SDK reference</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/agent-acp.md" rel="noopener">Agent ACP</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/security.md" rel="noopener">Security</a>
+        </div>
+        <div>
+          <h4>Platforms</h4>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/desktop.md" rel="noopener">Desktop</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/remote-ssh.md" rel="noopener">SSH workspaces</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/docs/ios.md" rel="noopener">iOS and iPadOS</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <span>© 2026 Ryan Yannelli. MIT licensed.</span>
+      <span>Bundled fonts and dependencies retain their third-party licenses.</span>
+    </div>
+  </footer>
+
+  <script src="/main.js" defer></script>
+</body>
+</html>
