@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("workspace edges meet the chrome while pane resize gutters stay aligned", async ({ page }) => {
+test("workspace and pane gutters stay even on both sides", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
   await page.evaluate(() => {
@@ -32,14 +32,14 @@ test("workspace edges meet the chrome while pane resize gutters stay aligned", a
           outer: side === "left" ? dock.left - activity.right : body.right - dock.right,
           editorTop: main.top - title.bottom,
           editorBottom: status.top - main.bottom,
-          paneGap: desktop ? (side === "left" ? main.left - dock.right : dock.left - main.right) : 8,
+          paneGap: desktop ? (side === "left" ? main.left - dock.right : dock.left - main.right) : 4,
           editorEdge: side === "right" || !desktop ? main.left - activity.right : body.right - main.right,
         };
-      }, side)).toEqual({ top: 0, bottom: 0, outer: 0, editorTop: 0, editorBottom: 0, paneGap: 8, editorEdge: 0 });
+      }, side)).toEqual({ top: 4, bottom: 4, outer: 4, editorTop: 4, editorBottom: 4, paneGap: 4, editorEdge: 4 });
       if (width === 1700 && side === "right") {
         const editor = await page.locator(".editor-groups").boundingBox();
         const panel = await page.locator(".dock-bottom").boundingBox();
-        expect(panel!.y - editor!.y - editor!.height).toBe(8);
+        expect(panel!.y - editor!.y - editor!.height).toBe(4);
         await page.screenshot({ path: "evidence/workbench-spacing/right-explorer.png" });
       }
     }
@@ -55,6 +55,6 @@ test("workspace edges meet the chrome while pane resize gutters stay aligned", a
   });
   const activity = await page.locator(".activity-bar").boundingBox();
   const main = await page.locator(".main-workbench").boundingBox();
-  expect(main!.x).toBe(activity!.x + activity!.width);
-  expect(main!.x + main!.width).toBe(1440);
+  expect(main!.x).toBe(activity!.x + activity!.width + 4);
+  expect(main!.x + main!.width).toBe(1436);
 });

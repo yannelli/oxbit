@@ -436,7 +436,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .panel-dock>.dock-split{overflow:auto;min-width:0!important}
 
 /* Rounded workbench. The ClassicOS pack keeps its square chrome. */
-.workbench{--radius-control:6px;--radius-tab:8px;--radius-popup:10px;--radius-panel:12px;--workbench-gap:8px;--workbench-tab-inset:3px;--workbench-tab-height:calc(var(--tab) - 6px);--workbench-header-height:calc(var(--workbench-tab-height) + 2 * var(--workbench-tab-inset) + 1px)}
+.workbench{--radius-control:6px;--radius-tab:8px;--radius-popup:10px;--radius-panel:12px;--workbench-gap:4px;--workbench-tab-inset:3px;--workbench-tab-height:calc(var(--tab) - 6px);--workbench-header-height:calc(var(--workbench-tab-height) + 2 * var(--workbench-tab-inset) + 1px)}
 .workbench:not([data-theme-pack="oxbit.classicos98"]){
   --radius:var(--radius-control);
   & :is(.editor-group,.dock-group){border:1px solid var(--bd);border-radius:var(--radius-panel)}
@@ -479,12 +479,12 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   & .group-sash{flex-basis:var(--workbench-gap)}
   & .dock-split>.dock-sash.vertical{width:var(--workbench-gap)}
   & .dock-split>.dock-sash.horizontal{height:var(--workbench-gap)}
-  & .dock-left>.dock-sash{right:-6px}
-  & .dock-right>.dock-sash{left:-6px}
-  & .dock-bottom>.dock-sash{top:-6px}
+  & .dock-left>.dock-sash{right:calc((var(--workbench-gap) + 4px) / -2)}
+  & .dock-right>.dock-sash{left:calc((var(--workbench-gap) + 4px) / -2)}
+  & .dock-bottom>.dock-sash{top:calc((var(--workbench-gap) + 4px) / -2)}
 
   @media(min-width:600px){
-    & .workspace-body{gap:0;padding:0}
+    & .workspace-body{gap:var(--workbench-gap);padding:var(--workbench-gap)}
     & .main-workbench{gap:var(--workbench-gap)}
     & .activity-bar{border:0;padding:calc(var(--workbench-tab-inset) + 1px) 0}
     & .activity-bar>button{height:var(--tab)}
@@ -492,13 +492,9 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
     &.floating-workbench{padding:var(--workbench-gap);gap:var(--workbench-gap)}
   }
   @media(min-width:600px) and (max-width:1099px){
-    & .panel-dock.sidebar{top:0;bottom:0}
-    & .dock-left{left:40px}
-    & .dock-right{right:0}
-  }
-  @media(min-width:1100px){
-    /* Only resizable panes need a gutter; outer chrome stays flush. */
-    & .panel-dock.sidebar + .main-workbench,& .main-workbench + .panel-dock.sidebar{margin-left:var(--workbench-gap)}
+    & .panel-dock.sidebar{top:var(--workbench-gap);bottom:var(--workbench-gap)}
+    & .dock-left{left:calc(40px + 2 * var(--workbench-gap))}
+    & .dock-right{right:var(--workbench-gap)}
   }
   @media(max-width:599px){
     & :is(.editor-group,.dock-group){border-radius:var(--radius-panel) var(--radius-panel) 0 0}
