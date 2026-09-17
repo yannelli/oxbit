@@ -65,10 +65,7 @@ export function createFeature(o: FeatureOptions): Extension {
       });
     return React.createElement(
       "div",
-      {
-        className: "feature-search",
-        style: { padding: 12, display: "grid", gap: 8 },
-      },
+      { className: "feature-search" },
       React.createElement("input", {
         "aria-label": tr("Search files"),
         placeholder: tr("Search"),
@@ -80,7 +77,7 @@ export function createFeature(o: FeatureOptions): Extension {
       }),
       React.createElement(
         "div",
-        null,
+        { className: "search-options" },
         ...(["caseSensitive", "wholeWord", "regex"] as const).map((key, i) =>
           React.createElement(
             "label",
@@ -117,21 +114,29 @@ export function createFeature(o: FeatureOptions): Extension {
       }),
       React.createElement(
         "div",
-        null,
+        { className: "search-actions" },
         React.createElement(
           "button",
-          { onClick: () => void run(), disabled: busy },
+          {
+            className: "button primary",
+            onClick: () => void run(),
+            disabled: busy,
+          },
           tr("Search"),
         ),
         busy &&
           React.createElement(
             "button",
-            { onClick: () => controller.current?.abort() },
+            {
+              className: "button",
+              onClick: () => controller.current?.abort(),
+            },
             tr("Cancel"),
           ),
         React.createElement(
           "button",
           {
+            className: "button",
             disabled: !results.length || busy,
             onClick: () =>
               void service.preview(results, searched, replace).then(
@@ -157,7 +162,7 @@ export function createFeature(o: FeatureOptions): Extension {
       preview &&
         React.createElement(
           "div",
-          null,
+          { className: "search-actions" },
           React.createElement(
             "strong",
             null,
@@ -168,6 +173,7 @@ export function createFeature(o: FeatureOptions): Extension {
           React.createElement(
             "button",
             {
+              className: "button primary",
               disabled: !selected.size,
               onClick: () =>
                 void service
@@ -193,6 +199,7 @@ export function createFeature(o: FeatureOptions): Extension {
           React.createElement(
             "button",
             {
+              className: "button",
               onClick: () =>
                 void o.workbench
                   .ask(
@@ -209,14 +216,14 @@ export function createFeature(o: FeatureOptions): Extension {
         ),
       React.createElement(
         "div",
-        { role: "list", "aria-label": tr("Search results") },
+        { role: "list", "aria-label": tr("Search results"), className: "search-results" },
         ...[...groups].map(([path, matches]) =>
           React.createElement(
             "section",
             { key: path, role: "listitem", "aria-label": path },
             React.createElement(
               "h3",
-              { style: { margin: "8px 0", fontSize: "inherit" } },
+              { className: "search-file" },
               preview &&
                 React.createElement("input", {
                   type: "checkbox",
@@ -240,18 +247,14 @@ export function createFeature(o: FeatureOptions): Extension {
                       from: match.from,
                       to: match.to,
                     }),
-                  style: { display: "block", textAlign: "left", width: "100%" },
+                  className: "search-match",
                 },
                 React.createElement(
                   "span",
                   { className: "muted" },
                   match.line + ":" + match.column,
                 ),
-                React.createElement(
-                  "pre",
-                  { style: { whiteSpace: "pre-wrap", margin: 2 } },
-                  match.text,
-                ),
+                React.createElement("pre", null, match.text),
                 preview && React.createElement("ins", null, match.replacement),
               ),
             ),

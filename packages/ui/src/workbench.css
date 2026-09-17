@@ -502,6 +502,25 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   }
 }
 
+/* Workspace search panel */
+.feature-search{display:flex;flex-direction:column;gap:8px;padding:10px 12px;height:100%;overflow:auto;font-size:calc(var(--font-body-font-size) * 1)}
+.feature-search>input{width:100%;min-height:30px;padding:5px 10px;margin:0}
+.search-options{display:flex;flex-wrap:wrap;gap:4px 14px;padding:0 2px}
+.search-options>label{display:inline-flex;align-items:center;gap:6px;min-height:24px;white-space:nowrap;color:var(--fg-2);cursor:pointer}
+.search-options input[type=checkbox]{margin:0}
+.search-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:2px}
+.search-actions>strong{flex:1 0 100%;color:var(--fg-2);font-size:calc(var(--font-small-font-size) * 1)}
+.feature-search p[role=alert]{margin:0;color:var(--err);white-space:pre-wrap;overflow-wrap:anywhere}
+.feature-search [role=status]>p{margin:0;color:var(--warn)}
+.search-results{display:flex;flex-direction:column;gap:6px;margin:4px -6px 0}
+.search-file{display:flex;align-items:center;gap:6px;margin:0;padding:0 6px;min-height:var(--row);font-size:calc(var(--font-label-font-size) * 0.916667);font-weight:clamp(100,calc(var(--font-label-font-weight) + 200),900);color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-file>input[type=checkbox]{margin:0}
+.search-match{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:2px 8px;width:100%;padding:3px 6px 3px 12px;border-radius:var(--radius-control,6px);text-align:left;color:var(--fg-2)}
+.search-match:hover{background:var(--bg-hover);color:var(--fg)}
+.search-match>.muted{flex:none;min-width:5ch;font-family:var(--font-mono);font-size:calc(var(--font-mono-font-size) * 0.833333);font-variant-numeric:tabular-nums}
+.search-match>pre{min-width:0;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:calc(var(--font-mono-font-size) * 0.916667)}
+.search-match>ins{grid-column:2;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;color:var(--ok);background:var(--add-soft);border-radius:3px;padding:0 4px;font-family:var(--font-mono);font-size:calc(var(--font-mono-font-size) * 0.916667)}
+
 /* Tasks and services */
 .tasks-panel { display:flex; flex-direction:column; height:100%; min-height:0; color:var(--fg); background:var(--bg-surface); font-size:calc(var(--font-body-font-size) * 1.000000); }
 .tasks-toolbar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--bd); flex-wrap:wrap; flex-shrink:0; }
