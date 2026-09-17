@@ -1,8 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { htmlPreviewTests } from "./html-preview.js";
+import { previewResourceTests } from "./preview-resources.js";
 
 htmlPreviewTests();
+previewResourceTests();
 
 test("the iOS shell fills the screen after a stale keyboard accessory inset", async ({ page }) => {
   await ready(page);

@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import type { FeatureOptions } from "@oxbit/sdk";
 import { IconButton, translate as tr } from "@oxbit/ui";
 import { isHtmlPath, prepareHtmlPreview } from "./html.js";
-import { resolvePreviewLink } from "./policy.js";
+import { resolvePreviewLink, type PreviewResourceTrust } from "./policy.js";
+import { PreviewResourceControl } from "./resource-trust.js";
 
 export function createHtmlPreview(o: FeatureOptions) {
   return function HtmlPreview({ path }: { path: string }) {
     const [history, setHistory] = useState([path]);
     const current = history[history.length - 1]!;
     const [revision, setRevision] = useState(0);
+    const [trust, setTrust] = useState<PreviewResourceTrust>("local");
     const [preview, setPreview] = useState<Awaited<ReturnType<typeof prepareHtmlPreview>>>();
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
@@ -40,6 +42,7 @@ export function createHtmlPreview(o: FeatureOptions) {
       setError("");
       void prepareHtmlPreview({
         path: current,
+        trust,
         filesystem: o.filesystem,
         signal: controller.signal,
         dependencies: dependencies.current,
@@ -57,7 +60,7 @@ export function createHtmlPreview(o: FeatureOptions) {
         }
       });
       return () => controller.abort();
-    }, [current, revision]);
+    }, [current, revision, trust]);
 
     useEffect(() => {
       const restore = () => {
@@ -99,6 +102,7 @@ export function createHtmlPreview(o: FeatureOptions) {
         <IconButton icon="refresh" label={tr("Refresh HTML preview")} onClick={() => setRevision(value => value + 1)} />
         <button className="button" onClick={openSource}>{tr("Open source")}</button>
       </div>
+      <PreviewResourceControl trust={trust} onChange={setTrust} />
       {loading && <div className="html-preview-message" role="status">{tr("Loading preview…")}</div>}
       {error && <div className="html-preview-message error-text" role="alert">{error}</div>}
       {!!preview?.warnings.length && <details className="html-preview-message">
@@ -106,7 +110,7 @@ export function createHtmlPreview(o: FeatureOptions) {
         {preview.warnings.map(warning => <p key={warning}>{tr(warning)}</p>)}
       </details>}
       {preview?.scripts && <div className="html-preview-message">{tr("HTML & CSS preview · JavaScript is disabled")}</div>}
-      {preview && !error && <iframe ref={frame} className="html-preview-frame" title={tr("HTML preview")}
+      {preview && preview.trust === trust && !error && <iframe ref={frame} className="html-preview-frame" title={tr("HTML preview")}
         sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={preview.html} />}
     </div>;
   };
