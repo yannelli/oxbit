@@ -563,6 +563,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .task-output-text,.task-definition { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; font:var(--font-mono-font-size)/1.55 var(--font-mono); }
 .task-file-link { display:block; background:none; border:0; padding:0; color:inherit; text-align:left; font:inherit; }
 .task-file-link:hover { text-decoration:underline; }
+.task-url-link { color:var(--link-foreground,var(--accent)); text-decoration:underline; cursor:pointer; }
 .tasks-empty { display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:20px; text-align:center; color:var(--fg-3); }
 .tasks-empty strong { color:var(--fg); font-weight:500; }
 .tasks-empty p { max-width:420px; line-height:1.6; margin:0; }
