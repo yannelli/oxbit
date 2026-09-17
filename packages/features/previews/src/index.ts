@@ -3,7 +3,9 @@ import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
-import { resolvePreviewLink, headingId, scrollFraction } from "./policy.js";
+import { resolvePreviewLink, headingId, scrollFraction, type PreviewResourceTrust } from "./policy.js";
+import { createPreviewResources, type PreviewResourceOptions } from "./resources.js";
+import { PreviewResourceControl } from "./resource-trust.js";
 import { createHtmlPreview } from "./html-preview.js";
 import { isHtmlPath } from "./html.js";
 import { audioTypes, createMediaPreview } from "./media-preview.js";
@@ -24,7 +26,7 @@ renderer.renderer.rules.heading_open = (tokens, index, options, env, self) => {
     tokens[index]!.attrSet("data-source-line", String(tokens[index]!.map![0]));
   return self.renderToken(tokens, index, options);
 };
-export function renderMarkdown(text: string) {
+export function renderMarkdown(text: string, images = false) {
   return DOMPurify.sanitize(renderer.render(text, { headings: new Map() }), {
     FORBID_TAGS: [
       "style",
@@ -36,22 +38,37 @@ export function renderMarkdown(text: string) {
       "input",
       "video",
       "audio",
-      "img",
+      ...(images ? [] : ["img"]),
     ],
     FORBID_ATTR: ["style", "srcset", "target"],
     ALLOW_DATA_ATTR: false,
     ADD_ATTR: ["data-source-line"],
   });
 }
+
+async function prepareMarkdownPreview(options: PreviewResourceOptions) {
+  const { text, resource, warnings } = createPreviewResources(options);
+  const template = document.createElement("template");
+  template.innerHTML = renderMarkdown(await text(options.path), true);
+  for (const image of template.content.querySelectorAll("img")) {
+    image.setAttribute("src", await resource(options.path, image.getAttribute("src") ?? ""));
+    image.setAttribute("referrerpolicy", "no-referrer");
+  }
+  options.signal.throwIfAborted();
+  return { html: template.innerHTML, warnings: [...warnings] };
+}
+
 export function createFeature(o: FeatureOptions): Extension {
   const ownedViews = new Set<string>();
   const HtmlPreview = createHtmlPreview(o);
   const PdfPreview = createMediaPreview(o, "pdf");
   const AudioPreview = createMediaPreview(o, "audio");
   function Preview({ path }: { path: string }) {
-    const [html, setHtml] = useState(""),
-      [error, setError] = useState("");
+    const [trust, setTrust] = useState<PreviewResourceTrust>("local");
+    const [preview, setPreview] = useState({ html: "", warnings: [] as string[], trust });
+    const [error, setError] = useState("");
     const ref = useRef<HTMLElement>(null);
+    const dependencies = useRef(new Set([path]));
     useEffect(() => {
       let stopped = false,
         frame = 0,
@@ -59,26 +76,39 @@ export function createFeature(o: FeatureOptions): Extension {
         source: HTMLElement | undefined;
       let syncing = false;
       const preview = ref.current;
+      let controller: AbortController | undefined;
       const update = () => {
+        controller?.abort();
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => {
-          const doc = o.documents.get(path);
-          if (doc && !stopped) {
-            try {
-              setHtml(renderMarkdown(doc.text.toString()));
-              setError("");
-            } catch (failure) {
-              setError(String(failure));
-            }
-          }
+          if (stopped) return;
+          const request = new AbortController();
+          controller = request;
+          dependencies.current = new Set([path]);
+          void prepareMarkdownPreview({
+            path, trust, signal: request.signal, filesystem: o.filesystem,
+            dependencies: dependencies.current,
+            readText: async file => {
+              const doc = o.documents.get(file);
+              if (doc?.state === "missing") throw new Error(tr("File no longer exists"));
+              return doc ? doc.text.toString() : (await o.filesystem.read(file)).text;
+            },
+          }).then(result => {
+            if (!request.signal.aborted) { setPreview({ ...result, trust }); setError(""); }
+          }).catch((failure: unknown) => {
+            if (!request.signal.aborted) setError(String(failure));
+          });
         });
       };
       void o.documents
         .open(path)
         .then(update)
-        .catch((failure: unknown) => setError(String(failure)));
+        .catch((failure: unknown) => { if (!stopped) setError(String(failure)); });
       const onChange = o.kernel.events.on("document.change", ({ id }) => {
-        if (o.documents.get(path)?.id === id) update();
+        if ([...dependencies.current].some(file => o.documents.get(file)?.id === id)) update();
+      });
+      const files = o.filesystem.watch(change => {
+        if (dependencies.current.has(change.path)) update();
       });
       const scroll = (from: HTMLElement, to: HTMLElement) => {
         if (syncing) return;
@@ -112,14 +142,16 @@ export function createFeature(o: FeatureOptions): Extension {
       preview?.addEventListener("scroll", fromPreview, { passive: true });
       return () => {
         stopped = true;
+        controller?.abort();
         cancelAnimationFrame(frame);
         cancelAnimationFrame(scrollFrame);
         onChange.dispose();
+        files.dispose();
         active.dispose();
         source?.removeEventListener("scroll", fromSource);
         preview?.removeEventListener("scroll", fromPreview);
       };
-    }, [path]);
+    }, [path, trust]);
     return React.createElement(
       "div",
       { className: "markdown-document" },
@@ -135,6 +167,12 @@ export function createFeature(o: FeatureOptions): Extension {
           },
           tr("Open source"),
         ),
+      ),
+      React.createElement(PreviewResourceControl, { trust, onChange: setTrust }),
+      preview.trust === trust && preview.warnings.length > 0 && React.createElement(
+        "details", { className: "html-preview-message" },
+        React.createElement("summary", null, tr("Some preview resources could not be loaded")),
+        ...preview.warnings.map(warning => React.createElement("p", { key: warning }, tr(warning))),
       ),
       error &&
         React.createElement(
@@ -188,7 +226,7 @@ export function createFeature(o: FeatureOptions): Extension {
             await o.workbench.openFile(target.path, { line });
           })().catch((error) => o.workbench.notify(String(error), "error"));
         },
-        dangerouslySetInnerHTML: { __html: html },
+        dangerouslySetInnerHTML: { __html: preview.trust === trust && !error ? preview.html : "" },
       }),
     );
   }

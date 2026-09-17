@@ -3,6 +3,24 @@ export type PreviewLink =
   | { kind: "anchor"; id: string }
   | { kind: "file"; path: string; anchor?: string }
   | { kind: "blocked"; reason: string };
+export type PreviewResourceTrust = "local" | "external";
+
+export function externalPreviewResource(href: string, trust: PreviewResourceTrust): string | undefined {
+  if (trust !== "external") return;
+  const value = href.trim();
+  if (value.includes("\\") || [...value].some(char => char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127)) return;
+  try {
+    const url = new URL(value.startsWith("//") ? `https:${value}` : value);
+    if ((url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password)
+      return url.href;
+  } catch { return; }
+}
+
+export function previewResourcePolicy(trust: PreviewResourceTrust): string {
+  const sources = trust === "external" ? "data: https: http:" : "data:";
+  return `style-src 'unsafe-inline' ${sources}; img-src ${sources}; font-src ${sources}; media-src ${sources}`;
+}
+
 export function resolvePreviewLink(
   sourcePath: string,
   href: string,
