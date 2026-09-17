@@ -1,7 +1,7 @@
 {
   "name": "Oxbit",
   "short_name": "Oxbit",
-  "description": "A code editor in your browser.",
+  "description": "An open source dev environment that runs anywhere.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#14161a",

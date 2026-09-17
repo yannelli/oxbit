@@ -53,7 +53,7 @@ function banner(width, height) {
   for (let i = 0; i <= 5; i++) {
     grid += `<path d="M${left + i * 64} 96V${height - 96}M${left} ${160 + i * 64}H${width - 72}"/>`;
   }
-  return svg(width, height, "Oxbit — A code editor in your browser.",
+  return svg(width, height, "Oxbit — An open source dev environment that runs anywhere.",
     `<rect width="${width}" height="${height}" fill="${ink}"/>` +
     `<path d="M72 72H${width - 72}M72 ${height - 72}H${width - 72}" stroke="#30363b"/>` +
     `<g stroke="#263136" fill="none">${grid}</g>` +
@@ -62,7 +62,7 @@ function banner(width, height) {
     `<path d="M${left + 180} ${height / 2 - 100}h48v48h-48z" fill="${mint}"/>` +
     mark(mint, `translate(40 ${height / 2 - 140}) scale(3.5)`) +
     lettering("wordmark", paper, 286, height / 2 + 27, 0.182) +
-    lettering("descriptor", "#abb4b5", 291, height / 2 + 87, 0.023) +
+    lettering("descriptor", "#abb4b5", 291, height / 2 + 87, 0.0195) +
     lettering("footer", "#91a4a3", 72, height - 37, 0.011));
 }
 
@@ -106,7 +106,7 @@ execFileSync("convert", ["-background", "none", "-density", "288", path.join(pub
 write("site.webmanifest", JSON.stringify({
   name: "Oxbit",
   short_name: "Oxbit",
-  description: "A code editor in your browser.",
+  description: "An open source dev environment that runs anywhere.",
   start_url: "/",
   display: "standalone",
   background_color: ink,
