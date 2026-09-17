@@ -12,9 +12,9 @@ npx wrangler login
 npm run deploy
 ```
 
-`wrangler deploy` uploads `public/` and creates the `oxbit-site` Worker on
-`oxbit-site.<account>.workers.dev`. Add a custom domain in the Cloudflare
-dashboard under Workers & Pages → oxbit-site → Settings → Domains & Routes.
+`wrangler deploy` uploads `public/` and creates the `oxbit` Worker on
+`oxbit.<account>.workers.dev`. Add a custom domain in the Cloudflare
+dashboard under Workers & Pages → oxbit → Settings → Domains & Routes.
 
 ## Local preview
 

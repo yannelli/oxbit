@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "oxbit-site",
+  "name": "oxbit",
   "compatibility_date": "2025-10-01",
   "assets": {
     "directory": "./public",
