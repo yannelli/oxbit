@@ -27,6 +27,8 @@ jobs:
       - name: Debug simulator build
         run: pnpm ios:simulator
       - run: pnpm exec playwright install --with-deps webkit chromium
+      - name: Build runtime and web fixtures for browser journeys
+        run: pnpm build
       - name: Browser journeys on the WebKit phone profile
         run: pnpm test:browser --project webkit-phone
       - uses: actions/upload-artifact@v4
