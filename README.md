@@ -1,4 +1,4 @@
-![Oxbit: A code editor in your browser.](apps/web/public/brand/oxbit-github-banner.png)
+![Oxbit: An open source dev environment that runs anywhere.](apps/web/public/brand/oxbit-github-banner.png)
 
 Oxbit is a code editor built with React and CodeMirror. It runs in a browser,
 on macOS and Linux, and on iPhone and iPad. Connect the Node runtime for files,
