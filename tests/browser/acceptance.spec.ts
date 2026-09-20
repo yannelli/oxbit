@@ -102,6 +102,25 @@ test("localized settings persist and fit the phone viewport", async ({
   await expect(page.getByPlaceholder("Search settings")).toBeVisible();
 });
 
+test("spanish japanese and chinese display languages switch", async ({
+  page,
+}) => {
+  await ready(page);
+  for (const [locale, placeholder] of [
+    ["es", "Buscar en la configuración"],
+    ["ja", "設定を検索"],
+    ["zh", "搜索设置"],
+  ] as const) {
+    await page.evaluate(async (next) => {
+      const z = (window as any).__oxbit;
+      z.kernel.configuration.set("workbench.locale", next);
+      await z.kernel.commands.execute("settings.open");
+    }, locale);
+    await expect(page.locator("html")).toHaveAttribute("lang", locale);
+    await expect(page.getByPlaceholder(placeholder)).toBeVisible();
+  }
+});
+
 test("the printed pairing link opens the runtime workspace on first launch", async ({
   page,
 }) => {
