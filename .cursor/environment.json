@@ -9,12 +9,12 @@
     {
       "name": "runtime",
       "description": "Oxbit Node runtime for the /workspace project (files, terminals, tasks, Git, language services). Pair the web UI to http://127.0.0.1:9277 using the printed owner pairing code.",
-      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export PATH=\"$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; export OXBIT_WORKSPACE=/workspace OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 OXBIT_WATCH_POLLING=1; pnpm dev"
+      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export BUN_INSTALL=\"${BUN_INSTALL:-$HOME/.bun}\"; export PATH=\"$BUN_INSTALL/bin:$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; export OXBIT_WORKSPACE=/workspace OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 OXBIT_WATCH_POLLING=1; bun run dev"
     },
     {
       "name": "web",
       "description": "Oxbit React web UI with hot reload. Open http://localhost:9279 and pair with the runtime terminal's pairing code.",
-      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export PATH=\"$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; pnpm dev:web"
+      "command": "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null 2>&1; export BUN_INSTALL=\"${BUN_INSTALL:-$HOME/.bun}\"; export PATH=\"$BUN_INSTALL/bin:$NVM_DIR/versions/node/$(nvm version default)/bin:$PATH\"; bun run dev:web"
     }
   ]
 }

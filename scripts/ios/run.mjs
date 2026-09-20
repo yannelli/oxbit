@@ -5,7 +5,8 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const crate = fileURLToPath(new URL("../../apps/ios/src-tauri/", import.meta.url));
 const run = (command, args, cwd = root, env = process.env) =>
   execFileSync(command, args, { cwd, env, stdio: "inherit" });
-const tauri = (...args) => run("pnpm", ["--filter", "@oxbit/ios", "exec", "tauri", ...args]);
+const tauri = (...args) =>
+  run("bun", ["run", "--filter", "@oxbit/ios", "tauri", "--", ...args]);
 const buildDir = fileURLToPath(new URL("../../apps/ios/src-tauri/gen/apple/build/", import.meta.url));
 const profileDir = `${process.env.HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles`;
 
@@ -83,7 +84,7 @@ if (!process.env.DEVELOPER_DIR) {
 // The Tauri CLI spawns xcodebuild with only HOME, PATH, and TERM; the shims restore DEVELOPER_DIR.
 process.env.PATH = fileURLToPath(new URL("./xcode-shim", import.meta.url)) + ":" + process.env.PATH;
 if (mode === "init") tauri("ios", "init", ...extra);
-if (["dev", "build", "adhoc", "simulator"].includes(mode)) run("pnpm", ["build:example"]);
+if (["dev", "build", "adhoc", "simulator"].includes(mode)) run("bun", ["run", "build:example"]);
 if (mode === "dev") tauri("ios", "dev", ...extra);
 const exportMethod = extra.includes("--export-method") ? [] : ["--export-method", "app-store-connect"];
 if (mode === "build") tauri("ios", "build", ...exportMethod, ...extra);
@@ -113,7 +114,7 @@ if (mode === "upload") {
   run("xcrun", ["altool", "--upload-app", "-t", "ios", "-f", ipa, "--apiKey", process.env.APPLE_API_KEY, "--apiIssuer", process.env.APPLE_API_ISSUER]);
 }
 if (mode === "check") {
-  run("pnpm", ["--filter", "@oxbit/ios", "build"]);
+  run("bun", ["run", "--filter", "@oxbit/ios", "build"]);
   run("cargo", ["fmt", "--all", "--", "--check"], crate);
   run("cargo", ["clippy", "--locked", "--all-targets", "--", "-D", "warnings"], crate);
   run("cargo", ["test", "--locked"], crate);

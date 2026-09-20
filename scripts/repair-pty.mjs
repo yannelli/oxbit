@@ -4,7 +4,7 @@ import path from "node:path";
 
 // node-pty 1.1.0 ships macOS prebuild helpers with mode 0644. Repair the
 // installed files after install and before build/start, including when install
-// scripts were skipped. Resolve from the runtime so pnpm's layout also works.
+// scripts were skipped. Resolve from the runtime so workspace layouts also work.
 if (process.platform === "darwin") {
   const require = createRequire(
     new URL("../apps/runtime/package.json", import.meta.url),

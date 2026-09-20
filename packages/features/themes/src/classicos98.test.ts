@@ -69,6 +69,7 @@ describe("ClassicOS 98 icon pack", () => {
     expect(definition("src/app.tsx")).toBe("react");
     expect(definition("README.md")).toBe("markdown");
     expect(definition("pnpm-lock.yaml")).toBe("lock");
+    expect(definition("bun.lock")).toBe("lock");
     expect(definition("notes.unknown")).toBe("file");
     expect(definition("src", { folder: true })).toBe("folder");
     expect(definition("src", { folder: true, expanded: true })).toBe(

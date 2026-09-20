@@ -46,7 +46,7 @@ const configuration = {
   },
 };
 try {
-  execFileSync("pnpm", ["--filter", "@oxbit/desktop", "build"], {
+  execFileSync("bun", ["run", "--filter", "@oxbit/desktop", "build"], {
     cwd: root,
     stdio: "inherit",
     env: { ...process.env, VITE_DESKTOP_TEST: "1" },
@@ -62,8 +62,8 @@ try {
     binary,
   );
   execFileSync(
-    "pnpm",
-    ["exec", "wdio", "run", "tests/desktop/panels.wdio.conf.mjs"],
+    "bun",
+    ["x", "wdio", "run", "tests/desktop/panels.wdio.conf.mjs"],
     {
       cwd: root,
       stdio: "inherit",

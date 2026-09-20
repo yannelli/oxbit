@@ -22,8 +22,8 @@ Native panel dragging uses pointer capture, preserving the operating system file
 
 ## Verification
 
-- `pnpm exec vitest run packages/workbench/src/panel-layout.test.ts packages/workbench/src/controller.test.ts`
-- `pnpm exec playwright test tests/browser/panel-docking.spec.ts tests/browser/panel-design.spec.ts --reporter=list` after building the web application.
+- `bunx vitest run packages/workbench/src/panel-layout.test.ts packages/workbench/src/controller.test.ts`
+- `bunx playwright test tests/browser/panel-docking.spec.ts tests/browser/panel-design.spec.ts --reporter=list` after building the web application.
 - `node scripts/desktop/test-panels.mjs` builds and snapshots a native-test executable with a separate application identifier and driver port. It uses the existing staged desktop runtime.
 
 The browser suite covers both dock directions, nested splits, keyboard resizing, drag-and-drop, state retention, popup failure/recovery, themes, small screens, live terminals and a fixture agent connection. The native suite exercises related windows and close cancellation separately.

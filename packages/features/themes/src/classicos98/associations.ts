@@ -45,6 +45,8 @@ const names: Record<string, string[]> = {
     "package-lock.json",
     "pnpm-lock.yaml",
     "yarn.lock",
+    "bun.lock",
+    "bun.lockb",
     "cargo.lock",
     "poetry.lock",
     "gemfile.lock",

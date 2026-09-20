@@ -117,7 +117,7 @@ try {
         scope:
           "Installed production WebView opened and persisted a real project using application resources and a minimal environment",
         systemTools: await Promise.all(
-          ["node", "pnpm", "git", "gh"].map(async (name) => ({
+          ["node", "bun", "git", "gh"].map(async (name) => ({
             name,
             present: await fs.access("/usr/bin/" + name).then(
               () => true,

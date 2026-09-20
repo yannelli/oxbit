@@ -155,7 +155,7 @@ Open index.html for previews and individual downloads. The parent oxbit-brand-ki
 
 ## Regenerate
 
-From the repository root, run \`node scripts/render-brand-assets.mjs\`. Requires the existing @playwright/test dependency, its Chromium browser (\`pnpm exec playwright install chromium\`), and the system zip command. PNG dimensions and alpha coverage are checked during rendering. The script also rebuilds the full brand-kit ZIP.
+From the repository root, run \`node scripts/render-brand-assets.mjs\`. Requires the existing @playwright/test dependency, its Chromium browser (\`bunx playwright install chromium\`), and the system zip command. PNG dimensions and alpha coverage are checked during rendering. The script also rebuilds the full brand-kit ZIP.
 `;
 await writeFile(join(output, 'README.md'), readme);
 await writeFile(join(output, 'manifest.json'), JSON.stringify({ squareSizes: sizes, modes, assets: files }, null, 2) + '\n');

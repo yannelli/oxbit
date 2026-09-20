@@ -1,6 +1,6 @@
 # Dependencies
 
-Package manifests declare JavaScript dependencies; `pnpm-lock.yaml` records their resolved versions. Install the checked-in versions with `pnpm install --frozen-lockfile`. The root `package.json` pins pnpm and requires Node 24.
+Package manifests declare JavaScript dependencies; `bun.lock` records their resolved versions. Install the checked-in versions with `bun install --frozen-lockfile`. The root `package.json` pins Bun and requires Node 24.
 
 | Component | Main dependencies |
 | --- | --- |
@@ -15,6 +15,6 @@ Package manifests declare JavaScript dependencies; `pnpm-lock.yaml` records thei
 
 `node-pty` requires native build tools when a prebuilt binary is unavailable. Node filesystem, process, and server transport dependencies stay in the runtime build. Browser code uses the native WebSocket API. xterm falls back from GPU rendering after WebGL context loss.
 
-The root pnpm override pins `@xterm/addon-ligatures` to `0.11.0-beta.213` for browser compatibility. Instrument Sans and JetBrains Mono are self-hosted under `apps/web/public/fonts` with their OFL license files.
+The root override pins `@xterm/addon-ligatures` to `0.11.0-beta.213` for browser compatibility. Instrument Sans and JetBrains Mono are self-hosted under `apps/web/public/fonts` with their OFL license files.
 
 Desktop binary versions and checksums are in `scripts/desktop/binaries.json`. Managed language-server versions, artifact sources, and integrity values are in `apps/runtime/src/managed/npm/package-lock.json` and `apps/runtime/src/managed/artifacts.lock.json`. See [language support](language-support.md) for provider notices and [iOS](ios.md#vendored-crates) for the native patches.

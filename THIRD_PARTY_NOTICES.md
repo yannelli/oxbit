@@ -4,7 +4,7 @@ Oxbit's source is [MIT licensed](LICENSE), copyright 2026 Ryan Yannelli
 <ryanyannelli@gmail.com> ([yannelli](https://github.com/yannelli)).
 
 Dependencies keep their own licenses. Their package contents,
-`pnpm-lock.yaml`, and the `Cargo.lock` files of the desktop and iOS crates
+`bun.lock`, and the `Cargo.lock` files of the desktop and iOS crates
 identify the installed versions.
 
 The bundled fonts use the SIL Open Font License 1.1:

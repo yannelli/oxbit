@@ -24,12 +24,12 @@ To remove cached runtime versions, close remote projects first, then remove the 
 
 ## Building and checking
 
-Run `pnpm remote:prepare` to build and include both payloads in `apps/desktop/src-tauri/resources/runtime/remote`. This is also part of desktop preparation. Downloads are pinned and verified using `scripts/desktop/binaries.json`. macOS development builds use Docker to compile the Linux PTY against the pinned Node 24 build image. Docker's CLI and credential helper must be on PATH. Linux x64 builders use the installed native PTY build; build with Node 24 and enabled dependency lifecycle scripts.
+Run `bun run remote:prepare` to build and include both payloads in `apps/desktop/src-tauri/resources/runtime/remote`. This is also part of desktop preparation. Downloads are pinned and verified using `scripts/desktop/binaries.json`. macOS development builds use Docker to compile the Linux PTY against the pinned Node 24 build image. Docker's CLI and credential helper must be on PATH. Linux x64 builders use the installed native PTY build; build with Node 24 and enabled dependency lifecycle scripts.
 
 For a native single-target artifact, set `OXBIT_REMOTE_TARGETS=darwin-arm64` or `OXBIT_REMOTE_TARGETS=linux-x64`. The desktop CI workflow builds these on their native runners, then assembles both artifacts into each desktop application using `OXBIT_REMOTE_PAYLOADS`. This avoids a Docker dependency on macOS CI runners. Missing platform payloads fail explicitly at connection time.
 
-- `pnpm test` includes SSH target validation, shell quoting, checksum failure, and installation tests.
-- `pnpm remote:test` builds an ephemeral Linux SSH container, creates temporary keys and a private known-hosts file, removes its outbound route, and exercises cold installation, remote file editing, conflicts, search, Git, real PTYs, TypeScript completion, token rotation, cached reconnection, shutdown, and transport loss. It cleans up the container and temporary keys.
-- After `pnpm desktop:test:build`, `pnpm remote:test:native` checks the connection dialog, keyboard dismissal, input validation, and URI submission in the native WebView. Its submission is captured by the UI test; the separate SSH smoke test covers real transport.
+- `bun run test` includes SSH target validation, shell quoting, checksum failure, and installation tests.
+- `bun run remote:test` builds an ephemeral Linux SSH container, creates temporary keys and a private known-hosts file, removes its outbound route, and exercises cold installation, remote file editing, conflicts, search, Git, real PTYs, TypeScript completion, token rotation, cached reconnection, shutdown, and transport loss. It cleans up the container and temporary keys.
+- After `bun run desktop:test:build`, `bun run remote:test:native` checks the connection dialog, keyboard dismissal, input validation, and URI submission in the native WebView. Its submission is captured by the UI test; the separate SSH smoke test covers real transport.
 
 OpenSSH's [connection sharing and local forwarding](https://man.openbsd.org/ssh.1) and [SSH configuration](https://man.openbsd.org/ssh_config.5) define the underlying transport behavior.

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-execFileSync('pnpm', ['--filter', '@oxbit/web', 'exec', 'vite', 'build', '--outDir', 'dist-icon-tests'], { stdio: 'inherit' });
+execFileSync('bun', ['run', '--filter', '@oxbit/web', 'build', '--', '--outDir', 'dist-icon-tests'], { stdio: 'inherit' });
 const root = path.resolve('apps/web/dist-icon-tests');
 const config = JSON.parse(await readFile('apps/desktop/src-tauri/tauri.conf.json', 'utf8'));
 // Tauri hashes its built-in inline scripts. The web shell also has a static import map.

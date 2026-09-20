@@ -1,10 +1,10 @@
 # Extension SDK 1.0
 
-Import extension contracts from `@oxbit/sdk`. `SDK_VERSION` is `1.0.0`. Public types cover commands, context, configuration, contributions, services, typed events, save hooks, manifests, filesystem adapters, persistence, language transports and document edits. `languageIdForPath(path)` returns the standard language ID for supported file extensions. `pnpm build:sdk` generates the browser ESM facade from these public exports.
+Import extension contracts from `@oxbit/sdk`. `SDK_VERSION` is `1.0.0`. Public types cover commands, context, configuration, contributions, services, typed events, save hooks, manifests, filesystem adapters, persistence, language transports and document edits. `languageIdForPath(path)` returns the standard language ID for supported file extensions. `bun run build:sdk` generates the browser ESM facade from these public exports.
 
 `examples/bundle-inspector` uses SDK exports and React. Extension ID `orbitlabs.bundle-inspector` adds `bundle.analyze`, panel `bundle`, settings, status item, output channel and document view `bundle.report`. Analyze measures disk file bytes and gzip bytes. The report opens through `workbench.openView`; disablement closes it and cancels analysis. Module counts come from source maps. Files without source maps show that state.
 
-Build the external artifact with `pnpm --filter @oxbit/bundle-inspector exec vite build`. The output is `examples/bundle-inspector/dist/bundle-inspector.js`. It imports bare `react`, which the web host must map to its own React facade. Install its served URL through the Extensions view. Development source URLs use Vite's module server.
+Build the external artifact with `bun run --filter @oxbit/bundle-inspector build`. The output is `examples/bundle-inspector/dist/bundle-inspector.js`. It imports bare `react`, which the web host must map to its own React facade. Install its served URL through the Extensions view. Development source URLs use Vite's module server.
 
 The default directory is `dist`. If it is absent or empty, analysis uses workspace files. It skips `.git`, `node_modules` and `.oxbit`, stops after 2,000 files, and gzip-compresses text files up to 2 MB with the browser compression API. Larger and unreadable files show unmeasured gzip. Reported source sizes use the filesystem's encoding and line endings. This is a file report; transformed module attribution requires a source map.
 

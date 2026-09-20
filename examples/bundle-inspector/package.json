@@ -4,7 +4,9 @@
   "private": false,
   "type": "module",
   "exports": "./src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "build": "vite build"
+  },
   "dependencies": {
     "@oxbit/sdk": "workspace:*",
     "react": "19.1.0",

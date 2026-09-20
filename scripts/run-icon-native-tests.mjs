@@ -12,6 +12,6 @@ try {
   }
   const env = { ...process.env, OXBIT_NATIVE_FIXTURES: fixture, OXBIT_ICON_KEEP: '1' };
   // Two separate driver/application launches prove disk persistence across process restart.
-  execFileSync('pnpm', ['exec', 'wdio', 'run', 'tests/desktop/icon-packs.conf.mjs'], { env, stdio: 'inherit' });
-  execFileSync('pnpm', ['exec', 'wdio', 'run', 'tests/desktop/icon-packs.conf.mjs'], { env: { ...env, OXBIT_ICON_RESTART: '1' }, stdio: 'inherit' });
+  execFileSync('bun', ['x', 'wdio', 'run', 'tests/desktop/icon-packs.conf.mjs'], { env, stdio: 'inherit' });
+  execFileSync('bun', ['x', 'wdio', 'run', 'tests/desktop/icon-packs.conf.mjs'], { env: { ...env, OXBIT_ICON_RESTART: '1' }, stdio: 'inherit' });
 } finally { await rm(fixture, { recursive: true, force: true }); }

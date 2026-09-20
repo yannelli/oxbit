@@ -25,7 +25,8 @@ nvm alias default "$NODE_VERSION"
 nvm use "$NODE_VERSION"
 
 NODE_BIN="$NVM_DIR/versions/node/v$NODE_VERSION/bin"
-export PATH="$NODE_BIN:$PATH"
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export PATH="$BUN_INSTALL/bin:$NODE_BIN:$PATH"
 
 # Persist Node $NODE_VERSION for future interactive shells and terminals so the
 # repo's Node (not the base-image Node) is used everywhere.
@@ -38,14 +39,25 @@ if ! grep -q "versions/node/v$NODE_VERSION/bin" "$HOME/.bashrc" 2>/dev/null; the
   } >> "$HOME/.bashrc"
 fi
 
-# pnpm is pinned via package.json "packageManager"; provision it through corepack.
-corepack enable
-corepack prepare "pnpm@9.15.0" --activate
+# Bun is pinned via package.json "packageManager".
+if ! command -v bun >/dev/null 2>&1 || [[ "$(bun --version)" != "1.4.2" ]]; then
+  curl -fsSL https://bun.sh/install | bash -s -- bun-v1.4.2
+fi
+export PATH="$BUN_INSTALL/bin:$PATH"
 
-echo "Using Node $(node --version) / pnpm $(pnpm --version)"
+if ! grep -q '/.bun/bin' "$HOME/.bashrc" 2>/dev/null; then
+  {
+    echo ''
+    echo '# Oxbit: use repo-pinned Bun'
+    echo "export BUN_INSTALL=\"$BUN_INSTALL\""
+    echo "export PATH=\"$BUN_INSTALL/bin:\$PATH\""
+  } >> "$HOME/.bashrc"
+fi
+
+echo "Using Node $(node --version) / bun $(bun --version)"
 
 # Install workspace dependencies (runs the postinstall PTY repair).
-pnpm install --frozen-lockfile
+bun install --frozen-lockfile
 
-# Browser used by the Playwright journey suite (pnpm test:browser / pnpm check).
-pnpm exec playwright install chromium
+# Browser used by the Playwright journey suite (bun run test:browser / bun run check).
+bunx playwright install chromium

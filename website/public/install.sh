@@ -15,15 +15,15 @@ main() {
     *) fail "This installer supports macOS and Linux. On Windows, use WSL." ;;
   esac
 
-  for command_name in git node npm pnpm rg; do
+  for command_name in git node npm bun rg; do
     command -v "$command_name" >/dev/null 2>&1 ||
-      fail "Missing $command_name. Install Node 24, pnpm 9.15.0, Git, and ripgrep, then rerun this script."
+      fail "Missing $command_name. Install Node 24, Bun 1.4.2, Git, and ripgrep, then rerun this script."
   done
 
   [[ "$(node -p 'process.versions.node.split(".")[0]')" == 24 ]] ||
     fail "Node 24 is required. Switch Node versions, then rerun this script."
-  [[ "$(pnpm --version)" == 9.15.0 ]] ||
-    fail "pnpm 9.15.0 is required. Run npm install -g pnpm@9.15.0, then rerun this script."
+  [[ "$(bun --version)" == 1.4.2 ]] ||
+    fail "Bun 1.4.2 is required. Install it from https://bun.sh, then rerun this script."
 
   case "$install_dir" in
     /*) ;;
@@ -38,12 +38,12 @@ main() {
   mkdir -p "$(dirname "$install_dir")"
   GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/yannelli/oxbit.git "$install_dir" </dev/null
   cd "$install_dir"
-  CI=1 pnpm install --frozen-lockfile </dev/null
-  pnpm install:global </dev/null
+  CI=1 bun install --frozen-lockfile </dev/null
+  bun run install:global </dev/null
 
   printf '\nOxbit installed. Run oxbit in a project directory to start.\n'
   printf 'Keep %s: the global command links to this checkout.\n' "$install_dir"
-  printf 'To update, run git pull --ff-only, pnpm install --frozen-lockfile, and pnpm install:global in that directory.\n'
+  printf 'To update, run git pull --ff-only, bun install --frozen-lockfile, and bun run install:global in that directory.\n'
   local global_bin
   global_bin="$(npm prefix -g)/bin"
   case ":$PATH:" in
