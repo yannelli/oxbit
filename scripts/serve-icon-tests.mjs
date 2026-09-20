@@ -7,7 +7,6 @@ import { createHash } from 'node:crypto';
 execFileSync('bun', ['run', '--filter', '@oxbit/web', 'build', '--', '--outDir', 'dist-icon-tests'], { stdio: 'inherit' });
 const root = path.resolve('apps/web/dist-icon-tests');
 const config = JSON.parse(await readFile('apps/desktop/src-tauri/tauri.conf.json', 'utf8'));
-// Tauri hashes its built-in inline scripts. The web shell also has a static import map.
 const html = await readFile(path.join(root, 'index.html'), 'utf8');
 const importMap = html.match(/<script type="importmap">(.*?)<\/script>/s)?.[1];
 const csp = importMap ? config.app.security.csp.replace("script-src 'self'", `script-src 'self' 'sha256-${createHash('sha256').update(importMap).digest('base64')}'`) : config.app.security.csp;

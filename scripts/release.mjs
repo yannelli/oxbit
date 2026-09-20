@@ -266,11 +266,9 @@ async function main() {
       run(
         "bun",
         ["run", "desktop:build"],
-        // remote/prepare.mjs otherwise cross-builds the other platform through docker.
         { OXBIT_REMOTE_TARGETS: process.env.OXBIT_REMOTE_TARGETS ?? platform },
         appleEnv,
       );
-    // The App Store Connect export needs the signing environment that the desktop step drops.
     if (ios) run("bun", ["run", "ios:build"]);
 
     await fs.rm(output, { recursive: true, force: true });

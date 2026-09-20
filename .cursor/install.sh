@@ -28,8 +28,6 @@ NODE_BIN="$NVM_DIR/versions/node/v$NODE_VERSION/bin"
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 export PATH="$BUN_INSTALL/bin:$NODE_BIN:$PATH"
 
-# Persist Node $NODE_VERSION for future interactive shells and terminals so the
-# repo's Node (not the base-image Node) is used everywhere.
 if ! grep -q "versions/node/v$NODE_VERSION/bin" "$HOME/.bashrc" 2>/dev/null; then
   {
     echo ''
@@ -39,7 +37,6 @@ if ! grep -q "versions/node/v$NODE_VERSION/bin" "$HOME/.bashrc" 2>/dev/null; the
   } >> "$HOME/.bashrc"
 fi
 
-# Bun is pinned via package.json "packageManager".
 if ! command -v bun >/dev/null 2>&1 || [[ "$(bun --version)" != "1.4.2" ]]; then
   curl -fsSL https://bun.sh/install | bash -s -- bun-v1.4.2
 fi
@@ -48,7 +45,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 if ! grep -q '/.bun/bin' "$HOME/.bashrc" 2>/dev/null; then
   {
     echo ''
-    echo '# Oxbit: use repo-pinned Bun'
     echo "export BUN_INSTALL=\"$BUN_INSTALL\""
     echo "export PATH=\"$BUN_INSTALL/bin:\$PATH\""
   } >> "$HOME/.bashrc"
@@ -56,8 +52,6 @@ fi
 
 echo "Using Node $(node --version) / bun $(bun --version)"
 
-# Install workspace dependencies (runs the postinstall PTY repair).
 bun install --frozen-lockfile
 
-# Browser used by the Playwright journey suite (bun run test:browser / bun run check).
 bunx playwright install chromium

@@ -2,8 +2,6 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 
-// Hoist compatible versions, nesting conflicts at the requesting package. Preserve
-// Node resolution without relying on a developer's package cache or flattening versions.
 export async function stageDependencies(stage, runtime) {
   const copied = new Map();
   const inventory = [];
