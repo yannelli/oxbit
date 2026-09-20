@@ -143,6 +143,6 @@ export function displayShortcut(key: string | undefined): string {
         .replace(/Alt\+/g, "⌥")
         .replace(/ArrowRight/g, "→")
         .replace(/ArrowLeft/g, "←")
-        .replace(/Enter/g, "↩")
+        .replace(/Enter/g, "↩\uFE0E")
     : key.replace(/Mod/g, "Ctrl");
 }
