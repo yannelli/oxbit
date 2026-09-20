@@ -5,7 +5,7 @@ export default defineConfig({
   workers: 1,
   webServer: {
     command:
-      "pnpm --filter @oxbit/web build && pnpm exec tsx scripts/start-theme-tests.mts",
+      "bun run --filter @oxbit/web build && bunx tsx scripts/start-theme-tests.mts",
     cwd: "../..",
     url: "http://127.0.0.1:9289",
     reuseExistingServer: !process.env.CI,

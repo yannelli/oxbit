@@ -37,5 +37,5 @@ production, including `404.html` and `_headers`.
 | `public/_headers` | Cache and security headers |
 | `wrangler.jsonc` | Worker configuration |
 
-This directory is outside the pnpm workspace so `wrangler` does not join the
+This directory is outside the JavaScript workspace so `wrangler` does not join the
 root lockfile.

@@ -4,7 +4,7 @@ await import("./prepare-e2e.mjs");
 const { root, dataDir } = JSON.parse(
   await readFile("evidence/e2e-workspace.json", "utf8"),
 );
-const child = spawn("pnpm", ["--filter", "@oxbit/runtime", "start"], {
+const child = spawn("bun", ["run", "--cwd", "apps/runtime", "start"], {
   stdio: "inherit",
   env: {
     ...process.env,

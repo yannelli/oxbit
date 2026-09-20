@@ -65,11 +65,11 @@ Both kinds support SVG/PNG images and WOFF, WOFF2, TTF and OTF glyphs. A font gl
 Draft 2020-12 schemas are checked in under `packages/icon-themes/src/schemas/` and served at `/schemas/icon-manifest.v1.schema.json`, `/schemas/icon-file.v1.schema.json`, and `/schemas/icon-product.v1.schema.json`. Validators are generated with Ajv standalone compilation, bundled without runtime code generation, and work offline. JSONC comments and trailing commas are accepted.
 
 ```sh
-pnpm icons:schemas
-pnpm icons:validate path/to/icons.zip path/to/icons.vsix
-pnpm test:icons:browser
-# After pnpm desktop:prepare on a supported desktop host:
-pnpm test:icons:desktop
+bun run icons:schemas
+bun run icons:validate path/to/icons.zip path/to/icons.vsix
+bun run test:icons:browser
+# After bun run desktop:prepare on a supported desktop host:
+bun run test:icons:desktop
 ```
 
 The CLI checks archive structure, schemas, references and assets and decodes referenced font outlines with fontkit. The application additionally uses its native image/font decoders before installation. Pinned, licensed image and product-font examples are in `tests/fixtures/icon-packs/`; the manifests, exact upstream revisions, URLs and SHA-256 hashes are recorded in `upstream.json`. `node scripts/fetch-icon-fixtures.mjs` reproduces these declarative subsets without building or executing upstream code.

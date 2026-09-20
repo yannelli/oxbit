@@ -236,7 +236,7 @@ describe("iOS artifact collection", () => {
     expect(collected).toEqual(["arm64/Oxbit.ipa"]);
   });
 
-  it("returns nothing before pnpm ios:init has generated the project", async () => {
+  it("returns nothing before bun run ios:init has generated the project", async () => {
     expect(await iosArtifacts(0, path.join(os.tmpdir(), "oxbit-missing-ios"))).toEqual([]);
   });
 });

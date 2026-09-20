@@ -17,20 +17,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.20.0"
-      - run: npm install --global pnpm@9.15.0
-      - run: pnpm install --frozen-lockfile
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
       - run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt,clippy
       - run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim --toolchain 1.97.1
       - run: brew install xcodegen
       - name: Host checks (frontend build, fmt, clippy, tests)
-        run: pnpm ios:check
+        run: bun run ios:check
       - name: Debug simulator build
-        run: pnpm ios:simulator
-      - run: pnpm exec playwright install --with-deps webkit chromium
+        run: bun run ios:simulator
+      - run: bunx playwright install --with-deps webkit chromium
       - name: Build runtime and web fixtures for browser journeys
-        run: pnpm build
+        run: bun run build
       - name: Browser journeys on the WebKit phone profile
-        run: pnpm test:browser --project webkit-phone
+        run: bun run test:browser -- --project webkit-phone
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -67,10 +69,12 @@ jobs:
         if: steps.secrets.outputs.skip != 'true'
         with:
           node-version: "24.20.0"
+      - uses: oven-sh/setup-bun@v2
+        if: steps.secrets.outputs.skip != 'true'
+        with:
+          bun-version: "1.4.2"
       - if: steps.secrets.outputs.skip != 'true'
-        run: npm install --global pnpm@9.15.0
-      - if: steps.secrets.outputs.skip != 'true'
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       - if: steps.secrets.outputs.skip != 'true'
         run: rustup toolchain install 1.97.1 --profile minimal && rustup target add aarch64-apple-ios --toolchain 1.97.1 && brew install xcodegen
       - name: Write the App Store Connect API key
@@ -81,10 +85,10 @@ jobs:
           echo "APPLE_API_KEY_PATH=$HOME/private_keys/AuthKey_${APPLE_API_KEY}.p8" >> "$GITHUB_ENV"
       - name: Signed build
         if: steps.secrets.outputs.skip != 'true'
-        run: pnpm ios:build -- --build-number ${{ github.run_number }}
+        run: bun run ios:build -- --build-number ${{ github.run_number }}
       - name: Upload to TestFlight
         if: steps.secrets.outputs.skip != 'true'
-        run: pnpm ios:upload -- apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
+        run: bun run ios:upload -- apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
       - uses: actions/upload-artifact@v4
         if: steps.secrets.outputs.skip != 'true'
         with:

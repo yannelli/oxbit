@@ -11,7 +11,7 @@ const usage = `Usage: node scripts/release.mjs <patch|minor|major|X.Y.Z> [option
   --out <dir>    Collect into <dir>/v<version> (default: release)
   --no-desktop   Skip the desktop bundle even when the toolchain is present
   --no-ios       Skip the iOS IPA even when Xcode and a signing identity are present
-  --check        Run pnpm lint and pnpm test first (pnpm build already runs tsc -b)
+  --check        Run bun run lint and bun run test first (bun run build already runs tsc -b)
   --commit       Commit the bumped version files
   --tag          Create the annotated tag v<version> (implies --commit)
   --dry-run      Print the plan and write nothing
@@ -218,7 +218,7 @@ async function main() {
     : !hasXcode
       ? "xcodebuild is not available"
       : !iosProject
-        ? "run pnpm ios:init first"
+        ? "run bun run ios:init first"
         : !iosIdentity
           ? "no Apple Distribution signing identity"
           : undefined;
@@ -257,21 +257,21 @@ async function main() {
 
   try {
     if (values.check) {
-      run("pnpm", ["lint"]);
-      run("pnpm", ["test"]);
+      run("bun", ["run", "lint"]);
+      run("bun", ["run", "test"]);
     }
-    run("pnpm", ["build"]);
+    run("bun", ["run", "build"]);
     const started = Date.now();
     if (desktop)
       run(
-        "pnpm",
-        ["desktop:build"],
-        // remote/prepare.mjs otherwise cross-builds the other platform through docker.
+        "bun",
+        ["run", "desktop:build"],
+        // Unset OXBIT_REMOTE_TARGETS cross-builds the other host through Docker.
         { OXBIT_REMOTE_TARGETS: process.env.OXBIT_REMOTE_TARGETS ?? platform },
         appleEnv,
       );
-    // The App Store Connect export needs the signing environment that the desktop step drops.
-    if (ios) run("pnpm", ["ios:build"]);
+    // desktop:build drops the App Store Connect signing environment that ios:build needs.
+    if (ios) run("bun", ["run", "ios:build"]);
 
     await fs.rm(output, { recursive: true, force: true });
     await fs.mkdir(output, { recursive: true });
@@ -337,18 +337,18 @@ async function main() {
           desktop: desktop
             ? {
                 included: true,
-                command: "pnpm desktop:build",
+                command: "bun run desktop:build",
                 signingIdentity: signingIdentity ?? null,
                 notarized: false,
-                note: "Notarized distribution artifacts come from pnpm desktop:release and the tagged CI build in .github/workflows/desktop.yml",
+                note: "Notarized distribution artifacts come from bun run desktop:release and the tagged CI build in .github/workflows/desktop.yml",
               }
             : { included: false, reason: desktopSkip },
           ios: ios
             ? {
                 included: true,
-                command: "pnpm ios:build",
+                command: "bun run ios:build",
                 exportMethod: "app-store-connect",
-                note: "TestFlight uploads run through pnpm ios:upload and .github/workflows/ios.yml",
+                note: "TestFlight uploads run through bun run ios:upload and .github/workflows/ios.yml",
               }
             : { included: false, reason: iosSkip },
           groups: groups.map((group) => ({

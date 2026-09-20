@@ -45,7 +45,7 @@ try {
     if (Date.now() > deadline) throw new Error("Weston readiness timed out");
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  test = spawn("pnpm", ["desktop:test:native"], { env, stdio: "inherit" });
+  test = spawn("bun", ["run", "desktop:test:native"], { env, stdio: "inherit" });
   process.exitCode = await new Promise((resolve, reject) => {
     test.once("exit", (code) => resolve(code ?? 1));
     test.once("error", reject);

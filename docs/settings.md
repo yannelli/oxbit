@@ -62,7 +62,7 @@ For a repository override, Oxbit recognizes the filename without a declaration. 
 
 Oxbit resolves that identifier locally. A distributable copy is also included in the web build at `/schemas/settings.v1.schema.json`; publishing the hosted `oxbit.dev` URL is a separate deployment step. For another editor before deployment, reference the installed local schema or a checked-in copy with a relative `$schema` path.
 
-The generator discovers feature configuration modules and reads the same declarations used by Settings and Desktop. Independently added features with a configuration module are included automatically. Run `pnpm settings:schema` after changing those declarations and `pnpm settings:schema:check` to detect stale generated artifacts. The SDK exports `settingsSchema` and `SETTINGS_SCHEMA_URI`.
+The generator discovers feature configuration modules and reads the same declarations used by Settings and Desktop. Independently added features with a configuration module are included automatically. Run `bun run settings:schema` after changing those declarations and `bun run settings:schema:check` to detect stale generated artifacts. The SDK exports `settingsSchema` and `SETTINGS_SCHEMA_URI`.
 
 ## Editing and persistence
 
@@ -82,4 +82,4 @@ For isolated hosts/tests, `OXBIT_SETTINGS_FILE` overrides the user settings path
 
 Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery and both conflict resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Native desktop execution requires a separate check.
 
-Schema tests check generation freshness, all built-in defaults, partial overrides and invalid values. `pnpm exec tsx scripts/language/settings-schema.ts` exercises the real JSON language server for automatic associations at every location, nested completion, hover, diagnostics, canonical and local `$schema` references with zero remote schema requests. The browser journey also checks the distributable schema and visible project/language completion with downloads disabled.
+Schema tests check generation freshness, all built-in defaults, partial overrides and invalid values. `bunx tsx scripts/language/settings-schema.ts` exercises the real JSON language server for automatic associations at every location, nested completion, hover, diagnostics, canonical and local `$schema` references with zero remote schema requests. The browser journey also checks the distributable schema and visible project/language completion with downloads disabled.

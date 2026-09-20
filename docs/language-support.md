@@ -64,17 +64,17 @@ Native Ubuntu installed-app behavior, native hover rendering, physical touch and
 Run the language checks:
 
 ```sh
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm test:language:servers
-pnpm exec tsx scripts/language/intelligence.ts
-pnpm exec playwright test --config scripts/language/playwright.config.ts
-pnpm desktop:prepare
-pnpm desktop:runtime:test
+bun run lint
+bun run typecheck
+bun run test
+bun run build
+bun run test:language:servers
+bunx tsx scripts/language/intelligence.ts
+bunx playwright test --config scripts/language/playwright.config.ts
+bun run desktop:prepare
+bun run desktop:runtime:test
 node scripts/language/build-native.mjs
-pnpm exec wdio run tests/desktop/language.conf.mjs
+bunx wdio run tests/desktop/language.conf.mjs
 ```
 
 `.github/workflows/language-servers.yml` provides a macOS/Ubuntu server matrix, clean and cached startup, real intelligence checks and reproducible bundles.

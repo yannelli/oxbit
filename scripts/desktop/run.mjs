@@ -15,26 +15,28 @@ if (
 if (mode !== "check") {
   run(process.execPath, ["scripts/desktop/prepare.mjs"]);
   run(process.execPath, ["scripts/desktop/smoke-runtime.mjs"]);
-  run("pnpm", ["build:example"]);
+  run("bun", ["run", "build:example"]);
   run(process.execPath, ["scripts/desktop/licenses.mjs"]);
 }
 if (mode === "dev")
-  run("pnpm", [
-    "--filter",
-    "@oxbit/desktop",
-    "exec",
+  run("bun", [
+    "run",
+    "--cwd",
+    "apps/desktop",
     "tauri",
+    "--",
     "dev",
     "--no-default-features",
   ]);
 if (mode === "native-build")
   run(
-    "pnpm",
+    "bun",
     [
-      "--filter",
-      "@oxbit/desktop",
-      "exec",
+      "run",
+      "--cwd",
+      "apps/desktop",
       "tauri",
+      "--",
       "build",
       "--debug",
       "--features",
@@ -62,11 +64,12 @@ if (mode === "build") {
       "scripts/desktop/sign-resources.mjs",
       ...(release ? ["--release"] : []),
     ]);
-  run("pnpm", [
-    "--filter",
-    "@oxbit/desktop",
-    "exec",
+  run("bun", [
+    "run",
+    "--cwd",
+    "apps/desktop",
     "tauri",
+    "--",
     "build",
     "--bundles",
     process.platform === "darwin" ? "app,dmg" : "deb,appimage",
@@ -78,7 +81,7 @@ if (mode === "build") {
   ]);
 }
 if (mode === "check") {
-  run("pnpm", ["--filter", "@oxbit/desktop", "build"]);
+  run("bun", ["run", "--filter", "@oxbit/desktop", "build"]);
   const cwd = fileURLToPath(
     new URL("../../apps/desktop/src-tauri/", import.meta.url),
   );

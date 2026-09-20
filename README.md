@@ -6,14 +6,14 @@ terminals, Git, tasks, language services, and collaboration.
 
 ## Quick start
 
-Install Node 24, pnpm 9.15, Git, and ripgrep (`rg`). Building the terminal addon
+Install Node 24, Bun 1.4.2, Git, and ripgrep (`rg`). Building the terminal addon
 from source also requires Python, make, and a C++ compiler.
 
 ```sh
 git clone https://github.com/yannelli/oxbit.git
 cd oxbit
-pnpm install --frozen-lockfile
-pnpm install:global
+bun install --frozen-lockfile
+bun run install:global
 ```
 
 This builds the workspace and installs the `oxbit` command:
@@ -31,7 +31,7 @@ shell. Running it again in the same project reuses that runtime.
    tasks, Git, and language services.
 2. Open the command palette with `Ctrl+Shift+P` (`Cmd+Shift+P` on macOS).
 
-The global install links this checkout. Run `pnpm build` after pulling changes.
+The global install links this checkout. Run `bun run build` after pulling changes.
 Run `npm uninstall -g oxbit` to remove the command.
 
 | Command | Effect |
@@ -49,7 +49,7 @@ in its fragment, which the editor consumes and removes from the address bar.
 Opening `http://127.0.0.1:9277` without that fragment loads the browser sample
 workspace; use **Runtime connection** to pair it with your project.
 
-Without a global install, run `OXBIT_WORKSPACE=/absolute/path pnpm start` after
+Without a global install, run `OXBIT_WORKSPACE=/absolute/path bun run start` after
 building. See [runtime configuration](docs/runtime.md) for network hosting,
 allowed origins, and storage.
 
@@ -59,7 +59,7 @@ allowed origins, and storage.
 
 The Tauri desktop app bundles Node, ripgrep, the terminal addon, and managed
 language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64.
-Run `pnpm desktop:dev` for development or `pnpm desktop:build` for local installers.
+Run `bun run desktop:dev` for development or `bun run desktop:build` for local installers.
 Use `oxbit --desktop [path]` to open an installed app.
 
 **Connect over SSH…** opens a remote folder on Linux x64 or macOS Apple Silicon.
@@ -74,7 +74,7 @@ The Tauri iOS app runs on iOS 26+. Edit the app's Documents folder or folders
 selected through Files. Connect to a runtime on another computer for terminals,
 Git, tasks, and language services. Pairing credentials are stored in Keychain.
 
-Run `pnpm ios:dev "Oxbit iPhone"` or `pnpm ios:simulator` on macOS with Xcode.
+Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
 
 ## Features
@@ -109,7 +109,7 @@ See [Agent ACP](docs/agent-acp.md) for setup.
 command, panel, setting, status item, output channel, and document view.
 
 ```sh
-pnpm build:example
+bun run build:example
 ```
 
 To load the built bundle, remove the existing Bundle Inspector registration in
@@ -122,11 +122,11 @@ Run these commands in separate terminals:
 
 ```sh
 OXBIT_WORKSPACE=/absolute/path/to/your/project \
-OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 pnpm dev
+OXBIT_ORIGINS=http://localhost:9279,http://127.0.0.1:9279 bun run dev
 ```
 
 ```sh
-pnpm dev:web
+bun run dev:web
 ```
 
 Open `http://localhost:9279` and pair with `http://127.0.0.1:9277` using the code
@@ -149,33 +149,33 @@ See [architecture](docs/architecture.md), [feature status](docs/feature-status.m
 ### Checks
 
 ```sh
-pnpm exec playwright install chromium webkit
-pnpm check
+bunx playwright install chromium webkit
+bun run check
 ```
 
-`pnpm check` runs lint, TypeScript checks, unit and integration tests, production
+`bun run check` runs lint, TypeScript checks, unit and integration tests, production
 builds, and browser tests. Browser tests use port 9278 and temporary workspaces;
 they run processes and create Git repositories. Reports and screenshots go into
 the ignored `evidence/` directory.
 
-Run individual checks with `pnpm lint`, `pnpm typecheck`, `pnpm test`,
-`pnpm build`, or `pnpm test:browser`. Browser tests require a production build.
+Run individual checks with `bun run lint`, `bun run typecheck`, `bun run test`,
+`bun run build`, or `bun run test:browser`. Browser tests require a production build.
 Native checks are documented in the desktop and iOS guides.
 
 ## Releases
 
 ```sh
-pnpm release patch
-pnpm release minor
-pnpm release 2.0.0
-pnpm release patch --dry-run
-pnpm release:all
+bun run release patch
+bun run release minor
+bun run release 2.0.0
+bun run release patch --dry-run
+bun run release:all
 ```
 
 The release script updates 8 version files and collects builds in
 `release/v<version>/` with a manifest and SHA-256 checksums. Desktop and iOS
 builds run when the host has the required platform and toolchain; skipped builds
-print a reason. `pnpm release:all` runs lint and tests before a patch release.
+print a reason. `bun run release:all` runs lint and tests before a patch release.
 
 | Flag | Effect |
 | --- | --- |

@@ -3,29 +3,35 @@
   "version": "0.3.0-alpha.3",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "bun@1.4.2",
   "engines": {
     "node": ">=24 <25"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/features/*",
+    "examples/*"
+  ],
   "bin": {
     "oxbit": "apps/runtime/dist/index.js"
   },
   "scripts": {
     "postinstall": "node scripts/repair-pty.mjs",
     "repair:pty": "node scripts/repair-pty.mjs",
-    "dev": "pnpm --filter @oxbit/runtime dev",
-    "dev:web": "pnpm --filter @oxbit/web dev",
-    "build": "tsc -b && pnpm --filter @oxbit/runtime build && pnpm build:example && pnpm --filter @oxbit/web build",
-    "build:all": "pnpm build && pnpm desktop:build && pnpm ios:build",
+    "dev": "bun run --cwd apps/runtime dev",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build": "tsc -b && bun run --filter @oxbit/runtime build && bun run build:example && bun run --filter @oxbit/web build",
+    "build:all": "bun run build && bun run desktop:build && bun run ios:build",
     "typecheck": "tsc -b",
     "lint": "eslint apps packages examples tests scripts --no-warn-ignored",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "start": "pnpm --filter @oxbit/runtime start",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser",
-    "build:example": "pnpm build:sdk && pnpm --filter @oxbit/bundle-inspector exec vite build && node scripts/copy-example.mjs",
+    "start": "bun run --cwd apps/runtime start",
+    "check": "bun run lint && bun run typecheck && bun run test && bun run build && bun run test:browser",
+    "build:example": "bun run build:sdk && bun run --filter @oxbit/bundle-inspector build && node scripts/copy-example.mjs",
     "build:sdk": "node scripts/build-sdk.mjs",
-    "install:global": "pnpm build && npm install -g .",
+    "install:global": "bun run build && npm install -g .",
     "release": "node scripts/release.mjs",
     "release:all": "node scripts/release.mjs patch --check",
     "desktop:prepare": "node scripts/desktop/prepare.mjs",
@@ -87,15 +93,13 @@
     "vite": "^7.1.5",
     "vitest": "^3.2.4"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "node-pty"
-    ],
-    "overrides": {
-      "@xterm/addon-ligatures": "0.11.0-beta.213"
-    }
+  "overrides": {
+    "@xterm/addon-ligatures": "0.11.0-beta.213"
   },
+  "trustedDependencies": [
+    "esbuild",
+    "node-pty"
+  ],
   "license": "MIT",
   "author": {
     "name": "Ryan Yannelli",

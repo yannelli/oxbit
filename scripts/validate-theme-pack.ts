@@ -3,7 +3,7 @@ import { readPackFile, resolveTheme } from "../packages/themes/src/index.js";
 const files = process.argv.slice(2);
 if (!files.length) {
   console.error(
-    "Usage: pnpm themes:validate path/to/theme-pack.json [pack.zip …]",
+    "Usage: bun run themes:validate path/to/theme-pack.json [pack.zip …]",
   );
   process.exitCode = 1;
 }

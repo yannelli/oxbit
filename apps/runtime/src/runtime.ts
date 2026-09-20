@@ -556,7 +556,7 @@ export async function createRuntime(options: RuntimeOptions) {
         content = await fs.readFile(real);
       } catch {
         httpJson(response, 503, {
-          error: "Web build is missing. Run pnpm build.",
+          error: "Web build is missing. Run bun run build.",
         });
         return;
       }

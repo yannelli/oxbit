@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 const root = process.cwd();
 const env = { ...process.env, VITE_DESKTOP_TEST: '1', MACOSX_DEPLOYMENT_TARGET: process.env.MACOSX_DEPLOYMENT_TARGET ?? '26.0' };
-execFileSync('pnpm', ['--filter', '@oxbit/desktop', 'exec', 'vite', 'build', '--outDir', 'dist-icon-tests'], { cwd: root, env, stdio: 'inherit' });
+execFileSync('bun', ['run', '--filter', '@oxbit/desktop', 'build', '--', '--outDir', 'dist-icon-tests'], { cwd: root, env, stdio: 'inherit' });
 const config = JSON.parse(await readFile('apps/desktop/src-tauri/tauri.native-test.conf.json', 'utf8'));
 config.identifier = 'com.yannelli.oxbit.icon-test'; config.build = { frontendDist: '../dist-icon-tests' };
 execFileSync('cargo', ['build', '--locked', '--features', 'native-test,custom-protocol'], { cwd: path.join(root, 'apps/desktop/src-tauri'), env: { ...env, TAURI_CONFIG: JSON.stringify(config) }, stdio: 'inherit' });

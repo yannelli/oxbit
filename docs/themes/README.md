@@ -79,10 +79,10 @@ VS Code association example:
 From this repository:
 
 ```sh
-pnpm themes:validate examples/theme-packs/ink.theme-pack.json
-pnpm themes:validate my-pack.zip
-pnpm themes:generate
-pnpm themes:coverage
+bun run themes:validate examples/theme-packs/ink.theme-pack.json
+bun run themes:validate my-pack.zip
+bun run themes:generate
+bun run themes:coverage
 ```
 
 `catalog.json` is the canonical token catalog. Generation produces the schema, TypeScript types, token unions, fallback CSS and an Ajv standalone validator. The validator uses no runtime compilation or `eval`, including under desktop CSP. Diagnostics include a filename and JSON Pointer. [Token reference](tokens.md).
@@ -95,4 +95,4 @@ Theme contributions should carry a validated `resolved` theme and `stableId` in 
 
 Layout structure, brand imagery, external preview content, OS dialogs and terminal application truecolor output are outside v1.
 
-`pnpm test:themes:browser` builds the web client and runs browser/runtime fixtures. Native shell rendering and changes across native windows require separate platform checks.
+`bun run test:themes:browser` builds the web client and runs browser/runtime fixtures. Native shell rendering and changes across native windows require separate platform checks.

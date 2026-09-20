@@ -19,20 +19,20 @@ The host contract is `createWorkbenchSession` from `packages/app-workbench`. `Io
 
 ## Develop
 
-Install Node 24.20.0, pnpm 9.15.0, Rust 1.97.1 with the `aarch64-apple-ios` and `aarch64-apple-ios-sim` targets, Xcode 26 or newer with an iOS 26 simulator runtime, `xcodegen`, and CocoaPods.
+Install Node 24.20.0, Bun 1.4.2, Rust 1.97.1 with the `aarch64-apple-ios` and `aarch64-apple-ios-sim` targets, Xcode 26 or newer with an iOS 26 simulator runtime, `xcodegen`, and CocoaPods.
 
 `scripts/ios/run.mjs` sets `DEVELOPER_DIR` to the installed Xcode, and `scripts/ios/xcode-shim` re-applies it for `xcodebuild` and `xcrun`, because the Tauri CLI spawns those with only `HOME`, `PATH`, and `TERM`.
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm ios:init` | Regenerate the Xcode project under `gen/apple` |
-| `pnpm ios:dev "Oxbit iPhone"` | Run with the Vite dev server on a named simulator or device |
-| `pnpm ios:simulator` | Debug build for the arm64 simulator at `gen/apple/build/arm64-sim/Oxbit.app` |
-| `pnpm ios:check` | Frontend build, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
-| `pnpm ios:build` | Signed App Store Connect archive and IPA |
-| `pnpm ios:adhoc` | Signed ad hoc archive and IPA for the devices in the provisioning profile |
-| `pnpm release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this IPA, and collect it under `release/v<version>/ios/` |
-| `pnpm ios:upload <ipa>` | Upload to TestFlight with `xcrun altool` |
+| `bun run ios:init` | Regenerate the Xcode project under `gen/apple` |
+| `bun run ios:dev "Oxbit iPhone"` | Run with the Vite dev server on a named simulator or device |
+| `bun run ios:simulator` | Debug build for the arm64 simulator at `gen/apple/build/arm64-sim/Oxbit.app` |
+| `bun run ios:check` | Frontend build, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
+| `bun run ios:build` | Signed App Store Connect archive and IPA |
+| `bun run ios:adhoc` | Signed ad hoc archive and IPA for the devices in the provisioning profile |
+| `bun run release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this IPA, and collect it under `release/v<version>/ios/` |
+| `bun run ios:upload <ipa>` | Upload to TestFlight with `xcrun altool` |
 
 The Tauri CLI matches simulators by name, and Xcode ships several devices called "iPhone 17 Pro" across runtimes. Create uniquely named devices once:
 
@@ -107,27 +107,27 @@ once `tauri-runtime-wry` takes tao 0.36 or later.
 
 ## Verification
 
-- `pnpm lint`, `pnpm typecheck`, `pnpm test` cover `packages/host-ios` and the workbench changes.
-- `pnpm ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host.
-- `pnpm test:browser --project webkit-phone` runs `tests/browser/mobile.spec.ts` on a touch-first WebKit profile.
+- `bun run lint`, `bun run typecheck`, `bun run test` cover `packages/host-ios` and the workbench changes.
+- `bun run ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host.
+- `bun run test:browser --project webkit-phone` runs `tests/browser/mobile.spec.ts` on a touch-first WebKit profile.
 - Check folder access, draft recovery, runtime pairing, and keyboard input on a simulator and a physical device.
 
 ## Install on your own device
 
-`pnpm ios:adhoc` passes `--export-method release-testing`, which is Xcode's current name for Ad Hoc. The build signs with `Apple Distribution: Ryan Yannelli (2P58V89SR7)` and only installs on the device UDIDs listed in the profile, so a new phone needs the profile regenerated in the Developer Portal with that device added.
+`bun run ios:adhoc` passes `--export-method release-testing`, which is Xcode's current name for Ad Hoc. The build signs with `Apple Distribution: Ryan Yannelli (2P58V89SR7)` and only installs on the device UDIDs listed in the profile, so a new phone needs the profile regenerated in the Developer Portal with that device added.
 
 Install the profile once, then build and install with the device connected and trusted:
 
 ```sh
 cp ios-iphone-oxbit.mobileprovision "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"
-pnpm ios:adhoc
+bun run ios:adhoc
 xcrun devicectl list devices
 xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
 ```
 
 ## TestFlight
 
-`pnpm ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26` and uploads to TestFlight on `v*` tags when these secrets exist: `APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_BASE64`, `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`. Without them the tag job skips the upload and says so. `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; the build number comes from the workflow run number.
+`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26` and uploads to TestFlight on `v*` tags when these secrets exist: `APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_BASE64`, `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`. Without them the tag job skips the upload and says so. `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; the build number comes from the workflow run number.
 
 ## Not implemented
 

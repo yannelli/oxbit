@@ -25,12 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.20.0"
-      - run: npm install --global pnpm@9.15.0
-      - run: pnpm install --frozen-lockfile
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
       - name: Build native headless runtime
         env:
           OXBIT_REMOTE_TARGETS: ${{ matrix.platform }}
-        run: pnpm remote:prepare
+        run: bun run remote:prepare
       - uses: actions/upload-artifact@v4
         with:
           name: remote-runtime-${{ matrix.platform }}
@@ -38,7 +40,7 @@ jobs:
           if-no-files-found: error
       - name: Real SSH acceptance on an offline host
         if: runner.os == 'Linux'
-        run: pnpm remote:test
+        run: bun run remote:test
   build:
     needs: remote-runtime
     env:
@@ -57,7 +59,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.20.0"
-      - run: npm install --global pnpm@9.15.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
       - name: Linux native dependencies (Ubuntu 24.04 minimum)
         if: runner.os == 'Linux'
         run: |
@@ -68,43 +72,43 @@ jobs:
         run: brew install ripgrep
       - name: Pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
-      - run: pnpm install --frozen-lockfile
+      - run: bun install --frozen-lockfile
       - name: Browser and CLI regression checks
         run: |
-          pnpm lint
-          pnpm typecheck
-          pnpm test
-          pnpm build
-          pnpm exec playwright install --with-deps chromium webkit
-          pnpm test:browser
-          pnpm test:tasks:browser
+          bun run lint
+          bun run typecheck
+          bun run test
+          bun run build
+          bunx playwright install --with-deps chromium webkit
+          bun run test:browser
+          bun run test:tasks:browser
       - uses: actions/download-artifact@v4
         with:
           pattern: remote-runtime-*
           path: .desktop-cache/remote-payloads
       - name: Stage runtime and build test-only native app
-        run: pnpm desktop:test:build
+        run: bun run desktop:test:build
       - name: SSH connection dialog in the native WebView (macOS)
         if: runner.os == 'macOS'
-        run: pnpm remote:test:native
+        run: bun run remote:test:native
       - name: SSH connection dialog in the native WebView (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a dbus-run-session -- pnpm remote:test:native
+        run: xvfb-run -a dbus-run-session -- bun run remote:test:native
       - name: Native WebView acceptance (macOS)
         if: runner.os == 'macOS'
-        run: pnpm desktop:test:native
+        run: bun run desktop:test:native
       - name: Native WebView acceptance (Linux X11)
         if: runner.os == 'Linux'
-        run: xvfb-run -a dbus-run-session -- pnpm desktop:test:native
+        run: xvfb-run -a dbus-run-session -- bun run desktop:test:native
       - name: Native WebView acceptance (Linux Wayland)
         if: runner.os == 'Linux'
         run: xvfb-run -a dbus-run-session -- node scripts/desktop/wayland.mjs
       - name: Native tasks workflow (macOS)
         if: runner.os == 'macOS'
-        run: pnpm test:tasks:native
+        run: bun run test:tasks:native
       - name: Native tasks workflow (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a dbus-run-session -- pnpm test:tasks:native
+        run: xvfb-run -a dbus-run-session -- bun run test:tasks:native
       - name: Preserve task evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -115,10 +119,10 @@ jobs:
         run: node scripts/language/build-native.mjs
       - name: Language WebView acceptance (macOS)
         if: runner.os == 'macOS'
-        run: pnpm exec wdio run tests/desktop/language.conf.mjs
+        run: bunx wdio run tests/desktop/language.conf.mjs
       - name: Language WebView acceptance (Linux X11)
         if: runner.os == 'Linux'
-        run: xvfb-run -a dbus-run-session -- pnpm exec wdio run tests/desktop/language.conf.mjs
+        run: xvfb-run -a dbus-run-session -- bunx wdio run tests/desktop/language.conf.mjs
       - name: Preserve language WebView evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -126,7 +130,7 @@ jobs:
           name: language-webview-${{ matrix.platform }}
           path: evidence/language-milestone1/native/
       - name: Rust formatting, Clippy, and tests
-        run: pnpm desktop:check
+        run: bun run desktop:check
       - name: Import Developer ID certificate
         if: github.ref_type == 'tag' && runner.os == 'macOS'
         uses: apple-actions/import-codesign-certs@v3
@@ -135,7 +139,7 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       - name: Build unsigned pull-request artifacts
         if: github.ref_type != 'tag'
-        run: pnpm desktop:build
+        run: bun run desktop:build
       - name: Build signed release artifacts
         if: github.ref_type == 'tag'
         env:
@@ -146,12 +150,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           OXBIT_UPDATER_PUBLIC_KEY: ${{ vars.OXBIT_UPDATER_PUBLIC_KEY }}
-        run: pnpm desktop:release
+        run: bun run desktop:release
       - name: Installed Linux package smoke checks
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y ./apps/desktop/src-tauri/target/release/bundle/deb/*.deb
-          xvfb-run -a dbus-run-session -- pnpm desktop:test:installed /usr/bin/oxbit-desktop
+          xvfb-run -a dbus-run-session -- bun run desktop:test:installed -- /usr/bin/oxbit-desktop
           oxbit_deb_package=$(dpkg-deb --field apps/desktop/src-tauri/target/release/bundle/deb/*.deb Package)
           sudo apt-get remove -y "$oxbit_deb_package"
           APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a dbus-run-session -- node scripts/desktop/installed-smoke.mjs "$(realpath apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage)"

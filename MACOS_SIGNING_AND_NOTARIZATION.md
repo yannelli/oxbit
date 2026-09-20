@@ -6,7 +6,7 @@ from the root `package.json`.
 
 ## Local setup
 
-Install the pinned Node, pnpm, and Rust toolchains and Apple's command-line tools.
+Install the pinned Node, Bun, and Rust toolchains and Apple's command-line tools.
 Import your Developer ID certificate and private key into your login Keychain.
 Replace the identity and team placeholders below with your own values.
 
@@ -41,8 +41,8 @@ and private keys outside the repository.
 Run the [desktop checks](docs/desktop.md) before building a release.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm desktop:build
+bun install --frozen-lockfile
+bun run desktop:build
 ```
 
 `APPLE_SIGNING_IDENTITY` selects the identity used to sign the bundled Node,
@@ -114,7 +114,7 @@ The [desktop workflow](.github/workflows/desktop.yml) reads these repository sec
 
 Set the repository variable `OXBIT_UPDATER_PUBLIC_KEY` to the corresponding public
 key. Apple signing and Tauri updater signing use separate keys.
-`pnpm desktop:release` requires both because it creates signed updater artifacts.
+`bun run desktop:release` requires both because it creates signed updater artifacts.
 The local DMG workflow above does not require an updater key.
 
 Push a tag matching the root version (`v<version>`) to create a draft release.

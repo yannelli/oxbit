@@ -6,35 +6,35 @@ The application identifier is `com.yannelli.oxbit`. The iPhone and iPad app in `
 
 ## Develop and build
 
-Install Node **24.20.0**, pnpm **9.15.0**, Rust **1.97.1**, and the native compiler tools. macOS needs Xcode Command Line Tools. Ubuntu needs:
+Install Node **24.20.0**, Bun **1.4.2**, Rust **1.97.1**, and the native compiler tools. macOS needs Xcode Command Line Tools. Ubuntu needs:
 
 ```sh
 sudo apt-get install build-essential python3 pkg-config libssl-dev \
   libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
   librsvg2-dev patchelf libxdo-dev libfuse2t64 xdg-utils xvfb dbus-x11
-pnpm install --frozen-lockfile
-pnpm desktop:dev
+bun install --frozen-lockfile
+bun run desktop:dev
 ```
 
 Desktop development uses the explicit `http://127.0.0.1:9280` Vite origin. It does not start the browser CLI daemon. Production loads bundled assets with Tauri's application protocol; project recovery does not depend on a runtime port.
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm desktop:prepare` | Verify and stage the target's complete runtime |
-| `pnpm desktop:runtime:test` | Exercise the staged runtime outside the checkout with minimal environment and read-only resources |
-| `pnpm desktop:dev` | Prepare, check the runtime, and run Tauri with frontend hot reload |
-| `pnpm desktop:build` | Build unsigned local `.app`/DMG or AppImage/`.deb`, then validate structure |
-| `pnpm desktop:check` | Production frontend build, Rust formatting, Clippy, and Rust tests |
-| `pnpm desktop:test:build` | Build a debug app with the embedded native WebDriver |
-| `pnpm desktop:test:native` | Run real WebView acceptance against the test app |
-| `pnpm desktop:test:installed -- /absolute/path/to/oxbit-desktop` | Check a Linux production installation with isolated state and minimal PATH |
-| `pnpm desktop:validate` | Validate staged resources and existing unsigned artifacts |
-| `pnpm desktop:release` | Require release credentials, sign resources, and build signed artifacts |
-| `pnpm release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this desktop bundle, and collect it under `release/v<version>/` without notarizing |
+| `bun run desktop:prepare` | Verify and stage the target's complete runtime |
+| `bun run desktop:runtime:test` | Exercise the staged runtime outside the checkout with minimal environment and read-only resources |
+| `bun run desktop:dev` | Prepare, check the runtime, and run Tauri with frontend hot reload |
+| `bun run desktop:build` | Build unsigned local `.app`/DMG or AppImage/`.deb`, then validate structure |
+| `bun run desktop:check` | Production frontend build, Rust formatting, Clippy, and Rust tests |
+| `bun run desktop:test:build` | Build a debug app with the embedded native WebDriver |
+| `bun run desktop:test:native` | Run real WebView acceptance against the test app |
+| `bun run desktop:test:installed -- /absolute/path/to/oxbit-desktop` | Check a Linux production installation with isolated state and minimal PATH |
+| `bun run desktop:validate` | Validate staged resources and existing unsigned artifacts |
+| `bun run desktop:release` | Require release credentials, sign resources, and build signed artifacts |
+| `bun run release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this desktop bundle, and collect it under `release/v<version>/` without notarizing |
 
-On Linux run native tests with `xvfb-run -a dbus-run-session -- pnpm desktop:test:native`. Native tests use isolated temporary projects, application state, and the separate `com.yannelli.oxbit.native-test` application identity so a running release app does not intercept test launches. The `native-test` Rust feature and `VITE_DESKTOP_TEST=1` must be used together. Production compilation rejects the test feature and production validation rejects frontend test hooks. No remote page receives native capabilities.
+On Linux run native tests with `xvfb-run -a dbus-run-session -- bun run desktop:test:native`. Native tests use isolated temporary projects, application state, and the separate `com.yannelli.oxbit.native-test` application identity so a running release app does not intercept test launches. The `native-test` Rust feature and `VITE_DESKTOP_TEST=1` must be used together. Production compilation rejects the test feature and production validation rejects frontend test hooks. No remote page receives native capabilities.
 
-Continue to run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm test:browser` for browser/CLI regressions. Desktop verification is additional to these commands. With Weston installed,
+Continue to run `bun run lint`, `bun run typecheck`, `bun run test`, `bun run build`, and `bun run test:browser` for browser/CLI regressions. Desktop verification is additional to these commands. With Weston installed,
 `xvfb-run -a dbus-run-session -- node scripts/desktop/wayland.mjs` runs the same
 WebView journeys with the GTK Wayland backend under a headless compositor.
 An outer X11 display remains available for clipboard interoperability.
@@ -44,7 +44,7 @@ An outer X11 display remains available for clipboard interoperability.
 `scripts/desktop/binaries.json` pins Node, ripgrep, and Linux packaging helpers with SHA-256 checksums.
 `bundle-tools.mjs` seeds and verifies Tauri's helper cache before packaging;
 plugin scripts use immutable upstream commits. Changed upstream binary assets
-fail the checksum gate and require an explicit reviewed pin update. `desktop:prepare` stages ordinary files under `apps/desktop/src-tauri/resources/runtime`, including the production dependency tree, TypeScript, the language server, `node-pty`, spawn helpers, dependency notices, and a package inventory. There are no links to pnpm's store. Downloads cache in `.desktop-cache`; both cache and generated resources are ignored by Git.
+fail the checksum gate and require an explicit reviewed pin update. `desktop:prepare` stages ordinary files under `apps/desktop/src-tauri/resources/runtime`, including the production dependency tree, TypeScript, the language server, `node-pty`, spawn helpers, dependency notices, and a package inventory. There are no links into the package manager store. Downloads cache in `.desktop-cache`; both cache and generated resources are ignored by Git.
 
 The packager repairs executable modes before macOS signing. Only native prebuilds for the selected target remain. Linux builds compile native modules on Ubuntu 24.04 when no prebuild exists. Each release job builds on its actual target architecture; cross-compilation is not the release path.
 
@@ -53,7 +53,7 @@ The inventory labels these as a build-environment attribution superset, because
 the AppImage helper can miss system-library notices across Ubuntu's merged
 `/lib` and `/usr/lib` paths. This list does not claim every build dependency ships.
 
-The staged-runtime gate copies the result to a path with spaces and Unicode outside the checkout, makes application resources read-only, uses no Node or pnpm on PATH, and verifies readiness, filesystem saves, bundled search, real PTY output/resize, TypeScript completion, trust enforcement, bad authentication/origin rejection, stable recovery, and cleanup on parent-channel loss.
+The staged-runtime gate copies the result to a path with spaces and Unicode outside the checkout, makes application resources read-only, uses no Node or bun on PATH, and verifies readiness, filesystem saves, bundled search, real PTY output/resize, TypeScript completion, trust enforcement, bad authentication/origin rejection, stable recovery, and cleanup on parent-channel loss.
 
 ## Projects and recovery
 
@@ -131,11 +131,11 @@ to pass `--skip-jenkins` and skip that cosmetic step; GitHub Actions already doe
 ```sh
 export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAM_ID)"
 export APPLE_TEAM_ID="TEAM_ID"
-CI=1 pnpm desktop:build
+CI=1 bun run desktop:build
 ```
 
 ## Release checks
 
-Before publishing, check the installed artifacts, including a clean Ubuntu 24.04 x64 installation under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/pnpm, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
+Before publishing, check the installed artifacts, including a clean Ubuntu 24.04 x64 installation under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/Bun, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
 
 Finally install a signed previous version, open multiple projects with unsaved files and active tools, and accept a signed version-to-version update. Exercise Cancel, Save All, Discard, offline checks, invalid signatures, interrupted downloads, and an unwritable installation. Verify restored drafts/layout and no replayed tools after restart. Record the platform, version, and results with the release.

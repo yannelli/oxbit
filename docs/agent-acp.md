@@ -191,13 +191,13 @@ Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.co
 Focused runtime and editor tests:
 
 ```sh
-pnpm exec vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
 ```
 
-Browser journeys (after `pnpm build`):
+Browser journeys (after `bun run build`):
 
 ```sh
-pnpm exec playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts tests/browser/agent-acp-subagents.spec.ts --reporter=list
+bunx playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts tests/browser/agent-acp-subagents.spec.ts --reporter=list
 ```
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,

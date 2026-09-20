@@ -97,10 +97,10 @@ Project RPCs require an authenticated workspace owner with filesystem-read capab
 | `project.relations` | Imports, direct/reachable dependents and related files for `path` |
 
 ```sh
-pnpm exec vitest run apps/runtime/tests/projects.test.ts apps/runtime/tests/json-schemas.test.ts apps/runtime/tests/lsp-manager.test.ts
-pnpm exec tsx scripts/language/project-intelligence.ts
-pnpm --filter @oxbit/web build
-pnpm exec playwright test --config scripts/language/project-playwright.config.ts
+bunx vitest run apps/runtime/tests/projects.test.ts apps/runtime/tests/json-schemas.test.ts apps/runtime/tests/lsp-manager.test.ts
+bunx tsx scripts/language/project-intelligence.ts
+bun run --filter @oxbit/web build
+bunx playwright test --config scripts/language/project-playwright.config.ts
 ```
 
 For a real Laravel application, create a disposable Composer project in a directory named `oxbit-laravel-acceptance.*`, run `php artisan package:discover`, then run `scripts/language/laravel-intelligence.ts` with `OXBIT_LARAVEL_FIXTURE` pointing to it. That script deliberately modifies fixture routes/views. `OXBIT_LSP_REPORT` saves real-server results. The managed-server CI workflow includes the MDX and Laravel presets and the MDX/schema/project checks.

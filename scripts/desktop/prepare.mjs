@@ -52,15 +52,7 @@ async function download(binary) {
 const node = await download(pin.node);
 const rg = await download(pin.rg);
 try {
-  run("pnpm", [
-    "--filter",
-    "@oxbit/runtime",
-    "exec",
-    "vite",
-    "build",
-    "--config",
-    "vite.desktop.config.ts",
-  ]);
+  run("bun", ["run", "--filter", "@oxbit/runtime", "build:desktop"]);
   await fs.rm(stage, { recursive: true, force: true });
   await fs.mkdir(path.join(stage, "bin"), { recursive: true });
   await fs.mkdir(path.join(stage, "licenses"), { recursive: true });

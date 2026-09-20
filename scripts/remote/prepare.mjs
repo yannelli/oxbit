@@ -10,7 +10,7 @@ const source = path.resolve(
   process.argv[process.argv.indexOf("--from-stage") + 1] || ".",
 );
 if (!process.argv.includes("--from-stage") || !source)
-  throw new Error("Run pnpm remote:prepare");
+  throw new Error("Run bun run remote:prepare");
 const pins = JSON.parse(
   await fs.readFile(path.join(root, "scripts/desktop/binaries.json"), "utf8"),
 );

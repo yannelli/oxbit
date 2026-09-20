@@ -5,7 +5,7 @@ import { base64ToBytes, decodeCharacter } from '../packages/icon-themes/src/asse
 const require = createRequire(new URL('../packages/icon-themes/package.json', import.meta.url));
 const { create } = require('fontkit');
 const paths = process.argv.slice(2);
-if (!paths.length) { console.error('Usage: pnpm icons:validate path/to/icons.zip [other.vsix]'); process.exitCode = 1; }
+if (!paths.length) { console.error('Usage: bun run icons:validate path/to/icons.zip [other.vsix]'); process.exitCode = 1; }
 for (const path of paths) {
   try {
     const pack = await importPack(new Blob([await readFile(path)]), path);
