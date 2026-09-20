@@ -6,7 +6,7 @@ const crate = fileURLToPath(new URL("../../apps/ios/src-tauri/", import.meta.url
 const run = (command, args, cwd = root, env = process.env) =>
   execFileSync(command, args, { cwd, env, stdio: "inherit" });
 const tauri = (...args) =>
-  run("bun", ["run", "--filter", "@oxbit/ios", "tauri", "--", ...args]);
+  run("bun", ["run", "--cwd", "apps/ios", "tauri", "--", ...args]);
 const buildDir = fileURLToPath(new URL("../../apps/ios/src-tauri/gen/apple/build/", import.meta.url));
 const profileDir = `${process.env.HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles`;
 

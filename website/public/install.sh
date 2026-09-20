@@ -23,7 +23,7 @@ main() {
   [[ "$(node -p 'process.versions.node.split(".")[0]')" == 24 ]] ||
     fail "Node 24 is required. Switch Node versions, then rerun this script."
   [[ "$(bun --version)" == 1.4.2 ]] ||
-    fail "Bun 1.4.2 is required. Install it from https://bun.sh, then rerun this script."
+    fail "Bun 1.4.2 is required. Run curl -fsSL https://bun.sh/install | bash -s -- bun-v1.4.2, then rerun this script."
 
   case "$install_dir" in
     /*) ;;

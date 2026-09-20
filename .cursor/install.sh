@@ -42,7 +42,7 @@ if ! command -v bun >/dev/null 2>&1 || [[ "$(bun --version)" != "1.4.2" ]]; then
 fi
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-if ! grep -q '/.bun/bin' "$HOME/.bashrc" 2>/dev/null; then
+if ! grep -qE 'BUN_INSTALL|/\.bun/bin' "$HOME/.bashrc" 2>/dev/null; then
   {
     echo ''
     echo "export BUN_INSTALL=\"$BUN_INSTALL\""

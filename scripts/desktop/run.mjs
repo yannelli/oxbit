@@ -21,8 +21,8 @@ if (mode !== "check") {
 if (mode === "dev")
   run("bun", [
     "run",
-    "--filter",
-    "@oxbit/desktop",
+    "--cwd",
+    "apps/desktop",
     "tauri",
     "--",
     "dev",
@@ -33,8 +33,8 @@ if (mode === "native-build")
     "bun",
     [
       "run",
-      "--filter",
-      "@oxbit/desktop",
+      "--cwd",
+      "apps/desktop",
       "tauri",
       "--",
       "build",
@@ -66,8 +66,8 @@ if (mode === "build") {
     ]);
   run("bun", [
     "run",
-    "--filter",
-    "@oxbit/desktop",
+    "--cwd",
+    "apps/desktop",
     "tauri",
     "--",
     "build",

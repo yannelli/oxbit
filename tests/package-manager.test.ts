@@ -51,6 +51,9 @@ describe("package manager contract", () => {
     expect(existsSync(path.join(root, "bun.lock"))).toBe(true);
     expect(existsSync(path.join(root, "pnpm-lock.yaml"))).toBe(false);
     expect(existsSync(path.join(root, "pnpm-workspace.yaml"))).toBe(false);
+    expect(readFileSync(path.join(root, "bunfig.toml"), "utf8")).toContain(
+      'linker = "isolated"',
+    );
   });
 
   it("keeps automation and contributor docs on bun", () => {
@@ -59,7 +62,7 @@ describe("package manager contract", () => {
     const leftovers: string[] = [];
     for (const file of files) {
       if (allowPnpm.has(file)) continue;
-      if (!/\.(md|json|jsonc|yml|yaml|ts|mts|js|mjs|cjs|sh|html)$/.test(file)) continue;
+      if (!/\.(md|json|jsonc|yml|yaml|ts|mts|tsx|js|mjs|cjs|sh|html|pbxproj|toml)$/.test(file)) continue;
       const text = readFileSync(path.join(root, file), "utf8");
       if (/\bpnpm\b/.test(text)) leftovers.push(file);
     }
