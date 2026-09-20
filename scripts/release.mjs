@@ -266,9 +266,11 @@ async function main() {
       run(
         "bun",
         ["run", "desktop:build"],
+        // Unset OXBIT_REMOTE_TARGETS cross-builds the other host through Docker.
         { OXBIT_REMOTE_TARGETS: process.env.OXBIT_REMOTE_TARGETS ?? platform },
         appleEnv,
       );
+    // desktop:build drops the App Store Connect signing environment that ios:build needs.
     if (ios) run("bun", ["run", "ios:build"]);
 
     await fs.rm(output, { recursive: true, force: true });

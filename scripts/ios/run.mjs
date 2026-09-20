@@ -81,6 +81,7 @@ if (!process.env.DEVELOPER_DIR) {
   const stable = "/Applications/Xcode.app/Contents/Developer";
   if (!selected.includes(".app/")) process.env.DEVELOPER_DIR = existsSync(stable) ? stable : beta;
 }
+// The Tauri CLI spawns xcodebuild with only HOME, PATH, and TERM. The shims restore DEVELOPER_DIR.
 process.env.PATH = fileURLToPath(new URL("./xcode-shim", import.meta.url)) + ":" + process.env.PATH;
 if (mode === "init") tauri("ios", "init", ...extra);
 if (["dev", "build", "adhoc", "simulator"].includes(mode)) run("bun", ["run", "build:example"]);

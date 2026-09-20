@@ -2,6 +2,7 @@ import { chmodSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
+// node-pty 1.1.0 ships macOS prebuild helpers with mode 0644.
 if (process.platform === "darwin") {
   const require = createRequire(
     new URL("../apps/runtime/package.json", import.meta.url),
