@@ -103,10 +103,7 @@ export function Explorer({
   };
   // Touch devices reorder and move files through long-press menus; HTML5 drag stays for mice.
   const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-  const t =
-    workbench.kernel.configuration.get("workbench.locale") === "de"
-      ? { open: "Geöffnete Editoren", outline: "Gliederung" }
-      : { open: "Open Editors", outline: "Outline" };
+  const t = { open: tr("Open Editors"), outline: tr("Outline") };
   return (
     <div className="explorer-content" onContextMenu={(e) => menu(e)}>
       <button

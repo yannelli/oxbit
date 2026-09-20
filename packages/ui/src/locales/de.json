@@ -763,5 +763,10 @@
   "Earlier subagent activity was truncated.": "Frühere Aktivität des Unteragenten wurde gekürzt.",
   "Wait for active subagents or disconnect before changing conversations": "Warte auf aktive Unteragenten oder trenne die Verbindung, bevor du die Unterhaltung wechselst",
   "Resolve pending requests before changing conversations": "Beantworte ausstehende Anfragen, bevor du die Unterhaltung wechselst",
-  "Activity": "Aktivität"
+  "Activity": "Aktivität",
+  "en": "Englisch",
+  "de": "Deutsch",
+  "es": "Spanisch",
+  "ja": "Japanisch",
+  "zh": "Chinesisch (vereinfacht)"
 }
