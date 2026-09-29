@@ -360,6 +360,8 @@ kbd {
 .footer-cols a { display: block; color: var(--muted); font-size: 14.5px; padding: 4px 0; transition: color 0.2s; }
 .footer-cols a:hover { color: var(--text); }
 .footer-legal { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--dim); font-size: 13px; }
+.footer-legal a { color: var(--muted); transition: color 0.2s; }
+.footer-legal a:hover { color: var(--text); }
 
 /* Reveal */
 [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
