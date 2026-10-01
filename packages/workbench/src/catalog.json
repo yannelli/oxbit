@@ -163,7 +163,7 @@
       "id": "file.rename",
       "title": "Rename…",
       "cat": "File",
-      "mac": "↩",
+      "mac": "↩\uFE0E",
       "win": "F2",
       "when": "explorer"
     },
@@ -207,7 +207,7 @@
       "id": "editor.pin",
       "title": "Pin Editor",
       "cat": "View",
-      "mac": "⌘K ⇧↩",
+      "mac": "⌘K ⇧↩\uFE0E",
       "win": "Ctrl+K Shift+Enter",
       "when": "editor"
     },
@@ -215,7 +215,7 @@
       "id": "editor.keepOpen",
       "title": "Keep Editor Open",
       "cat": "View",
-      "mac": "⌘K ↩",
+      "mac": "⌘K ↩\uFE0E",
       "win": "Ctrl+K Enter",
       "when": "editor"
     },
@@ -423,7 +423,7 @@
       "id": "git.commit",
       "title": "Commit",
       "cat": "Git",
-      "mac": "⌘↩",
+      "mac": "⌘↩\uFE0E",
       "win": "Ctrl+Enter",
       "when": "gitStaged"
     },
