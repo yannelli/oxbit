@@ -1,5 +1,9 @@
 mod commands;
 mod fs_core;
+mod git_core;
+mod git_host;
+mod git_operations;
+mod git_requests;
 mod icon_packs;
 mod storage;
 mod watch;
@@ -12,6 +16,7 @@ pub struct AppState {
     pub roots: Mutex<fs_core::Roots>,
     pub watchers: watch::Watchers,
     pub language_servers: Mutex<()>,
+    pub git: git_operations::Operations,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +32,7 @@ pub fn run() {
                 roots: Mutex::new(fs_core::Roots::default()),
                 watchers: watch::Watchers::default(),
                 language_servers: Mutex::new(()),
+                git: git_operations::Operations::default(),
             });
             Ok(())
         })
@@ -48,6 +54,8 @@ pub fn run() {
             commands::ios_icon_packs_read,
             commands::ios_icon_packs_mutate,
             commands::ios_open_external,
+            git_host::ios_git_request,
+            git_host::ios_git_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Oxbit");

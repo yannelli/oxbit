@@ -19,6 +19,8 @@
 		C476D92C6B2BF7A1C7481C14 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A676C9E721064DFC46968D /* Security.framework */; };
 		DE29EFAAFB3EE7ED5A603498 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 984FCB3A1F89E00CC94CEA69 /* assets */; };
 		FBCA7E0AD7897B4256FE14E0 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65E89CC83BA1EDA2644E3DE9 /* libapp.a */; };
+		D9A563F671C5E35B68638E6F /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 8998039E0DB95E8E77C0D11C /* libiconv.tbd */; };
+		091F1BB18EA4919BCC24A613 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = CF1F220DB7A5467BBCC22F48 /* libz.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +43,8 @@
 		F64B133237AD9373D9CDB480 /* Oxbit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oxbit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA78B0330CFAA52E4905C4E8 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		FD0FDCBDC98C1CDF5FD6B27D /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
+		8998039E0DB95E8E77C0D11C /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
+		CF1F220DB7A5467BBCC22F48 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +60,8 @@
 				C476D92C6B2BF7A1C7481C14 /* Security.framework in Frameworks */,
 				1FFFA0E6B1AEBB164CB9ECDF /* UIKit.framework in Frameworks */,
 				83DEC424240FBF29007490BB /* WebKit.framework in Frameworks */,
+				091F1BB18EA4919BCC24A613 /* libz.tbd in Frameworks */,
+				D9A563F671C5E35B68638E6F /* libiconv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,6 +79,8 @@
 				54A676C9E721064DFC46968D /* Security.framework */,
 				81B46168467A9426CE314C5C /* UIKit.framework */,
 				68A2EC5BF74EAECDEB4A2B48 /* WebKit.framework */,
+				CF1F220DB7A5467BBCC22F48 /* libz.tbd */,
+				8998039E0DB95E8E77C0D11C /* libiconv.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

@@ -24,6 +24,14 @@ impl<R: Runtime> OxbitFiles<R> {
         Ok(())
     }
 
+    pub fn git_credentials(&self, _request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
+    pub fn read_git_credentials(&self) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
     pub fn runtime_credentials(
         &self,
         _request: serde_json::Value,

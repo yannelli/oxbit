@@ -21,6 +21,12 @@ export interface WriteResult {
   revision: string;
   size: number;
 }
+export interface GitAccount {
+  authenticated: boolean;
+  login?: string;
+  name?: string;
+  email?: string;
+}
 
 function isNativeError(value: unknown): value is NativeError {
   return (
@@ -57,6 +63,11 @@ async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptio
 export const native = {
   lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
+  gitCredentials: (request: { operation: "get" | "save" | "forget"; token?: string; name?: string; email?: string }) =>
+    call<GitAccount>("plugin:oxbit-files|git_credentials", { request }),
+  gitRequest: <T>(id: string, requestId: string, method: string, params: Record<string, unknown>) =>
+    call<T>("ios_git_request", { id, requestId, method, params }),
+  gitCancel: (id: string, requestId: string) => call<void>("ios_git_cancel", { id, requestId }),
   runtimeCredentials: (request: { operation: "get" | "pair" | "forget"; url: string; code?: string }) =>
     call<{ token?: string }>("plugin:oxbit-files|runtime_credentials", { request }),
   storageGet: <T>(scope: string, key: string) => call<T | null>("ios_storage_get", { scope, key }),

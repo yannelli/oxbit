@@ -1,7 +1,9 @@
 import { createWorkbenchSession, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
 import { connectRuntime, runtimeScope } from "./runtime.js";
+import { normalizePath } from "@oxbit/host-browser";
 import {
   IosFileSystem,
+  IosGitClient,
   IosIconPackStore,
   IosPersistence,
   createIosLanguageFeature,
@@ -19,10 +21,11 @@ const LAST_KEY = "last-workspace";
 export interface OpenWorkspace {
   recent: RecentWorkspace;
   session: Session;
+  git?: IosGitClient;
 }
 
 export type OpenRequest =
-  | { kind: "documents" }
+  | { kind: "documents"; directory?: string }
   | { kind: "pick" }
   | { kind: "runtime"; url: string; code?: string }
   | { kind: "recent"; recent: RecentWorkspace };
@@ -30,8 +33,16 @@ export type OpenRequest =
 const iconPackStore = new IosIconPackStore();
 
 async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
-  if (request.kind === "documents" || (request.kind === "recent" && request.recent.kind === "documents"))
-    return { path: await native.documentsPath(), recent: { id: DOCUMENTS_ID, kind: "documents", name: "Oxbit" } };
+  if (request.kind === "documents" || (request.kind === "recent" && request.recent.kind === "documents")) {
+    const directory = request.kind === "documents" ? request.directory : request.recent.directory;
+    const relative = directory ? normalizePath(directory) : undefined;
+    return {
+      path: (await native.documentsPath()) + (relative ? "/" + relative : ""),
+      recent: relative
+        ? { id: DOCUMENTS_ID + ":" + relative, kind: "documents", name: relative.split("/").at(-1)!, directory: relative }
+        : { id: DOCUMENTS_ID, kind: "documents", name: "Oxbit" },
+    };
+  }
   const folder = request.kind === "pick" ? await native.pickFolder() : await native.openFolder(request.recent.id);
   return { path: folder.path, recent: { id: folder.id, kind: "bookmark", name: folder.name } };
 }
@@ -62,30 +73,36 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   const { path, recent } = await resolvePath(request);
   const filesystem = await IosFileSystem.open(path);
   const persistence = new IosPersistence(filesystem.id);
+  const git = new IosGitClient(filesystem.id);
   let session: Session | undefined;
   try {
-    session = await createWorkbenchSession({ filesystem, persistence, protectUnload: false, iconPackStore });
+    session = await createWorkbenchSession({ filesystem, git, persistence, protectUnload: false, preserveFilesystem: true, iconPackStore });
     const languageFeature = createIosLanguageFeature(filesystem);
     session.kernel.extensions.register(languageFeature);
     if (!(await persistence.get<string[]>("extension-disabled"))?.includes(languageFeature.manifest.id))
       await session.kernel.extensions.activate(languageFeature.manifest.id);
+    const remembered = { ...recent, lastOpened: Date.now() };
+    await rememberWorkspace(recent);
+    await native.storageSet(SESSION_SCOPE, LAST_KEY, remembered.id);
+    return { recent: remembered, session, git };
   } catch (error) {
-    if (session) await session.dispose();
-    await filesystem.close();
+    await git.dispose();
+    await session?.dispose();
+    await filesystem.dispose();
     if (recent.kind === "bookmark") await native.closeFolder(recent.id).catch(() => {});
     throw error;
   }
-  const remembered = { ...recent, lastOpened: Date.now() };
-  await rememberWorkspace(recent);
-  await native.storageSet(SESSION_SCOPE, LAST_KEY, remembered.id);
-  return { recent: remembered, session };
 }
 
 export async function closeWorkspace(workspace: OpenWorkspace) {
   await workspace.session.persist().catch(() => {});
-  await workspace.session.dispose();
-  if (workspace.session.filesystem instanceof IosFileSystem) await workspace.session.filesystem.close();
-  if (workspace.recent.kind === "bookmark") await native.closeFolder(workspace.recent.id).catch(() => {});
+  try {
+    await workspace.git?.dispose();
+    await workspace.session.dispose();
+  } finally {
+    if (workspace.git) await workspace.session.filesystem.dispose?.();
+    if (workspace.recent.kind === "bookmark") await native.closeFolder(workspace.recent.id).catch(() => {});
+  }
 }
 
 export async function forgetRecent(id: string) {
@@ -94,7 +111,7 @@ export async function forgetRecent(id: string) {
   if (recent?.kind === "runtime" && recent.url) {
     if (!next.some(item => item.kind === "runtime" && item.url === recent.url))
       await native.runtimeCredentials({ operation: "forget", url: recent.url });
-  } else if (id !== DOCUMENTS_ID) await native.forgetFolder(id).catch(() => {});
+  } else if (recent?.kind === "bookmark") await native.forgetFolder(id).catch(() => {});
   if ((await native.storageGet<string>(SESSION_SCOPE, LAST_KEY)) === id) await native.storageSet(SESSION_SCOPE, LAST_KEY, null);
   return next;
 }

@@ -1,6 +1,6 @@
 # Source Control
 
-Open **Source Control** in the activity bar. Git runs in the connected, trusted runtime workspace and uses its Git installation and credential helpers.
+Open **Source Control** in the activity bar. Runtime workspaces use the computer’s Git installation and credential helpers. Device folders on iOS use libgit2, with GitHub credentials stored in Keychain. See [iOS source control](ios-source-control.md) for cloning and authentication.
 
 ## Changes and commits
 

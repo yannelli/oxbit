@@ -24,6 +24,7 @@ enum FolderError: LocalizedError {
 class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let runtime = RuntimeCredentials()
   private let languageServers = LanguageServers()
+  private let git = GitCredentials()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -46,6 +47,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func lspCloseWorkspace(_ invoke: Invoke) {
     languageServers.closeWorkspace(invoke)
+  }
+
+  @objc public func gitCredentials(_ invoke: Invoke) {
+    git.handle(invoke)
   }
 
   @objc public func pickFolder(_ invoke: Invoke) {

@@ -9,4 +9,5 @@ permissions = [
   "allow-forget-folder",
   "allow-documents-path",
   "allow-runtime-credentials",
+  "allow-git-credentials",
 ]

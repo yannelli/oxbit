@@ -9,6 +9,7 @@ mod commands;
 #[cfg(desktop)]
 mod desktop;
 mod error;
+mod git_credentials;
 #[cfg(mobile)]
 mod mobile;
 mod models;
@@ -40,6 +41,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::forget_folder,
             commands::documents_path,
             commands::runtime_credentials,
+            commands::git_credentials,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

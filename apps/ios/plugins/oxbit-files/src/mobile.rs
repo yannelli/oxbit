@@ -42,6 +42,16 @@ impl<R: Runtime> OxbitFiles<R> {
             .map_err(Into::into)
     }
 
+    pub fn git_credentials(&self, request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("gitCredentials", request)
+            .map_err(Into::into)
+    }
+
+    pub fn read_git_credentials(&self) -> crate::Result<serde_json::Value> {
+        self.git_credentials(serde_json::json!({ "operation": "read" }))
+    }
+
     pub fn runtime_credentials(
         &self,
         request: serde_json::Value,
