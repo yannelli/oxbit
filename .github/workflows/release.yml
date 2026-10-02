@@ -1,0 +1,178 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  remote-runtime:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: macos-26
+            platform: darwin-arm64
+          - runner: ubuntu-24.04
+            platform: linux-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - name: Build native headless runtime
+        env:
+          OXBIT_REMOTE_TARGETS: ${{ matrix.platform }}
+        run: bun run remote:prepare
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remote-runtime-${{ matrix.platform }}
+          path: apps/desktop/src-tauri/resources/runtime/remote/
+          if-no-files-found: error
+  macos:
+    needs: remote-runtime
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      OXBIT_REMOTE_PAYLOADS: ${{ github.workspace }}/.desktop-cache/remote-payloads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: rustup toolchain install 1.97.1 --profile minimal
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: remote-runtime-*
+          path: .desktop-cache/remote-payloads
+      - name: Import Developer ID certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      - name: Build, sign, and notarize the app
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          OXBIT_UPDATER_PUBLIC_KEY: ${{ vars.OXBIT_UPDATER_PUBLIC_KEY }}
+        run: bun run desktop:release
+      - name: Sign, notarize, and staple the DMG
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node scripts/desktop/notarize.mjs
+      - name: Collect release files
+        env:
+          COPYFILE_DISABLE: "1"
+        run: |
+          version=$(node -p "require('./package.json').version")
+          bundle=apps/desktop/src-tauri/target/release/bundle
+          mkdir -p release-files
+          cp "$bundle"/dmg/*.dmg "$bundle"/macos/Oxbit.app.tar.gz "$bundle"/macos/Oxbit.app.tar.gz.sig release-files/
+          tar -czf "release-files/Oxbit_${version}_web.tar.gz" -C apps/web/dist .
+          tar -czf "release-files/Oxbit_${version}_runtime.tar.gz" -C apps/runtime/dist .
+          tar -czf "release-files/Oxbit_${version}_extensions.tar.gz" -C examples/bundle-inspector/dist .
+          ls -l release-files
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: release-files/
+          if-no-files-found: error
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: rustup toolchain install 1.97.1 --profile minimal && rustup target add aarch64-apple-ios --toolchain 1.97.1
+      - run: brew install xcodegen
+      # altool reads AuthKey_<id>.p8 from ~/private_keys; the API variables stay out of the
+      # build step so the Tauri CLI signs with the imported certificate and profile.
+      - name: Write the App Store Connect API key
+        run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > "$HOME/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8"
+      - name: Choose the App Store version and build number
+        id: version
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+        run: |
+          export APPLE_API_KEY_PATH="$HOME/private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          echo "short=$(node -p "require('./package.json').version.split('-')[0]")" >> "$GITHUB_OUTPUT"
+          echo "build=$(node scripts/ios/build-number.mjs)" >> "$GITHUB_OUTPUT"
+      - name: Signed App Store build
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+        run: >-
+          node scripts/ios/run.mjs build --config
+          '{"version":"${{ steps.version.outputs.short }}","bundle":{"iOS":{"bundleVersion":"${{ steps.version.outputs.build }}"}}}'
+      - name: Validate with App Store Connect
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+        run: xcrun altool --validate-app -t ios -f apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
+      - name: Upload to TestFlight
+        if: github.ref_type == 'tag'
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+        run: node scripts/ios/run.mjs upload apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
+      - name: Collect release files
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir -p release-files
+          cp apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa "release-files/Oxbit_${version}_ios.ipa"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-ios
+          path: release-files/
+          if-no-files-found: error
+  publish:
+    needs: [macos, ios]
+    if: github.ref_type == 'tag' && github.repository == 'yannelli/oxbit'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-files
+          merge-multiple: true
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ github.ref_name }}
+        run: node scripts/desktop/publish-release.mjs release-files

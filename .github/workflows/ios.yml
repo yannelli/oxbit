@@ -1,14 +1,12 @@
 name: iOS
 on:
   pull_request:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: ios-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: macos-26
@@ -39,58 +37,3 @@ jobs:
           name: ios-simulator-app
           path: apps/ios/src-tauri/gen/apple/build/arm64-sim/Oxbit.app
           if-no-files-found: ignore
-  testflight:
-    needs: check
-    if: github.ref_type == 'tag'
-    runs-on: macos-26
-    env:
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-      IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
-      IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-      IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
-    steps:
-      - name: Require signing and upload secrets
-        run: |
-          missing=""
-          for name in APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_BASE64 IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION; do
-            if [ -z "${!name}" ]; then missing="$missing $name"; fi
-          done
-          if [ -n "$missing" ]; then
-            echo "Skipping the TestFlight upload; missing secrets:$missing"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          fi
-        id: secrets
-        env:
-          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
-      - uses: actions/checkout@v4
-        if: steps.secrets.outputs.skip != 'true'
-      - uses: actions/setup-node@v4
-        if: steps.secrets.outputs.skip != 'true'
-        with:
-          node-version: "24.20.0"
-      - uses: oven-sh/setup-bun@v2
-        if: steps.secrets.outputs.skip != 'true'
-        with:
-          bun-version: "1.4.2"
-      - if: steps.secrets.outputs.skip != 'true'
-        run: bun install --frozen-lockfile
-      - if: steps.secrets.outputs.skip != 'true'
-        run: rustup toolchain install 1.97.1 --profile minimal && rustup target add aarch64-apple-ios --toolchain 1.97.1 && brew install xcodegen
-      - name: Write the App Store Connect API key
-        if: steps.secrets.outputs.skip != 'true'
-        run: |
-          mkdir -p ~/private_keys
-          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > "$HOME/private_keys/AuthKey_${APPLE_API_KEY}.p8"
-          echo "APPLE_API_KEY_PATH=$HOME/private_keys/AuthKey_${APPLE_API_KEY}.p8" >> "$GITHUB_ENV"
-      - name: Signed build
-        if: steps.secrets.outputs.skip != 'true'
-        run: bun run ios:build -- --build-number ${{ github.run_number }}
-      - name: Upload to TestFlight
-        if: steps.secrets.outputs.skip != 'true'
-        run: bun run ios:upload -- apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
-      - uses: actions/upload-artifact@v4
-        if: steps.secrets.outputs.skip != 'true'
-        with:
-          name: ios-ipa
-          path: apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa

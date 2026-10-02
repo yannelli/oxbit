@@ -1,14 +1,12 @@
 name: Desktop
 on:
   pull_request:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: desktop-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+  cancel-in-progress: true
 jobs:
   remote-runtime:
     strategy:
@@ -131,26 +129,8 @@ jobs:
           path: evidence/language-milestone1/native/
       - name: Rust formatting, Clippy, and tests
         run: bun run desktop:check
-      - name: Import Developer ID certificate
-        if: github.ref_type == 'tag' && runner.os == 'macOS'
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       - name: Build unsigned pull-request artifacts
-        if: github.ref_type != 'tag'
         run: bun run desktop:build
-      - name: Build signed release artifacts
-        if: github.ref_type == 'tag'
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          OXBIT_UPDATER_PUBLIC_KEY: ${{ vars.OXBIT_UPDATER_PUBLIC_KEY }}
-        run: bun run desktop:release
       - name: Installed Linux package smoke checks
         if: runner.os == 'Linux'
         run: |
@@ -159,14 +139,6 @@ jobs:
           oxbit_deb_package=$(dpkg-deb --field apps/desktop/src-tauri/target/release/bundle/deb/*.deb Package)
           sudo apt-get remove -y "$oxbit_deb_package"
           APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a dbus-run-session -- node scripts/desktop/installed-smoke.mjs "$(realpath apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage)"
-      - name: Notarize, staple, and assess the final DMG
-        if: github.ref_type == 'tag' && runner.os == 'macOS'
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: node scripts/desktop/notarize.mjs
       - name: Upload installable artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -186,23 +158,3 @@ jobs:
           name: native-evidence-${{ matrix.platform }}
           path: apps/desktop/native-results/
           if-no-files-found: ignore
-  draft-release:
-    needs: build
-    if: github.ref_type == 'tag' && github.repository == 'yannelli/oxbit'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24.20.0"
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: desktop-*
-          path: desktop-artifacts
-      - name: Create draft and upload binaries before updater manifest
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION_TAG: ${{ github.ref_name }}
-        run: node scripts/desktop/draft-release.mjs
