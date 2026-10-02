@@ -490,6 +490,7 @@ export interface FeatureOptions {
   documents: any;
   filesystem: FileSystem;
   runtime?: RpcClient;
+  git?: RpcClient;
   workbench: WorkbenchService;
 }
 export type { DocumentSymbol, DocumentSymbolProvider, SymbolRange } from "./symbols.js";

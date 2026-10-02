@@ -7,7 +7,9 @@ import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workben
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
 import { RuntimeConnection } from "./runtime-connection.js";
-import { closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
+import { GitSettings } from "./git-settings.js";
+import { CloneRepository } from "./clone-repository.js";
+import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 import "./ios.css";
@@ -37,6 +39,8 @@ function App() {
   const [recents, setRecents] = useState<RecentWorkspace[]>([]);
   const [sheet, setSheet] = useState(true);
   const [connection, setConnection] = useState(false);
+  const [gitSettings, setGitSettings] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [restoring, setRestoring] = useState(true);
@@ -109,6 +113,8 @@ function App() {
       ["workspace.switch", "Switch Workspace…", () => setSheet(true)],
       ["workspace.close", "Close Workspace", () => close()],
       ["workspace.runtime", "Connect Runtime", () => setConnection(true)],
+      ["git.account", "GitHub and Commit Author", () => setGitSettings(true)],
+      ["workspace.clone", "Clone Repository to Device", () => setCloning(true)],
     ] as const;
     const disposables = registrations.map(([id, title, run]) =>
       session.kernel.commands.register({ id, title, category: "Workspace", run: () => void run() }),
@@ -131,6 +137,8 @@ function App() {
       onForget={(recent) => void forgetRecent(recent.id).then(setRecents, (e) => setError(describe(e)))}
       onDismiss={workspace ? () => setSheet(false) : undefined}
       onConnect={() => setConnection(true)}
+      onGitSettings={() => setGitSettings(true)}
+      onClone={() => setCloning(true)}
     />
   );
   return (
@@ -144,6 +152,9 @@ function App() {
           const error = await open({ kind: "runtime", url, code });
           if (error) throw new Error(error);
         }} disconnect={close} onClose={() => setConnection(false)} />}
+      {gitSettings && <GitSettings onClose={() => setGitSettings(false)} />}
+      {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
+        onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}
     </Shell>
   );
 }

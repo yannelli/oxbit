@@ -10,6 +10,7 @@ Pick Files app folders, reopen them from bookmarks, and locate the Documents dir
 - `allow-forget-folder`
 - `allow-documents-path`
 - `allow-runtime-credentials`
+- `allow-git-credentials`
 
 ## Permission Table
 
@@ -94,6 +95,32 @@ Enables the forget_folder command without any pre-configured scope.
 <td>
 
 Denies the forget_folder command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-git-credentials`
+
+</td>
+<td>
+
+Enables the git_credentials command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-git-credentials`
+
+</td>
+<td>
+
+Denies the git_credentials command without any pre-configured scope.
 
 </td>
 </tr>

@@ -42,7 +42,13 @@ pub fn ios_documents_path(app: AppHandle) -> Result<String> {
 
 #[tauri::command]
 pub fn ios_fs_open_root(state: State<'_, AppState>, path: String) -> Result<Opened> {
-    state.roots.lock().unwrap().open(&PathBuf::from(path))
+    let mut roots = state.roots.lock().unwrap();
+    let opened = roots.open(&PathBuf::from(path))?;
+    if let Err(error) = state.git.open_root(&opened.id) {
+        roots.close(&opened.id);
+        return Err(error);
+    }
+    Ok(opened)
 }
 
 #[tauri::command]
@@ -54,11 +60,16 @@ pub async fn ios_fs_close_root(app: AppHandle, id: String) -> Result<()> {
             .lsp_close_workspace(id.clone())
             .map_err(|error| Error::new("LSP", error.to_string()))?;
         state.watchers.stop(&id);
-        state.roots.lock().unwrap().close(&id);
-        Ok(())
+        let drain = {
+            let mut roots = state.roots.lock().unwrap();
+            let drain = state.git.close_root(&id)?;
+            roots.close(&id);
+            drain
+        };
+        drain.wait()
     })
     .await
-    .map_err(|error| Error::new("LSP", error.to_string()))?
+    .map_err(|_| Error::new("IO", "Could not finish closing native workspace"))?
 }
 
 fn root(state: &AppState, id: &str) -> Result<fs_core::Root> {

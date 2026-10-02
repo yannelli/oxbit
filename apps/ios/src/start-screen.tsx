@@ -13,6 +13,8 @@ export function StartScreen({
   onForget,
   onDismiss,
   onConnect,
+  onGitSettings,
+  onClone,
 }: {
   recents: RecentWorkspace[];
   busy?: string;
@@ -24,8 +26,10 @@ export function StartScreen({
   onForget: (recent: RecentWorkspace) => void;
   onDismiss?: () => void;
   onConnect: () => void;
+  onGitSettings: () => void;
+  onClone: () => void;
 }) {
-  const folders = recents.filter((recent) => recent.kind === "bookmark");
+  const folders = recents.filter((recent) => recent.kind === "bookmark" || (recent.kind === "documents" && recent.directory));
   const runtimes = recents.filter(recent => recent.kind === "runtime");
   return (
     <div className="ios-start" role="dialog" aria-label="Workspaces">
@@ -86,6 +90,11 @@ export function StartScreen({
           <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="close" size={14} /></button>
         </div>)}
         <button className="button primary ios-open-folder" onClick={onConnect} disabled={!!busy}><Icon name="cloud" />Connect Runtime…</button>
+      </section>
+      <section aria-label="Source Control">
+        <h2>Source Control</h2>
+        <button className="button primary ios-open-folder" onClick={onClone} disabled={!!busy}><Icon name="copy" />Clone Repository…</button>
+        <button className="button ios-open-folder" onClick={onGitSettings} disabled={!!busy}><Icon name="git" />GitHub and Commit Author…</button>
       </section>
       {busy && (
         <p className="muted" role="status">

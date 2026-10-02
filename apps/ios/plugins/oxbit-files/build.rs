@@ -5,6 +5,7 @@ const COMMANDS: &[&str] = &[
     "forget_folder",
     "documents_path",
     "runtime_credentials",
+    "git_credentials",
 ];
 
 fn main() {

@@ -93,7 +93,7 @@ export class IosFileSystem implements FileSystem {
       finally { await native.closeRoot(this.id); }
     })();
   }
-  dispose() {
-    void this.close().catch(() => {});
+  dispose(): Promise<void> {
+    return this.close();
   }
 }

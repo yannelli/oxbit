@@ -103,6 +103,7 @@ const staged = (change: Change) =>
 const unstaged = (change: Change) =>
   !change.conflict && ![" ", ""].includes(change.working);
 export function createFeature(o: FeatureOptions): Extension {
+  const git = o.git ?? o.runtime;
   let status: Status = emptyStatus(),
     error = "",
     progress = "",
@@ -128,11 +129,15 @@ export function createFeature(o: FeatureOptions): Extension {
     params: Record<string, unknown> = {},
     signal?: AbortSignal,
   ) => {
-    if (!o.runtime?.connected)
+    if (!git?.connected)
       return Promise.reject(
-        new Error("Connect to a trusted runtime workspace to use Git"),
+        new Error(
+          o.git
+            ? "Source control is unavailable for this workspace"
+            : "Connect to a trusted runtime workspace to use Git",
+        ),
       );
-    return o.runtime.request<T>("git." + method, params, { signal });
+    return git.request<T>("git." + method, params, { signal });
   };
   let statusRequest = 0;
   const refresh = async () => {
@@ -386,7 +391,9 @@ export function createFeature(o: FeatureOptions): Extension {
       error = String(failure);
       progress = cloneController.signal.aborted
         ? "Clone cancelled; incomplete destination removed."
-        : "Clone failed. Runtime credential helpers supply authentication.";
+        : o.git
+          ? "Clone failed."
+          : "Clone failed. Runtime credential helpers supply authentication.";
       throw failure;
     } finally {
       cloning = false;
@@ -901,7 +908,7 @@ export function createFeature(o: FeatureOptions): Extension {
           h(IconButton, {
             icon: "copy",
             label: "Clone",
-            disabled: pending || !o.runtime?.connected,
+            disabled: pending || !git?.connected,
             onClick: () => run(clone),
           }),
           h(IconButton, {
@@ -962,7 +969,7 @@ export function createFeature(o: FeatureOptions): Extension {
             "button",
             {
               className: "button",
-              disabled: pending || !o.runtime?.connected,
+              disabled: pending || !git?.connected,
               onClick: () => run(() => request("init").then(refresh)),
             },
             h(Icon, { name: "plus" }),
@@ -1358,7 +1365,7 @@ export function createFeature(o: FeatureOptions): Extension {
         enabled = o.kernel.configuration.get("scm.autoFetch") === true;
       const schedule = () => {
         clearTimeout(timer);
-        if (disposed || !enabled || !o.runtime?.connected || failures >= 3)
+        if (disposed || !enabled || !git?.connected || failures >= 3)
           return;
         timer = setTimeout(
           () => {
@@ -1398,9 +1405,19 @@ export function createFeature(o: FeatureOptions): Extension {
           }
         }),
       );
-      if (o.runtime) {
+      let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+      const filesystemChanged = () => {
+        if (o.kernel.context.get("gitRepo")) {
+          clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(
+            () => void refresh().catch(() => {}),
+            300,
+          );
+        }
+      };
+      if (git) {
         ctx.subscribe(
-          o.runtime.subscribe("connection.change", (params) => {
+          git.subscribe("connection.change", (params) => {
             if (params.state === "connected") {
               failures = 0;
               schedule();
@@ -1412,7 +1429,7 @@ export function createFeature(o: FeatureOptions): Extension {
           }),
         );
         ctx.subscribe(
-          o.runtime.subscribe("operation.recovered", (operation) => {
+          git.subscribe("operation.recovered", (operation) => {
             if (!operation.method?.startsWith("git.")) return;
             if (operation.status === "completed") {
               o.workbench.notify(
@@ -1430,30 +1447,21 @@ export function createFeature(o: FeatureOptions): Extension {
           }),
         );
         ctx.subscribe(
-          o.runtime.subscribe("git.progress", (params) => {
+          git.subscribe("git.progress", (params) => {
             progress = (progress + (params.data ?? params.message ?? "")).slice(
               -8192,
             );
             changed();
           }),
         );
-        ctx.subscribe(
-          o.runtime.subscribe("fs.change", () => {
-            if (o.kernel.context.get("gitRepo")) {
-              clearTimeout(refreshTimer);
-              refreshTimer = setTimeout(
-                () => void refresh().catch(() => {}),
-                300,
-              );
-            }
-          }),
-        );
       }
-      let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+      if (o.git) ctx.own(o.filesystem.watch(filesystemChanged));
+      else if (o.runtime)
+        ctx.subscribe(o.runtime.subscribe("fs.change", filesystemChanged));
       ctx.own(ctx.events.on("document.change", changed));
       if (typeof window !== "undefined") {
         const onFocus = () => {
-          if (o.runtime?.connected) void refresh().catch(() => {});
+          if (git?.connected) void refresh().catch(() => {});
         };
         window.addEventListener("focus", onFocus);
         ctx.subscribe(() => window.removeEventListener("focus", onFocus));

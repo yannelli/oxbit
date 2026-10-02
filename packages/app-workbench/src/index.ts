@@ -9,6 +9,7 @@ import {
   type FileSystem,
   type Kernel,
   type Persistence,
+  type RpcClient,
 } from "@oxbit/sdk";
 import { createFeature as editorFeature } from "@oxbit/feature-editor";
 import { createFeature as explorerFeature } from "@oxbit/feature-explorer";
@@ -74,6 +75,7 @@ export interface Session {
 export async function createWorkbenchSession({
   filesystem,
   runtime,
+  git,
   persistence,
   active = true,
   protectUnload = true,
@@ -83,6 +85,7 @@ export async function createWorkbenchSession({
 }: {
   filesystem: FileSystem;
   runtime?: RuntimeClient;
+  git?: RpcClient;
   persistence: Persistence;
   active?: boolean;
   protectUnload?: boolean;
@@ -157,7 +160,7 @@ export async function createWorkbenchSession({
     await seedIconPack(packStore);
     await iconThemes.initialize().catch(error => workbench.notify(`Icon packs could not be loaded: ${String(error)}`, "warning"));
     await documents.restore();
-    const options = { kernel, documents, filesystem, runtime, workbench };
+    const options = { kernel, documents, filesystem, runtime, git, workbench };
     const connection = runtime?.subscribe("connection.change", ({ state }) => {
       kernel.context.set("connected", state === "connected");
       kernel.context.set(

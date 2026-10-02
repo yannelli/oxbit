@@ -7,6 +7,7 @@ export interface RecentWorkspace {
   name: string;
   url?: string;
   bookmark?: string;
+  directory?: string;
   lastOpened: number;
 }
 const RECENTS_KEY = "recents";
