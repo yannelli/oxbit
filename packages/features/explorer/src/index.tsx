@@ -96,7 +96,7 @@ export function Explorer({
           "file.delete",
           "-",
           "file.copyPath",
-          "file.reveal",
+          ...(touch ? [] : ["file.reveal"]),
         ],
       },
     });
