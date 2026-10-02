@@ -1,4 +1,9 @@
 {
+  "Search view": "Search",
+  "Changes view": "Changes",
+  "Extensions view": "Add-ons",
+  "Settings view": "Settings",
+  "More view": "More",
   "Close dialog": "Close dialog",
   "Retry": "Retry",
   "Application menu": "Application menu",

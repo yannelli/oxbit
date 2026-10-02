@@ -368,7 +368,7 @@ export function createFeature({
           component: () => (
             <Explorer workbench={workbench} documents={documents} />
           ),
-          data: { icon: "files" },
+          data: { icon: "fileTree" },
         }),
       );
       const cmd = (

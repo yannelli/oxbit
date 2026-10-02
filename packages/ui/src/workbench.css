@@ -47,6 +47,12 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .settings-scope>label{display:flex;align-items:center;min-height:30px}
 .settings-scope>.custom-select{width:160px}
 .setting-row>.custom-select{width:300px}
+.setting-row>textarea{display:block;box-sizing:border-box;width:100%;max-width:600px;min-height:0;resize:vertical;font-family:var(--font-mono);line-height:1.5}
+.setting-row>textarea[aria-invalid=true]{border-color:var(--err)}
+.tree-row>.truncate{min-width:0;flex:0 1 auto}
+.tree-row>.tree-chevron,.tree-row>svg,.tree-row>.themed-icon,.tree-row>.file-badge,.tree-row>.dirty-dot,.tree-row>.git-badge{flex:none}
+.context-menu>.command-menu{box-sizing:border-box;width:max-content}
+.context-menu>.command-menu>button>span{min-width:0;white-space:normal;overflow-wrap:anywhere}
 .group-actions>.custom-select{width:100px;margin:0 4px}
 .output-panel>.custom-select{margin-bottom:12px}
 
@@ -715,7 +721,8 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   --phone-bottom-inset:var(--safe-area-bottom);
   --phone-nav-space:calc(56px + var(--phone-bottom-inset));
 }
-.workbench[data-mode=phone][data-keyboard="1"] { --phone-bottom-inset:0px; }
+.workbench[data-mode=phone][data-keyboard="1"] { --phone-bottom-inset:0px; --phone-nav-space:0px; }
+.workbench:has(>.key-bar) { padding-bottom:45px; }
 .workbench[data-mode=phone].focus-mode { --phone-nav-space:0px; }
 @media(max-width:599px) {
   .workspace-body { padding-bottom:0; flex-direction:column; }
@@ -745,11 +752,23 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   }
   .phone-label {
     max-width:100%;
-    font-size:calc(var(--font-label-font-size) * 0.916667);
+    font-size:calc(var(--font-label-font-size) * 0.833333);
     line-height:14px;
     white-space:nowrap;
     text-overflow:ellipsis;
   }
+  .workbench[data-keyboard="1"] .activity-bar { display:none; }
+  .activity-bar>button.active:before { left:12px;right:12px;top:0;bottom:auto;height:2px;width:auto; }
+  .activity-bar .badge { top:3px;right:calc(50% - 22px); }
+  .settings-scope { gap:8px; }
+  .settings-scope>button { min-height:44px; }
+  .settings-scope>.custom-select { width:auto;flex:1 1 140px; }
+  .settings-scope .select-trigger { min-height:44px; }
+  .settings-scope>label { margin-left:0;min-height:44px; }
+  .setting-title { position:relative;padding-right:36px; }
+  .setting-title .icon-button { position:absolute;right:0;top:0; }
+  .setting-row>textarea { max-width:100%; }
+  .context-menu kbd { display:none; }
   .sidebar,.sidebar-right .sidebar,.dock-workbench .panel-dock.sidebar,
   .sidebar-scrim { bottom:var(--phone-nav-space); }
   .bottom-panel { bottom:0; }
