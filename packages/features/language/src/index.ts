@@ -512,8 +512,9 @@ export class LanguageService {
   }
   servicesForPath(path: string): LanguageService[] {
     if (this.providerContext) return this.providerContext.owner.servicesForPath(path);
-    const contributed = (this.providers?.matching("transport", path) ?? []).filter(item => typeof (item.data as LanguageTransportProvider)?.createTransport === "function").map(item => this.serviceForContribution(item.id));
-    if (!(this.transport instanceof RuntimeLanguageTransport)) return contributed.length ? contributed : this.accepts(path) ? [this] : [];
+    const providers = (this.providers?.matching("transport", path) ?? []).filter(item => typeof (item.data as LanguageTransportProvider)?.createTransport === "function");
+    const contributed = providers.map(item => this.serviceForContribution(item.id));
+    if (!(this.transport instanceof RuntimeLanguageTransport) || !this.o.runtime && providers.some(item => (item.data as LanguageTransportProvider).runtimeFallback === false)) return contributed.length ? contributed : this.accepts(path) ? [this] : [];
     const managed = this.managedCandidates(path).map((candidate, index) => {
       const key = index === 0 ? path : `${path}::${candidate.id}`;
       let service = this.managedServices.get(key);

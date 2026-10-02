@@ -57,6 +57,8 @@ The start screen lists the Oxbit folder on the device, remembered Files app fold
 
 Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search runs on the device through the worker search path. Formatting uses the bundled Prettier and TypeScript formatter workers.
 
+TypeScript, JavaScript, TSX, JSX, JSON, and JSONC language servers run on the device through JavaScriptCore. Open a supported file to start its server; the LSP status control supports stopping and restarting it. See [device language servers](ios-language-servers.md) for supported operations, build assets, and native API references.
+
 Open an `.html` or `.htm` file and tap the eye button in the editor toolbar to preview it. **Open HTML Preview** also appears in the command palette and editor actions; **Open HTML Preview to the Side** keeps the source visible on larger screens. The preview updates from unsaved HTML/CSS edits and changed local images, loads workspace-relative stylesheets, images and fonts, and supports local page links with a Back button. It works with device folders and connected runtime workspaces without starting a server. JavaScript, forms, and remote resources are disabled in this HTML/CSS preview.
 
 On touch devices a press held on a tab, explorer row, or panel opens the context menu, editor tabs and explorer rows do not use drag and drop, and a key bar with Escape, Tab, arrows, undo, redo, symbols, and a one-shot ⌘ modifier appears above the software keyboard while an editor has focus. With a hardware keyboard on iPad, the usual ⌘ shortcuts apply.

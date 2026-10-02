@@ -24,6 +24,21 @@ beforeEach(() => {
 });
 
 describe("IosFileSystem", () => {
+  it("waits for native workspace cleanup before closing folder access", async () => {
+    let finish!: () => void;
+    invoke.mockImplementation(command => command === "ios_fs_close_root" ? new Promise<void>(resolve => { finish = resolve; }) : undefined);
+    const filesystem = new IosFileSystem(root);
+    filesystem.dispose();
+    const closed = filesystem.close();
+    let complete = false;
+    void closed.then(() => { complete = true; });
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith("ios_fs_close_root", { id: "ios:abc" }, undefined));
+    expect(complete).toBe(false);
+    finish();
+    await closed;
+    expect(complete).toBe(true);
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
   it("decodes bytes and reports the SHA-256 revision", async () => {
     const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...encoder.encode("a\r\nb")]);
     invoke.mockResolvedValueOnce(bytes.buffer);

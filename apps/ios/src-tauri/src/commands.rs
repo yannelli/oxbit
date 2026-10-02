@@ -9,6 +9,7 @@ use tauri::{
     AppHandle, Emitter, Manager, State,
 };
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_oxbit_files::OxbitFilesExt;
 
 #[tauri::command]
 pub fn ios_storage_get(
@@ -45,14 +46,55 @@ pub fn ios_fs_open_root(state: State<'_, AppState>, path: String) -> Result<Open
 }
 
 #[tauri::command]
-pub fn ios_fs_close_root(state: State<'_, AppState>, id: String) -> Result<()> {
-    state.watchers.stop(&id);
-    state.roots.lock().unwrap().close(&id);
-    Ok(())
+pub async fn ios_fs_close_root(app: AppHandle, id: String) -> Result<()> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _operation = state.language_servers.lock().unwrap();
+        app.oxbit_files()
+            .lsp_close_workspace(id.clone())
+            .map_err(|error| Error::new("LSP", error.to_string()))?;
+        state.watchers.stop(&id);
+        state.roots.lock().unwrap().close(&id);
+        Ok(())
+    })
+    .await
+    .map_err(|error| Error::new("LSP", error.to_string()))?
 }
 
 fn root(state: &AppState, id: &str) -> Result<fs_core::Root> {
     state.roots.lock().unwrap().get(id).cloned()
+}
+
+#[tauri::command]
+pub async fn ios_lsp_message(
+    app: AppHandle,
+    workspace_id: String,
+    session_id: String,
+    kind: String,
+    method: String,
+    params: Value,
+) -> Result<Value> {
+    if !matches!(kind.as_str(), "typescript" | "json") || session_id.is_empty() {
+        return Err(Error::invalid("Invalid language server session"));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _operation = state.language_servers.lock().unwrap();
+        let root = root(&state, &workspace_id)?;
+        app.oxbit_files()
+            .lsp_message(serde_json::json!({
+                "workspaceId": workspace_id,
+                "sessionId": session_id,
+                "root": root.path.to_string_lossy(),
+                "kind": kind,
+                "method": method,
+                "paramsJson": serde_json::to_string(&params)
+                    .map_err(|error| Error::invalid(error.to_string()))?,
+            }))
+            .map_err(|error| Error::new("LSP", error.to_string()))
+    })
+    .await
+    .map_err(|error| Error::new("LSP", error.to_string()))?
 }
 
 #[tauri::command]

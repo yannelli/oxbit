@@ -121,6 +121,7 @@ export interface ProviderDocument {
 }
 export interface LanguageTransportProvider {
   languages: string[];
+  runtimeFallback?: boolean;
   createTransport(context: {
     workspaceId: string;
     signal: AbortSignal;

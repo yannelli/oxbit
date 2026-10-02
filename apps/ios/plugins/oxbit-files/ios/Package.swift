@@ -21,6 +21,8 @@ let package = Package(
       dependencies: [
         .byName(name: "Tauri")
       ],
-      path: "Sources")
+      path: "Sources",
+      exclude: ["Resources"],
+      linkerSettings: [.linkedFramework("JavaScriptCore")])
   ]
 )

@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const crate = fileURLToPath(new URL("../../apps/ios/src-tauri/", import.meta.url));
@@ -115,6 +117,18 @@ if (mode === "upload") {
 }
 if (mode === "check") {
   run("bun", ["run", "--filter", "@oxbit/ios", "build"]);
+  const nativeTests = mkdtempSync(join(tmpdir(), "oxbit-ios-language-"));
+  try {
+    const binary = join(nativeTests, "language-server-files");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/LanguageServerFiles.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/LanguageServerFiles/main.swift",
+      "-o", binary,
+    ]);
+    run(binary, []);
+  } finally {
+    rmSync(nativeTests, { recursive: true, force: true });
+  }
   run("cargo", ["fmt", "--all", "--", "--check"], crate);
   run("cargo", ["clippy", "--locked", "--all-targets", "--", "-D", "warnings"], crate);
   run("cargo", ["test", "--locked"], crate);

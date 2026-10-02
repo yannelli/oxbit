@@ -91,6 +91,19 @@ function transport() {
 }
 
 describe("contributed language providers", () => {
+  it("uses a device transport without listing an unavailable runtime for the same language", async () => {
+    const { options, kernel, filesystem } = await setup();
+    await filesystem.write("main.ts", "const value = 1;", { expectedRevision: null });
+    await options.documents.open("main.ts");
+    options.workbench.activePath = () => "main.ts";
+    const local = transport();
+    kernel.contributions.register({ id: "ios.typescript", kind: "transport", title: "TypeScript on iOS", data: { languages: ["typescript"], runtimeFallback: false, createTransport: () => local.result } });
+    const language = new LanguageService(options);
+    cleanup.push(() => language.dispose());
+    expect(language.servers.map(server => ({ id: server.id, available: server.available }))).toEqual([{ id: "ios.typescript", available: true }]);
+    await language.control("ios.typescript", "start");
+    expect(local.result.notify).toHaveBeenCalledWith("textDocument/didOpen", expect.objectContaining({ textDocument: expect.objectContaining({ languageId: "typescript" }) }));
+  });
   it("invalidates contributed completion items after edits or provider replacement", async () => {
     const { options, kernel, document } = await setup();
     const provider = { languages: ["foo"], provideCompletions: () => [{ label: "hello" }] };

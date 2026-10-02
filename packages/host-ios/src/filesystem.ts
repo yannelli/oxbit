@@ -16,7 +16,7 @@ export class IosFileSystem implements FileSystem {
   private readonly listeners = new Set<(event: FileChange) => void>();
   private readonly encodings = new Map<string, Encoding>();
   private subscription?: Promise<UnlistenFn>;
-  private disposed = false;
+  private closing?: Promise<void>;
   constructor(opened: OpenedRoot) {
     this.id = opened.id;
     this.name = opened.name;
@@ -86,10 +86,14 @@ export class IosFileSystem implements FileSystem {
     (await subscription)();
     await native.unwatch(this.id).catch(() => {});
   }
+  close(): Promise<void> {
+    return this.closing ??= (async () => {
+      this.listeners.clear();
+      try { await this.stopWatching(); }
+      finally { await native.closeRoot(this.id); }
+    })();
+  }
   dispose() {
-    if (this.disposed) return;
-    this.disposed = true;
-    this.listeners.clear();
-    void this.stopWatching().finally(() => native.closeRoot(this.id).catch(() => {}));
+    void this.close().catch(() => {});
   }
 }
