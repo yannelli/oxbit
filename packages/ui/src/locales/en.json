@@ -795,5 +795,10 @@
   "Earlier subagent activity was truncated.": "Earlier subagent activity was truncated.",
   "Wait for active subagents or disconnect before changing conversations": "Wait for active subagents or disconnect before changing conversations",
   "Resolve pending requests before changing conversations": "Resolve pending requests before changing conversations",
-  "Activity": "Activity"
+  "Activity": "Activity",
+  "en": "English",
+  "de": "Deutsch",
+  "es": "Spanish",
+  "ja": "Japanese",
+  "zh": "Chinese (Simplified)"
 }

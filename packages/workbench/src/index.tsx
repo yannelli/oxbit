@@ -397,10 +397,14 @@ export function Workbench({
   }, []);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
   const theme = themeMode(kernel);
-  const locale =
-    kernel.configuration.get("workbench.locale") === "de" ? "long" : "en";
-  const t = catalog.strings[locale];
+  const locale = String(
+    kernel.configuration.get("workbench.locale") ?? "en",
+  );
   setLocale(locale);
+  const catalogKey = locale === "de" ? "long" : locale;
+  const t =
+    (catalog.strings as Record<string, Record<string, string>>)[catalogKey] ??
+    catalog.strings.en;
   const views = kernel.contributions.list("activityView");
 
   const dirty = [...workbench.documents.documents.values()].filter(

@@ -1,10 +1,18 @@
 import en from "./locales/en.json";
 import de from "./locales/de.json";
-export type Locale = "en" | "de";
-const resources: Record<Locale, Record<string, string>> = { en, de };
+import es from "./locales/es.json";
+import ja from "./locales/ja.json";
+import zh from "./locales/zh.json";
+export type Locale = "en" | "de" | "es" | "ja" | "zh";
+const aliases: Record<string, Locale> = { long: "de" };
+const resources: Record<Locale, Record<string, string>> = { en, de, es, ja, zh };
 let locale: Locale = "en";
+function resolveLocale(value: string | undefined): Locale {
+  const requested = value ? (aliases[value] ?? value) : "en";
+  return requested in resources ? (requested as Locale) : "en";
+}
 export function setLocale(value: string | undefined): void {
-  locale = value === "de" || value === "long" ? "de" : "en";
+  locale = resolveLocale(value);
   if (typeof document !== "undefined") document.documentElement.lang = locale;
 }
 export function getLocale(): Locale {

@@ -520,7 +520,10 @@
       "default": "en",
       "enum": [
         "en",
-        "de"
+        "de",
+        "es",
+        "ja",
+        "zh"
       ]
     },
     "workbench.reducedMotion": {
