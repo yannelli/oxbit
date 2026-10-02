@@ -306,8 +306,105 @@ test("one bottom bar reserves the home inset once and keeps all touch targets al
   }
   await page.screenshot({ path: info.outputPath("phone-bottom-bar.png"), animations: "disabled" });
   await keyboardViewport(page, 400, 50);
-  await expect.poll(() => nav.evaluate(element => element.getBoundingClientRect().height)).toBe(56);
-  await insideViewport(nav);
+  await expect(nav).toBeHidden();
+  await keyboardViewport(page, 852);
+  await expect(nav).toBeVisible();
+  await expect.poll(() => nav.evaluate(element => element.getBoundingClientRect().height)).toBe(90);
+});
+
+test("phone navigation labels fit in each supported locale", async ({ page }, info) => {
+  await ready(page);
+  for (const locale of ["en", "de", "es", "ja", "zh"]) {
+    await page.evaluate(locale => {
+      const app = (window as any).__oxbit;
+      app.kernel.configuration.set("workbench.locale", locale);
+      app.workbench.touch();
+    }, locale);
+    await expect(page.locator("html")).toHaveAttribute("lang", locale);
+    for (const width of [320, 393]) {
+      await page.setViewportSize({ width, height: 852 });
+      const labels = page.locator(".activity-bar .phone-label");
+      await expect(labels).toHaveCount(6);
+      expect(await labels.evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth))).toBe(true);
+    }
+    await page.screenshot({ path: info.outputPath(`navigation-${locale}.png`), animations: "disabled" });
+  }
+});
+
+test("German JSON settings use compact full-width editors and translated text", async ({ page }, info) => {
+  await ready(page);
+  await page.setViewportSize({ width: 320, height: 852 });
+  await page.evaluate(() => {
+    const app = (window as any).__oxbit;
+    app.kernel.configuration.set("workbench.locale", "de");
+    app.workbench.run("settings.open");
+  });
+  const search = page.getByRole("textbox", { name: "Einstellungen suchen" });
+  await search.fill("files.associations");
+  await expect(page.getByRole("button", { name: "Theme-Pakete verwalten" })).toHaveCount(0);
+  const associations = page.getByRole("textbox", { name: "Dateizuordnungen", exact: true });
+  await expect(associations).toHaveValue("{}");
+  const box = (await associations.boundingBox())!;
+  expect(box.width).toBeGreaterThan(270);
+  expect(box.height).toBeLessThan(100);
+  await insideViewport(associations);
+  await associations.fill(JSON.stringify(Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`*.test${index}`, "plaintext"])), null, 2));
+  await expect(associations).toHaveAttribute("rows", "8");
+  await expect(associations).toHaveAttribute("aria-invalid", "false");
+  await search.fill("languageServers");
+  await expect(page.locator(".setting-title")).toHaveText("Sprachserver");
+  await expect(page.locator(".setting-row p").first()).toContainText("Lizenzschlüssel");
+  await page.screenshot({ path: info.outputPath("settings-german.png"), animations: "disabled" });
+  await search.fill("");
+  await expect(page.getByRole("button", { name: "Theme-Pakete verwalten" })).toBeVisible();
+});
+
+test("the editor key bar reserves space without a navigation badge behind it", async ({ page }, info) => {
+  await ready(page);
+  await page.evaluate(() => {
+    const editor = (window as any).__oxbit.workbench.activeEditor();
+    editor.dispatch({ changes: { from: editor.state.doc.length, insert: "\n// phone edit" } });
+    editor.focus();
+  });
+  await expect(page.locator(".activity-bar .badge")).toBeVisible();
+  await keyboardViewport(page, 400, 50);
+  const bar = page.getByRole("toolbar", { name: "Editor keys" });
+  await expect(bar).toBeVisible();
+  await expect(page.locator(".activity-bar")).toBeHidden();
+  await insideViewport(bar);
+  await expect.poll(async () => {
+    const editor = (await page.locator(".main-workbench").boundingBox())!;
+    return editor.y + editor.height - (await bar.boundingBox())!.y;
+  }).toBeLessThanOrEqual(0);
+  await page.screenshot({ path: info.outputPath("editor-keyboard.png"), animations: "disabled" });
+  await keyboardViewport(page, 852);
+  await expect(bar).toHaveCount(0);
+  await expect(page.locator(".activity-bar .badge")).toBeVisible();
+});
+
+test("explorer menus fit their contents near viewport edges and with a keyboard", async ({ page }, info) => {
+  await ready(page);
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.getByRole("button", { name: "Explorer", exact: true }).tap();
+  await page.evaluate(() => {
+    const workbench = (window as any).__oxbit.workbench;
+    workbench.set({ files: [...workbench.state.files, { path: "a-very-long-directory-name-that-must-fit-in-the-file-tree", name: "a-very-long-directory-name-that-must-fit-in-the-file-tree", kind: "directory" }] });
+  });
+  const row = page.getByRole("treeitem").filter({ hasText: "a-very-long-directory-name" });
+  const name = row.locator(".truncate");
+  expect(await name.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  await insideViewport(row);
+  await row.evaluate(element => element.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 315, clientY: 560 })));
+  const menu = page.getByRole("menu");
+  await insideViewport(menu);
+  for (const item of await menu.getByRole("menuitem").all()) await insideViewport(item);
+  await page.screenshot({ path: info.outputPath("explorer-menu.png"), animations: "disabled" });
+  await keyboardViewport(page, 240, 80);
+  await insideViewport(menu);
+  const rename = menu.getByRole("menuitem", { name: /Rename/ });
+  await rename.scrollIntoViewIfNeeded();
+  await rename.tap();
+  await expect(page.getByRole("dialog", { name: /Rename/ })).toBeVisible();
 });
 
 test("extra tool panels stay in More without crowding phone navigation", async ({ page }) => {

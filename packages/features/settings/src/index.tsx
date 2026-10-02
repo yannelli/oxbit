@@ -106,7 +106,7 @@ export function Settings({
           ))}
         </nav>
         <div className="settings-list">
-          {(category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>Manage Theme Packs</button>}
+          {!query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
           {selected.map((s) => (
             <SettingRow
               key={`${s.id}:${scope}:${language}`}
@@ -151,7 +151,7 @@ function SettingRow({
   return (
     <section className={`setting-row ${modified ? "modified" : ""}`}>
       <div className="setting-title">
-        <span className="muted">{tr(s.category || "Extension")}: </span>
+        {s.category !== s.title && <span className="muted">{tr(s.category || "Extension")}: </span>}
         <strong>{tr(s.title)}</strong>
         <IconButton
           icon="refresh"
@@ -174,7 +174,7 @@ function SettingRow({
           {tr(s.title)}
         </label>
       ) : s.type === "object" || s.type === "array" ? (
-        <textarea aria-label={tr(s.title)} aria-invalid={!!error} value={draft} rows={8} spellCheck={false} onChange={event => {
+        <textarea aria-label={tr(s.title)} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} onChange={event => {
           setDraft(event.target.value);
           try { set(JSON.parse(event.target.value)); } catch (error) { setError(String(error)); }
         }} />

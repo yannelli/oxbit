@@ -4,6 +4,8 @@ export const icons: Record<string, string> = {
   languageServer: "M5 3L1.5 8 5 13 M11 3l3.5 5-3.5 5 M9 2L7 14",
   files:
     "M9 2H4.5A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5V6L9 2z M9 2v4h4",
+  fileTree:
+    "M2 1.5h4l1.5 1.5H14v3H2z M3 6v7h3 M3 9h3 M8 8h6v2H8z M8 12h6v2H8z",
   search: "M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10z M14 14l-3.5-3.5",
   git: "M5 4.5v7 M5 1.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3z M5 11.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3z M11 3a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3z M11 6c0 2.5-2 3-4 3.5",
   ext: "M2 2h5v5H2z M9 2h5v5H9z M2 9h5v5H2z M11.5 9.5v5 M9 12h5",

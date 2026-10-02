@@ -5,6 +5,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -66,10 +67,16 @@ export {
 } from "./shortcuts.js";
 export type { ActiveKeymap } from "./shortcuts.js";
 const viewIcons: Record<string, string> = {
-  explorer: "files",
+  explorer: "fileTree",
   search: "search",
   scm: "git",
   extensions: "ext",
+};
+const phoneViewLabels: Record<string, string> = {
+  explorer: "Files",
+  search: "Search view",
+  scm: "Changes view",
+  extensions: "Extensions view",
 };
 export function viewIcon(view: Contribution) {
   return (view.data as any)?.icon || viewIcons[view.id] || "package";
@@ -635,7 +642,7 @@ export function Workbench({
                       {view.id === "explorer" && dirty > 0 && (
                         <span className="badge">{dirty}</span>
                       )}
-                      <span className="phone-label">{view.id === "scm" ? tr("Changes") : label(view)}</span>
+                      <span className="phone-label">{tr(phoneViewLabels[view.id] || view.title)}</span>
                     </button>
                   ))}
                 {mode !== "phone" && views.filter(
@@ -681,7 +688,7 @@ export function Workbench({
                   onClick={command("settings.open")}
                 >
                   <Icon name="gear" size={18} />
-                  <span className="phone-label">{t.settings}</span>
+                  <span className="phone-label">{tr("Settings view")}</span>
                 </button>
                 {mode === "phone" && (
                   <button
@@ -689,7 +696,7 @@ export function Workbench({
                     onClick={() => workbench.openPalette()}
                   >
                     <Icon name="more" />
-                    <span className="phone-label">{tr("More")}</span>
+                    <span className="phone-label">{tr("More view")}</span>
                   </button>
                 )}
               </nav>
@@ -826,10 +833,6 @@ export function Workbench({
         {s.menu?.name === "context" && (
           <div
             className="context-menu"
-            style={{
-              left: Math.min(s.menu.x || 0, width - 285),
-              top: Math.min(s.menu.y || 0, innerHeight - 350),
-            }}
           >
             <CommandMenu
               workbench={workbench}
@@ -1416,6 +1419,34 @@ function CommandMenu({
   const ref = useRef<HTMLDivElement>(null);
   const contributions = menuContributions(workbench.kernel, location);
   const hasItems = ids.some((id) => id !== "-") || contributions.length > 0;
+  useLayoutEffect(() => {
+    const menu = ref.current;
+    const container = menu?.parentElement;
+    const anchor = workbench.state.menu;
+    if (!menu || !container?.classList.contains("context-menu") || anchor?.name !== "context") return;
+    const viewport = window.visualViewport;
+    const position = () => {
+      const left = (viewport?.offsetLeft ?? 0) + 8;
+      const top = (viewport?.offsetTop ?? 0) + 8;
+      const width = (viewport?.width ?? innerWidth) - 16;
+      const height = (viewport?.height ?? innerHeight) - 16;
+      menu.style.minWidth = `${Math.min(280, width)}px`;
+      menu.style.maxWidth = `${width}px`;
+      menu.style.maxHeight = `${height}px`;
+      const rect = menu.getBoundingClientRect();
+      container.style.left = `${Math.max(left, Math.min(anchor.x ?? left, left + width - rect.width))}px`;
+      container.style.top = `${Math.max(top, Math.min(anchor.y ?? top, top + height - rect.height))}px`;
+    };
+    position();
+    window.addEventListener("resize", position);
+    viewport?.addEventListener("resize", position);
+    viewport?.addEventListener("scroll", position);
+    return () => {
+      window.removeEventListener("resize", position);
+      viewport?.removeEventListener("resize", position);
+      viewport?.removeEventListener("scroll", position);
+    };
+  }, [workbench, ids, location]);
   useEffect(() => {
     if (!hasItems) {
       workbench.set({ menu: undefined });
