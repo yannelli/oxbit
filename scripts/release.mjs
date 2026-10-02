@@ -175,7 +175,7 @@ async function main() {
         : undefined;
 
   // Ambient Apple credentials override tauri.conf.json and add a notarization round trip.
-  // Notarized artifacts come from desktop:release and the tagged CI build.
+  // Notarized artifacts come from desktop:release and the tagged release workflow.
   const appleEnv = [
     "APPLE_SIGNING_IDENTITY",
     "APPLE_ID",
@@ -340,7 +340,7 @@ async function main() {
                 command: "bun run desktop:build",
                 signingIdentity: signingIdentity ?? null,
                 notarized: false,
-                note: "Notarized distribution artifacts come from bun run desktop:release and the tagged CI build in .github/workflows/desktop.yml",
+                note: "Notarized distribution artifacts come from bun run desktop:release and the tagged build in .github/workflows/release.yml",
               }
             : { included: false, reason: desktopSkip },
           ios: ios
@@ -348,7 +348,7 @@ async function main() {
                 included: true,
                 command: "bun run ios:build",
                 exportMethod: "app-store-connect",
-                note: "TestFlight uploads run through bun run ios:upload and .github/workflows/ios.yml",
+                note: "TestFlight uploads run through bun run ios:upload and .github/workflows/release.yml",
               }
             : { included: false, reason: iosSkip },
           groups: groups.map((group) => ({

@@ -91,9 +91,9 @@ for signing configuration, local Keychain setup, final-DMG submission, and
 local build checks. `scripts/desktop/notarize.mjs` accepts
 `APPLE_KEYCHAIN_PROFILE` and explicit `--app` / `--dmg` paths for local builds.
 
-`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64. Pull requests build without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) produce a **draft** release in `yannelli/oxbit`. Both platform jobs must pass before artifact upload and manifest generation. Publishing the draft remains a separate release decision.
+`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64 for pull requests without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) run `.github/workflows/release.yml`, which signs, notarizes, and publishes the macOS release; see [signed releases](release.md).
 
-Configure these GitHub Actions secrets:
+The release workflow reads these GitHub Actions secrets:
 
 | Name | Purpose |
 | --- | --- |
@@ -110,7 +110,7 @@ Set the repository **variable** `OXBIT_UPDATER_PUBLIC_KEY` to the matching publi
 
 Nested Mach-O executables/libraries are signed first. Bundled Node receives the JIT, unsigned executable memory, and library-loading entitlements it needs. The application uses the hardened runtime without granting Node's exceptions to the main executable. Tauri signs/notarizes the app; the separate `notarize.mjs` step signs, submits, staples, validates, and assesses the final DMG. Validate the downloaded artifact on a separate Mac before publication.
 
-Signed macOS `.app.tar.gz` and Linux `.AppImage` update artifacts have separate `.sig` files. `draft-release.mjs` uploads both platform artifacts first, then `manifest.mjs` verifies their presence and writes the GitHub-hosted `latest.json`. An existing published release is never overwritten by this script. The app checks on startup and on request; installation requires acceptance. Invalid signatures or download failures leave the installed app untouched. Restart runs the same multi-window close flow. `.deb` installations link to package downloads instead of replacing themselves with an AppImage. Unsigned development builds have no working production updater configuration.
+Signed macOS `.app.tar.gz` and Linux `.AppImage` update artifacts have separate `.sig` files. `publish-release.mjs` uploads the artifacts to a draft first, then `manifest.mjs` verifies their presence and writes the GitHub-hosted `latest.json` (Linux is included when an AppImage is present), and the script publishes the draft. It refuses to replace assets on a published release. The app checks on startup and on request; installation requires acceptance. Invalid signatures or download failures leave the installed app untouched. Restart runs the same multi-window close flow. `.deb` installations link to package downloads instead of replacing themselves with an AppImage. Unsigned development builds have no working production updater configuration.
 
 ### Local macOS builds
 

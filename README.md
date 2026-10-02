@@ -189,8 +189,9 @@ print a reason. `bun run release:all` runs lint and tests before a patch release
 | `--tag` | Also create an annotated `v<version>` tag |
 | `--dry-run` | Print the plan without writing files |
 
-`--commit` and `--tag` require a clean working tree. Push a version tag to trigger
-the release workflows. See [desktop releases](docs/desktop.md),
+`--commit` and `--tag` require a clean working tree. Pushing a `v<version>` tag runs
+the [release workflow](docs/release.md), which signs, notarizes, and publishes the
+macOS and iOS builds and uploads to TestFlight. See [desktop releases](docs/desktop.md),
 [macOS signing](MACOS_SIGNING_AND_NOTARIZATION.md), and [iOS distribution](docs/ios.md)
 for signing credentials and platform requirements.
 

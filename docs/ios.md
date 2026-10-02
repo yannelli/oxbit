@@ -131,7 +131,7 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 ## TestFlight
 
-`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26` and uploads to TestFlight on `v*` tags when these secrets exist: `APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_BASE64`, `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`. Without them the tag job skips the upload and says so. `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; the build number comes from the workflow run number.
+`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false. `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
 
 ## Not implemented
 

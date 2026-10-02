@@ -47,7 +47,9 @@ execFileSync(process.execPath, ["scripts/desktop/manifest.mjs", directory], {
 });
 let sums = "";
 for (const file of [...files, path.join(directory, "latest.json")].sort())
-  sums += `${createHash("sha256").update(await fs.readFile(file)).digest("hex")}  ${path.basename(file)}\n`;
+  sums += `${createHash("sha256")
+    .update(await fs.readFile(file))
+    .digest("hex")}  ${path.basename(file)}\n`;
 await fs.writeFile(path.join(directory, "SHA256SUMS"), sums);
 gh(
   "release",
@@ -56,4 +58,10 @@ gh(
   "--clobber",
   ...generated.map((name) => path.join(directory, name)),
 );
-gh("release", "edit", tag, "--draft=false", ...(prerelease ? [] : ["--latest"]));
+gh(
+  "release",
+  "edit",
+  tag,
+  "--draft=false",
+  ...(prerelease ? [] : ["--latest"]),
+);

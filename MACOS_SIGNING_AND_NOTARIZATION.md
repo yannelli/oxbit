@@ -99,7 +99,7 @@ TypeScript, and a terminal.
 
 ## GitHub Actions
 
-The [desktop workflow](.github/workflows/desktop.yml) reads these repository secrets:
+The [release workflow](.github/workflows/release.yml) reads these repository secrets:
 
 | Secret | Value |
 | --- | --- |
@@ -117,6 +117,6 @@ key. Apple signing and Tauri updater signing use separate keys.
 `bun run desktop:release` requires both because it creates signed updater artifacts.
 The local DMG workflow above does not require an updater key.
 
-Push a tag matching the root version (`v<version>`) to create a draft release.
-Review the artifacts before publishing. Keep the updater key used by installed
+Push a tag matching the root version (`v<version>`) to build, notarize, and
+publish the release; see [signed releases](docs/release.md). Keep the updater key used by installed
 versions when signing subsequent updates.
