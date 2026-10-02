@@ -195,6 +195,12 @@ macOS and iOS builds and uploads to TestFlight. See [desktop releases](docs/desk
 [macOS signing](MACOS_SIGNING_AND_NOTARIZATION.md), and [iOS distribution](docs/ios.md)
 for signing credentials and platform requirements.
 
+Each tag release requires tester notes in `docs/testflight/<full-version>.md`.
+The workflow fills "What to Test", assigns the external `Public Beta` group, and
+submits beta review when required. The [release guide](docs/release.md) includes
+the notes check and Apple TestFlight API references for distribution changes.
+Pushing to `main` does not release.
+
 ## License
 
 [MIT](LICENSE). Copyright © 2026 Ryan Yannelli.

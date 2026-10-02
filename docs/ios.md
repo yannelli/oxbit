@@ -133,6 +133,14 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 `bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false. `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
 
+Each release needs `docs/testflight/<full-package-version>.md` with iPhone and iPad
+tester instructions. The tag workflow validates that file before building, fills
+the processed build's `en-US` "What to Test", assigns the external `Public Beta`
+group, enables automatic notifications, and submits beta review when required.
+Apple controls approval. See [TestFlight distribution](release.md#testflight-distribution)
+for the local notes check and Apple API references. Pushing to `main` does not
+upload or distribute a build.
+
 ## Not implemented
 
 - SSH tunnel: a Rust port of the local half of `apps/runtime/src/ssh.ts` on `russh`, reusing the remote runtime payload and installer.

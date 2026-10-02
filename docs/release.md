@@ -9,7 +9,7 @@ Created: 2026-10-02. Last updated: 2026-10-02.
 | --- | --- |
 | `remote-runtime` | SSH runtime payloads for `darwin-arm64` and `linux-x64` |
 | `macos` | Developer ID signed, notarized, and stapled app and DMG; signed updater archive; web, runtime, and extension tarballs |
-| `ios` | App Store IPA, validated with App Store Connect and uploaded to TestFlight |
+| `ios` | App Store IPA, validated and uploaded to TestFlight with tester notes and assignment to the external `Public Beta` group |
 | `publish` | GitHub release with the files above, `latest.json`, and `SHA256SUMS` |
 
 A version with a hyphen (`0.3.0-alpha.5`) publishes as a pre-release. The
@@ -20,13 +20,17 @@ The iOS build uses the version without its suffix (`0.3.0`) because App Store
 Connect accepts only numeric versions. `scripts/ios/build-number.mjs` asks App
 Store Connect for the highest uploaded build number and uses the next one.
 
-`workflow_dispatch` on `main` runs the same build and IPA validation but skips the
-TestFlight upload and the release.
+Pushing to `main` does not release. `workflow_dispatch` on `main` runs the same
+build and IPA validation but skips TestFlight upload, distribution, and publishing.
 
 The PR workflows (`desktop.yml`, `ios.yml`) run the regression suites and do not
 sign or publish.
 
 ## Cutting a release
+
+Write tester instructions in `docs/testflight/0.3.0-alpha.6.md` before running the
+commands below. Each version needs its own file. Use plain text without a version
+header; the distribution script adds `Oxbit <numeric-version> (<build>)`.
 
 ```sh
 node --input-type=module -e "
@@ -34,13 +38,46 @@ import fs from 'node:fs';
 import { versionFiles, setVersion } from './scripts/release.mjs';
 for (const f of versionFiles) fs.writeFileSync(f, setVersion(f, fs.readFileSync(f, 'utf8'), process.argv[1]));
 " 0.3.0-alpha.6
-git commit -am "Release v0.3.0-alpha.6" && git tag v0.3.0-alpha.6
+git add docs/testflight/0.3.0-alpha.6.md
+git commit -am "Release v0.3.0-alpha.6"
+git tag v0.3.0-alpha.6
 git push origin HEAD:main v0.3.0-alpha.6
 ```
 
-For a stable `X.Y.Z` version, `bun run release X.Y.Z --no-desktop --no-ios --commit --tag`
+For a stable `X.Y.Z` version, first create and commit `docs/testflight/X.Y.Z.md`
+so the working tree is clean. Then `bun run release X.Y.Z --no-desktop --no-ios --commit --tag`
 bumps the version files, builds web and runtime locally, commits, and tags; push
 with `git push --follow-tags`.
+
+## TestFlight distribution
+
+The tag workflow validates `docs/testflight/<full-package-version>.md` before
+building or uploading the IPA. Missing or invalid tester notes fail this preflight.
+After upload, it runs `node scripts/ios/distribute-testflight.mjs --build <number>`.
+The command uses the existing App Store Connect API credentials, waits up to 30
+minutes for that exact app, numeric version, build number, and `IOS` platform to
+become `VALID`, then:
+
+1. Creates or updates the build's `en-US` "What to Test" with the version header
+   and notes from the file.
+2. Enables automatic tester notifications and submits beta review when required,
+   preserving existing submissions and approvals.
+3. Assigns the build to the existing external `Public Beta` group and verifies
+   the saved notes, group membership, and notification setting.
+
+Apple controls beta review approval. The workflow finishes after submission and
+verification; it does not wait for review. Re-running distribution for the same
+build reuses its existing metadata and review state.
+
+Check the current version's notes locally without contacting Apple:
+
+```sh
+node scripts/ios/distribute-testflight.mjs --build 7 --check-notes
+```
+
+The workflow writes the existing `APPLE_API_KEY_BASE64` secret to a `.p8` file and
+passes its location as `APPLE_API_KEY_PATH`, alongside `APPLE_API_KEY` and
+`APPLE_API_ISSUER`. Distribution needs no additional credentials.
 
 ## Secrets
 
@@ -81,3 +118,11 @@ Repository variable `OXBIT_UPDATER_PUBLIC_KEY` holds the updater public key.
 - [App Store Connect API: certificates](https://developer.apple.com/documentation/appstoreconnectapi/certificates)
   and [profiles](https://developer.apple.com/documentation/appstoreconnectapi/profiles)
 - [Generating App Store Connect API tokens](https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests)
+- [TestFlight build localizations](https://developer.apple.com/documentation/appstoreconnectapi/beta-build-localizations)
+- [Assigning builds to beta groups](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betagroups-_id_-relationships-builds)
+- [Submitting beta app review](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betaappreviewsubmissions)
+- [Inviting external testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers)
+- [Fastlane's review and group assignment order](https://github.com/fastlane/fastlane/blob/master/pilot/lib/pilot/build_manager.rb)
+
+Use the TestFlight references above when changing tester notes, external group
+assignment, notifications, or review submission.
