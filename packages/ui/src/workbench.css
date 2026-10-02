@@ -640,7 +640,8 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .workbench[data-keyboard="1"]{top:var(--viewport-offset,0px)}
 .workbench.focus-mode{padding-top:env(safe-area-inset-top)}
 @media(pointer:coarse){input,select,textarea,.palette-input>input{font-size:max(16px,1em)}.setting-title .icon-button{opacity:1}}
-.key-bar{position:absolute;left:0;right:0;bottom:0;z-index:60;display:flex;gap:4px;overflow-x:auto;overscroll-behavior-x:contain;padding:4px calc(6px + env(safe-area-inset-right)) 4px calc(6px + env(safe-area-inset-left));background:var(--bg-raised);border-top:1px solid var(--bd);-webkit-overflow-scrolling:touch}
+.key-bar{position:absolute;left:0;right:0;bottom:0;z-index:60;display:flex;gap:4px;overflow-x:auto;overscroll-behavior-x:contain;padding:4px calc(6px + env(safe-area-inset-right)) 4px calc(6px + env(safe-area-inset-left));background:var(--bg-raised);border-top:1px solid var(--bd);-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.key-bar::-webkit-scrollbar{display:none}
 .key-bar button{flex:none;min-width:40px;height:36px;padding:0 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg-app);color:var(--fg);font:14px/1 ui-monospace,monospace}
 .key-bar button.active{background:var(--accent);color:var(--bg-app);border-color:var(--accent)}
 
