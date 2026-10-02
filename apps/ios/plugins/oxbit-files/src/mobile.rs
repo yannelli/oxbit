@@ -27,6 +27,21 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct OxbitFiles<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> OxbitFiles<R> {
+    pub fn lsp_message(&self, request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("lspMessage", request)
+            .map_err(Into::into)
+    }
+
+    pub fn lsp_close_workspace(&self, workspace_id: String) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin(
+                "lspCloseWorkspace",
+                serde_json::json!({ "workspaceId": workspace_id }),
+            )
+            .map_err(Into::into)
+    }
+
     pub fn runtime_credentials(
         &self,
         request: serde_json::Value,

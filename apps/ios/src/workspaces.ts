@@ -4,6 +4,7 @@ import {
   IosFileSystem,
   IosIconPackStore,
   IosPersistence,
+  createIosLanguageFeature,
   SESSION_SCOPE,
   forgetWorkspace,
   loadRecents,
@@ -61,11 +62,16 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   const { path, recent } = await resolvePath(request);
   const filesystem = await IosFileSystem.open(path);
   const persistence = new IosPersistence(filesystem.id);
-  let session: Session;
+  let session: Session | undefined;
   try {
     session = await createWorkbenchSession({ filesystem, persistence, protectUnload: false, iconPackStore });
+    const languageFeature = createIosLanguageFeature(filesystem);
+    session.kernel.extensions.register(languageFeature);
+    if (!(await persistence.get<string[]>("extension-disabled"))?.includes(languageFeature.manifest.id))
+      await session.kernel.extensions.activate(languageFeature.manifest.id);
   } catch (error) {
-    filesystem.dispose();
+    if (session) await session.dispose();
+    await filesystem.close();
     if (recent.kind === "bookmark") await native.closeFolder(recent.id).catch(() => {});
     throw error;
   }
@@ -78,6 +84,7 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
 export async function closeWorkspace(workspace: OpenWorkspace) {
   await workspace.session.persist().catch(() => {});
   await workspace.session.dispose();
+  if (workspace.session.filesystem instanceof IosFileSystem) await workspace.session.filesystem.close();
   if (workspace.recent.kind === "bookmark") await native.closeFolder(workspace.recent.id).catch(() => {});
 }
 

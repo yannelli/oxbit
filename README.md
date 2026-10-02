@@ -71,11 +71,13 @@ See [desktop setup](docs/desktop.md) and [SSH workspaces](docs/remote-ssh.md).
 ### iOS and iPadOS
 
 The Tauri iOS app runs on iOS 26+. Edit the app's Documents folder or folders
-selected through Files. Connect to a runtime on another computer for terminals,
-Git, tasks, and language services. Pairing credentials are stored in Keychain.
+selected through Files. TypeScript, JavaScript, JSON, and JSONC language services
+run on the device. Connect to a runtime on another computer for terminals,
+Git, tasks, and additional language servers. Pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
+The [documentation index](docs/INDEX.md) links the native LSP guide and Apple/Tauri API references.
 
 ## Features
 

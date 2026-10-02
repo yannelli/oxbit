@@ -11,6 +11,7 @@ pub struct AppState {
     pub storage: storage::Storage,
     pub roots: Mutex<fs_core::Roots>,
     pub watchers: watch::Watchers,
+    pub language_servers: Mutex<()>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,6 +26,7 @@ pub fn run() {
                 storage: storage::Storage::new(directory),
                 roots: Mutex::new(fs_core::Roots::default()),
                 watchers: watch::Watchers::default(),
+                language_servers: Mutex::new(()),
             });
             Ok(())
         })
@@ -34,6 +36,7 @@ pub fn run() {
             commands::ios_documents_path,
             commands::ios_fs_open_root,
             commands::ios_fs_close_root,
+            commands::ios_lsp_message,
             commands::ios_fs_list,
             commands::ios_fs_read,
             commands::ios_fs_write,
