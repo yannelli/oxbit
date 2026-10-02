@@ -69,11 +69,11 @@ private final class LanguageServerSession {
   let root: String
   let kind: String
   let context: JSContext
-  let server: JSValue
+  let server: JavaScriptCore.JSValue
   let files: LanguageServerFiles
   var pending: [UUID: LanguageServerReply] = [:]
 
-  init(args: LanguageServerArgs, context: JSContext, server: JSValue, files: LanguageServerFiles) {
+  init(args: LanguageServerArgs, context: JSContext, server: JavaScriptCore.JSValue, files: LanguageServerFiles) {
     workspaceId = args.workspaceId
     root = args.root
     kind = args.kind
