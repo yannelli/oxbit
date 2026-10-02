@@ -24,11 +24,12 @@ async function walk(dir) {
 }
 await walk(directory);
 const platforms = {};
-for (const [platform, suffix] of [
-  ["darwin-aarch64", ".app.tar.gz"],
-  ["linux-x86_64", ".AppImage"],
+for (const [platform, suffix, required] of [
+  ["darwin-aarch64", ".app.tar.gz", true],
+  ["linux-x86_64", ".AppImage", false],
 ]) {
   const file = all.find((file) => file.endsWith(suffix));
+  if (!file && !required) continue;
   if (!file || !names.has(path.basename(file)))
     throw new Error(
       `Upload the ${platform} artifact before generating its manifest`,
