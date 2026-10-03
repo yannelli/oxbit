@@ -223,10 +223,15 @@ export class WorkbenchController {
       "binaryDocument",
       !!tab?.path && isBinaryDocumentView(this.kernel, tab.contributionId),
     );
-    this.kernel.context.set(
-      "formattable",
-      hasEditor && /\.(tsx?|jsx?|json|css|html|md)$/.test(tab!.path!),
-    );
+    let formattable = false;
+    const formatters = this.kernel.services.optional<{ selected(path: string): unknown }>("formatters");
+    if (hasEditor && formatters) {
+      try {
+        formatters.selected(tab.path!);
+        formattable = true;
+      } catch {}
+    }
+    this.kernel.context.set("formattable", formattable);
   }
   activateTab(groupId: string, tabId: string) {
     const tab = this.state.groups

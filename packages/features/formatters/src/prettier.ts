@@ -12,13 +12,13 @@ export const formatPrettier: Formatter["format"] = async (
   let parser: string;
   let plugins: import("prettier").Plugin[];
   if (
-    ["typescript", "typescriptreact", "javascript", "javascriptreact", "json"].includes(
+    ["typescript", "typescriptreact", "javascript", "javascriptreact", "json", "jsonc"].includes(
       language,
     )
   ) {
     parser =
-      language === "json"
-        ? "json"
+      language === "json" || language === "jsonc"
+        ? language
         : ["javascript", "javascriptreact"].includes(language)
           ? "babel"
           : "typescript";

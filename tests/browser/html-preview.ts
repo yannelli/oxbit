@@ -108,7 +108,17 @@ export function htmlPreviewTests() {
     await page.getByRole("button", { name: "Open HTML preview", exact: true }).click();
     const preview = page.frameLocator('iframe[title="HTML preview"]');
     await expect(preview.locator("h1")).toHaveText("Safe preview");
+    const frameBounds = (await page.locator(".html-preview-frame").boundingBox())!;
+    const documentBounds = (await page.locator(".html-document").boundingBox())!;
+    expect(frameBounds.y - documentBounds.y).toBeLessThanOrEqual(49);
+    await expect(page.getByText("Some preview resources could not be loaded")).toBeHidden();
+    const options = page.getByRole("button", { name: "Preview options", exact: true });
+    await expect(options).toHaveAttribute("data-warning", "true");
+    await options.click();
+    await expect(page.getByRole("dialog", { name: "Preview options" })).toBeVisible();
     await expect(page.getByText("Some preview resources could not be loaded")).toBeVisible();
+    await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+    await expect(options).toBeFocused();
     await expect(preview.locator("iframe, script:not([data-path]), base, meta[http-equiv=refresh]")).toHaveCount(0);
     await expect(page.locator(".html-preview-frame")).toHaveAttribute("sandbox", "allow-scripts");
     await expect(preview.getByRole("link", { name: "External" })).toHaveAttribute("href", "#");

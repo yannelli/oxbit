@@ -88,6 +88,7 @@ export const createPrettierFeature = (): Extension =>
     "tsx",
     "javascript",
     "json",
+    "jsonc",
     "html",
     "css",
     "markdown",

@@ -20,6 +20,7 @@ import {
 import type { WorkbenchController } from "./controller.js";
 import { Boundary, ToolbarContributions, viewIcon } from "./index.js";
 import { currentTheme, themeMode, themeVariables } from "./contributions.js";
+import { PanelSwitcher } from "./panel-switcher.js";
 import {
   dockSides,
   minimumPanelWidth,
@@ -509,7 +510,7 @@ export function PanelDock({
     ? bottom
       ? {
           height:
-            state.maxPanel && mode === "desktop"
+            mode === "phone" || state.maxPanel
               ? "100%"
               : mode === "desktop"
                 ? dock.size
@@ -885,6 +886,7 @@ function PanelTabs({
   return (
     <div ref={groupRef} className="dock-group" data-panel-group={group.id}>
       <div className="panel-header sidebar-heading">
+        <PanelSwitcher workbench={workbench} title={tr(active?.title ?? group.active)} />
         <div
           className="panel-tabs"
           role="tablist"
@@ -967,6 +969,7 @@ function PanelTabs({
                 onClick={() => void workbench.run("file.newFolder")}
               />
               <IconButton
+                className="icon-button panel-collapse"
                 icon="collapse"
                 label={tr("Collapse folders")}
                 onClick={() => workbench.set({ expanded: [] })}
@@ -1034,6 +1037,7 @@ function PanelTabs({
           )}
           {container === "bottom" && (
             <IconButton
+              className="icon-button panel-maximize"
               icon={workbench.state.maxPanel ? "minimize" : "maximize"}
               label={tr("Maximize panel")}
               onClick={() =>

@@ -91,6 +91,22 @@ function transport() {
 }
 
 describe("contributed language providers", () => {
+  it("disposes contributed servers without recreating them or leaving language commands enabled", async () => {
+    const { options, kernel } = await setup();
+    const local = transport();
+    const createTransport = vi.fn(() => local.result);
+    kernel.contributions.register({ id: "foo.server", kind: "transport", title: "Foo server", data: { languages: ["foo"], createTransport } });
+    const language = new LanguageService(options);
+    cleanup.push(() => language.dispose());
+    await language.control("foo.server", "start");
+    expect(kernel.context.get("lsp")).toBe(true);
+    language.dispose();
+    expect(language.servers).toEqual([]);
+    expect(createTransport).toHaveBeenCalledOnce();
+    expect(local.result.dispose).toHaveBeenCalledOnce();
+    expect(kernel.context.get("lsp")).toBe(false);
+    expect(kernel.context.get("lsp.completionProvider")).toBe(false);
+  });
   it("uses a device transport without listing an unavailable runtime for the same language", async () => {
     const { options, kernel, filesystem } = await setup();
     await filesystem.write("main.ts", "const value = 1;", { expectedRevision: null });

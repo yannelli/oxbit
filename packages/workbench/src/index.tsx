@@ -1,4 +1,5 @@
 import { Select, translate as tr, setLocale } from "@oxbit/ui";
+import { createPortal } from "react-dom";
 import { findWorkspaceFiles } from "./files.js";
 import {
   Component,
@@ -40,6 +41,7 @@ import {
 import catalog from "./catalog.json";
 import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
 import { PanelProvider, PanelDock } from "./panels.js";
+import { PanelSwitcher } from "./panel-switcher.js";
 export { PanelProvider } from "./panels.js";
 export * from "./panel-layout.js";
 export { configurePanelWindows, type PanelWindowHost } from "./panel-windows.js";
@@ -340,7 +342,7 @@ function useKeyboard(workbench: WorkbenchController) {
   }, [workbench]);
 }
 export class Boundary extends Component<
-  { children: ReactNode; name: string },
+  { children: ReactNode; name: string; fallback?: (error: string, retry: () => void) => ReactNode },
   { error?: string }
 > {
   state: { error?: string } = {};
@@ -348,6 +350,8 @@ export class Boundary extends Component<
     return { error: error.message };
   }
   render() {
+    if (this.state.error && this.props.fallback)
+      return this.props.fallback(this.state.error, () => this.setState({ error: undefined }));
     return this.state.error ? (
       <EmptyState title={tr("{0} failed", { "0": this.props.name })}>
         <p role="alert">{this.state.error}</p>
@@ -629,6 +633,7 @@ export function Workbench({
                   .map((view) => (
                     <button
                       key={view.id}
+                      data-view={view.id}
                       data-tooltip={label(view)}
                       title=""
                       aria-label={label(view)}
@@ -690,15 +695,7 @@ export function Workbench({
                   <Icon name="gear" size={18} />
                   <span className="phone-label">{tr("Settings view")}</span>
                 </button>
-                {mode === "phone" && (
-                  <button
-                    aria-label={tr("More")}
-                    onClick={() => workbench.openPalette()}
-                  >
-                    <Icon name="more" />
-                    <span className="phone-label">{tr("More view")}</span>
-                  </button>
-                )}
+                {mode !== "desktop" && <PanelSwitcher workbench={workbench} navigation />}
               </nav>
             )}
             <PanelDock side="left" mode={mode} />
@@ -879,7 +876,7 @@ function StatusContribution({
 }) {
   const C = c.component;
   return C ? (
-    <Boundary name={c.title}>
+    <Boundary name={c.title} fallback={(error, retry) => <ContributionFailure name={c.title} error={error} retry={retry} />}>
       <C />
     </Boundary>
   ) : (
@@ -890,6 +887,26 @@ function StatusContribution({
       {tr(c.title)}
     </button>
   );
+}
+
+function ContributionFailure({ name, error, retry }: { name: string; error: string; retry: () => void }) {
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const title = tr("{0} failed", { "0": name });
+  return <>
+    <button ref={trigger} type="button" className="contribution-failure-trigger"
+      aria-label={title} data-tooltip={title} aria-haspopup="dialog" aria-expanded={open}
+      onClick={() => setOpen(true)}>
+      <Icon name="warning" /><span>{tr(name)}</span>
+    </button>
+    {open && createPortal(<Dialog title={title} className="contribution-failure-dialog" onClose={() => setOpen(false)}>
+      <p className="error-text" role="alert">{error}</p>
+      <div className="dialog-actions">
+        <button className="button" onClick={() => setOpen(false)}>{tr("Close")}</button>
+        <button className="button primary" onClick={() => { setOpen(false); retry(); }}>{tr("Retry")}</button>
+      </div>
+    </Dialog>, trigger.current?.closest(".workbench") ?? document.body)}
+  </>;
 }
 async function chooseEncoding(workbench: WorkbenchController) {
   const path = workbench.activePath();
@@ -1266,10 +1283,11 @@ function DocumentView({
         });
       }}
     >
-      <div className="breadcrumbs">
+      <nav className="breadcrumbs" aria-label={tr("File path")}>
+        <Icon name="folder" size={13} />
         {tab.path!.split("/").map((part, i, a) => (
           <span key={i}>
-            {i > 0 && <Icon name="chevR" size={11} />}
+            <Icon name="chevR" size={11} />
             <button
               onClick={() =>
                 i === a.length - 1
@@ -1281,7 +1299,7 @@ function DocumentView({
             </button>
           </span>
         ))}
-      </div>
+      </nav>
       {kernel.services.optional<RpcClient>("runtime") &&
         !kernel.services.optional<RpcClient>("runtime")?.connected && (
           <div className="document-banner" role="status">
@@ -1926,21 +1944,23 @@ function Notifications({ workbench }: { workbench: WorkbenchController }) {
             .reverse()
             .map((n) => (
               <div className={`notification ${n.type}`} key={n.id}>
-                <Icon
-                  name={
-                    n.type === "error"
-                      ? "error"
-                      : n.type === "warning"
-                        ? "warning"
-                        : "info"
-                  }
-                />
-                <span>
+                <span className="notification-icon">
+                  <Icon
+                    name={
+                      n.type === "error"
+                        ? "error"
+                        : n.type === "warning"
+                          ? "warning"
+                          : "info"
+                    }
+                  />
+                </span>
+                <div className="notification-content">
+                  <div className="notification-message">{tr(n.message)}</div>
                   {n.source && <small>{n.source}</small>}
-                  {tr(n.message)}
                   <NotificationActions notification={n} workbench={workbench} />
                   <small>{new Date(n.time).toLocaleTimeString()}</small>
-                </span>
+                </div>
                 <IconButton
                   icon="x"
                   label={tr("Dismiss notification")}
@@ -1970,20 +1990,22 @@ function Notifications({ workbench }: { workbench: WorkbenchController }) {
             role={n.type === "error" ? "alert" : "status"}
             key={n.id}
           >
-            <Icon
-              name={
-                n.type === "error"
-                  ? "error"
-                  : n.type === "warning"
-                    ? "warning"
-                    : "info"
-              }
-            />
-            <span>
-              {n.source && <small>{n.source}</small>}
-              {tr(n.message)}
-              <NotificationActions notification={n} workbench={workbench} />
+            <span className="notification-icon">
+              <Icon
+                name={
+                  n.type === "error"
+                    ? "error"
+                    : n.type === "warning"
+                      ? "warning"
+                      : "info"
+                }
+              />
             </span>
+            <div className="notification-content">
+              <div className="notification-message">{tr(n.message)}</div>
+              {n.source && <small>{n.source}</small>}
+              <NotificationActions notification={n} workbench={workbench} />
+            </div>
             <IconButton
               icon="x"
               label={tr("Dismiss notification")}
@@ -2065,7 +2087,7 @@ export function ToolbarContributions({
               workbench.kernel.commands.available(item.command).enabled);
           const C = item.component;
           return C ? (
-            <Boundary key={item.id} name={item.title}>
+            <Boundary key={item.id} name={item.title} fallback={(error, retry) => <ContributionFailure name={item.title} error={error} retry={retry} />}>
               <C workbench={workbench} kernel={workbench.kernel} />
             </Boundary>
           ) : (

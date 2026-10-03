@@ -33,3 +33,17 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-workspace-row .icon-button { min-width: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
 .ios-open-folder { min-height: 48px; justify-content: center; }
 .ios-start .muted { margin: 0; opacity: 0.65; font-size: 13px; }
+
+@media (max-width: 599px) {
+  .ios-shell > .workbench[data-mode="phone"]:not([data-keyboard="1"]) {
+    --phone-bottom-inset: 4px;
+  }
+  .ios-shell .activity-bar > :is([data-view="search"], [data-view="extensions"]) { display: none; }
+  .ios-shell .activity-bar { padding-top: 4px; }
+  .ios-shell .activity-bar > button { height: 51px; }
+  .ios-shell .activity-bar .badge { display: grid; place-items: center; line-height: 1; }
+  .ios-shell .workbench:not([data-theme-pack="oxbit.classicos98"]) {
+    & .activity-bar > button.active { box-shadow: inset 0 0 0 1px var(--accent); }
+    & .activity-bar > button.active::before { display: none; }
+  }
+}

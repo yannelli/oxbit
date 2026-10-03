@@ -1,6 +1,7 @@
 import * as ReactHost from "react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
 import { native, type RecentWorkspace } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
@@ -36,6 +37,7 @@ function describe(error: unknown) {
 
 function App() {
   const [workspace, setWorkspace] = useState<OpenWorkspace>();
+  const [workspaceKey, setWorkspaceKey] = useState(0);
   const [recents, setRecents] = useState<RecentWorkspace[]>([]);
   const [sheet, setSheet] = useState(true);
   const [connection, setConnection] = useState(false);
@@ -50,6 +52,11 @@ function App() {
 
   const open = useCallback(async (request: OpenRequest) => {
     if (opening.current) return "A workspace is already opening.";
+    if (request.kind === "documents" && current.current?.recent.kind === "documents" &&
+      request.directory === current.current.recent.directory) {
+      setSheet(false);
+      return;
+    }
     if (request.kind === "recent" && request.recent.id === current.current?.recent.id &&
       (request.recent.kind !== "runtime" || current.current.session.runtime?.connected)) {
       setSheet(false);
@@ -61,10 +68,13 @@ function App() {
     try {
       const previous = current.current;
       const next = await openWorkspace(request);
+      flushSync(() => {
+        setWorkspace(next);
+        setWorkspaceKey(key => key + 1);
+        setSheet(false);
+      });
       if (previous) await closeWorkspace(previous);
-      setWorkspace(next);
       setRecents(await loadRecents());
-      setSheet(false);
     } catch (e) {
       const message = describe(e);
       if (!/cancelled/i.test(message)) setError(message);
@@ -78,8 +88,10 @@ function App() {
   const close = useCallback(async () => {
     const previous = current.current;
     if (!previous) return;
-    setWorkspace(undefined);
-    setSheet(true);
+    flushSync(() => {
+      setWorkspace(undefined);
+      setSheet(true);
+    });
     await closeWorkspace(previous).catch((e) => setError(describe(e)));
   }, []);
 
@@ -144,7 +156,7 @@ function App() {
   return (
     <Shell session={workspace?.session}>
       {workspace && (
-        <ActiveWorkbench session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)} onConnect={() => setConnection(true)} />
+        <ActiveWorkbench key={workspaceKey} session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)} onConnect={() => setConnection(true)} />
       )}
       {(sheet || !workspace) && <div className={workspace ? "ios-sheet" : "ios-fullscreen"}>{start}</div>}
       {connection && <RuntimeConnection session={workspace?.session} savedUrl={recents.find(recent => recent.kind === "runtime")?.url}

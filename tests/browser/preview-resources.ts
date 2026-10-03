@@ -83,18 +83,22 @@ export function previewResourceTests() {
     const trust = page.getByLabel("External resources", { exact: true });
     await expect(preview.locator("h1")).toHaveText("Resource trust");
     await expect(document).toHaveAttribute("aria-busy", "false");
+    await expect(trust).toBeHidden();
+    await phoneControls(page, document);
+    const options = page.getByRole("button", { name: "Preview options", exact: true });
+    const closeOptions = page.getByRole("button", { name: "Close dialog", exact: true });
+    await activate(page, options);
     await expect(trust).toHaveValue("local");
     await expect.poll(() => preview.getByAltText("Local image", { exact: true }).evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(24);
     await expect(preview.getByAltText("Remote image", { exact: true })).toHaveAttribute("src", "data:,");
     expect(requests).toEqual([]);
-    await phoneControls(page, document);
-
     await trust.selectOption("external");
     await expect(preview.locator("h1")).toHaveCSS("color", "rgb(12, 100, 88)");
     await expect(preview.locator("h1")).toHaveCSS("border-bottom-width", "3px");
     await expect.poll(() => preview.getByAltText("Remote image", { exact: true }).evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(24);
     await expect.poll(() => preview.getByAltText("Remote responsive image").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
     await expect.poll(() => requests).toEqual(expect.arrayContaining(["/style.css", "/imported.css", "/remote.svg", "/responsive.svg", "/background.svg"]));
+    await activate(page, closeOptions);
     await activate(page, preview.getByRole("button", { name: "Script action" }));
     await expect(preview.locator("html")).not.toHaveAttribute("data-script-executed", "true");
     expect(requests).not.toContain("/script.js");
@@ -104,6 +108,7 @@ export function previewResourceTests() {
       doc.replace(doc.text.toString().replace("Resource trust", "Trusted draft"));
     });
     await expect(preview.locator("h1")).toHaveText("Trusted draft");
+    await activate(page, options);
     await expect(trust).toHaveValue("external");
     await expect(preview.locator("h1")).toHaveCSS("color", "rgb(12, 100, 88)");
 
@@ -112,15 +117,18 @@ export function previewResourceTests() {
     await expect(preview.locator("h1")).not.toHaveCSS("color", "rgb(12, 100, 88)");
     await expect(document).toHaveAttribute("aria-busy", "false");
     const count = requests.length;
+    await activate(page, closeOptions);
     await activate(page, page.getByRole("button", { name: "Refresh HTML preview" }));
     await page.evaluate(() => {
       const doc = (window as any).__oxbit.documents.get("resource-preview/index.html");
       doc.replace(doc.text.toString().replace("Trusted draft", "Revoked draft"));
     });
     await expect(preview.locator("h1")).toHaveText("Revoked draft");
+    await activate(page, options);
     await expect(trust).toHaveValue("local");
     await expect(preview.getByAltText("Remote image", { exact: true })).toHaveAttribute("src", "data:,");
     expect(requests).toHaveLength(count);
+    await activate(page, closeOptions);
     await activate(page, page.getByRole("button", { name: "Open source", exact: true }));
     await expect(page.locator(".cm-content")).toContainText("Revoked draft");
   });

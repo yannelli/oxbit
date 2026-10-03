@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { FeatureOptions } from "@oxbit/sdk";
-import { IconButton, translate as tr } from "@oxbit/ui";
+import { Dialog, IconButton, translate as tr } from "@oxbit/ui";
 import { isHtmlPath, prepareHtmlPreview } from "./html.js";
 import { resolvePreviewLink, type PreviewResourceTrust } from "./policy.js";
 import { PreviewResourceControl } from "./resource-trust.js";
@@ -14,6 +14,7 @@ export function createHtmlPreview(o: FeatureOptions) {
     const [preview, setPreview] = useState<Awaited<ReturnType<typeof prepareHtmlPreview>>>();
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
+    const [optionsOpen, setOptionsOpen] = useState(false);
     const dependencies = useRef(new Set([current]));
     const scroll = useRef({ path: current, top: 0 });
     const frame = useRef<HTMLIFrameElement>(null);
@@ -96,20 +97,23 @@ export function createHtmlPreview(o: FeatureOptions) {
 
     return <div className="html-document" aria-busy={loading}>
       <div className="preview-toolbar html-preview-toolbar">
-        <IconButton icon="chevR" className="icon-button html-preview-back" label={tr("Back in HTML preview")} disabled={history.length < 2}
-          onClick={() => setHistory(items => items.slice(0, -1))} />
-        <span className="truncate" title={current}>{current}</span>
+        {history.length > 1 && <IconButton icon="chevR" className="icon-button html-preview-back" label={tr("Back in HTML preview")}
+          onClick={() => setHistory(items => items.slice(0, -1))} />}
+        <span className="truncate" title={current} role="status">{loading ? tr("Loading preview…") : current.split("/").pop()}</span>
         <IconButton icon="refresh" label={tr("Refresh HTML preview")} onClick={() => setRevision(value => value + 1)} />
-        <button className="button" onClick={openSource}>{tr("Open source")}</button>
+        <IconButton icon="pencil" label={tr("Open source")} onClick={openSource} />
+        <IconButton icon="gear" className="icon-button html-preview-options-trigger" label={tr("Preview options")}
+          data-warning={!!preview?.warnings.length} aria-haspopup="dialog" aria-expanded={optionsOpen} onClick={() => setOptionsOpen(true)} />
       </div>
-      <PreviewResourceControl trust={trust} onChange={setTrust} />
-      {loading && <div className="html-preview-message" role="status">{tr("Loading preview…")}</div>}
       {error && <div className="html-preview-message error-text" role="alert">{error}</div>}
-      {!!preview?.warnings.length && <details className="html-preview-message">
-        <summary>{tr("Some preview resources could not be loaded")}</summary>
-        {preview.warnings.map(warning => <p key={warning}>{tr(warning)}</p>)}
-      </details>}
-      {preview?.scripts && <div className="html-preview-message">{tr("HTML & CSS preview · JavaScript is disabled")}</div>}
+      {optionsOpen && <Dialog title={tr("Preview options")} className="html-preview-options" onClose={() => setOptionsOpen(false)}>
+        <PreviewResourceControl trust={trust} onChange={setTrust} />
+        {preview?.scripts && <p className="muted">{tr("HTML & CSS preview · JavaScript is disabled")}</p>}
+        {!!preview?.warnings.length && <details className="html-preview-warnings">
+          <summary>{tr("Some preview resources could not be loaded")}</summary>
+          {preview.warnings.map(warning => <p key={warning}>{tr(warning)}</p>)}
+        </details>}
+      </Dialog>}
       {preview && preview.trust === trust && !error && <iframe ref={frame} className="html-preview-frame" title={tr("HTML preview")}
         sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={preview.html} />}
     </div>;

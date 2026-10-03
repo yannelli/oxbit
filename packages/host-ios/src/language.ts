@@ -109,7 +109,10 @@ export function createIosLanguageFeature(filesystem: IosFileSystem): Extension {
         });
       }));
       ctx.subscribe(() => { for (const transport of transports) transport.dispose(); transports.clear(); });
-      for (const document of documents.documents.values()) start(document.path);
+      ctx.events.on("extension.change", ({ id, state }) => {
+        if (id === "oxbit.ios-language" && state === "active")
+          for (const document of documents.documents.values()) start(document.path);
+      });
     },
   };
 }
