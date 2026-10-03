@@ -176,7 +176,7 @@ final class LanguageServers {
 
   private func createSession(_ args: LanguageServerArgs) throws -> LanguageServerSession {
     let files = LanguageServerFiles(root: args.root)
-    guard files.root.path == args.root, files.directoryExists(args.root) else {
+    guard files.directoryExists(args.root) else {
       throw languageServerError("Workspace root is not accessible")
     }
     guard let context = JSContext() else {

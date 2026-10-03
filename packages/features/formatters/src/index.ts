@@ -118,7 +118,7 @@ export function createFeature(options: FeatureOptions): Extension {
       const refresh = () => {
         const path = options.workbench.activePath();
         let available = false;
-        if (path) {
+        if (path && ctx.context.get("editor")) {
           try {
             service.selected(path);
             available = true;

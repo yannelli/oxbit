@@ -24,6 +24,12 @@ func runTests() throws {
   try expect(files.fileExists(source.path), "File existence")
   try expect(!files.directoryExists(source.path), "Files are not directories")
   try expect(files.directoryExists(root.path), "Root directory existence")
+  let aliasedRoot = temporary.appendingPathComponent("workspace-link", isDirectory: true)
+  try manager.createSymbolicLink(at: aliasedRoot, withDestinationURL: root)
+  let aliasFiles = LanguageServerFiles(root: aliasedRoot.path)
+  try expect(aliasFiles.root.path != aliasedRoot.path, "Root alias resolves to its target")
+  try expect(aliasFiles.directoryExists(aliasedRoot.path), "Aliased root directory existence")
+  try expect(!aliasFiles.directoryExists(outside.path), "Aliased root rejects outside directories")
   try expect(!files.fileExists(root.path), "Directories are not files")
 
   let utf8 = root.appendingPathComponent("bom.ts")

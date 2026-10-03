@@ -168,6 +168,7 @@ test("a held toolbar button does not swallow its click or the next tap", async (
   await page.getByRole("button", { name: "Close palette" }).tap();
   await hold(search);
   await page.getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
   await expect(page.getByRole("dialog", { name: "Quick Open" })).toBeVisible();
 });
 
@@ -187,6 +188,7 @@ test("phone palette clears the notch and home indicator and responds to one tap"
   // Device emulation does not provide physical safe-area insets.
   await page.addStyleTag({ content: ":root{--safe-area-top:59px;--safe-area-bottom:34px}" });
   await page.getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
   const input = page.getByRole("combobox", { name: "Search files and commands" });
   await expect.poll(() => input.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(59);
   expect(await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
@@ -203,6 +205,7 @@ test("phone palette clears the notch and home indicator and responds to one tap"
 test("palette search and close remain reachable as the software keyboard moves", async ({ page }) => {
   await ready(page);
   await page.getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
   await keyboardViewport(page, 360, 100);
   await insideViewport(page.getByRole("dialog", { name: "Quick Open" }));
   await insideViewport(page.getByRole("combobox"));
@@ -213,6 +216,7 @@ test("palette search and close remain reachable as the software keyboard moves",
   await page.getByRole("button", { name: "Close dialog" }).tap();
   await keyboardViewport(page, 852);
   await page.getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
   await insideViewport(page.getByRole("dialog", { name: "Quick Open" }));
 });
 
@@ -417,9 +421,65 @@ test("extra tool panels stay in More without crowding phone navigation", async (
   const nav = page.getByRole("navigation", { name: "Primary views" });
   await expect(nav.getByRole("button")).toHaveCount(6);
   await nav.getByRole("button", { name: "More", exact: true }).tap();
-  await page.getByRole("combobox").fill(">Open Phone extra view");
-  await page.getByRole("option", { name: /Open Phone extra view/ }).tap();
+  await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Phone extra view", exact: true }).tap();
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("phone-extra-view"))).toBe(true);
+});
+
+test("phone panel picker switches full-height panels and preserves drafts", async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await ready(page);
+  await page.evaluate(() => {
+    const app = (window as any).__oxbit;
+    const React = (window as any).__OXBIT_REACT__;
+    app.kernel.contributions.register({
+      id: "phone-draft", kind: "panel", title: "Draft panel",
+      component: () => {
+        const [value, setValue] = React.useState("");
+        return React.createElement("input", { "aria-label": "Panel draft", value,
+          onChange: (event: any) => setValue(event.target.value) });
+      },
+    });
+  });
+  const more = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "More", exact: true });
+  const picker = page.getByRole("dialog", { name: "Panels", exact: true });
+  await more.tap();
+  await insideViewport(picker);
+  await picker.getByRole("button", { name: "Draft panel", exact: true }).tap();
+  await expect(picker).toBeHidden();
+  await page.getByRole("textbox", { name: "Panel draft" }).fill("Keep this draft");
+  await expect(more).toHaveClass(/active/);
+  const panel = page.locator(".panel-dock.bottom-panel");
+  const main = (await page.locator(".main-workbench").boundingBox())!;
+  await expect.poll(() => panel.evaluate(element => element.getBoundingClientRect().height)).toBe(main.height);
+  await insideViewport(panel);
+  await page.getByRole("button", { name: "Switch panel", exact: true }).tap();
+  await expect(picker.getByRole("button", { name: "Draft panel", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: info.outputPath("phone-panel-picker.png"), animations: "disabled" });
+  await picker.getByRole("button", { name: "Explorer", exact: true }).tap();
+  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toHaveText("Explorer");
+  await more.tap();
+  await picker.getByRole("button", { name: "Draft panel", exact: true }).tap();
+  await expect(page.getByRole("textbox", { name: "Panel draft" })).toHaveValue("Keep this draft");
+  await more.tap();
+  await picker.getByRole("button", { name: "Back to editor", exact: true }).tap();
+  await expect(page.locator(".panel-dock")).toHaveCount(0);
+  await expect(page.locator(".cm-editor").first()).toBeVisible();
+});
+
+test("tablet panel picker restores desktop tabs when the window widens", async ({ page }) => {
+  await page.setViewportSize({ width: 834, height: 1112 });
+  await ready(page);
+  await page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "More", exact: true }).tap();
+  const picker = page.getByRole("dialog", { name: "Panels", exact: true });
+  await picker.getByRole("button", { name: "Output", exact: true }).tap();
+  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Switch panel", exact: true }).tap();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toBeFocused();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toBeHidden();
+  await expect(page.getByRole("tab", { name: "Output", exact: true })).toBeVisible();
 });
 
 test("language status opens below the phone header and above the desktop footer", async ({ page }, info) => {

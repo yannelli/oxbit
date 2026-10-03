@@ -511,6 +511,7 @@ export class LanguageService {
     }).sort((a, b) => (settings[b]?.priority ?? 0) - (settings[a]?.priority ?? 0) || a.localeCompare(b)).map(id => ({ id, language: definition.id, title: languages.find(item => item.id === definition.id)?.title ?? definition.id }));
   }
   servicesForPath(path: string): LanguageService[] {
+    if (this.disposed) return [];
     if (this.providerContext) return this.providerContext.owner.servicesForPath(path);
     const providers = (this.providers?.matching("transport", path) ?? []).filter(item => typeof (item.data as LanguageTransportProvider)?.createTransport === "function");
     const contributed = providers.map(item => this.serviceForContribution(item.id));
@@ -695,7 +696,7 @@ export class LanguageService {
   }
   private updateContext() {
     if (this.providerContext) return;
-    const path = this.o.workbench.activePath(),
+    const path = this.disposed ? undefined : this.o.workbench.activePath(),
       selected = path ? this.serviceForPath(path) : this;
     const eligible = path ? this.servicesForPath(path).filter(service => service.state === "ready" && service.canUseLsp(path)) : [];
     const completion = Boolean(
@@ -1663,6 +1664,7 @@ export class LanguageService {
   }
   dispose() {
     if (this.disposed) return;
+    this.disposed = true;
     this.providers?.dispose();
     for (const overlay of this.overlays.values()) overlay.dispose();
     this.overlays.clear();
@@ -1680,7 +1682,6 @@ export class LanguageService {
         this.transport.notify("textDocument/didClose", {
           textDocument: { uri: this.uri(path) },
         });
-    this.disposed = true;
     this.stopped("disposed");
     this.transport.dispose();
     this.notificationSubscription?.dispose();

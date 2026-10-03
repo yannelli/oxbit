@@ -68,7 +68,9 @@ describe("native iOS LSP transport", () => {
     const filesystem = { id: "ios:workspace", root: "/workspace folder", watch: (listener: typeof changed) => { changed = listener; return { dispose: unwatch }; } } as unknown as IosFileSystem;
     const lsp = transport(), start = vi.fn().mockResolvedValue(undefined);
     kernel.services.register("documents", { documents: new Map([["main.ts", { path: "main.ts" }]]) });
-    kernel.services.register("language", { servicesForPath: () => [{ transport: lsp, state: "stopped", start }] });
+    kernel.services.register("language", {
+      servicesForPath: () => kernel.contributions.list("transport").length ? [{ transport: lsp, state: "stopped", start }] : [],
+    });
     const feature = createIosLanguageFeature(filesystem);
     kernel.extensions.register(feature);
     await kernel.extensions.activate(feature.manifest.id);

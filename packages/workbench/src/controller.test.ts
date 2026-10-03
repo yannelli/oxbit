@@ -4,6 +4,7 @@ import { DocumentService } from "@oxbit/documents";
 import { BrowserFileSystem, MemoryPersistence } from "@oxbit/host-browser";
 import { WorkbenchController } from "./controller.js";
 import type { FileEntry } from "@oxbit/sdk";
+import { createFeature as createFormatters, createPrettierFeature } from "../../features/formatters/src/index.js";
 const disposables: { dispose(): void }[] = [];
 afterEach(() => {
   for (const disposable of disposables.splice(0).reverse())
@@ -156,6 +157,29 @@ async function setup() {
   return { kernel, persistence, filesystem, documents, workbench };
 }
 describe("workbench document and contribution lifecycle", () => {
+  it("keeps JSONC formatting available when workbench context changes", async () => {
+    const { kernel, workbench, documents, filesystem } = await setup();
+    kernel.extensions.register(createFormatters({ kernel, workbench, documents, filesystem }));
+    kernel.extensions.register(createPrettierFeature());
+    await kernel.extensions.trigger("onStartup");
+    await filesystem.write("settings.jsonc", '// Keep comments\n{"enabled":true}', { expectedRevision: null });
+    await workbench.openFile("settings.jsonc");
+    workbench.set({ selectedPath: "one.ts" });
+    expect(kernel.commands.available("editor.format").enabled).toBe(true);
+    await kernel.commands.execute("editor.format");
+    expect(documents.get("settings.jsonc")!.text.toString()).toBe('// Keep comments\n{ "enabled": true }\n');
+  });
+  it("keeps formatting disabled after its provider is disabled", async () => {
+    const { kernel, workbench, documents, filesystem } = await setup();
+    kernel.extensions.register(createFormatters({ kernel, workbench, documents, filesystem }));
+    kernel.extensions.register(createPrettierFeature());
+    await kernel.extensions.trigger("onStartup");
+    await workbench.openFile("one.ts");
+    expect(kernel.commands.available("editor.format").enabled).toBe(true);
+    await kernel.extensions.disable("oxbit.prettier");
+    workbench.set({ selectedPath: "two.ts" });
+    expect(kernel.commands.available("editor.format").enabled).toBe(false);
+  });
   it("activates deferred panels from their declared view trigger", async () => {
     const { workbench, kernel } = await setup();
     kernel.extensions.register({
