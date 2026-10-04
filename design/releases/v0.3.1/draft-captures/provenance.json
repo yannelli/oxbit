@@ -1,0 +1,92 @@
+{
+  "kind": "browser-draft",
+  "nativeCapture": false,
+  "generatedAt": "2026-10-03T03:42:28.865Z",
+  "sourceHead": "00c27356ba5c59eff38acc9fe949823acf7dd5b9",
+  "frontendSha256": "d6ce745abad205ee5578c54f0f9043fa2212407248bfdd6bda7482771e967d8b",
+  "sampleSha256": "ee9d6b0db12af73d9b99b1d5069d10b78e90f0f942516fcfed2689d43658fa5f",
+  "frontend": "apps/ios/src/main.tsx",
+  "bridge": "test-only Tauri filesystem and persistence bridge",
+  "browserEngine": "webkit",
+  "browserVersion": "26.5",
+  "devices": [
+    {
+      "name": "iphone",
+      "viewport": [
+        440,
+        956
+      ],
+      "deviceScaleFactor": 3
+    },
+    {
+      "name": "ipad",
+      "viewport": [
+        1032,
+        1376
+      ],
+      "deviceScaleFactor": 2
+    }
+  ],
+  "captures": [
+    {
+      "path": "iphone/01-editor.png",
+      "state": "01-editor",
+      "width": 1320,
+      "height": 2868
+    },
+    {
+      "path": "iphone/02-files.png",
+      "state": "02-files",
+      "width": 1320,
+      "height": 2868
+    },
+    {
+      "path": "iphone/03-html-preview.png",
+      "state": "03-html-preview",
+      "width": 1320,
+      "height": 2868
+    },
+    {
+      "path": "iphone/04-markdown.png",
+      "state": "04-markdown",
+      "width": 1320,
+      "height": 2868
+    },
+    {
+      "path": "iphone/05-panels.png",
+      "state": "05-panels",
+      "width": 1320,
+      "height": 2868
+    },
+    {
+      "path": "ipad/01-editor.png",
+      "state": "01-editor",
+      "width": 2064,
+      "height": 2752
+    },
+    {
+      "path": "ipad/02-files.png",
+      "state": "02-files",
+      "width": 2064,
+      "height": 2752
+    },
+    {
+      "path": "ipad/03-html-preview.png",
+      "state": "03-html-preview",
+      "width": 2064,
+      "height": 2752
+    },
+    {
+      "path": "ipad/04-markdown.png",
+      "state": "04-markdown",
+      "width": 2064,
+      "height": 2752
+    },
+    {
+      "path": "ipad/05-panels.png",
+      "state": "05-panels",
+      "width": 2064,
+      "height": 2752
+    }
+  ]
+}

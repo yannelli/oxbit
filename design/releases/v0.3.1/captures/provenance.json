@@ -1,0 +1,166 @@
+{
+  "kind": "native-simulator",
+  "nativeCapture": true,
+  "complete": true,
+  "pendingDevices": [],
+  "sourceHead": "00c27356ba5c59eff38acc9fe949823acf7dd5b9",
+  "frontendSha256": "d6ce745abad205ee5578c54f0f9043fa2212407248bfdd6bda7482771e967d8b",
+  "sampleSha256": "ee9d6b0db12af73d9b99b1d5069d10b78e90f0f942516fcfed2689d43658fa5f",
+  "sourceState": "HEAD plus uncommitted 0.3.1 version metadata and release icon source/catalog changes at simulator build",
+  "app": {
+    "bundleIdentifier": "com.yannelli.oxbit",
+    "shortVersion": "0.3.1",
+    "buildVersion": "0.3.1",
+    "executable": "Oxbit",
+    "executableSha256": "4ec11e5e4dc85afaa2c26605a07f8d07344915a9468b3279b565b39b2164aedd"
+  },
+  "devices": [
+    {
+      "name": "Oxbit Release 0.3.1 iPhone",
+      "model": "iPhone 17 Pro Max",
+      "uuid": "90217232-2528-4353-91B1-545C7A45D429",
+      "runtime": "iOS 27.0",
+      "statusBar": "9:41, Wi-Fi, full battery"
+    },
+    {
+      "name": "Oxbit Release 0.3.1 iPad",
+      "model": "iPad Pro 13-inch (M5)",
+      "uuid": "D5DD45DB-C016-4E50-B022-BC5309B869AC",
+      "runtime": "iPadOS 27.0",
+      "statusBar": "9:41, Wi-Fi, full battery"
+    }
+  ],
+  "captures": [
+    {
+      "path": "iphone/01-editor.png",
+      "state": "01-editor",
+      "features": [
+        "Fieldnotes workspace",
+        "syntax-highlighted src/journal.ts",
+        "README.md tab"
+      ],
+      "width": 1320,
+      "height": 2868,
+      "sha256": "43847d137023f6bdb5da8fa86dd5f02d486045872d86d50d758266320176c77d"
+    },
+    {
+      "path": "iphone/02-files.png",
+      "state": "02-files",
+      "features": [
+        "Explorer",
+        "expanded assets and src folders",
+        "Fieldnotes project files"
+      ],
+      "width": 1320,
+      "height": 2868,
+      "sha256": "f884c22cbc21758972cc549ca6ed4027e3c49e1a9e8bc00e139c92553dc9a1d0"
+    },
+    {
+      "path": "iphone/03-html-preview.png",
+      "state": "03-html-preview",
+      "features": [
+        "local index.html preview",
+        "local styles.css",
+        "local coast illustration"
+      ],
+      "width": 1320,
+      "height": 2868,
+      "sha256": "d8aa2da582b4607f6118068f1ee9c712f987c3a21d6aa2bb3b80aa7656dddbc4"
+    },
+    {
+      "path": "iphone/04-markdown.png",
+      "state": "04-markdown",
+      "features": [
+        "rendered README.md",
+        "headings",
+        "checklist",
+        "blockquote"
+      ],
+      "width": 1320,
+      "height": 2868,
+      "sha256": "e911eba308e21a37a85736769149b590d5be4e9ac22183a155eac1b78a1453e1"
+    },
+    {
+      "path": "iphone/05-panels.png",
+      "state": "05-panels",
+      "features": [
+        "native app panel picker",
+        "Explorer",
+        "Search",
+        "Source Control",
+        "Terminal"
+      ],
+      "width": 1320,
+      "height": 2868,
+      "sha256": "a07486badd3321eec36826b649e081eddcdc7b50f8dd2de4926dafff4ff0c386"
+    },
+    {
+      "path": "ipad/01-editor.png",
+      "state": "01-editor",
+      "features": [
+        "Fieldnotes workspace",
+        "syntax-highlighted src/journal.ts",
+        "README.md tab"
+      ],
+      "width": 2064,
+      "height": 2752,
+      "sha256": "c75100d6728c3bfd83626864bab537ba6659e0a8f547e3f1334c4ba7d06f5737"
+    },
+    {
+      "path": "ipad/02-files.png",
+      "state": "02-files",
+      "features": [
+        "Explorer",
+        "expanded assets and src folders",
+        "Fieldnotes project files"
+      ],
+      "width": 2064,
+      "height": 2752,
+      "sha256": "f8d7a597f2c8040523412f4259293eb0a337074169888af1c95aca1f1471bcb2"
+    },
+    {
+      "path": "ipad/03-html-preview.png",
+      "state": "03-html-preview",
+      "features": [
+        "rendered local index.html",
+        "local styles.css",
+        "local coast illustration"
+      ],
+      "width": 2064,
+      "height": 2752,
+      "sha256": "e67401faba9ce4f05631f7444e5e49980874fa9c280fcf67543b6ed338e7c395"
+    },
+    {
+      "path": "ipad/04-markdown.png",
+      "state": "04-markdown",
+      "features": [
+        "rendered README.md",
+        "headings",
+        "checklist",
+        "blockquote"
+      ],
+      "width": 2064,
+      "height": 2752,
+      "sha256": "a87a5c9fe02eeb76c7312ce7826d8c98ab6f68813dc6f9b79658f0f88a372e51"
+    },
+    {
+      "path": "ipad/05-panels.png",
+      "state": "05-panels",
+      "features": [
+        "panel picker",
+        "Explorer",
+        "Search",
+        "Source Control",
+        "Terminal"
+      ],
+      "width": 2064,
+      "height": 2752,
+      "sha256": "741e34e39edfac741fbfadfe100b58fcb7321f598a596a692b3fdae02e300165"
+    }
+  ],
+  "captureMethods": {
+    "iphone": "xcrun simctl io screenshot",
+    "ipad": "XCUIScreen.main.screenshot().pngRepresentation via XCTest"
+  },
+  "headlessRecovery": "With macOS loginwindow active, the iPad primary framebuffer was black until a data-preserving shutdown and boot of only simulator D5DD45DB-C016-4E50-B022-BC5309B869AC; XCTest then captured the rendered app UI."
+}
