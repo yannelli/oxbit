@@ -1,0 +1,339 @@
+{
+  "version": "0.3.1",
+  "generatedAt": "2026-10-03T05:14:43.115Z",
+  "inspiration": "https://ryanyannelli.com/projects/oxbit/",
+  "screenshotStatus": "Native app captures and App Store screenshots included.",
+  "provenance": {
+    "kind": "native-simulator",
+    "nativeCapture": true,
+    "complete": true,
+    "pendingDevices": [],
+    "sourceHead": "00c27356ba5c59eff38acc9fe949823acf7dd5b9",
+    "frontendSha256": "d6ce745abad205ee5578c54f0f9043fa2212407248bfdd6bda7482771e967d8b",
+    "sampleSha256": "ee9d6b0db12af73d9b99b1d5069d10b78e90f0f942516fcfed2689d43658fa5f",
+    "sourceState": "HEAD plus uncommitted 0.3.1 version metadata and release icon source/catalog changes at simulator build",
+    "app": {
+      "bundleIdentifier": "com.yannelli.oxbit",
+      "shortVersion": "0.3.1",
+      "buildVersion": "0.3.1",
+      "executable": "Oxbit",
+      "executableSha256": "4ec11e5e4dc85afaa2c26605a07f8d07344915a9468b3279b565b39b2164aedd"
+    },
+    "devices": [
+      {
+        "name": "Oxbit Release 0.3.1 iPhone",
+        "model": "iPhone 17 Pro Max",
+        "uuid": "90217232-2528-4353-91B1-545C7A45D429",
+        "runtime": "iOS 27.0",
+        "statusBar": "9:41, Wi-Fi, full battery"
+      },
+      {
+        "name": "Oxbit Release 0.3.1 iPad",
+        "model": "iPad Pro 13-inch (M5)",
+        "uuid": "D5DD45DB-C016-4E50-B022-BC5309B869AC",
+        "runtime": "iPadOS 27.0",
+        "statusBar": "9:41, Wi-Fi, full battery"
+      }
+    ],
+    "captures": [
+      {
+        "path": "iphone/01-editor.png",
+        "state": "01-editor",
+        "features": [
+          "Fieldnotes workspace",
+          "syntax-highlighted src/journal.ts",
+          "README.md tab"
+        ],
+        "width": 1320,
+        "height": 2868,
+        "sha256": "43847d137023f6bdb5da8fa86dd5f02d486045872d86d50d758266320176c77d"
+      },
+      {
+        "path": "iphone/02-files.png",
+        "state": "02-files",
+        "features": [
+          "Explorer",
+          "expanded assets and src folders",
+          "Fieldnotes project files"
+        ],
+        "width": 1320,
+        "height": 2868,
+        "sha256": "f884c22cbc21758972cc549ca6ed4027e3c49e1a9e8bc00e139c92553dc9a1d0"
+      },
+      {
+        "path": "iphone/03-html-preview.png",
+        "state": "03-html-preview",
+        "features": [
+          "local index.html preview",
+          "local styles.css",
+          "local coast illustration"
+        ],
+        "width": 1320,
+        "height": 2868,
+        "sha256": "d8aa2da582b4607f6118068f1ee9c712f987c3a21d6aa2bb3b80aa7656dddbc4"
+      },
+      {
+        "path": "iphone/04-markdown.png",
+        "state": "04-markdown",
+        "features": [
+          "rendered README.md",
+          "headings",
+          "checklist",
+          "blockquote"
+        ],
+        "width": 1320,
+        "height": 2868,
+        "sha256": "e911eba308e21a37a85736769149b590d5be4e9ac22183a155eac1b78a1453e1"
+      },
+      {
+        "path": "iphone/05-panels.png",
+        "state": "05-panels",
+        "features": [
+          "native app panel picker",
+          "Explorer",
+          "Search",
+          "Source Control",
+          "Terminal"
+        ],
+        "width": 1320,
+        "height": 2868,
+        "sha256": "a07486badd3321eec36826b649e081eddcdc7b50f8dd2de4926dafff4ff0c386"
+      },
+      {
+        "path": "ipad/01-editor.png",
+        "state": "01-editor",
+        "features": [
+          "Fieldnotes workspace",
+          "syntax-highlighted src/journal.ts",
+          "README.md tab"
+        ],
+        "width": 2064,
+        "height": 2752,
+        "sha256": "c75100d6728c3bfd83626864bab537ba6659e0a8f547e3f1334c4ba7d06f5737"
+      },
+      {
+        "path": "ipad/02-files.png",
+        "state": "02-files",
+        "features": [
+          "Explorer",
+          "expanded assets and src folders",
+          "Fieldnotes project files"
+        ],
+        "width": 2064,
+        "height": 2752,
+        "sha256": "f8d7a597f2c8040523412f4259293eb0a337074169888af1c95aca1f1471bcb2"
+      },
+      {
+        "path": "ipad/03-html-preview.png",
+        "state": "03-html-preview",
+        "features": [
+          "rendered local index.html",
+          "local styles.css",
+          "local coast illustration"
+        ],
+        "width": 2064,
+        "height": 2752,
+        "sha256": "e67401faba9ce4f05631f7444e5e49980874fa9c280fcf67543b6ed338e7c395"
+      },
+      {
+        "path": "ipad/04-markdown.png",
+        "state": "04-markdown",
+        "features": [
+          "rendered README.md",
+          "headings",
+          "checklist",
+          "blockquote"
+        ],
+        "width": 2064,
+        "height": 2752,
+        "sha256": "a87a5c9fe02eeb76c7312ce7826d8c98ab6f68813dc6f9b79658f0f88a372e51"
+      },
+      {
+        "path": "ipad/05-panels.png",
+        "state": "05-panels",
+        "features": [
+          "panel picker",
+          "Explorer",
+          "Search",
+          "Source Control",
+          "Terminal"
+        ],
+        "width": 2064,
+        "height": 2752,
+        "sha256": "741e34e39edfac741fbfadfe100b58fcb7321f598a596a692b3fdae02e300165"
+      }
+    ],
+    "captureMethods": {
+      "iphone": "xcrun simctl io screenshot",
+      "ipad": "XCUIScreen.main.screenshot().pngRepresentation via XCTest"
+    },
+    "headlessRecovery": "With macOS loginwindow active, the iPad primary framebuffer was black until a data-preserving shutdown and boot of only simulator D5DD45DB-C016-4E50-B022-BC5309B869AC; XCTest then captured the rendered app UI."
+  },
+  "artifacts": [
+    {
+      "path": "icons/oxbit-ios-default.png",
+      "width": 1024,
+      "height": 1024,
+      "format": "PNG RGB",
+      "appearance": "default",
+      "bytes": 16651,
+      "sha256": "ac74b368b9b9f7bf7c4466d10b217e788e84cddc0bfe86d9373f3612c68f327c"
+    },
+    {
+      "path": "icons/oxbit-ios-dark.png",
+      "width": 1024,
+      "height": 1024,
+      "format": "PNG RGB",
+      "appearance": "dark",
+      "bytes": 16838,
+      "sha256": "1148d7fdc54858306cd6361cbc74e33c5cd6d0daf6c75575763e716fab9641a4"
+    },
+    {
+      "path": "icons/oxbit-ios-tinted.png",
+      "width": 1024,
+      "height": 1024,
+      "format": "PNG RGB",
+      "appearance": "tinted",
+      "bytes": 16276,
+      "sha256": "32b9bc832d308ecb56f62b39b58e9d2dc5f6372c6ef4183e07043be10abba6a1"
+    },
+    {
+      "path": "screenshots/iphone-6.9/01-editor.png",
+      "width": 1320,
+      "height": 2868,
+      "format": "PNG RGB",
+      "bytes": 344829,
+      "sha256": "c5e897326b3fbd2d21c12ba25cbd9bcb3055a54ccc5283415081a4037ed879be",
+      "source": "captures/iphone/01-editor.png",
+      "sourceSha256": "43847d137023f6bdb5da8fa86dd5f02d486045872d86d50d758266320176c77d",
+      "nativeCapture": true,
+      "title": "A real editor.\nIn your pocket."
+    },
+    {
+      "path": "screenshots/iphone-6.9/02-files.png",
+      "width": 1320,
+      "height": 2868,
+      "format": "PNG RGB",
+      "bytes": 208650,
+      "sha256": "9d1e98a9f17772ab4cc100c8830ff3f6f6ed96b697365395417c5773e5607da0",
+      "source": "captures/iphone/02-files.png",
+      "sourceSha256": "f884c22cbc21758972cc549ca6ed4027e3c49e1a9e8bc00e139c92553dc9a1d0",
+      "nativeCapture": true,
+      "title": "Your files.\nRight at hand."
+    },
+    {
+      "path": "screenshots/iphone-6.9/03-html-preview.png",
+      "width": 1320,
+      "height": 2868,
+      "format": "PNG RGB",
+      "bytes": 354987,
+      "sha256": "19bf8bf8fa9f7d2d9d55f32bfcaa85e6dbdd6eff67eeaf99dc7fdd7b9b0a46c0",
+      "source": "captures/iphone/03-html-preview.png",
+      "sourceSha256": "d8aa2da582b4607f6118068f1ee9c712f987c3a21d6aa2bb3b80aa7656dddbc4",
+      "nativeCapture": true,
+      "title": "Write a page.\nSee it take shape."
+    },
+    {
+      "path": "screenshots/iphone-6.9/04-markdown.png",
+      "width": 1320,
+      "height": 2868,
+      "format": "PNG RGB",
+      "bytes": 338643,
+      "sha256": "5a63e356fbf8ac60b184ce12c41f0d83c6cb760b5f6389283403f07e2454569b",
+      "source": "captures/iphone/04-markdown.png",
+      "sourceSha256": "e911eba308e21a37a85736769149b590d5be4e9ac22183a155eac1b78a1453e1",
+      "nativeCapture": true,
+      "title": "From plain text\nto a clearer view."
+    },
+    {
+      "path": "screenshots/iphone-6.9/05-panels.png",
+      "width": 1320,
+      "height": 2868,
+      "format": "PNG RGB",
+      "bytes": 257622,
+      "sha256": "c0a13d4df9d0d14f3d98afbfafc7e2255f4f9d75d25f87ca54f2bbe62ee28c03",
+      "source": "captures/iphone/05-panels.png",
+      "sourceSha256": "a07486badd3321eec36826b649e081eddcdc7b50f8dd2de4926dafff4ff0c386",
+      "nativeCapture": true,
+      "title": "Your panels.\nOne tap away."
+    },
+    {
+      "path": "screenshots/ipad-13/01-editor.png",
+      "width": 2064,
+      "height": 2752,
+      "format": "PNG RGB",
+      "bytes": 302187,
+      "sha256": "46303a5f4f43f47dbb018878bdcd91c3c5412701a5560568493ead6c66c6b635",
+      "source": "captures/ipad/01-editor.png",
+      "sourceSha256": "c75100d6728c3bfd83626864bab537ba6659e0a8f547e3f1334c4ba7d06f5737",
+      "nativeCapture": true,
+      "title": "A real editor.\nRoom to create."
+    },
+    {
+      "path": "screenshots/ipad-13/02-files.png",
+      "width": 2064,
+      "height": 2752,
+      "format": "PNG RGB",
+      "bytes": 239472,
+      "sha256": "944434f4d33b44cdd1f706a7e181e70c8dbd6148e118e0cf5097846f64b003f4",
+      "source": "captures/ipad/02-files.png",
+      "sourceSha256": "f8d7a597f2c8040523412f4259293eb0a337074169888af1c95aca1f1471bcb2",
+      "nativeCapture": true,
+      "title": "Your files.\nRight at hand."
+    },
+    {
+      "path": "screenshots/ipad-13/03-html-preview.png",
+      "width": 2064,
+      "height": 2752,
+      "format": "PNG RGB",
+      "bytes": 394477,
+      "sha256": "f95852a37ddf930a6ed2e95e8f9e038578ce7e80dbe878591e9de109ea3ca06c",
+      "source": "captures/ipad/03-html-preview.png",
+      "sourceSha256": "e67401faba9ce4f05631f7444e5e49980874fa9c280fcf67543b6ed338e7c395",
+      "nativeCapture": true,
+      "title": "Write a page.\nSee it take shape."
+    },
+    {
+      "path": "screenshots/ipad-13/04-markdown.png",
+      "width": 2064,
+      "height": 2752,
+      "format": "PNG RGB",
+      "bytes": 293409,
+      "sha256": "8f4a6ecf696ed15a87f934ad05121e0f62d8894b3b08e5537eab19e5521810f0",
+      "source": "captures/ipad/04-markdown.png",
+      "sourceSha256": "a87a5c9fe02eeb76c7312ce7826d8c98ab6f68813dc6f9b79658f0f88a372e51",
+      "nativeCapture": true,
+      "title": "From plain text\nto a clearer view."
+    },
+    {
+      "path": "screenshots/ipad-13/05-panels.png",
+      "width": 2064,
+      "height": 2752,
+      "format": "PNG RGB",
+      "bytes": 295492,
+      "sha256": "3599e4f979cab439d3943cab16300f0bb75296c4231edfd230d0413ca1fbda12",
+      "source": "captures/ipad/05-panels.png",
+      "sourceSha256": "741e34e39edfac741fbfadfe100b58fcb7321f598a596a692b3fdae02e300165",
+      "nativeCapture": true,
+      "title": "Your panels.\nOne tap away."
+    },
+    {
+      "path": "promo/promo-banner.png",
+      "width": 2400,
+      "height": 1260,
+      "format": "PNG RGB",
+      "bytes": 548876,
+      "sha256": "fe1bbfb0fb7f7c3dc2935cdf6a6f5050026e0af3bc668abe0b7ede5d9fbaa783",
+      "purpose": "promo-banner"
+    },
+    {
+      "path": "promo/social-card.png",
+      "width": 1200,
+      "height": 630,
+      "format": "PNG RGB",
+      "bytes": 181881,
+      "sha256": "3209c5113dd36c95c4a49a4414d769b3da0d76f47c649072e327f905cf43e5b8",
+      "purpose": "social-card"
+    }
+  ]
+}

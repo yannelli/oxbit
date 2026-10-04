@@ -13,3 +13,8 @@ These cover desktop, tablet, and phone layouts in light and dark themes.
 The current workbench is in `packages/workbench` and `packages/app-workbench`.
 See [architecture](../docs/architecture.md) and [themes](../docs/themes/README.md)
 for implementation details.
+
+`releases/v0.3.1/` contains the iOS icons, native captures, App Store screenshot
+sets, promo graphics, and listing draft. Open its `index.html` to review exports.
+See the [release artwork guide](../docs/ios-release-assets.md) and
+[documentation index](../docs/INDEX.md) for regeneration and Apple's specifications.

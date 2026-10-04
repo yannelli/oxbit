@@ -1,6 +1,6 @@
 {
   "name": "oxbit",
-  "version": "0.3.0-alpha.5",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.2",
@@ -51,6 +51,8 @@
     "ios:check": "node scripts/ios/run.mjs check",
     "ios:simulator": "node scripts/ios/run.mjs simulator",
     "ios:upload": "node scripts/ios/run.mjs upload",
+    "ios:icons": "node scripts/ios/render-icons.mjs",
+    "ios:graphics": "node scripts/ios/render-release-assets.mjs",
     "themes:generate": "node packages/themes/scripts/generate.mjs",
     "themes:validate": "tsx scripts/validate-theme-pack.ts",
     "themes:coverage": "node scripts/theme-coverage.mjs",

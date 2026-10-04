@@ -363,6 +363,21 @@ kbd {
 .footer-legal a { color: var(--muted); transition: color 0.2s; }
 .footer-legal a:hover { color: var(--text); }
 
+.privacy-page .nav { border-bottom-color: var(--line); }
+.privacy-page .nav nav a { color: var(--muted); }
+.privacy-page .nav nav a:hover { color: var(--text); }
+.privacy-main { padding: clamp(52px, 8vw, 100px) 0 96px; }
+.privacy-article { max-width: 760px; }
+.privacy-article h1 { font-size: clamp(3rem, 8vw, 5rem); margin-bottom: 10px; }
+.privacy-article .privacy-date { color: var(--dim); font-size: 14px; margin-bottom: 38px; }
+.privacy-article h2 { font-size: clamp(1.35rem, 4vw, 1.7rem); margin: 42px 0 14px; }
+.privacy-article p { color: var(--muted); line-height: 1.75; margin-top: 16px; }
+.privacy-article .kicker { color: var(--mint); margin: 0 0 12px; }
+.privacy-article a { color: var(--mint-2); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.privacy-article a:hover { color: var(--text); }
+.privacy-footer { padding-top: 0; }
+.privacy-footer .footer-legal { margin-top: 0; border-top: 0; }
+
 /* Reveal */
 [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); }
 [data-reveal].is-visible { opacity: 1; transform: none; }
