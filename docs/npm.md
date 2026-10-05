@@ -85,6 +85,7 @@ choose GitHub Actions:
 | Repository | `oxbit` |
 | Workflow filename | `npm.yml` |
 | Environment name | empty |
+| Allowed actions | publish |
 
 Or use npm 11.15 or later after `npm login`. The account needs 2FA, and
 `npm trust` rejects bypass-2FA tokens.
