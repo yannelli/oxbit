@@ -103,7 +103,8 @@ export function createHtmlPreview(o: FeatureOptions) {
         <IconButton icon="refresh" label={tr("Refresh HTML preview")} onClick={() => setRevision(value => value + 1)} />
         <IconButton icon="pencil" label={tr("Open source")} onClick={openSource} />
         <IconButton icon="gear" className="icon-button html-preview-options-trigger" label={tr("Preview options")}
-          data-warning={!!preview?.warnings.length} aria-haspopup="dialog" aria-expanded={optionsOpen} onClick={() => setOptionsOpen(true)} />
+          data-warning={!!preview?.warnings.length} aria-haspopup="dialog" aria-expanded={optionsOpen}
+          onClick={event => { event.currentTarget.focus({ preventScroll: true }); setOptionsOpen(true); }} />
       </div>
       {error && <div className="html-preview-message error-text" role="alert">{error}</div>}
       {optionsOpen && <Dialog title={tr("Preview options")} className="html-preview-options" onClose={() => setOptionsOpen(false)}>

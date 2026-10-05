@@ -804,7 +804,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   .activity-bar .badge { top:3px;right:calc(50% - 22px); }
   .workbench[data-mode=phone] .dock-group .panel-header { height:50px;min-height:50px;gap:4px; }
   .workbench[data-mode=phone] .dock-group .panel-actions .icon-button { width:44px;height:44px; }
-  .panel-actions>.panel-collapse,.panel-actions>.panel-maximize { display:none; }
+  .panel-actions>.panel-maximize { display:none; }
   .settings-scope { gap:8px; }
   .settings-scope>button { min-height:44px; }
   .settings-scope>.custom-select { width:auto;flex:1 1 140px; }

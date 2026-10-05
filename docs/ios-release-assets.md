@@ -1,6 +1,6 @@
 # iOS release artwork
 
-Created: 2026-10-02. Last updated: 2026-10-03.
+Created: 2026-10-02. Last updated: 2026-10-05.
 
 Use this guide when refreshing the iOS icon, preparing App Store screenshots,
 or exporting the v0.3.1 marketing package.
@@ -27,24 +27,15 @@ local editing and previews.
 bun run ios:icons
 ```
 
-This renders the canonical SVG mark with three appearances:
+This exports the established mint-on-charcoal icon from the native asset catalog.
+The catalog and Tauri source PNGs match `v0.3.0-alpha.5` byte for byte, including
+its original padding. The exporter verifies the original master checksum before
+writing an opaque RGB marketing PNG and an SVG containing that same image.
 
-| Appearance | Background | Symbol |
-| --- | --- | --- |
-| Default | Mint `#8bd5ca` | Charcoal `#14161a` |
-| Dark | Charcoal `#14161a` | Mint `#8bd5ca` |
-| Tinted | Gray `#191919` | Gray `#d9d9d9` |
-
-The source SVGs and 1024 × 1024 RGB PNG masters are in `icons/`.
-The iOS asset catalog uses a universal 1024 image per appearance; Xcode produces
-the smaller representations. Backgrounds fill the square, and the system supplies
-the rounded mask. The symbol stays centered and keeps the same geometry in each
-appearance. Shadows, highlights, and lettering are absent from the icon source.
-
-Tauri's source icons are RGBA with every alpha value set to 255. Its Rust build
-requires RGBA input. The AppIcon catalog and store masters are opaque RGB.
-Regenerating the Xcode project with `ios:init` requires rerunning `ios:icons`
-to restore the appearance catalog.
+The native catalog retains alpha.5's device-specific slots. No new dark or tinted
+appearance is supplied. `ios:icons` exports marketing artwork without rewriting
+native assets. Intentional future branding changes must update the approved
+source and its checksum together.
 
 ## Screenshots and banners
 
@@ -119,9 +110,11 @@ It includes the fonts' license, editable artwork, captures, provenance, and list
 The [signed release guide](release.md) covers the separate build, TestFlight,
 and publishing steps.
 
-The local App Store distribution candidate is `release/v0.3.1/ios/Oxbit.ipa`,
-version 0.3.1, build 1. Its `verification.json` records the signature and SHA-256.
-App Store Connect validation and build-number uniqueness remain unchecked.
+The v0.3.1 GitHub release was withdrawn and TestFlight build 0.3.1 (8) expired
+on 2026-10-05 UTC after an unintended icon change. The earlier local IPA contains
+the withdrawn icon and must not be redistributed. The corrected artwork has
+not been packaged into a replacement IPA or release. See the
+[alpha.5 comparison](release-audit-0.3.1.md) for findings and correction status.
 
 ## Apple references
 

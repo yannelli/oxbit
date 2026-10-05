@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, Icon, translate as tr } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
@@ -16,7 +16,17 @@ export function PanelSwitcher({ workbench, title, navigation = false }: {
 }) {
   useWorkbench(workbench);
   const [open, setOpen] = useState(false);
+  const [iosPhone, setIosPhone] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const button = trigger.current;
+    const viewport = button?.ownerDocument.defaultView?.matchMedia("(max-width: 599px)");
+    if (!navigation || !button || !viewport) return;
+    const update = () => setIosPhone(viewport.matches && !!button.closest(".ios-shell"));
+    update();
+    viewport.addEventListener("change", update);
+    return () => viewport.removeEventListener("change", update);
+  }, [navigation]);
   const panels = workbench.kernel.contributions.list().filter(item =>
     ["activityView", "panel"].includes(item.kind) && item.component && workbench.kernel.context.matches(item.when),
   ).sort((a, b) => {
@@ -24,7 +34,8 @@ export function PanelSwitcher({ workbench, title, navigation = false }: {
     return (aIndex < 0 ? panelOrder.length : aIndex) - (bIndex < 0 ? panelOrder.length : bIndex);
   });
   const active = panels.filter(item => workbench.panelVisible(item.id));
-  const extraActive = active.some(item => !["explorer", "search", "scm", "extensions"].includes(item.id));
+  const primaryViews = iosPhone ? ["explorer", "scm"] : ["explorer", "search", "scm", "extensions"];
+  const extraActive = active.some(item => !primaryViews.includes(item.id));
   return <>
     <button
       ref={trigger}
@@ -33,7 +44,7 @@ export function PanelSwitcher({ workbench, title, navigation = false }: {
       aria-label={tr(navigation ? "More" : "Switch panel")}
       aria-haspopup="dialog"
       aria-expanded={open}
-      onClick={() => setOpen(true)}
+      onClick={event => { event.currentTarget.focus({ preventScroll: true }); setOpen(true); }}
     >
       {navigation ? <><Icon name="more" /><span className="phone-label">{tr("More view")}</span></>
         : <><span className="truncate">{title}</span><Icon name="chevD" size={14} /></>}
