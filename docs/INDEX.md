@@ -1,10 +1,11 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-03.
+Created: 2026-10-02. Last updated: 2026-10-05.
 
 | Guide | Use when |
 | --- | --- |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes and external `Public Beta` assignment; secrets and renewal; Apple TestFlight API references for distribution changes. |
+| [npm packages](npm.md) | Publishing `@oxbit/sdk` and `@oxbit/cli`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |
 | [iOS setup](ios.md) | Building the iOS app or connecting to a computer runtime. |
 | [iOS release artwork](ios-release-assets.md) | Rendering app icon exports, native App Store screenshots, promo banners, and listing drafts; includes Apple design, asset specifications, and app privacy references. |
 | [Withdrawn v0.3.1 audit](release-audit-0.3.1.md) | Comparing alpha.5 with the withdrawn release, confirmed corrections, and unresolved CI failures. |

@@ -1,0 +1,67 @@
+name: npm
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - ".github/workflows/npm.yml"
+      - "scripts/npm/**"
+      - "packages/sdk/**"
+      - "apps/runtime/package.json"
+      - "apps/runtime/README.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: npm-check-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: node scripts/npm/publish.mjs sdk --dry-run
+      - run: node scripts/npm/publish.mjs cli --dry-run
+  publish:
+    if: github.event_name != 'pull_request' && github.repository == 'yannelli/oxbit'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+          registry-url: "https://registry.npmjs.org"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      # npm prefers trusted publishing (OIDC) and falls back to NPM_TOKEN when the
+      # package has no trusted publisher for this workflow.
+      - name: Publish @oxbit/sdk when its version is new
+        if: github.ref == 'refs/heads/main'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/npm/publish.mjs sdk
+      - if: github.ref_type == 'tag'
+        run: bun run build
+      - name: Publish @oxbit/cli for the release tag
+        if: github.ref_type == 'tag'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/npm/publish.mjs cli --expect-tag "$GITHUB_REF_NAME"

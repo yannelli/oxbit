@@ -34,6 +34,10 @@ shell. Running it again in the same project reuses that runtime.
 The global install links this checkout. Run `bun run build` after pulling changes.
 Run `npm uninstall -g oxbit` to remove the command.
 
+Tagged releases also publish the command as `@oxbit/cli`. Install it with Node 24
+using `npm install -g @oxbit/cli` after removing a checkout-linked `oxbit`.
+See [npm packages](docs/npm.md).
+
 | Command | Effect |
 | --- | --- |
 | `oxbit --status` | Report the runtime serving this workspace |

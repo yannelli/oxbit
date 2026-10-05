@@ -1,6 +1,6 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-02.
+Created: 2026-10-02. Last updated: 2026-10-05.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
@@ -25,6 +25,9 @@ build and IPA validation but skips TestFlight upload, distribution, and publishi
 
 The PR workflows (`desktop.yml`, `ios.yml`) run the regression suites and do not
 sign or publish.
+
+The same tag publishes `@oxbit/cli` to npm through `.github/workflows/npm.yml`;
+see [npm packages](npm.md).
 
 ## Cutting a release
 
