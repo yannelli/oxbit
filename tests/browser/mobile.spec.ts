@@ -457,6 +457,10 @@ test("phone panel picker switches full-height panels and preserves drafts", asyn
   await page.screenshot({ path: info.outputPath("phone-panel-picker.png"), animations: "disabled" });
   await picker.getByRole("button", { name: "Explorer", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toHaveText("Explorer");
+  const collapse = page.getByRole("button", { name: "Collapse folders", exact: true });
+  await expect(collapse).toBeVisible();
+  await insideViewport(collapse);
+  for (const action of await page.locator(".panel-dock .panel-actions button:visible").all()) await insideViewport(action);
   await more.tap();
   await picker.getByRole("button", { name: "Draft panel", exact: true }).tap();
   await expect(page.getByRole("textbox", { name: "Panel draft" })).toHaveValue("Keep this draft");
@@ -480,6 +484,29 @@ test("tablet panel picker restores desktop tabs when the window widens", async (
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toBeHidden();
   await expect(page.getByRole("tab", { name: "Output", exact: true })).toBeVisible();
+});
+
+test("More highlights panels hidden from iOS navigation without duplicating web selection", async ({ page }) => {
+  await ready(page);
+  const nav = page.getByRole("navigation", { name: "Primary views" });
+  const more = nav.getByRole("button", { name: "More", exact: true });
+  for (const id of ["search", "extensions"]) {
+    await nav.locator(`[data-view="${id}"]`).tap();
+    await expect(more).not.toHaveClass(/active/);
+  }
+  await page.addStyleTag({ content: await readFile(new URL("../../apps/ios/src/ios.css", import.meta.url), "utf8") });
+  await page.evaluate(() => document.querySelector(".workbench")!.parentElement!.classList.add("ios-shell"));
+  await page.setViewportSize({ width: 834, height: 1112 });
+  await expect(page.locator(".workbench")).toHaveAttribute("data-mode", "tablet");
+  await page.setViewportSize({ width: 393, height: 852 });
+  for (const title of ["Search", "Extensions"]) {
+    await more.tap();
+    await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: title, exact: true }).tap();
+    await expect(more).toHaveClass(/active/);
+  }
+  await page.setViewportSize({ width: 834, height: 1112 });
+  await expect(nav.locator('[data-view="extensions"]')).toBeVisible();
+  await expect(more).not.toHaveClass(/active/);
 });
 
 test("language status opens below the phone header and above the desktop footer", async ({ page }, info) => {

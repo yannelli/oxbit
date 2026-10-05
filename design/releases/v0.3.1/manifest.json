@@ -1,6 +1,7 @@
 {
   "version": "0.3.1",
-  "generatedAt": "2026-10-03T05:14:43.115Z",
+  "releaseStatus": "withdrawn",
+  "generatedAt": "2026-10-05T00:17:57.931Z",
   "inspiration": "https://ryanyannelli.com/projects/oxbit/",
   "screenshotStatus": "Native app captures and App Store screenshots included.",
   "provenance": {
@@ -176,26 +177,8 @@
       "height": 1024,
       "format": "PNG RGB",
       "appearance": "default",
-      "bytes": 16651,
-      "sha256": "ac74b368b9b9f7bf7c4466d10b217e788e84cddc0bfe86d9373f3612c68f327c"
-    },
-    {
-      "path": "icons/oxbit-ios-dark.png",
-      "width": 1024,
-      "height": 1024,
-      "format": "PNG RGB",
-      "appearance": "dark",
-      "bytes": 16838,
-      "sha256": "1148d7fdc54858306cd6361cbc74e33c5cd6d0daf6c75575763e716fab9641a4"
-    },
-    {
-      "path": "icons/oxbit-ios-tinted.png",
-      "width": 1024,
-      "height": 1024,
-      "format": "PNG RGB",
-      "appearance": "tinted",
-      "bytes": 16276,
-      "sha256": "32b9bc832d308ecb56f62b39b58e9d2dc5f6372c6ef4183e07043be10abba6a1"
+      "bytes": 33411,
+      "sha256": "fd564c2f3ec122c8578404af108b9f430cd9876c1bcc38a91b7d37dc4ce5e032"
     },
     {
       "path": "screenshots/iphone-6.9/01-editor.png",
