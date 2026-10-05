@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain-node publish script without types
-import { assertTag, cliManifest, distTag, isPublished, sdkManifest } from "../scripts/npm/publish.mjs";
+import { assertTag, cliManifest, distTag, sdkManifest, versionUrl } from "../scripts/npm/publish.mjs";
 
 const author = { name: "Ryan Yannelli" };
 
@@ -9,11 +9,8 @@ describe("npm publishing", () => {
     expect(distTag("0.3.0-alpha.6")).toBe("next");
     expect(distTag("1.0.0")).toBe("latest");
   });
-  it("detects a published version from registry metadata", () => {
-    const document = { versions: { "1.0.0": {} } };
-    expect(isPublished(document, "1.0.0")).toBe(true);
-    expect(isPublished(document, "1.0.1")).toBe(false);
-    expect(isPublished(undefined, "1.0.0")).toBe(false);
+  it("checks the scoped version document", () => {
+    expect(versionUrl("@oxbit/sdk", "1.0.0")).toBe("https://registry.npmjs.org/@oxbit%2fsdk/1.0.0");
   });
   it("requires the tag to name the package version", () => {
     expect(() => assertTag("v0.4.0", "0.4.0")).not.toThrow();

@@ -16,7 +16,8 @@ const usage = `Usage: node scripts/npm/publish.mjs <sdk|cli> [options]
 
 export const distTag = (version) => (version.includes("-") ? "next" : "latest");
 
-export const isPublished = (document, version) => Boolean(document?.versions?.[version]);
+export const versionUrl = (name, version) =>
+  `https://registry.npmjs.org/${name.replace("/", "%2f")}/${version}`;
 
 export function assertTag(tag, version) {
   if (tag !== `v${version}`)
@@ -145,13 +146,12 @@ async function stageCli(stage) {
   return cliManifest(app, runtime, installedVersion);
 }
 
-async function registryDocument(name) {
-  const response = await fetch(`https://registry.npmjs.org/${name.replace("/", "%2f")}`, {
-    headers: { accept: "application/vnd.npm.install-v1+json" },
-  });
-  if (response.status === 404) return undefined;
-  if (!response.ok) throw new Error(`The npm registry returned ${response.status} for ${name}`);
-  return response.json();
+/** The package document of a new package stays a cached 404 for minutes after its first publish; the version document does not. */
+async function isPublished(name, version) {
+  const response = await fetch(versionUrl(name, version));
+  if (response.status === 404) return false;
+  if (!response.ok) throw new Error(`The npm registry returned ${response.status} for ${name}@${version}`);
+  return true;
 }
 
 async function main() {
@@ -167,7 +167,7 @@ async function main() {
   const name = `@oxbit/${target}`;
   const { version } = await readJson(target === "sdk" ? "packages/sdk/package.json" : "package.json");
   if (values["expect-tag"] !== undefined) assertTag(values["expect-tag"], version);
-  if (!values["dry-run"] && isPublished(await registryDocument(name), version)) {
+  if (!values["dry-run"] && (await isPublished(name, version))) {
     console.log(`${name}@${version} is already on npm`);
     return;
   }
