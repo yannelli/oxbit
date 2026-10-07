@@ -122,6 +122,7 @@ pub(super) fn credentials_for(
             .as_deref()
             .zip(authority)
             .is_some_and(|(host, authority)| {
+                let authority = authority.strip_suffix(":443").unwrap_or(authority);
                 !host.is_empty() && host.eq_ignore_ascii_case(authority)
             })
     });

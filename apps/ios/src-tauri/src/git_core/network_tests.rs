@@ -522,6 +522,29 @@ fn confines_gitea_credentials_to_the_connected_server() {
         network::credentials_for(&credentials, "https://github.com/owner/repo.git", allowed)
             .is_ok()
     );
+    let default_port = Credentials {
+        gitea: Some(GiteaCredentials {
+            host: Some("git.example.test".into()),
+            login: Some("gitea-user".into()),
+            token: Some("gitea-fixture".into()),
+        }),
+        ..Credentials::default()
+    };
+    for url in [
+        "https://git.example.test/owner/repo.git",
+        "https://git.example.test:443/owner/repo.git",
+    ] {
+        assert!(
+            network::credentials_for(&default_port, url, allowed).is_ok(),
+            "{url}"
+        );
+    }
+    assert!(network::credentials_for(
+        &default_port,
+        "https://git.example.test:8443/owner/repo.git",
+        allowed
+    )
+    .is_err());
     for url in [
         "https://git.example.test/owner/repo.git",
         "https://git.example.test:3001/owner/repo.git",

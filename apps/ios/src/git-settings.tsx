@@ -56,12 +56,14 @@ export function GitSettings({ onClose }: { onClose: () => void }) {
         setToken("");
       })}>Disconnect GitHub</button>}
       <p>{account?.gitea?.authenticated ? `Connected to Gitea at ${account.gitea.host} as ${account.gitea.login}.` : "Connect a Gitea server to use its private repositories."}</p>
-      <label>Gitea server URL<input type="url" inputMode="url" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={2048} aria-label="Gitea server URL" placeholder="https://gitea.example.com" value={giteaUrl} onChange={event => setGiteaUrl(event.target.value)} disabled={busy} /></label>
+      <label>Gitea server URL<input type="text" inputMode="url" autoComplete="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={2048} aria-label="Gitea server URL" placeholder="https://gitea.example.com" value={giteaUrl} onChange={event => setGiteaUrl(event.target.value)} disabled={busy} /></label>
       <label>Gitea access token<input type="password" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={4096} aria-label="Gitea access token" placeholder={account?.gitea?.authenticated ? "Enter a new token to reconnect" : "Required to connect Gitea"} value={giteaToken} onChange={event => setGiteaToken(event.target.value)} disabled={busy} /></label>
       <p className="small muted">Give the token the read:user scope and the write:repository scope. To clone and pull only, read:repository is sufficient. Oxbit sends the token only to this server.</p>
       {giteaBase && <button type="button" className="text-button" onClick={() => void native.external(`${giteaBase}/user/settings/applications`)}>Create a Gitea token</button>}
       <button type="button" className="button" disabled={busy || !giteaUrl.trim() || !giteaToken.trim()} onClick={() => void perform(async () => {
-        setAccount(await native.gitCredentials({ operation: "connectGitea", url: giteaUrl.trim(), token: giteaToken.trim() }));
+        const connected = await native.gitCredentials({ operation: "connectGitea", url: giteaUrl.trim(), token: giteaToken.trim() });
+        setAccount(connected);
+        setGiteaUrl(connected.gitea?.url ?? giteaUrl);
         setGiteaToken("");
         setSaved(true);
       })}>Connect Gitea</button>

@@ -1,0 +1,10 @@
+/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/deps/autocfg-14c07869af30ad02.d: /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/lib.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/error.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/rustc.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/version.rs
+
+/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/deps/libautocfg-14c07869af30ad02.rlib: /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/lib.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/error.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/rustc.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/version.rs
+
+/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/deps/libautocfg-14c07869af30ad02.rmeta: /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/lib.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/error.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/rustc.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/version.rs
+
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/lib.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/error.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/rustc.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/autocfg-1.5.1/src/version.rs:
