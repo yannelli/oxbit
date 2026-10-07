@@ -94,7 +94,7 @@ export function StartScreen({
       <section aria-label="Source Control">
         <h2>Source Control</h2>
         <button className="button primary ios-open-folder" onClick={onClone} disabled={!!busy}><Icon name="copy" />Clone Repository…</button>
-        <button className="button ios-open-folder" onClick={onGitSettings} disabled={!!busy}><Icon name="git" />GitHub and Commit Author…</button>
+        <button className="button ios-open-folder" onClick={onGitSettings} disabled={!!busy}><Icon name="git" />Git Accounts and Commit Author…</button>
       </section>
       {busy && (
         <p className="muted" role="status">

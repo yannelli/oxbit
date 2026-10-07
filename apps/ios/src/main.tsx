@@ -125,7 +125,7 @@ function App() {
       ["workspace.switch", "Switch Workspace…", () => setSheet(true)],
       ["workspace.close", "Close Workspace", () => close()],
       ["workspace.runtime", "Connect Runtime", () => setConnection(true)],
-      ["git.account", "GitHub and Commit Author", () => setGitSettings(true)],
+      ["git.account", "Git Accounts and Commit Author", () => setGitSettings(true)],
       ["workspace.clone", "Clone Repository to Device", () => setCloning(true)],
     ] as const;
     const disposables = registrations.map(([id, title, run]) =>

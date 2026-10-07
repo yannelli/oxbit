@@ -1,0 +1,8 @@
+/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/deps/serde_with_macros-ec5eb38bae3b83e8.d: /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lib.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/apply.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lazy_bool.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/utils.rs
+
+/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/deps/libserde_with_macros-ec5eb38bae3b83e8.dylib: /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lib.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/apply.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lazy_bool.rs /Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/utils.rs
+
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lib.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/apply.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/lazy_bool.rs:
+/Users/ryanyannelli/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_with_macros-3.24.0/src/utils.rs:

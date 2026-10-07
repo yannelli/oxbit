@@ -2,7 +2,7 @@ use crate::Result;
 
 pub(crate) fn validate_git_credential_request(request: &serde_json::Value) -> Result<()> {
     match request.get("operation").and_then(serde_json::Value::as_str) {
-        Some("get" | "save" | "forget") => Ok(()),
+        Some("get" | "save" | "forget" | "connectGitea" | "forgetGitea") => Ok(()),
         _ => Err(crate::Error::Unsupported(
             "Unknown Git credential operation.",
         )),
@@ -23,6 +23,21 @@ pub(crate) fn git_credential_metadata(response: serde_json::Value) -> Result<ser
             metadata.insert(field.into(), value.into());
         }
     }
+    if let Some(gitea) = response.get("gitea").and_then(serde_json::Value::as_object) {
+        let mut account = serde_json::Map::new();
+        if let Some(authenticated) = gitea
+            .get("authenticated")
+            .and_then(serde_json::Value::as_bool)
+        {
+            account.insert("authenticated".into(), authenticated.into());
+        }
+        for field in ["host", "url", "login"] {
+            if let Some(value) = gitea.get(field).and_then(serde_json::Value::as_str) {
+                account.insert(field.into(), value.into());
+            }
+        }
+        metadata.insert("gitea".into(), account.into());
+    }
     Ok(metadata.into())
 }
 
@@ -33,7 +48,7 @@ mod tests {
 
     #[test]
     fn public_git_credentials_reject_internal_reads() {
-        for operation in ["get", "save", "forget"] {
+        for operation in ["get", "save", "forget", "connectGitea", "forgetGitea"] {
             assert!(validate_git_credential_request(&json!({ "operation": operation })).is_ok());
         }
         for request in [
@@ -53,6 +68,13 @@ mod tests {
             "name": "Example Author",
             "email": "author@example.com",
             "token": "credential-fixture",
+            "gitea": {
+                "authenticated": true,
+                "host": "git.example.test",
+                "url": "https://git.example.test",
+                "login": "gitea-user",
+                "token": "gitea-fixture",
+            },
         }))
         .unwrap();
         assert_eq!(
@@ -62,6 +84,12 @@ mod tests {
                 "login": "octocat",
                 "name": "Example Author",
                 "email": "author@example.com",
+                "gitea": {
+                    "authenticated": true,
+                    "host": "git.example.test",
+                    "url": "https://git.example.test",
+                    "login": "gitea-user",
+                },
             })
         );
     }

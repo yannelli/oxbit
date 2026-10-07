@@ -52,7 +52,7 @@ pub async fn ios_git_request(
         }
         let event = format!("ios-git-progress:{id}");
         let progress = |data: &str| {
-            let data = safe_output(data, credentials.token.as_deref());
+            let data = safe_output(data, &credentials.tokens());
             if !data.is_empty() {
                 let _ = app.emit(
                     &event,
@@ -74,7 +74,7 @@ pub async fn ios_git_request(
         .map_err(|error| {
             Error::new(
                 error.code,
-                safe_output(&error.message, credentials.token.as_deref()),
+                safe_output(&error.message, &credentials.tokens()),
             )
         })
     })

@@ -41,6 +41,7 @@ impl Fixture {
                 token: Some("credential-fixture".into()),
                 name: Some("Oxbit Test".into()),
                 email: Some("oxbit@example.test".into()),
+                gitea: None,
             },
             cancel: AtomicBool::new(false),
             progress: RefCell::new(Vec::new()),
@@ -493,4 +494,95 @@ fn validates_repository_urls_and_confines_github_credentials() {
         allowed
     )
     .is_err());
+}
+
+#[test]
+fn confines_gitea_credentials_to_the_connected_server() {
+    let credentials = Credentials {
+        login: Some("octocat".into()),
+        token: Some("github-fixture".into()),
+        gitea: Some(GiteaCredentials {
+            host: Some("git.example.test:3000".into()),
+            login: Some("gitea.user_1".into()),
+            token: Some("gitea-fixture".into()),
+        }),
+        ..Credentials::default()
+    };
+    let allowed = git2::CredentialType::USER_PASS_PLAINTEXT;
+    for url in [
+        "https://git.example.test:3000/owner/repo.git",
+        "https://GIT.example.test:3000/owner/repo.git",
+    ] {
+        assert!(
+            network::credentials_for(&credentials, url, allowed).is_ok(),
+            "{url}"
+        );
+    }
+    assert!(
+        network::credentials_for(&credentials, "https://github.com/owner/repo.git", allowed)
+            .is_ok()
+    );
+    let default_port = Credentials {
+        gitea: Some(GiteaCredentials {
+            host: Some("git.example.test".into()),
+            login: Some("gitea-user".into()),
+            token: Some("gitea-fixture".into()),
+        }),
+        ..Credentials::default()
+    };
+    for url in [
+        "https://git.example.test/owner/repo.git",
+        "https://git.example.test:443/owner/repo.git",
+    ] {
+        assert!(
+            network::credentials_for(&default_port, url, allowed).is_ok(),
+            "{url}"
+        );
+    }
+    assert!(network::credentials_for(
+        &default_port,
+        "https://git.example.test:8443/owner/repo.git",
+        allowed
+    )
+    .is_err());
+    for url in [
+        "https://git.example.test/owner/repo.git",
+        "https://git.example.test:3001/owner/repo.git",
+        "https://git.example.test.evil.test:3000/repo.git",
+        "https://evil.git.example.test:3000/repo.git",
+        "https://user@git.example.test:3000/repo.git",
+        "https://git.example.test%3A3000/repo.git",
+        "http://git.example.test:3000/repo.git",
+        "ssh://git@git.example.test:3000/repo.git",
+    ] {
+        assert!(
+            network::credentials_for(&credentials, url, allowed).is_err(),
+            "{url}"
+        );
+    }
+    assert!(network::credentials_for(
+        &credentials,
+        "https://git.example.test:3000/repo.git",
+        git2::CredentialType::SSH_KEY
+    )
+    .is_err());
+    let github_only = Credentials {
+        gitea: Some(GiteaCredentials {
+            host: Some("git.example.test:3000".into()),
+            ..GiteaCredentials::default()
+        }),
+        ..Credentials::default()
+    };
+    let error = network::credentials_for(
+        &github_only,
+        "https://git.example.test:3000/repo.git",
+        allowed,
+    )
+    .err()
+    .unwrap();
+    assert!(error.message().contains("Connect Gitea"));
+    assert_eq!(
+        credentials.tokens(),
+        vec!["github-fixture", "gitea-fixture"]
+    );
 }

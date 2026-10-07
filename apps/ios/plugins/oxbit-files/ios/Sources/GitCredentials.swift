@@ -7,6 +7,14 @@ private struct GitCredentialArgs: Decodable {
   let token: String?
   let name: String?
   let email: String?
+  let url: String?
+}
+
+private struct GiteaCredentialProfile: Codable {
+  var url: String
+  var host: String
+  var token: String
+  var login: String
 }
 
 private struct GitCredentialProfile: Codable {
@@ -14,6 +22,13 @@ private struct GitCredentialProfile: Codable {
   var login: String?
   var name: String?
   var email: String?
+  var gitea: GiteaCredentialProfile?
+}
+
+private struct GiteaServer {
+  let url: String
+  let host: String
+  let user: URL
 }
 
 private func gitCredentialFailure(_ message: String) -> NSError {
@@ -43,14 +58,14 @@ final class GitCredentials {
       case "read":
         invoke.resolve(credentials(try read()))
       case "forget":
-        guard !verifying else { throw gitCredentialFailure("GitHub credentials are being verified. Try again when validation finishes.") }
+        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
         var profile = try read()
         profile.token = nil
         profile.login = nil
         try save(profile)
         invoke.resolve(metadata(profile))
       case "save":
-        guard !verifying else { throw gitCredentialFailure("GitHub credentials are being verified. Try again when validation finishes.") }
+        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
         let name = try identity(args.name, field: "name", limit: 256)
         let email = try identity(args.email, field: "email", limit: 320)
         var profile = try read()
@@ -64,7 +79,7 @@ final class GitCredentials {
         }
         let pendingProfile = profile
         verifying = true
-        GitHubCredentialValidation(token: token) { result in
+        AccountValidation.gitHub(token: token) { result in
           self.queue.async {
             self.verifying = false
             do {
@@ -78,6 +93,33 @@ final class GitCredentials {
             }
           }
         }.start()
+      case "connectGitea":
+        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+        let server = try giteaServer(args.url)
+        guard let token = try normalizedToken(args.token, provider: "Gitea") else {
+          throw gitCredentialFailure("Enter a Gitea access token.")
+        }
+        verifying = true
+        AccountValidation.gitea(server: server, token: token) { result in
+          self.queue.async {
+            self.verifying = false
+            do {
+              let login = try result.get()
+              var profile = try self.read()
+              profile.gitea = GiteaCredentialProfile(url: server.url, host: server.host, token: token, login: login)
+              try self.save(profile)
+              invoke.resolve(self.metadata(profile))
+            } catch {
+              self.reject(error, invoke: invoke)
+            }
+          }
+        }.start()
+      case "forgetGitea":
+        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+        var profile = try read()
+        profile.gitea = nil
+        try save(profile)
+        invoke.resolve(metadata(profile))
       default:
         throw gitCredentialFailure("Unknown Git credential operation.")
       }
@@ -101,15 +143,48 @@ final class GitCredentials {
     return trimmed
   }
 
-  private func normalizedToken(_ value: String?) throws -> String? {
+  private func normalizedToken(_ value: String?, provider: String = "GitHub") throws -> String? {
     guard let value else { return nil }
-    guard value.utf8.count <= 4_096 else { throw gitCredentialFailure("The GitHub token is too long.") }
+    guard value.utf8.count <= 4_096 else { throw gitCredentialFailure("The \(provider) token is too long.") }
     let token = value.trimmingCharacters(in: .whitespacesAndNewlines)
     if token.isEmpty { return nil }
     guard token.utf8.allSatisfy({ $0 >= 33 && $0 <= 126 }) else {
-      throw gitCredentialFailure("Enter a valid GitHub token.")
+      throw gitCredentialFailure("Enter a valid \(provider) token.")
     }
     return token
+  }
+
+  /// Accepts an HTTPS server URL, optionally with a sub-path, and returns its
+  /// canonical base URL and the `host[:port]` authority that Git credentials are bound to.
+  private func giteaServer(_ value: String?) throws -> GiteaServer {
+    let invalid = gitCredentialFailure("Enter the HTTPS address of your Gitea server.")
+    guard let value, value.utf8.count <= 2_048 else { throw invalid }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let components = URLComponents(string: trimmed),
+      components.scheme?.lowercased() == "https",
+      components.user == nil, components.password == nil,
+      components.query == nil, components.fragment == nil,
+      let host = components.host?.lowercased(), !host.isEmpty,
+      host.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 122) || $0 == 45 || $0 == 46 }),
+      !host.hasPrefix("."), !host.hasSuffix("."), !host.hasPrefix("-")
+    else { throw invalid }
+    guard host != "github.com" else {
+      throw gitCredentialFailure("Connect GitHub with a GitHub token instead.")
+    }
+    let path = components.percentEncodedPath.hasSuffix("/")
+      ? String(components.percentEncodedPath.dropLast()) : components.percentEncodedPath
+    guard path.isEmpty || path.hasPrefix("/"), !path.contains("//"),
+      path.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 65 && $0 <= 90) || ($0 >= 97 && $0 <= 122) || $0 == 45 || $0 == 46 || $0 == 47 || $0 == 95 || $0 == 126 }),
+      !path.split(separator: "/").contains(where: { $0 == "." || $0 == ".." })
+    else { throw invalid }
+    var authority = host
+    if let port = components.port, port != 443 {
+      guard (1...65_535).contains(port) else { throw invalid }
+      authority += ":\(port)"
+    }
+    let url = "https://\(authority)\(path)"
+    guard let user = URL(string: "\(url)/api/v1/user") else { throw invalid }
+    return GiteaServer(url: url, host: authority, user: user)
   }
 
   private func metadata(_ profile: GitCredentialProfile) -> [String: Any] {
@@ -117,6 +192,9 @@ final class GitCredentials {
     if let login = profile.login { result["login"] = login }
     if let name = profile.name { result["name"] = name }
     if let email = profile.email { result["email"] = email }
+    if let gitea = profile.gitea {
+      result["gitea"] = ["authenticated": true, "url": gitea.url, "host": gitea.host, "login": gitea.login] as [String: Any]
+    }
     return result
   }
 
@@ -126,6 +204,9 @@ final class GitCredentials {
     if let login = profile.login { result["login"] = login }
     if let name = profile.name { result["name"] = name }
     if let email = profile.email { result["email"] = email }
+    if let gitea = profile.gitea {
+      result["gitea"] = ["url": gitea.url, "host": gitea.host, "login": gitea.login, "token": gitea.token] as [String: Any]
+    }
     return result
   }
 
@@ -151,7 +232,14 @@ final class GitCredentials {
       guard try normalizedToken(token) == token else { throw gitCredentialFailure("The saved GitHub token could not be read.") }
     }
     if let login = profile.login {
-      guard GitHubCredentialValidation.validLogin(login) else { throw gitCredentialFailure("The saved GitHub account could not be read.") }
+      guard AccountValidation.validGitHubLogin(login) else { throw gitCredentialFailure("The saved GitHub account could not be read.") }
+    }
+    if let gitea = profile.gitea {
+      let server = try? giteaServer(gitea.url)
+      guard server?.url == gitea.url, server?.host == gitea.host,
+        try normalizedToken(gitea.token, provider: "Gitea") == gitea.token,
+        AccountValidation.validGiteaLogin(gitea.login)
+      else { throw gitCredentialFailure("The saved Gitea account could not be read.") }
     }
     if let name = profile.name { _ = try identity(name, field: "name", limit: 256) }
     if let email = profile.email { _ = try identity(email, field: "email", limit: 320) }
@@ -178,22 +266,41 @@ final class GitCredentials {
   }
 }
 
-private struct GitHubCredentialUser: Decodable {
+private struct CredentialUser: Decodable {
   let login: String
   let id: Int64
 }
 
-private final class GitHubCredentialValidation: NSObject, URLSessionDataDelegate {
-  private let token: String
+private final class AccountValidation: NSObject, URLSessionDataDelegate {
+  private let provider: String
+  private let endpoint: URL
+  private let headers: [String: String]
+  private let validLogin: (String) -> Bool
   private var session: URLSession?
   private var completion: ((Result<String, Error>) -> Void)?
   private var data = Data()
   private let maximumResponseBytes = 65_536
-  private let endpoint = URL(string: "https://api.github.com/user")!
 
-  init(token: String, completion: @escaping (Result<String, Error>) -> Void) {
-    self.token = token
+  private init(provider: String, endpoint: URL, headers: [String: String], validLogin: @escaping (String) -> Bool,
+    completion: @escaping (Result<String, Error>) -> Void) {
+    self.provider = provider
+    self.endpoint = endpoint
+    self.headers = headers
+    self.validLogin = validLogin
     self.completion = completion
+  }
+
+  static func gitHub(token: String, completion: @escaping (Result<String, Error>) -> Void) -> AccountValidation {
+    AccountValidation(provider: "GitHub", endpoint: URL(string: "https://api.github.com/user")!,
+      headers: ["Accept": "application/vnd.github+json", "Authorization": "Bearer \(token)",
+        "X-GitHub-Api-Version": "2022-11-28"],
+      validLogin: validGitHubLogin, completion: completion)
+  }
+
+  static func gitea(server: GiteaServer, token: String, completion: @escaping (Result<String, Error>) -> Void) -> AccountValidation {
+    AccountValidation(provider: "Gitea", endpoint: server.user,
+      headers: ["Accept": "application/json", "Authorization": "token \(token)"],
+      validLogin: validGiteaLogin, completion: completion)
   }
 
   func start() {
@@ -210,16 +317,19 @@ private final class GitHubCredentialValidation: NSObject, URLSessionDataDelegate
     self.session = session
     var request = URLRequest(url: endpoint)
     request.httpMethod = "GET"
-    request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) }
     request.setValue("Oxbit-iOS", forHTTPHeaderField: "User-Agent")
-    request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
     session.dataTask(with: request).resume()
   }
 
-  static func validLogin(_ login: String) -> Bool {
+  static func validGitHubLogin(_ login: String) -> Bool {
     !login.isEmpty && login.utf8.count <= 256
       && login.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 65 && $0 <= 90) || ($0 >= 97 && $0 <= 122) || $0 == 45 })
+  }
+
+  static func validGiteaLogin(_ login: String) -> Bool {
+    !login.isEmpty && login.utf8.count <= 256
+      && login.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 65 && $0 <= 90) || ($0 >= 97 && $0 <= 122) || $0 == 45 || $0 == 46 || $0 == 95 })
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask,
@@ -234,14 +344,14 @@ private final class GitHubCredentialValidation: NSObject, URLSessionDataDelegate
       response.expectedContentLength <= Int64(maximumResponseBytes)
     else {
       completionHandler(.cancel)
-      finish(.failure(gitCredentialFailure("GitHub returned an invalid token validation response.")))
+      finish(.failure(gitCredentialFailure("\(provider) returned an invalid token validation response.")))
       return
     }
     guard response.statusCode == 200 else {
       completionHandler(.cancel)
       let message = response.statusCode == 401 || response.statusCode == 403
-        ? "GitHub rejected this token or its permissions."
-        : "GitHub token validation failed (HTTP \(response.statusCode))."
+        ? "\(provider) rejected this token or its permissions."
+        : "\(provider) token validation failed (HTTP \(response.statusCode))."
       finish(.failure(gitCredentialFailure(message)))
       return
     }
@@ -251,7 +361,7 @@ private final class GitHubCredentialValidation: NSObject, URLSessionDataDelegate
   func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
     guard completion != nil else { return }
     guard chunk.count <= maximumResponseBytes - data.count else {
-      finish(.failure(gitCredentialFailure("GitHub returned an oversized token validation response.")))
+      finish(.failure(gitCredentialFailure("\(provider) returned an oversized token validation response.")))
       return
     }
     data.append(chunk)
@@ -260,13 +370,13 @@ private final class GitHubCredentialValidation: NSObject, URLSessionDataDelegate
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
     guard completion != nil else { return }
     guard error == nil else {
-      finish(.failure(gitCredentialFailure("Could not validate the GitHub token. Check your connection and try again.")))
+      finish(.failure(gitCredentialFailure("Could not validate the \(provider) token. Check your connection and try again.")))
       return
     }
-    guard let user = try? JSONDecoder().decode(GitHubCredentialUser.self, from: data),
-      user.id > 0, Self.validLogin(user.login)
+    guard let user = try? JSONDecoder().decode(CredentialUser.self, from: data),
+      user.id > 0, validLogin(user.login)
     else {
-      finish(.failure(gitCredentialFailure("GitHub returned an invalid account response.")))
+      finish(.failure(gitCredentialFailure("\(provider) returned an invalid account response.")))
       return
     }
     finish(.success(user.login))

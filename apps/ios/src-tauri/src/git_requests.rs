@@ -83,11 +83,13 @@ pub(crate) fn validate_request(method: &str, params: &Value) -> Result<()> {
         .map_err(|_| Error::invalid("Git request parameters exceed the limit"))
 }
 
-pub(crate) fn safe_output(data: &str, token: Option<&str>) -> String {
-    let output = match token.filter(|token| !token.is_empty()) {
-        Some(token) => data.replace(token, "[redacted]"),
-        None => data.to_owned(),
-    };
+pub(crate) fn safe_output(data: &str, tokens: &[&str]) -> String {
+    let output = tokens
+        .iter()
+        .filter(|token| !token.is_empty())
+        .fold(data.to_owned(), |output, token| {
+            output.replace(token, "[redacted]")
+        });
     if ["Authorization:", "Bearer ", "Basic "]
         .iter()
         .any(|marker| output.contains(marker))
@@ -132,15 +134,19 @@ mod tests {
     #[test]
     fn progress_and_errors_redact_credentials_and_bound_utf8() {
         assert_eq!(
-            safe_output("remote fixture-token", Some("fixture-token")),
+            safe_output("remote fixture-token", &["fixture-token"]),
             "remote [redacted]"
         );
         assert_eq!(
-            safe_output("Authorization: Bearer fixture", None),
+            safe_output("github-token gitea-token", &["github-token", "gitea-token"]),
+            "[redacted] [redacted]"
+        );
+        assert_eq!(
+            safe_output("Authorization: Bearer fixture", &[]),
             "Git authentication output omitted"
         );
-        assert_eq!(safe_output("fetch\0\u{1b} 50%\n", None), "fetch 50%\n");
-        let bounded = safe_output(&"日".repeat(MAX_OUTPUT_BYTES), None);
+        assert_eq!(safe_output("fetch\0\u{1b} 50%\n", &[]), "fetch 50%\n");
+        let bounded = safe_output(&"日".repeat(MAX_OUTPUT_BYTES), &[]);
         assert!(bounded.len() <= MAX_OUTPUT_BYTES);
         assert!(bounded.chars().all(|character| character == '日'));
     }
