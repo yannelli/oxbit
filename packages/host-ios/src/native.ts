@@ -26,7 +26,12 @@ export interface GitAccount {
   login?: string;
   name?: string;
   email?: string;
+  gitea?: { authenticated: boolean; url?: string; host?: string; login?: string };
 }
+export type GitCredentialRequest =
+  | { operation: "get" | "forget" | "forgetGitea" }
+  | { operation: "save"; token?: string; name: string; email: string }
+  | { operation: "connectGitea"; url: string; token: string };
 
 function isNativeError(value: unknown): value is NativeError {
   return (
@@ -63,7 +68,7 @@ async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptio
 export const native = {
   lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
-  gitCredentials: (request: { operation: "get" | "save" | "forget"; token?: string; name?: string; email?: string }) =>
+  gitCredentials: (request: GitCredentialRequest) =>
     call<GitAccount>("plugin:oxbit-files|git_credentials", { request }),
   gitRequest: <T>(id: string, requestId: string, method: string, params: Record<string, unknown>) =>
     call<T>("ios_git_request", { id, requestId, method, params }),

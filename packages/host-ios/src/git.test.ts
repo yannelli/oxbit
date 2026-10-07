@@ -111,4 +111,13 @@ describe("Git account bridge", () => {
       operation: "save", name: "Octocat", email: "octocat@example.test", token: "test-token",
     } }, undefined);
   });
+
+  it("sends a Gitea server and token to the native plugin", async () => {
+    invoke.mockResolvedValue({ authenticated: false, gitea: { authenticated: true, url: "https://git.example.test", host: "git.example.test", login: "gitea-user" } });
+    const account = await native.gitCredentials({ operation: "connectGitea", url: "https://git.example.test", token: "test-token" });
+    expect(invoke).toHaveBeenCalledWith("plugin:oxbit-files|git_credentials", { request: {
+      operation: "connectGitea", url: "https://git.example.test", token: "test-token",
+    } }, undefined);
+    expect(account.gitea?.login).toBe("gitea-user");
+  });
 });

@@ -31,6 +31,24 @@ pub struct Credentials {
     pub token: Option<String>,
     pub name: Option<String>,
     pub email: Option<String>,
+    pub gitea: Option<GiteaCredentials>,
+}
+
+#[derive(Default, Deserialize)]
+pub struct GiteaCredentials {
+    pub host: Option<String>,
+    pub login: Option<String>,
+    pub token: Option<String>,
+}
+
+impl Credentials {
+    pub fn tokens(&self) -> Vec<&str> {
+        let gitea = self.gitea.as_ref().and_then(|gitea| gitea.token.as_deref());
+        [self.token.as_deref(), gitea]
+            .into_iter()
+            .flatten()
+            .collect()
+    }
 }
 
 struct Context<'a> {

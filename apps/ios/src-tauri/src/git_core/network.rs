@@ -106,30 +106,44 @@ pub(super) fn credentials_for(
     url: &str,
     allowed: CredentialType,
 ) -> std::result::Result<Cred, git2::Error> {
-    if url.len() > 4096
+    let authority = if url.len() > 4096
         || url
             .bytes()
             .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
-        || https_authority(url).ok() != Some("github.com")
         || !allowed.is_user_pass_plaintext()
     {
-        return Err(git2::Error::from_str(
-            "Authentication requires an HTTPS github.com remote",
-        ));
-    }
-    let login = credentials
-        .login
-        .as_deref()
-        .filter(|value| !value.is_empty());
-    let token = credentials
-        .token
-        .as_deref()
-        .filter(|value| !value.is_empty());
-    match (login, token) {
-        (Some(login), Some(token)) => Cred::userpass_plaintext(login, token),
-        _ => Err(git2::Error::from_str(
-            "Sign in to GitHub in Source Control settings",
+        None
+    } else {
+        https_authority(url).ok()
+    };
+    let gitea = credentials.gitea.as_ref().filter(|gitea| {
+        gitea
+            .host
+            .as_deref()
+            .zip(authority)
+            .is_some_and(|(host, authority)| {
+                !host.is_empty() && host.eq_ignore_ascii_case(authority)
+            })
+    });
+    let (login, token, provider) = match (authority, gitea) {
+        (Some("github.com"), _) => (
+            credentials.login.as_deref(),
+            credentials.token.as_deref(),
+            "GitHub",
+        ),
+        (Some(_), Some(gitea)) => (gitea.login.as_deref(), gitea.token.as_deref(), "Gitea"),
+        _ => return Err(git2::Error::from_str(
+            "Authentication requires an HTTPS remote on github.com or the connected Gitea server",
         )),
+    };
+    match (
+        login.filter(|value| !value.is_empty()),
+        token.filter(|value| !value.is_empty()),
+    ) {
+        (Some(login), Some(token)) => Cred::userpass_plaintext(login, token),
+        _ => Err(git2::Error::from_str(&format!(
+            "Connect {provider} in Git Accounts and Commit Author"
+        ))),
     }
 }
 
@@ -147,7 +161,7 @@ fn callbacks<'a>(ctx: &'a Context<'_>, repo: Option<&'a Repository>) -> RemoteCa
     callbacks.credentials(move |url, _, allowed| {
         cancelled(ctx)?;
         if attempted {
-            return Err(git2::Error::from_str("GitHub authentication failed"));
+            return Err(git2::Error::from_str("Git authentication failed"));
         }
         attempted = true;
         credentials_for(ctx.credentials, url, allowed)

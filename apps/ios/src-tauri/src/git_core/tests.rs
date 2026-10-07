@@ -19,6 +19,7 @@ impl Fixture {
                 token: None,
                 name: Some("Saved User".into()),
                 email: Some("saved@example.test".into()),
+                gitea: None,
             },
         };
         fixture.run("init", json!({})).unwrap();
