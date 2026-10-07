@@ -1,6 +1,0 @@
-cargo:rerun-if-changed=permissions
-cargo:PERMISSION_FILES_PATH=/Users/ryanyannelli/.paseo/worktrees/307n0v0a/rich-penguin/apps/ios/plugins/oxbit-files/target/debug/build/tauri-plugin-oxbit-files-4b0a79d5f0935447/out/tauri-plugin-oxbit-files-permission-files
-cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
-cargo:rustc-check-cfg=cfg(mobile)
-cargo:rustc-check-cfg=cfg(desktop)
-cargo:rustc-cfg=desktop

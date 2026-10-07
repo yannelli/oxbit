@@ -33,6 +33,7 @@ apps/desktop/artifacts/
 
 # iOS build products; gen/apple stays committed
 apps/ios/src-tauri/target/
+apps/ios/plugins/oxbit-files/target/
 apps/ios/src-tauri/gen/schemas/
 apps/ios/src-tauri/gen/apple/build/
 apps/ios/src-tauri/gen/apple/DerivedData/
