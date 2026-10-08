@@ -24,7 +24,15 @@ const files = (await fs.readdir(directory))
   .filter((name) => !generated.includes(name))
   .sort()
   .map((name) => path.join(directory, name));
-for (const suffix of [".dmg", ".app.tar.gz", ".app.tar.gz.sig", "_ios.ipa"])
+for (const suffix of [
+  ".dmg",
+  ".app.tar.gz",
+  ".app.tar.gz.sig",
+  "_ios.ipa",
+  "remote-runtime-darwin-arm64.tar.gz",
+  "remote-runtime-linux-x64.tar.gz",
+  "remote-runtime-manifest.json",
+])
   if (!files.some((file) => file.endsWith(suffix)))
     throw new Error(`Missing release file *${suffix}`);
 const prerelease = version.includes("-");

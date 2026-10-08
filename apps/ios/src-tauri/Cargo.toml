@@ -1,6 +1,6 @@
 [package]
 name = "oxbit-ios"
-version = "0.3.3"
+version = "0.3.4"
 description = "Oxbit workbench for iOS and iPadOS"
 authors = ["Ryan Yannelli"]
 edition = "2021"
