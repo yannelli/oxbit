@@ -629,3 +629,101 @@ test("bundled creative themes and Rainbow icons switch, pair and persist", async
   expect(installed).not.toContain("oxbit.rainbow-icons");
   expect(installed).toContain("oxbit.classicos98");
 });
+test("ClassicOS 98 is opt-in on a fresh profile and enabling it restores themes, commands and icons", async ({
+  page,
+}) => {
+  const shots = "/tmp/oxbit-m1/classicos";
+  mkdirSync(shots, { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ready(page);
+  const state = () =>
+    page.evaluate(() => {
+      const k = (window as any).__oxbit.kernel;
+      return {
+        extension: k.extensions
+          .list()
+          .find((e: any) => e.manifest.id === "oxbit.themes-classicos98").state,
+        themes: k.contributions
+          .list("theme")
+          .filter((t: any) => t.data?.packName === "ClassicOS 98").length,
+        command: k.commands.list().some((c: any) => c.id === "theme.classicos98.apply"),
+        pack: k.services
+          .get("iconThemes")
+          .list()
+          .find((p: any) => p.id === "oxbit.classicos98")?.enabled,
+        icons: k.services
+          .get("iconThemes")
+          .themes("fileIconTheme")
+          .some((t: any) => t.id === "oxbit.classicos98/files"),
+      };
+    });
+  expect(await state()).toEqual({ extension: "disabled", themes: 0, command: false, pack: false, icons: false });
+  const defaultTheme = await selected(page);
+  await page.screenshot({ path: `${shots}/default-theme.png` });
+  await page.evaluate(() => (window as any).__oxbit.runCommand("settings.open"));
+  const picker = page.getByRole("combobox", { name: "Color Theme", exact: true });
+  await picker.scrollIntoViewIfNeeded();
+  await picker.focus();
+  await picker.press("ArrowDown");
+  const listbox = page.getByRole("listbox", { name: "Color Theme", exact: true });
+  await expect(listbox.getByRole("option").first()).toBeVisible();
+  await expect(listbox.getByRole("option", { name: /ClassicOS/ })).toHaveCount(0);
+  await picker.press("Escape");
+  await page.evaluate(() => (window as any).__oxbit.workbench.openSidebar("extensions"));
+  await page
+    .getByRole("button")
+    .filter({ has: page.locator("strong", { hasText: /^ClassicOS 98$/ }) })
+    .click();
+  await expect(page.getByRole("heading", { name: "ClassicOS 98", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enable", exact: true })).toBeVisible();
+  await page.screenshot({ path: `${shots}/extensions-disabled.png` });
+  await page.getByRole("button", { name: "Enable", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Disable", exact: true })).toBeVisible();
+  await page.evaluate(() => (window as any).__oxbit.runCommand("iconPacks.manage"));
+  await expect(page.getByRole("heading", { name: "Icon Packs", exact: true })).toBeVisible();
+  const enableIcons = page.getByRole("button", { name: "Enable ClassicOS 98 Icons", exact: true });
+  await expect(enableIcons).toBeVisible();
+  await page.screenshot({ path: `${shots}/icon-packs.png` });
+  await enableIcons.click();
+  await expect(page.getByRole("button", { name: "Disable ClassicOS 98 Icons", exact: true })).toBeVisible();
+  expect(await state()).toEqual({ extension: "active", themes: 4, command: true, pack: true, icons: true });
+  expect(await selected(page)).toBe(defaultTheme);
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
+  expect(await state()).toEqual({ extension: "active", themes: 4, command: true, pack: true, icons: true });
+  await page.evaluate(() => (window as any).__oxbit.runCommand("theme.classicos98.apply"));
+  await expect(page.locator('[data-theme-pack="oxbit.classicos98"]').first()).toBeAttached();
+});
+test("an existing ClassicOS 98 theme selection keeps the extension enabled after upgrade", async ({
+  page,
+}) => {
+  await ready(page);
+  await page.evaluate(async () => {
+    const k = (window as any).__oxbit.kernel;
+    k.configuration.set("workbench.colorTheme", "oxbit.classicos98-eggplant");
+    await k.configuration.flush();
+  });
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
+  expect(
+    await page.evaluate(async () => ({
+      extension: (window as any).__oxbit.kernel.extensions
+        .list()
+        .find((e: any) => e.manifest.id === "oxbit.themes-classicos98").state,
+      enabled: await (window as any).__oxbit.workbench.persistence.get("extension-enabled"),
+    })),
+  ).toEqual({ extension: "active", enabled: ["oxbit.themes-classicos98"] });
+  await expect(page.locator('[data-theme-pack="oxbit.classicos98"]').first()).toBeAttached();
+  await page.evaluate(() => (window as any).__oxbit.runCommand("theme.classicos98.apply"));
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const k = (window as any).__oxbit.kernel;
+        return {
+          pack: k.services.get("iconThemes").list().find((p: any) => p.id === "oxbit.classicos98")?.enabled,
+          icons: k.configuration.get("workbench.iconTheme"),
+        };
+      }),
+    )
+    .toEqual({ pack: true, icons: "oxbit.classicos98/files" });
+});
