@@ -28,6 +28,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let sshKeys = SshKeys()
   private let filePicker = FilePicker()
   private let signing = CommitSigning()
+  private let runtimeDownload = RuntimeDownload()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -58,6 +59,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func sshKeys(_ invoke: Invoke) {
     sshKeys.handle(invoke)
+  }
+
+  @objc public func downloadRuntime(_ invoke: Invoke) {
+    runtimeDownload.handle(invoke)
   }
 
   @objc public func pickFiles(_ invoke: Invoke) {

@@ -1,5 +1,5 @@
 //! Built-in SSH: saved hosts, Keychain keys, trust-on-first-use host keys, pooled connections,
-//! SFTP workspaces, file transfers, and Git over SSH.
+//! SFTP workspaces, file transfers, Git over SSH, and remote runtimes.
 pub mod commands;
 pub mod connect;
 pub mod fs_commands;
@@ -13,6 +13,15 @@ pub mod known_hosts;
 mod live_git_tests;
 #[cfg(test)]
 mod live_tests;
+pub mod runtime_commands;
+pub mod runtime_frames;
+mod runtime_install;
+mod runtime_process;
+pub mod runtime_protocol;
+#[cfg(test)]
+mod runtime_protocol_tests;
+pub mod runtime_session;
+mod runtime_tunnel;
 pub mod session;
 pub mod sftp;
 pub mod transfer;
@@ -29,7 +38,8 @@ pub struct RemoteRoot {
 pub struct Ssh {
     pub hosts: hosts::Hosts,
     pub known: Arc<known_hosts::KnownHosts>,
-    pub pool: session::Pool,
+    pub pool: Arc<session::Pool>,
+    pub runtimes: Mutex<HashMap<String, Arc<runtime_session::RemoteRuntime>>>,
     pub transfers: transfer::Transfers,
     roots: Mutex<HashMap<String, RemoteRoot>>,
     /// The last Git over SSH prompt per workspace root, read by the UI after a failed request.
@@ -50,7 +60,8 @@ impl Ssh {
         ));
         Self {
             hosts: hosts::Hosts::new(directory.join("hosts.json")),
-            pool: session::Pool::new(known.clone()),
+            pool: Arc::new(session::Pool::new(known.clone())),
+            runtimes: Mutex::new(HashMap::new()),
             known,
             transfers: transfer::Transfers::default(),
             roots: Mutex::new(HashMap::new()),

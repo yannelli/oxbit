@@ -36,6 +36,10 @@ impl<R: Runtime> OxbitFiles<R> {
         Err(UNSUPPORTED)
     }
 
+    pub fn download_runtime(&self, _url: &str, _sha256: &str) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
     pub fn pick_files(&self, _multiple: bool) -> crate::Result<PickedFiles> {
         Err(UNSUPPORTED)
     }
