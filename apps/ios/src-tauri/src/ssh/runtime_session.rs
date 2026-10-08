@@ -4,7 +4,7 @@ use super::{
     runtime_frames::{self as frames, Frame, FrameReader},
     runtime_install::{self, exec, lost, Installed, Source},
     runtime_process::{
-        heartbeat, Event, Events, Options, Process, Ready, Stdout, TaskForwards, Writer,
+        heartbeat, Budget, Event, Events, Options, Process, Ready, Stdout, TaskForwards, Writer,
     },
     runtime_protocol as protocol,
     runtime_tunnel::{health, Tunnel},
@@ -12,7 +12,6 @@ use super::{
 };
 use crate::fs_core::{Error, Result};
 use std::{
-    collections::VecDeque,
     future::Future,
     pin::Pin,
     sync::{
@@ -23,9 +22,7 @@ use std::{
 };
 use tokio::sync::{watch, Mutex};
 
-const RELAUNCH_LIMIT: usize = 3;
-const RELAUNCH_WINDOW: Duration = Duration::from_secs(60);
-const GAVE_UP: &str =
+pub const GAVE_UP: &str =
     "Oxbit stopped reconnecting to the server after repeated failures. Reconnect to retry.";
 
 #[derive(Default)]
@@ -33,7 +30,7 @@ struct Launch {
     process: Option<Process>,
     ready: Option<Ready>,
     pid: Option<u32>,
-    attempts: VecDeque<Instant>,
+    budget: Budget,
 }
 
 pub struct RemoteRuntime {
@@ -73,7 +70,7 @@ impl RemoteRuntime {
     }
 
     /// The running runtime, or a reconnect and relaunch. Automatic attempts share a budget of
-    /// three per minute; `user` attempts bypass it.
+    /// three per minute; a `user` attempt bypasses it and starts a new one.
     pub async fn ensure(&self, user: bool) -> Result<Ready> {
         let mut launch = self.launch.lock().await;
         if self.stopped.load(Ordering::SeqCst) {
@@ -87,14 +84,9 @@ impl RemoteRuntime {
                 return Ok(ready.clone());
             }
         }
-        let now = Instant::now();
-        launch
-            .attempts
-            .retain(|at| now.duration_since(*at) < RELAUNCH_WINDOW);
-        if !user && launch.attempts.len() >= RELAUNCH_LIMIT {
+        if !launch.budget.admit(user, Instant::now()) {
             return Err(Error::new("REMOTE_RUNTIME", GAVE_UP));
         }
-        launch.attempts.push_back(now);
         let _ = self.target.send(None);
         if let Some(process) = launch.process.take() {
             process.close();
@@ -231,9 +223,13 @@ impl RemoteRuntime {
                 (self.events)(Event::Reconnecting { message });
                 match self.ensure(false).await {
                     Ok(_) => return,
-                    Err(error) if error.message == GAVE_UP => return,
+                    Err(error) if error.message == GAVE_UP => break,
                     Err(_) => {}
                 }
+            }
+            if !self.stopped.load(Ordering::SeqCst) {
+                let message = GAVE_UP.to_string();
+                (self.events)(Event::Failed { message });
             }
         })
     }

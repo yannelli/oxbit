@@ -1,5 +1,8 @@
-use super::{runtime_frames::*, runtime_protocol::*, runtime_tunnel::healthy};
+use super::{
+    runtime_frames::*, runtime_process::Budget, runtime_protocol::*, runtime_tunnel::healthy,
+};
 use serde_json::{json, Value};
+use std::time::{Duration, Instant};
 
 const KEY: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -237,4 +240,38 @@ fn accepts_only_a_protocol_1_health_response() {
         "HTTP/1.1 403 Forbidden\r\n\r\n{\"ok\":true,\"protocol\":1}"
     ));
     assert!(!healthy("garbage"));
+}
+
+#[test]
+fn allows_three_automatic_relaunches_a_minute_until_the_user_reconnects() {
+    let start = Instant::now();
+    let at = |seconds| start + Duration::from_secs(seconds);
+    let mut budget = Budget::default();
+    assert!(
+        budget.admit(true, start),
+        "the user's start does not use the budget"
+    );
+    for second in [1, 5, 15] {
+        assert!(
+            budget.admit(false, at(second)),
+            "automatic attempt at {second} s"
+        );
+    }
+    assert!(
+        !budget.admit(false, at(20)),
+        "the 4th automatic attempt waits"
+    );
+    assert!(!budget.admit(false, at(60)));
+    assert!(
+        budget.admit(false, at(61)),
+        "attempts older than a minute expire"
+    );
+    assert!(budget.admit(true, at(62)), "Reconnect bypasses the budget");
+    for second in [63, 64, 65] {
+        assert!(
+            budget.admit(false, at(second)),
+            "Reconnect starts a new budget"
+        );
+    }
+    assert!(!budget.admit(false, at(66)));
 }

@@ -10,16 +10,18 @@ use crate::fs_core::{Error, Result};
 use russh::{client::Msg, ChannelMsg, ChannelReadHalf, ChannelWriteHalf};
 use serde::Serialize;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::{sync::watch, task::JoinHandle};
 
 const HEARTBEAT: Duration = Duration::from_secs(10);
+const RELAUNCH_LIMIT: usize = 3;
+const RELAUNCH_WINDOW: Duration = Duration::from_secs(60);
 const MAX_TASK_FORWARDS: usize = 256;
 const MAX_STDERR_BYTES: usize = 4096;
 pub const STOPPED: &str =
@@ -110,6 +112,26 @@ impl Process {
         tokio::spawn(async move {
             let _ = self.writer.close().await;
         });
+    }
+}
+
+/// Automatic relaunches allowed per minute. A user's Reconnect starts a new budget.
+#[derive(Default)]
+pub struct Budget(VecDeque<Instant>);
+
+impl Budget {
+    pub fn admit(&mut self, user: bool, now: Instant) -> bool {
+        if user {
+            self.0.clear();
+            return true;
+        }
+        self.0
+            .retain(|at| now.duration_since(*at) < RELAUNCH_WINDOW);
+        if self.0.len() >= RELAUNCH_LIMIT {
+            return false;
+        }
+        self.0.push_back(now);
+        true
     }
 }
 
