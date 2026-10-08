@@ -54,7 +54,7 @@ export const classicOS98IconPack: Pack = {
   license: "MIT",
   description:
     "16x16 VGA pixel art for files, folders and workbench controls, matching the ClassicOS 98 colour themes.",
-  enabled: true,
+  enabled: false,
   themes: [
     {
       id: `${CLASSICOS98_PACK_ID}/files`,

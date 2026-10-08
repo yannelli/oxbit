@@ -63,7 +63,7 @@ Menu and palette presentation uses `packages/workbench/src/catalog.json`. Each f
 | `view.focusMode` | Toggle Focus Mode | `packages/workbench` |
 | `view.resetLayout` | Reset Workspace Layout | `packages/workbench` |
 | `theme.toggle` | Toggle Light/Dark Theme | `packages/features/themes` |
-| `theme.classicos98.apply` | Use ClassicOS 98 Theme and Icons | `packages/features/themes` |
+| `theme.classicos98.apply` | Use ClassicOS 98 Theme and Icons (registered while the ClassicOS 98 extension, off by default, is enabled) | `packages/features/themes` |
 | `settings.open` | Open Settings | `packages/features/settings` |
 | `settings.keyboard` | Open Keyboard Shortcuts | `packages/features/settings` |
 | `keymap.use.*` | Use <Name> Keymap | `packages/features/keymaps` |

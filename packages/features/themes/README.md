@@ -31,7 +31,7 @@ Choose a variant in **Settings → Color Theme**, or search for **Use Binx** in 
 
 ## ClassicOS 98
 
-**ClassicOS 98** is a Windows 98/2000 era desktop treatment: a colour theme pack, a matching icon pack, and scoped chrome CSS.
+**ClassicOS 98** is a Windows 98/2000 era desktop treatment: a colour theme pack, a matching icon pack, and scoped chrome CSS. The `oxbit.themes-classicos98` extension is off by default; enable it on its Extensions page to add the themes and commands. Installs whose saved `workbench.colorTheme` is a ClassicOS theme get it added to `extension-enabled` on startup, unless it was disabled explicitly.
 
 | Theme | Mode | Scheme |
 | --- | --- | --- |
@@ -40,9 +40,9 @@ Choose a variant in **Settings → Color Theme**, or search for **Use Binx** in 
 | **ClassicOS 98 Eggplant** | dark | Plum chrome with an olive selection bar |
 | **ClassicOS 98 High Contrast Black** | dark, high contrast | Black chrome, white text, system yellow accent |
 
-Choose a variant in **Settings → Color Theme**, search **Use ClassicOS** in the command palette, or run **Use ClassicOS 98 Theme and Icons** to set the colour theme, file icons and control icons together. The light/dark toggle pairs ClassicOS 98 with Eggplant. Palettes live in `src/packs/oxbit.classicos98.json`; the terminal uses the 16-colour VGA text palette, UI text falls back through Tahoma and MS Sans Serif, and code falls back through Fixedsys and Lucida Console.
+Choose a variant in **Settings → Color Theme**, search **Use ClassicOS** in the command palette, or run **Use ClassicOS 98 Theme and Icons** to enable the icon pack and set the colour theme, file icons and control icons together. The light/dark toggle pairs ClassicOS 98 with Eggplant. Palettes live in `src/packs/oxbit.classicos98.json`; the terminal uses the 16-colour VGA text palette, UI text falls back through Tahoma and MS Sans Serif, and code falls back through Fixedsys and Lucida Console.
 
-`src/classicos98/` builds the icon pack: 16x16 pixel art in the VGA palette, written as one character per pixel and rendered to SVG rects at module load. It ships a file icon theme (documents, manila folders, drives, and colour-coded language chips) and two product icon themes covering every control id in `packages/ui/src/product-icons.ts`: **ClassicOS 98** for the light schemes and **ClassicOS 98 Dark**, whose neutral ramp is inverted so black-outlined art reads on the Eggplant and High Contrast faces. **Use ClassicOS 98 Theme and Icons** picks the pair that matches the current light/dark mode. `packages/app-workbench` installs it into the icon pack store on first launch, so **Extensions → Icon Packs** can enable, replace, or uninstall it like any imported pack; uninstalling it is remembered for the origin until the bundled revision changes.
+`src/classicos98/` builds the icon pack: 16x16 pixel art in the VGA palette, written as one character per pixel and rendered to SVG rects at module load. It ships a file icon theme (documents, manila folders, drives, and colour-coded language chips) and two product icon themes covering every control id in `packages/ui/src/product-icons.ts`: **ClassicOS 98** for the light schemes and **ClassicOS 98 Dark**, whose neutral ramp is inverted so black-outlined art reads on the Eggplant and High Contrast faces. **Use ClassicOS 98 Theme and Icons** picks the pair that matches the current light/dark mode. `packages/app-workbench` installs it disabled into the icon pack store on first launch (an icon pack that is already installed keeps its state), so **Extensions → Icon Packs** can enable, replace, or uninstall it like any imported pack; uninstalling it is remembered for the origin until the bundled revision changes.
 
 The 3D bevels are in `packages/ui/src/classicos98.css`, scoped to `[data-theme-pack="oxbit.classicos98"]` and applied only through inset box shadows, so no rule there changes layout. Its edge colours are declared in `tokens.css` and invert for the dark variants.
 
