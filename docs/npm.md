@@ -1,6 +1,6 @@
 # npm packages
 
-Created: 2026-10-05. Last updated: 2026-10-05.
+Created: 2026-10-05. Last updated: 2026-10-08.
 
 `.github/workflows/npm.yml` publishes two packages to the
 [`@oxbit` npm org](https://www.npmjs.com/org/oxbit).
@@ -15,6 +15,8 @@ versions publish under `latest`. npm rejects a version number that was published
 before, including after an unpublish.
 
 Pull requests that change the publish inputs run both packages with `--dry-run`.
+When npm already has the version, the dry run packs the staged package instead,
+because `npm publish --dry-run` rejects an existing version.
 
 ## Staging
 

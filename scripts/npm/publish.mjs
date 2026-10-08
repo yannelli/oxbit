@@ -167,7 +167,8 @@ async function main() {
   const name = `@oxbit/${target}`;
   const { version } = await readJson(target === "sdk" ? "packages/sdk/package.json" : "package.json");
   if (values["expect-tag"] !== undefined) assertTag(values["expect-tag"], version);
-  if (!values["dry-run"] && (await isPublished(name, version))) {
+  const published = await isPublished(name, version);
+  if (!values["dry-run"] && published) {
     console.log(`${name}@${version} is already on npm`);
     return;
   }
@@ -178,8 +179,10 @@ async function main() {
   await fs.copyFile(path.join(root, "LICENSE"), path.join(stage, "LICENSE"));
   console.log(`Staged ${name}@${version} in ${stage}`);
 
-  const args = ["publish", stage, "--access", "public", "--tag", distTag(version)];
-  args.push(values["dry-run"] ? "--dry-run" : "--provenance");
+  // npm rejects a publish dry run over an existing version, so a published version is only packed.
+  const args = published
+    ? ["pack", stage, "--dry-run"]
+    : ["publish", stage, "--access", "public", "--tag", distTag(version), values["dry-run"] ? "--dry-run" : "--provenance"];
   execFileSync("npm", args, { stdio: "inherit" });
 }
 
