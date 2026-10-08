@@ -28,6 +28,58 @@ export interface GitAccount {
   email?: string;
   gitea?: { authenticated: boolean; url?: string; host?: string; login?: string };
 }
+export interface SshKeyInfo {
+  id: string;
+  name: string;
+  algorithm: string;
+  fingerprint: string;
+  publicKey: string;
+}
+export interface KnownHostKey {
+  algorithm: string;
+  fingerprint: string;
+  added: number;
+}
+export type SshAuth = "key" | "password";
+export interface SshHostInput {
+  id?: string;
+  label: string;
+  hostname: string;
+  port: number;
+  username: string;
+  auth: SshAuth;
+  keyId?: string;
+}
+export interface SshHost extends SshHostInput {
+  id: string;
+  passwordSaved: boolean;
+  knownKeys?: KnownHostKey[];
+}
+export interface SshHostKey {
+  host: string;
+  port: number;
+  algorithm: string;
+  fingerprint: string;
+}
+export type SshConnectOutcome =
+  | { status: "connected"; home: string }
+  | { status: "hostUnknown"; hostKey: SshHostKey }
+  | { status: "hostChanged"; hostKey: SshHostKey; known: KnownHostKey[] }
+  | { status: "passwordRequired" };
+export interface PickedFile {
+  name: string;
+  path: string;
+  size: number;
+}
+export interface TransferProgress {
+  transferred: number;
+  total: number;
+  file: string;
+}
+export interface TransferSummary {
+  files: number;
+  bytes: number;
+}
 export type GitCredentialRequest =
   | { operation: "get" | "forget" | "forgetGitea" }
   | { operation: "save"; token?: string; name: string; email: string }
@@ -65,6 +117,52 @@ async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptio
   }
 }
 
+function rawWrite(command: string, id: string, path: string, bytes: Uint8Array, expectedRevision: string | null) {
+  return call<WriteResult>(command, bytes, {
+    headers: {
+      "x-oxbit-root": id,
+      "x-oxbit-path": encodeURIComponent(path),
+      "x-oxbit-expected": expectedRevision ?? "",
+    },
+  });
+}
+
+/** SFTP workspace roots take the same arguments as device roots. */
+export const ssh = {
+  closeRoot: (id: string) => call<void>("ios_ssh_close_root", { id }),
+  list: (id: string, path: string) => call<FileEntry[]>("ios_ssh_fs_list", { id, path }),
+  read: (id: string, path: string) => call<ArrayBuffer>("ios_ssh_fs_read", { id, path }),
+  write: (id: string, path: string, bytes: Uint8Array, expectedRevision: string | null) =>
+    rawWrite("ios_ssh_fs_write", id, path, bytes, expectedRevision),
+  mkdir: (id: string, path: string) => call<void>("ios_ssh_fs_mkdir", { id, path }),
+  rename: (id: string, path: string, to: string) => call<void>("ios_ssh_fs_rename", { id, path, to }),
+  delete: (id: string, path: string) => call<void>("ios_ssh_fs_delete", { id, path }),
+  openRoot: (hostId: string, path: string) => call<OpenedRoot>("ios_ssh_open_root", { hostId, path }),
+  hosts: () => call<SshHost[]>("ios_ssh_hosts_list"),
+  saveHost: (host: SshHostInput) => call<SshHost>("ios_ssh_host_save", { host }),
+  removeHost: (id: string) => call<void>("ios_ssh_host_remove", { id }),
+  forgetPassword: (id: string) => call<void>("ios_ssh_forget_password", { id }),
+  keys: async () => (await call<{ keys: SshKeyInfo[] }>("plugin:oxbit-files|ssh_keys", { request: { operation: "list" } })).keys,
+  deleteKey: async (id: string) =>
+    (await call<{ keys: SshKeyInfo[] }>("plugin:oxbit-files|ssh_keys", { request: { operation: "delete", id } })).keys,
+  generateKey: (name: string) => call<SshKeyInfo>("ios_ssh_keys_generate", { name }),
+  importKey: (request: { name: string; text?: string; path?: string; passphrase?: string }) =>
+    call<SshKeyInfo>("ios_ssh_keys_import", request),
+  connect: (hostId: string, password?: string, savePassword?: boolean) =>
+    call<SshConnectOutcome>("ios_ssh_connect", { hostId, password, savePassword }),
+  trust: (hostId: string, hostKey: Pick<SshHostKey, "algorithm" | "fingerprint">) =>
+    call<void>("ios_ssh_trust", { hostId, algorithm: hostKey.algorithm, fingerprint: hostKey.fingerprint }),
+  forgetHostKey: (hostId: string) => call<void>("ios_ssh_forget_host_key", { hostId }),
+  disconnect: (hostId: string) => call<void>("ios_ssh_disconnect", { hostId }),
+  pickFiles: async (multiple = false) =>
+    (await call<{ files: PickedFile[] }>("plugin:oxbit-files|pick_files", { multiple })).files,
+  upload: (id: string, transferId: string, directory: string, files: string[]) =>
+    call<TransferSummary>("ios_ssh_upload", { id, transferId, directory, files }),
+  download: (id: string, transferId: string, path: string, destination: string) =>
+    call<TransferSummary>("ios_ssh_download", { id, transferId, path, destination }),
+  cancelTransfer: (transferId: string) => call<void>("ios_ssh_transfer_cancel", { transferId }),
+};
+
 export const native = {
   lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
@@ -84,13 +182,7 @@ export const native = {
   list: (id: string, path: string) => call<FileEntry[]>("ios_fs_list", { id, path }),
   read: (id: string, path: string) => call<ArrayBuffer>("ios_fs_read", { id, path }),
   write: (id: string, path: string, bytes: Uint8Array, expectedRevision: string | null) =>
-    call<WriteResult>("ios_fs_write", bytes, {
-      headers: {
-        "x-oxbit-root": id,
-        "x-oxbit-path": encodeURIComponent(path),
-        "x-oxbit-expected": expectedRevision ?? "",
-      },
-    }),
+    rawWrite("ios_fs_write", id, path, bytes, expectedRevision),
   mkdir: (id: string, path: string) => call<void>("ios_fs_mkdir", { id, path }),
   rename: (id: string, path: string, to: string) => call<void>("ios_fs_rename", { id, path, to }),
   delete: (id: string, path: string) => call<void>("ios_fs_delete", { id, path }),

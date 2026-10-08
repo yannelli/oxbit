@@ -1,7 +1,9 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { decodeText, encodeText, normalizePath } from "@oxbit/host-browser";
 import type { Disposable, Encoding, FileChange, FileEntry, FileSnapshot, FileSystem, WriteOptions } from "@oxbit/sdk";
-import { native, type OpenedRoot } from "./native.js";
+import { native, ssh, type OpenedRoot } from "./native.js";
+
+type RootCommands = Pick<typeof native, "list" | "read" | "write" | "mkdir" | "rename" | "delete" | "closeRoot">;
 
 /** SHA-256 hex of the raw bytes, the same revision scheme the Rust side checks on write. */
 export async function revisionOf(bytes: Uint8Array): Promise<string> {
@@ -17,7 +19,7 @@ export class IosFileSystem implements FileSystem {
   private readonly encodings = new Map<string, Encoding>();
   private subscription?: Promise<UnlistenFn>;
   private closing?: Promise<void>;
-  constructor(opened: OpenedRoot) {
+  constructor(opened: OpenedRoot, protected readonly commands: RootCommands = native) {
     this.id = opened.id;
     this.name = opened.name;
     this.root = opened.root;
@@ -26,11 +28,11 @@ export class IosFileSystem implements FileSystem {
     return new IosFileSystem(await native.openRoot(path));
   }
   list(path = ""): Promise<FileEntry[]> {
-    return native.list(this.id, path ? normalizePath(path) : "");
+    return this.commands.list(this.id, path ? normalizePath(path) : "");
   }
   async read(path: string): Promise<FileSnapshot> {
     const normalized = normalizePath(path);
-    const bytes = new Uint8Array(await native.read(this.id, normalized));
+    const bytes = new Uint8Array(await this.commands.read(this.id, normalized));
     const decoded = decodeText(bytes, this.encodings.get(normalized));
     this.encodings.set(normalized, decoded.encoding);
     return { path: normalized, ...decoded, revision: await revisionOf(bytes) };
@@ -39,25 +41,25 @@ export class IosFileSystem implements FileSystem {
     return this.read(path);
   }
   async readBytes(path: string): Promise<Uint8Array> {
-    return new Uint8Array(await native.read(this.id, normalizePath(path)));
+    return new Uint8Array(await this.commands.read(this.id, normalizePath(path)));
   }
   async write(path: string, text: string, options: WriteOptions): Promise<FileSnapshot> {
     const normalized = normalizePath(path);
     const encoding = options.encoding ?? this.encodings.get(normalized) ?? "utf-8";
     const eol = options.eol ?? "LF";
     const bytes = encodeText(text, encoding, eol);
-    const result = await native.write(this.id, normalized, bytes, options.expectedRevision);
+    const result = await this.commands.write(this.id, normalized, bytes, options.expectedRevision);
     this.encodings.set(normalized, encoding);
     return { path: normalized, text: text.replace(/\r\n/g, "\n"), revision: result.revision, encoding, eol };
   }
   mkdir(path: string): Promise<void> {
-    return native.mkdir(this.id, normalizePath(path));
+    return this.commands.mkdir(this.id, normalizePath(path));
   }
   rename(path: string, to: string): Promise<void> {
-    return native.rename(this.id, normalizePath(path), normalizePath(to));
+    return this.commands.rename(this.id, normalizePath(path), normalizePath(to));
   }
   delete(path: string): Promise<void> {
-    return native.delete(this.id, normalizePath(path));
+    return this.commands.delete(this.id, normalizePath(path));
   }
   watch(listener: (event: FileChange) => void): Disposable {
     this.listeners.add(listener);
@@ -90,10 +92,23 @@ export class IosFileSystem implements FileSystem {
     return this.closing ??= (async () => {
       this.listeners.clear();
       try { await this.stopWatching(); }
-      finally { await native.closeRoot(this.id); }
+      finally { await this.commands.closeRoot(this.id); }
     })();
   }
   dispose(): Promise<void> {
     return this.close();
+  }
+}
+
+/** An SFTP root on the host's pooled connection. SFTP has no change events, so `watch` is inert. */
+export class SshFileSystem extends IosFileSystem {
+  constructor(opened: OpenedRoot, readonly hostId: string) {
+    super(opened, ssh);
+  }
+  static async connect(hostId: string, path: string): Promise<SshFileSystem> {
+    return new SshFileSystem(await ssh.openRoot(hostId, path), hostId);
+  }
+  override watch(): Disposable {
+    return { dispose: () => {} };
   }
 }
