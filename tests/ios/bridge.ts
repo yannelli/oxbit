@@ -27,7 +27,13 @@ export async function installBridge(page: Page, { repository = false } = {}) {
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
         if (command === "ios_icon_packs_read") return [...packs.values()];
-        if (command === "ios_icon_packs_mutate") { packs.set(args.id, args.pack); return; }
+        if (command === "ios_icon_packs_mutate") {
+          const current = packs.get(args.id) as { enabled?: boolean } | undefined;
+          if (args.operation === "put") packs.set(args.id, { ...args.pack, enabled: current?.enabled ?? true });
+          if (args.operation === "remove") packs.delete(args.id);
+          if (args.operation === "enable" && current) packs.set(args.id, { ...current, enabled: args.enabled });
+          return;
+        }
         if (command === "ios_fs_open_root") {
           opened++;
           roots.add(args.path);

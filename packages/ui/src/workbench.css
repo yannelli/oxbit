@@ -55,7 +55,7 @@ input[type=checkbox]:hover{border-color:var(--accent)}
 input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .settings-scope>.custom-select{width:180px}
 .setting-row>.custom-select+.button{margin-top:8px}
-.settings-list>.button+.button{margin-left:8px}
+.settings-list>.button{margin:0 8px 8px 0}
 .setting-row>.custom-select{width:300px}
 .setting-row>textarea{display:block;box-sizing:border-box;width:100%;max-width:600px;min-height:0;resize:vertical;font-family:var(--font-mono);line-height:1.5}
 .setting-row>textarea[aria-invalid=true]{border-color:var(--err)}
