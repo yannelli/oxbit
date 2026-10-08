@@ -164,7 +164,7 @@ function App() {
           const error = await open({ kind: "runtime", url, code });
           if (error) throw new Error(error);
         }} disconnect={close} onClose={() => setConnection(false)} />}
-      {gitSettings && <GitSettings onClose={() => setGitSettings(false)} />}
+      {gitSettings && <GitSettings repository={workspace?.git} onClose={() => setGitSettings(false)} />}
       {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
         onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}
     </Shell>

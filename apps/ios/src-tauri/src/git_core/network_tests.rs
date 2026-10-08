@@ -3,6 +3,26 @@ use std::cell::RefCell;
 use std::sync::{Arc, Barrier};
 use std::thread;
 
+fn account(id: &str, host: &str, login: &str, token: &str, is_default: bool) -> Account {
+    Account {
+        id: id.into(),
+        host: host.into(),
+        login: login.into(),
+        token: token.into(),
+        is_default,
+    }
+}
+
+fn selected<'a>(credentials: &'a Credentials, url: &str) -> Option<&'a str> {
+    network::account_for(credentials, url, git2::CredentialType::USER_PASS_PLAINTEXT)
+        .ok()
+        .map(|account| account.login.as_str())
+}
+
+fn username(credentials: &Credentials, url: &str) -> std::result::Result<git2::Cred, git2::Error> {
+    network::credentials_for(credentials, url, git2::CredentialType::USER_PASS_PLAINTEXT)
+}
+
 struct Fixture {
     root: Root,
     repo: Repository,
@@ -37,11 +57,16 @@ impl Fixture {
             repo,
             remote,
             credentials: Credentials {
-                login: Some("octocat".into()),
-                token: Some("credential-fixture".into()),
                 name: Some("Oxbit Test".into()),
                 email: Some("oxbit@example.test".into()),
-                gitea: None,
+                accounts: vec![account(
+                    "github",
+                    "github.com",
+                    "octocat",
+                    "credential-fixture",
+                    true,
+                )],
+                binding: None,
             },
             cancel: AtomicBool::new(false),
             progress: RefCell::new(Vec::new()),
@@ -468,9 +493,9 @@ fn validates_repository_urls_and_confines_github_credentials() {
     )
     .unwrap()
     .has_username());
+    assert!(username(&fixture.credentials, "https://github.com:443/repo.git").is_ok());
     for url in [
         "https://example.test/repo.git",
-        "https://github.com:443/repo.git",
         "https://github.com./repo.git",
         "https://github.com.example.test/repo.git",
         "https://github.com@example.test/repo.git",
@@ -499,50 +524,45 @@ fn validates_repository_urls_and_confines_github_credentials() {
 #[test]
 fn confines_gitea_credentials_to_the_connected_server() {
     let credentials = Credentials {
-        login: Some("octocat".into()),
-        token: Some("github-fixture".into()),
-        gitea: Some(GiteaCredentials {
-            host: Some("git.example.test:3000".into()),
-            login: Some("gitea.user_1".into()),
-            token: Some("gitea-fixture".into()),
-        }),
+        accounts: vec![
+            account("github", "github.com", "octocat", "github-fixture", true),
+            account(
+                "gitea",
+                "git.example.test:3000",
+                "gitea.user_1",
+                "gitea-fixture",
+                true,
+            ),
+        ],
         ..Credentials::default()
     };
     let allowed = git2::CredentialType::USER_PASS_PLAINTEXT;
     for url in [
         "https://git.example.test:3000/owner/repo.git",
         "https://GIT.example.test:3000/owner/repo.git",
+        "https://github.com/owner/repo.git",
     ] {
-        assert!(
-            network::credentials_for(&credentials, url, allowed).is_ok(),
-            "{url}"
-        );
+        assert!(username(&credentials, url).is_ok(), "{url}");
     }
-    assert!(
-        network::credentials_for(&credentials, "https://github.com/owner/repo.git", allowed)
-            .is_ok()
-    );
     let default_port = Credentials {
-        gitea: Some(GiteaCredentials {
-            host: Some("git.example.test".into()),
-            login: Some("gitea-user".into()),
-            token: Some("gitea-fixture".into()),
-        }),
+        accounts: vec![account(
+            "gitea",
+            "git.example.test",
+            "gitea-user",
+            "gitea-fixture",
+            true,
+        )],
         ..Credentials::default()
     };
     for url in [
         "https://git.example.test/owner/repo.git",
         "https://git.example.test:443/owner/repo.git",
     ] {
-        assert!(
-            network::credentials_for(&default_port, url, allowed).is_ok(),
-            "{url}"
-        );
+        assert!(username(&default_port, url).is_ok(), "{url}");
     }
-    assert!(network::credentials_for(
+    assert!(username(
         &default_port,
-        "https://git.example.test:8443/owner/repo.git",
-        allowed
+        "https://git.example.test:8443/owner/repo.git"
     )
     .is_err());
     for url in [
@@ -566,23 +586,60 @@ fn confines_gitea_credentials_to_the_connected_server() {
         git2::CredentialType::SSH_KEY
     )
     .is_err());
-    let github_only = Credentials {
-        gitea: Some(GiteaCredentials {
-            host: Some("git.example.test:3000".into()),
-            ..GiteaCredentials::default()
-        }),
-        ..Credentials::default()
-    };
-    let error = network::credentials_for(
-        &github_only,
+    let error = username(
+        &Credentials::default(),
         "https://git.example.test:3000/repo.git",
-        allowed,
     )
     .err()
     .unwrap();
-    assert!(error.message().contains("Connect Gitea"));
+    assert!(error
+        .message()
+        .contains("Add an account for git.example.test:3000 in Git Accounts and Commit Author"));
     assert_eq!(
         credentials.tokens(),
         vec!["github-fixture", "gitea-fixture"]
     );
+}
+
+#[test]
+fn selects_the_bound_account_then_the_host_default() {
+    let mut credentials = Credentials {
+        accounts: vec![
+            account("work", "github.com", "work-user", "work-fixture", false),
+            account(
+                "personal",
+                "github.com",
+                "personal-user",
+                "personal-fixture",
+                true,
+            ),
+            account(
+                "gitea",
+                "git.example.test",
+                "gitea-user",
+                "gitea-fixture",
+                true,
+            ),
+        ],
+        ..Credentials::default()
+    };
+    let github = "https://github.com/owner/repo.git";
+    assert_eq!(selected(&credentials, github), Some("personal-user"));
+    credentials.binding = Some("work".into());
+    assert_eq!(selected(&credentials, github), Some("work-user"));
+    assert_eq!(
+        selected(&credentials, "https://git.example.test/owner/repo.git"),
+        Some("gitea-user")
+    );
+    credentials.binding = Some("gitea".into());
+    assert_eq!(selected(&credentials, github), Some("personal-user"));
+    credentials.binding = Some("removed".into());
+    assert_eq!(selected(&credentials, github), Some("personal-user"));
+    credentials.accounts.retain(|account| account.id == "work");
+    credentials.binding = None;
+    assert!(username(&credentials, github)
+        .err()
+        .unwrap()
+        .message()
+        .contains("Add an account for github.com"));
 }
