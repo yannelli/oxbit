@@ -16,6 +16,7 @@ export function StartScreen({
   onGitSettings,
   onClone,
   onSsh,
+  onSshRuntime,
   onSshSettings,
 }: {
   recents: RecentWorkspace[];
@@ -31,11 +32,12 @@ export function StartScreen({
   onGitSettings: () => void;
   onClone: () => void;
   onSsh: (recent?: RecentWorkspace) => void;
+  onSshRuntime: (recent?: RecentWorkspace) => void;
   onSshSettings: () => void;
 }) {
   const folders = recents.filter((recent) => recent.kind === "bookmark" || (recent.kind === "documents" && recent.directory));
   const runtimes = recents.filter(recent => recent.kind === "runtime");
-  const servers = recents.filter(recent => recent.kind === "ssh");
+  const servers = recents.filter(recent => recent.kind === "ssh" || recent.kind === "sshRuntime");
   return (
     <div className="ios-start" role="dialog" aria-label="Workspaces">
       <header className="ios-start-header">
@@ -99,12 +101,15 @@ export function StartScreen({
       <section aria-label="On a server">
         <h2>On a server</h2>
         {servers.map(recent => <div className="ios-workspace-row" key={recent.id}>
-          <button className="ios-workspace" disabled={!!busy} onClick={() => onSsh(recent)} aria-current={current === recent.id ? "true" : undefined}>
-            <Icon name="cloud" /><span>{recent.name}<small>{recent.remotePath}</small></span>
+          <button className="ios-workspace" disabled={!!busy} onClick={() => (recent.kind === "sshRuntime" ? onSshRuntime : onSsh)(recent)}
+            aria-current={current === recent.id ? "true" : undefined}>
+            <Icon name={recent.kind === "sshRuntime" ? "terminal" : "cloud"} />
+            <span>{recent.name}<small>{recent.kind === "sshRuntime" ? `Oxbit runtime · ${recent.remotePath}` : recent.remotePath}</small></span>
           </button>
           <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="close" size={14} /></button>
         </div>)}
         <button className="button primary ios-open-folder" onClick={() => onSsh()} disabled={!!busy}><Icon name="cloud" />Connect with SSH…</button>
+        <button className="button ios-open-folder" onClick={() => onSshRuntime()} disabled={!!busy}><Icon name="terminal" />Start Oxbit on This Server…</button>
         <button className="button ios-open-folder" onClick={onSshSettings} disabled={!!busy}><Icon name="settings" />SSH Hosts and Keys…</button>
       </section>
       <section aria-label="Source Control">

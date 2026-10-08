@@ -162,6 +162,20 @@ function rawWrite(command: string, id: string, path: string, bytes: Uint8Array, 
   });
 }
 
+/** A runtime started on an SSH host, reached through a loopback tunnel. */
+export interface RemoteRuntimeStarted {
+  url: string;
+  token: string;
+  workspaceKey: string;
+  root: string;
+  openFile?: string | null;
+}
+export type RemoteRuntimeEvent =
+  | { state: "progress"; message: string }
+  | { state: "running" }
+  | { state: "reconnecting"; message: string }
+  | { state: "failed"; message: string };
+
 /** SFTP workspace roots take the same arguments as device roots. */
 export const ssh = {
   closeRoot: (id: string) => call<void>("ios_ssh_close_root", { id }),
@@ -201,6 +215,12 @@ export const ssh = {
   cancelTransfer: (transferId: string) => call<void>("ios_ssh_transfer_cancel", { transferId }),
   onTransfer: (transferId: string, listener: (progress: TransferProgress) => void) =>
     listen<TransferProgress>(`ios-ssh-transfer:${transferId}`, (event) => listener(event.payload)),
+  runtimeStart: (id: string, hostId: string, path: string) =>
+    call<RemoteRuntimeStarted>("ios_ssh_runtime_start", { id, hostId, path }),
+  runtimeResume: (id: string) => call<RemoteRuntimeStarted>("ios_ssh_runtime_resume", { id }),
+  runtimeStop: (id: string) => call<void>("ios_ssh_runtime_stop", { id }),
+  onRuntime: (id: string, listener: (event: RemoteRuntimeEvent) => void) =>
+    listen<RemoteRuntimeEvent>(`ios-ssh-runtime:${id}`, (event) => listener(event.payload)),
 };
 
 export const native = {

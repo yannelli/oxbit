@@ -1,4 +1,4 @@
-import { createWorkbenchSession, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
+import { createWorkbenchSession, RuntimeClient, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
 import { connectRuntime, runtimeScope } from "./runtime.js";
 import { normalizePath } from "@oxbit/host-browser";
 import {
@@ -13,7 +13,9 @@ import {
   loadRecents,
   native,
   rememberWorkspace,
+  ssh,
   type RecentWorkspace,
+  type RemoteRuntimeEvent,
 } from "@oxbit/host-ios";
 
 export const DOCUMENTS_ID = "documents";
@@ -23,6 +25,8 @@ export interface OpenWorkspace {
   recent: RecentWorkspace;
   session: Session;
   git?: IosGitClient;
+  /** A runtime this app started on an SSH host; closing the workspace stops it. */
+  remote?: { id: string; unlisten: () => void };
 }
 
 export type OpenRequest =
@@ -30,11 +34,12 @@ export type OpenRequest =
   | { kind: "pick" }
   | { kind: "runtime"; url: string; code?: string }
   | { kind: "ssh"; hostId: string; path: string; label: string }
+  | { kind: "sshRuntime"; hostId: string; path: string; label: string; onEvent?: (event: RemoteRuntimeEvent) => void }
   | { kind: "recent"; recent: RecentWorkspace };
 
 const iconPackStore = new IosIconPackStore();
 
-async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ssh" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
+async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ssh" | "sshRuntime" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
   if (request.kind === "documents" || (request.kind === "recent" && request.recent.kind === "documents")) {
     const directory = request.kind === "documents" ? request.directory : request.recent.directory;
     const relative = directory ? normalizePath(directory) : undefined;
@@ -73,7 +78,9 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
     }
   }
   if (request.kind === "ssh") return openSsh(request);
-  if (request.kind === "recent" && request.recent.kind === "ssh") throw new Error("Connect to this server again from Connect with SSH.");
+  if (request.kind === "sshRuntime") return openSshRuntime(request);
+  if (request.kind === "recent" && (request.recent.kind === "ssh" || request.recent.kind === "sshRuntime"))
+    throw new Error("Connect to this server again from Connect with SSH.");
   const { path, recent } = await resolvePath(request);
   const filesystem = await IosFileSystem.open(path);
   const persistence = new IosPersistence(filesystem.id);
@@ -120,6 +127,37 @@ async function openSsh(request: Extract<OpenRequest, { kind: "ssh" }>): Promise<
   }
 }
 
+/** The host must already be connected. Progress and reconnect events go to `onEvent`. */
+async function openSshRuntime(request: Extract<OpenRequest, { kind: "sshRuntime" }>): Promise<OpenWorkspace> {
+  const id = crypto.randomUUID();
+  const unlisten = await ssh.onRuntime(id, event => request.onEvent?.(event));
+  let runtime: RuntimeClient | undefined;
+  let session: Session | undefined;
+  try {
+    const started = await ssh.runtimeStart(id, request.hostId, request.path);
+    runtime = new RuntimeClient(started.url, "default", { token: started.token, persistToken: false });
+    await runtime.connect();
+    const scope = "ios:" + started.workspaceKey;
+    session = await createWorkbenchSession({
+      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore,
+    });
+    if (started.openFile) await session.workbench.openFile(started.openFile, { preview: false });
+    const recent: RecentWorkspace = {
+      id: "sshRuntime:" + started.workspaceKey, kind: "sshRuntime", name: `${request.label}: ${started.root.split("/").at(-1) || started.root}`,
+      hostId: request.hostId, remotePath: started.root, lastOpened: Date.now(),
+    };
+    await rememberWorkspace(recent);
+    await native.storageSet(SESSION_SCOPE, LAST_KEY, recent.id);
+    return { recent, session, remote: { id, unlisten } };
+  } catch (error) {
+    if (session) await session.dispose();
+    else runtime?.dispose();
+    unlisten();
+    await ssh.runtimeStop(id).catch(() => {});
+    throw error;
+  }
+}
+
 export async function closeWorkspace(workspace: OpenWorkspace) {
   await workspace.session.persist().catch(() => {});
   try {
@@ -128,6 +166,10 @@ export async function closeWorkspace(workspace: OpenWorkspace) {
   } finally {
     if (workspace.git || workspace.recent.kind === "ssh") await workspace.session.filesystem.dispose?.();
     if (workspace.recent.kind === "bookmark") await native.closeFolder(workspace.recent.id).catch(() => {});
+    if (workspace.remote) {
+      workspace.remote.unlisten();
+      await ssh.runtimeStop(workspace.remote.id).catch(() => {});
+    }
   }
 }
 

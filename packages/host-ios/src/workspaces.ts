@@ -3,7 +3,7 @@ import { SESSION_SCOPE } from "./persistence.js";
 
 export interface RecentWorkspace {
   id: string;
-  kind: "documents" | "bookmark" | "runtime" | "ssh";
+  kind: "documents" | "bookmark" | "runtime" | "ssh" | "sshRuntime";
   name: string;
   url?: string;
   bookmark?: string;

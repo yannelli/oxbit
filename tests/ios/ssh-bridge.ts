@@ -6,14 +6,19 @@ export interface SshSeed {
   known?: Record<string, { algorithm: string; fingerprint: string; added: number }[]>;
   /** Errors that `git.clone` returns in order before it succeeds. */
   clone?: ("SSH_KEY_REQUIRED" | "HOST_KEY_UNKNOWN" | "HOST_KEY_CHANGED")[];
+  /** `ios_ssh_runtime_start` fails with this message after the install progress. */
+  runtimeFailure?: string;
 }
+
+/** Where the mocked remote runtime listens; specs answer its WebSocket with `page.routeWebSocket`. */
+export const RUNTIME_URL = "http://127.0.0.1:9399";
 
 export const PRESENTED = { algorithm: "ssh-ed25519", fingerprint: "SHA256:qP8mY2tVt3rJ0q7dGm1xC5sWn9uL4kHf6aZ2bE8cR0o" };
 export const SAVED = { algorithm: "ssh-ed25519", fingerprint: "SHA256:Lk3Vx9aQe2Tz7Wn1Rb5Hc8Ym4Uf0Jd6Gs2Po9Ki3Lm7", added: 1 };
 
 /** Serves the SSH commands from memory. Transfers hold at 40% until `__sshMock.release()` or a cancel. */
 export async function installSshBridge(page: Page, seed: SshSeed = {}) {
-  await page.addInitScript(({ seed, presented, saved }) => {
+  await page.addInitScript(({ seed, presented, saved, runtimeUrl }) => {
     const encoder = new TextEncoder();
     const hosts = seed.hosts ?? [];
     const keys = seed.keys ?? [];
@@ -23,6 +28,7 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
     const files = new Map<string, string>([["README.md", "# Remote project\n"], ["src/main.ts", "export const remote = true;\n"]]);
     const directories = new Set(["src"]);
     const pending = new Map<string, { finish: () => void; cancel: () => void }>();
+    const runtimes = new Set<string>();
     const calls: string[] = [];
     const clone = [...(seed.clone ?? [])];
     const prompts = new Map<string, any>();
@@ -111,6 +117,26 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
         prompts.delete(id);
       },
       ios_ssh_git_forget_host_key: ({ id }) => { prompts.delete(id); },
+      // Install progress, held until `release()`; then the start progress and the started runtime.
+      ios_ssh_runtime_start: ({ id, hostId, path }, emit) => {
+        if (!connected.has(hostId)) fail("NOT_CONNECTED", "Connect to this SSH host before opening its files.");
+        emit(`ios-ssh-runtime:${id}`, { state: "progress", message: "Installing the remote runtime…" });
+        return new Promise((resolve, reject) => pending.set(id, {
+          finish: () => {
+            if (seed.runtimeFailure) return reject({ code: "REMOTE_UNSUPPORTED", message: seed.runtimeFailure });
+            emit(`ios-ssh-runtime:${id}`, { state: "progress", message: "Starting the remote workspace…" });
+            runtimes.add(id);
+            const root = "/home/dev/" + String(path).replace(/^~\/?/, "");
+            setTimeout(() => resolve({ url: runtimeUrl, token: "t".repeat(64), workspaceKey: "a".repeat(64), root, openFile: null }), 300);
+          },
+          cancel: () => reject({ code: "CANCELLED", message: "Cancelled" }),
+        }));
+      },
+      ios_ssh_runtime_resume: ({ id }) => {
+        if (!runtimes.has(id)) fail("REMOTE_RUNTIME", "This remote workspace is closed. Start it again.");
+        return { url: runtimeUrl, token: "t".repeat(64), workspaceKey: "a".repeat(64), root: "/home/dev/project", openFile: null };
+      },
+      ios_ssh_runtime_stop: ({ id }) => { runtimes.delete(id); },
       ios_ssh_transfer_cancel: ({ transferId }) => { pending.get(transferId)?.cancel(); pending.delete(transferId); },
     };
     Object.assign(window, {
@@ -138,5 +164,5 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
         },
       },
     });
-  }, { seed, presented: PRESENTED, saved: SAVED });
+  }, { seed, presented: PRESENTED, saved: SAVED, runtimeUrl: RUNTIME_URL });
 }
