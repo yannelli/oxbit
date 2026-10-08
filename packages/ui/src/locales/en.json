@@ -586,6 +586,7 @@
   "Codex ACP arguments (JSON array)": "Codex ACP arguments (JSON array)",
   "Codex ACP executable": "Codex ACP executable",
   "Codex ACP, Cursor ACP, and Amp Agent ACP with conversations, editor context, tool activity, and approvals.": "Codex ACP, Cursor ACP, and Amp Agent ACP with conversations, editor context, tool activity, and approvals.",
+  "Shares runtime documents and presence with other paired sessions.": "Shares runtime documents and presence with other paired sessions.",
   "Connect": "Connect",
   "Connect to a runtime workspace to use agents.": "Connect to a runtime workspace to use agents.",
   "Connecting may download the adapter. Agents run with the trusted runtime's privileges and use its existing credentials.": "Connecting may download the adapter. Agents run with the trusted runtime's privileges and use its existing credentials.",

@@ -104,6 +104,8 @@ App Store screenshots, and promo exports with Apple's design and size references
   overrides, and optional project configuration files.
 - **Share Workspace** creates revocable collaboration grants. Tool trust and
   access grants have separate controls. See [security](docs/security.md).
+  Collaboration is off by default; enable it in Extensions
+  ([runtime](docs/runtime.md#collaboration)).
 - [Recovery](docs/persistence.md) preserves drafts and reconnects surviving
   terminals. Commands with uncertain outcomes are not repeated automatically.
 
