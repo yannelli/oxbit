@@ -15,6 +15,7 @@ const runtime = await createRuntime({
   settingsFile: join(root + "-data", "settings.json"),
   projectsDir: join(root + "-data", "projects"),
   pairingCode: "oxbit-theme-test",
+  pairingAttemptsPerMinute: 1000,
 });
 const vite = spawn(
   process.execPath,

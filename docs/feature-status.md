@@ -9,7 +9,7 @@ Oxbit supports browser workspaces, a Node runtime, desktop apps, and iOS. Runtim
 | Search and replace | [Documents and recovery](persistence.md) | Replacement previews check document versions and apply to unsaved buffers. Failures are reported per file. |
 | Terminals, tasks and services | [Tasks](tasks.md) | Runtime restarts end running processes. Commands are not replayed automatically. |
 | Git | [Source Control](source-control.md) | Uses the runtime's Git installation and credentials. No interactive rebase editor, force push, or pull-request UI. |
-| Shared editing | [Runtime](runtime.md) | Requires an authenticated runtime connection. The runtime saves shared files. |
+| Shared editing | [Runtime](runtime.md#collaboration) | Disabled by default on web, desktop and iOS; enable Collaboration in Extensions. Requires an authenticated runtime connection. The runtime saves shared files. |
 | Extensions | [SDK](sdk.md) | Trusted JavaScript shares host privileges. No public marketplace. |
 | Themes and icons | [Themes](themes/README.md), [icon packs](icon-packs.md) | ClassicOS 98 themes and icons are disabled by default. OS dialogs, branding, and terminal application truecolor output keep their own appearance. |
 | Agents | [Agent ACP](agent-acp.md) | Disabled by default. Requires a runtime owner and a configured provider. |

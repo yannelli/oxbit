@@ -9,6 +9,9 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_oxbit_files::OxbitFilesExt;
 
+/// Workspace storage key for the account ID that Git Accounts and Commit Author binds to the root.
+const GIT_ACCOUNT_KEY: &str = "git-account";
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Progress<'a> {
@@ -36,6 +39,10 @@ pub async fn ios_git_request(
         let operation = state.git.register(&id, &request_id)?;
         (root, operation)
     };
+    let binding = state
+        .storage
+        .get(&root.id, GIT_ACCOUNT_KEY)?
+        .and_then(|value| value.as_str().map(str::to_owned));
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = operation.lock();
         if operation.is_cancelled() {
@@ -45,8 +52,15 @@ pub async fn ios_git_request(
             .oxbit_files()
             .read_git_credentials()
             .map_err(|_| Error::new("AUTH", "Could not read Git credentials"))?;
-        let credentials: git_core::Credentials = serde_json::from_value(response)
+        let mut credentials: git_core::Credentials = serde_json::from_value(response)
             .map_err(|_| Error::new("AUTH", "Invalid native Git credentials"))?;
+        credentials.binding = binding;
+        if git_core::creates_commit(&method) {
+            credentials.signer = app
+                .oxbit_files()
+                .commit_signer()
+                .map_err(|error| Error::new("COMMIT_SIGNING", error.to_string()))?;
+        }
         if operation.is_cancelled() {
             return Err(Error::new("CANCELLED", "Git operation cancelled"));
         }

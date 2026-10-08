@@ -586,6 +586,7 @@
   "Codex ACP arguments (JSON array)": "Codex ACP の引数 (JSON 配列)",
   "Codex ACP executable": "Codex ACP の実行ファイル",
   "Codex ACP, Cursor ACP, and Amp Agent ACP with conversations, editor context, tool activity, and approvals.": "Codex ACP、Cursor ACP、Amp Agent ACP に対応し、会話、エディター コンテキスト、ツールの動作、承認を扱います。",
+  "Shares runtime documents and presence with other paired sessions.": "ランタイムのドキュメントとプレゼンスを他のペアリング済みセッションと共有します。",
   "Connect": "接続",
   "Connect to a runtime workspace to use agents.": "エージェントを使用するには、ランタイム ワークスペースに接続してください。",
   "Connecting may download the adapter. Agents run with the trusted runtime's privileges and use its existing credentials.": "接続時にアダプターがダウンロードされることがあります。エージェントは信頼済みランタイムの権限で実行され、既存の資格情報を使用します。",

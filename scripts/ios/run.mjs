@@ -133,6 +133,13 @@ if (mode === "check") {
       "-o", sshKeys,
     ]);
     run(sshKeys, []);
+    const profileTests = join(nativeTests, "git-credential-profile");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/GitCredentialProfile.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/GitCredentialProfile/main.swift",
+      "-o", profileTests,
+    ]);
+    run(profileTests, []);
   } finally {
     rmSync(nativeTests, { recursive: true, force: true });
   }

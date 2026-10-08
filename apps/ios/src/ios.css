@@ -34,6 +34,45 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-workspace-row .icon-button { min-width: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
 .ios-open-folder { min-height: 48px; justify-content: center; }
 .ios-start .muted { margin: 0; opacity: 0.65; font-size: 13px; }
+.commit-signing { display: flex; flex-direction: column; gap: 12px; padding: 12px 0; border-block: 1px solid var(--bd); }
+.commit-signing :is(h3, p) { margin: 0; }
+.commit-signing h3 { font-size: inherit; font-weight: 600; }
+.commit-signing dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.commit-signing dt { color: var(--fg-3); }
+.commit-signing dd { display: flex; flex-direction: column; margin: 0; overflow-wrap: anywhere; font-family: var(--font-mono); }
+.runtime-form .commit-signing-switch { flex-direction: row; align-items: center; justify-content: space-between; min-height: 44px; }
+.commit-signing-switch input { width: 24px; height: 24px; margin: 0; }
+.commit-signing-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.commit-signing-actions > p { flex-basis: 100%; }
+.commit-signing-actions > .button { flex: 1 1 140px; }
+.commit-signing .button { min-height: 44px; white-space: normal; }
+.commit-signing textarea { min-height: 112px; resize: vertical; font-family: var(--font-mono); }
+
+.git-settings .git-section { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.git-settings h3 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-3); }
+.git-account-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--bd); border-radius: 10px; }
+.git-account {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px;
+  min-height: 56px; padding: 6px 6px 6px 12px; box-sizing: border-box;
+}
+.git-account + .git-account { border-top: 1px solid var(--bd); }
+.git-account-name { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.git-account-name > span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.git-account-name strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.git-account-name small { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.git-account-badge {
+  flex: none; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 16px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+}
+.git-account-actions { display: flex; align-items: center; gap: 4px; }
+.git-account-actions .icon-button { width: 44px; height: 44px; border-radius: 8px; }
+.git-account-add { display: flex; flex-wrap: wrap; gap: 8px; }
+.git-account-add .button { flex: 1 1 160px; justify-content: center; gap: 6px; }
+.git-account-editor { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 1px solid var(--bd); border-radius: 10px; }
+.git-account-editor .dialog-actions { margin-top: 0; }
+.git-settings :is(.button, .text-button) { min-height: 44px; }
+.git-settings .text-button { align-self: flex-start; }
+.git-settings .custom-select, .git-settings .select-trigger { width: 100%; min-height: 44px; }
 
 .ssh-section { display: flex; flex-direction: column; gap: 10px; }
 .ssh-section + .ssh-section { border-top: 1px solid var(--bd); padding-top: 12px; }

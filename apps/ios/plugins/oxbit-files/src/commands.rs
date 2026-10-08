@@ -1,6 +1,7 @@
 use tauri::{command, AppHandle, Runtime};
 
 use crate::{
+    commit_signing::validate_commit_signing_request,
     git_credentials::{git_credential_metadata, validate_git_credential_request},
     models::*,
     ssh_keys::{ssh_key_metadata, validate_ssh_key_request},
@@ -64,4 +65,15 @@ pub(crate) async fn pick_files<R: Runtime>(
     multiple: Option<bool>,
 ) -> Result<PickedFiles> {
     app.oxbit_files().pick_files(multiple.unwrap_or(false))
+}
+
+#[command]
+pub(crate) async fn commit_signing<R: Runtime>(
+    app: AppHandle<R>,
+    request: serde_json::Value,
+) -> Result<serde_json::Value> {
+    let request = validate_commit_signing_request(request)?;
+    crate::commit_signing::commit_signing(request, |stored| {
+        app.oxbit_files().commit_signing(stored)
+    })
 }

@@ -82,6 +82,7 @@ const runtime = await createRuntime({
   projectsDir: path.join(dir, "projects"),
   tasksHome: dir,
   pairingCode: "oxbit-tasks-test",
+  pairingAttemptsPerMinute: 1000,
   webRoot: path.resolve("apps/web/dist"),
 });
 let closing = false;

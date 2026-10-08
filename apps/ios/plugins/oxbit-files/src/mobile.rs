@@ -65,6 +65,19 @@ impl<R: Runtime> OxbitFiles<R> {
             .map_err(Into::into)
     }
 
+    pub fn commit_signing(&self, request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("commitSigning", request)
+            .map_err(Into::into)
+    }
+
+    /// Reads the Keychain key when commit signing is on.
+    pub fn commit_signer(&self) -> crate::Result<Option<crate::CommitSigner>> {
+        crate::commit_signing::commit_signer(
+            self.commit_signing(serde_json::json!({ "operation": "read" }))?,
+        )
+    }
+
     pub fn runtime_credentials(
         &self,
         request: serde_json::Value,

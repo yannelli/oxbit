@@ -40,6 +40,16 @@ impl<R: Runtime> OxbitFiles<R> {
         Err(UNSUPPORTED)
     }
 
+    pub fn commit_signing(&self, _request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
+    pub fn commit_signer(&self) -> crate::Result<Option<crate::CommitSigner>> {
+        crate::commit_signing::commit_signer(
+            self.commit_signing(serde_json::json!({ "operation": "read" }))?,
+        )
+    }
+
     pub fn runtime_credentials(
         &self,
         _request: serde_json::Value,

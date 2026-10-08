@@ -8,6 +8,7 @@ const COMMANDS: &[&str] = &[
     "git_credentials",
     "ssh_keys",
     "pick_files",
+    "commit_signing",
 ];
 
 fn main() {

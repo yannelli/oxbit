@@ -13,6 +13,7 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-git-credentials`
 - `allow-ssh-keys`
 - `allow-pick-files`
+- `allow-commit-signing`
 
 ## Permission Table
 
@@ -45,6 +46,32 @@ Enables the close_folder command without any pre-configured scope.
 <td>
 
 Denies the close_folder command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-commit-signing`
+
+</td>
+<td>
+
+Enables the commit_signing command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-commit-signing`
+
+</td>
+<td>
+
+Denies the commit_signing command without any pre-configured scope.
 
 </td>
 </tr>

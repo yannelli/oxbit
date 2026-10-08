@@ -19,6 +19,8 @@ mod operation_tests;
 mod operations;
 #[cfg(test)]
 mod security_tests;
+#[cfg(test)]
+mod signing_tests;
 mod status;
 #[cfg(test)]
 mod tests;
@@ -27,28 +29,42 @@ const MAX_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Default, Deserialize)]
 pub struct Credentials {
-    pub login: Option<String>,
-    pub token: Option<String>,
     pub name: Option<String>,
     pub email: Option<String>,
-    pub gitea: Option<GiteaCredentials>,
+    #[serde(default)]
+    pub accounts: Vec<Account>,
+    /// The account ID chosen for this workspace in Git Accounts and Commit Author.
+    #[serde(skip)]
+    pub binding: Option<String>,
+    #[serde(skip)]
+    pub signer: Option<tauri_plugin_oxbit_files::CommitSigner>,
 }
 
 #[derive(Default, Deserialize)]
-pub struct GiteaCredentials {
-    pub host: Option<String>,
-    pub login: Option<String>,
-    pub token: Option<String>,
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub id: String,
+    pub host: String,
+    pub login: String,
+    pub token: String,
+    pub is_default: bool,
 }
 
 impl Credentials {
     pub fn tokens(&self) -> Vec<&str> {
-        let gitea = self.gitea.as_ref().and_then(|gitea| gitea.token.as_deref());
-        [self.token.as_deref(), gitea]
-            .into_iter()
-            .flatten()
+        self.accounts
+            .iter()
+            .map(|account| account.token.as_str())
             .collect()
     }
+}
+
+/// Methods that reach `operations::create_commit`, so the host loads the signing key only for them.
+pub fn creates_commit(method: &str) -> bool {
+    matches!(
+        method.strip_prefix("git.").unwrap_or(method),
+        "commit" | "merge" | "cherryPick" | "revert" | "continue"
+    )
 }
 
 struct Context<'a> {

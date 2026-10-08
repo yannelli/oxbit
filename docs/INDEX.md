@@ -11,5 +11,5 @@ Created: 2026-10-02. Last updated: 2026-10-08.
 | [Withdrawn v0.3.1 audit](release-audit-0.3.1.md) | Comparing alpha.5 with the withdrawn release, confirmed corrections, and unresolved CI failures. |
 | [iOS language servers](ios-language-servers.md) | Changing device-local LSPs, JavaScriptCore, or the native filesystem bridge; includes Apple and Tauri API references. |
 | [iOS SSH and SFTP workspaces](ios-ssh.md) | Changing SSH keys, saved hosts, known-hosts trust, the russh session pool, the SFTP FileSystem, or transfers; includes russh/aws-lc build notes and russh, Keychain, and SFTP references. |
-| [iOS source control integration](ios-source-control.md) | On-device repositories, GitHub and Gitea credentials, native transport, and official API references |
+| [iOS source control integration](ios-source-control.md) | On-device repositories, GitHub and Gitea credentials, OpenPGP commit signing, native transport, and official API references |
 | [Source Control](source-control.md) | Git workflows in runtime workspaces |

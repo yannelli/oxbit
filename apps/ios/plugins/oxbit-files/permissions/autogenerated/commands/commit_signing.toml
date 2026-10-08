@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-commit-signing"
+description = "Enables the commit_signing command without any pre-configured scope."
+commands.allow = ["commit_signing"]
+
+[[permission]]
+identifier = "deny-commit-signing"
+description = "Denies the commit_signing command without any pre-configured scope."
+commands.deny = ["commit_signing"]

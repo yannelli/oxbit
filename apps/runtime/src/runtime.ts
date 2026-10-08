@@ -47,6 +47,8 @@ export interface RuntimeOptions {
   projectsDir?: string;
   settingsFile?: string;
   pairingCode?: string;
+  /** Pairing attempts accepted per client address each minute; defaults to 10. */
+  pairingAttemptsPerMinute?: number;
   /** Override the home containing .oxbit/projects (for isolated embedders/tests). */
   tasksHome?: string;
   /** Private desktop SSH bridge: return the local forwarded port for an owned service. */
@@ -184,6 +186,9 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   await persist();
   const pairingCode = options.pairingCode ?? randomBytes(6).toString("hex");
+  const pairingAttemptsPerMinute = options.pairingAttemptsPerMinute ?? 10;
+  if (!Number.isInteger(pairingAttemptsPerMinute) || pairingAttemptsPerMinute < 1)
+    throw new Error("Pairing attempts per minute must be a positive whole number");
   let port = options.port ?? 9277;
   const allowedOrigins = () =>
     new Set([
@@ -455,7 +460,7 @@ export async function createRuntime(options: RuntimeOptions) {
           entry.count = 0;
           entry.reset = Date.now() + 60000;
         }
-        if (++entry.count > 10) {
+        if (++entry.count > pairingAttemptsPerMinute) {
           httpJson(response, 429, { error: "Pairing rate limit reached" });
           return;
         }

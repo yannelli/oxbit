@@ -2,7 +2,7 @@
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
-[Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores GitHub and Gitea tokens and the default author in Keychain.
+[Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores the default author and any number of GitHub and Gitea accounts in Keychain. Each server has one default account, and each repository can choose its own account.
 
 [SSH and SFTP workspaces](ios-ssh.md) open folders on a server with keys or passwords stored in the Keychain, trust-on-first-use host keys, and file upload and download.
 
@@ -114,7 +114,7 @@ once `tauri-runtime-wry` takes tao 0.36 or later.
 ## Verification
 
 - `bun run lint`, `bun run typecheck`, `bun run test` cover `packages/host-ios` and the workbench changes.
-- `bun run ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host.
+- `bun run ios:check` runs the Rust unit tests for path confinement, revisions, storage, icon packs, and the poll watcher on the macOS host, and compiles and runs the Swift tests for language server files and the Git credential profile migration.
 - `bun run test:browser --project webkit-phone` runs `tests/browser/mobile.spec.ts` on a touch-first WebKit profile.
 - Check folder access, draft recovery, runtime pairing, and keyboard input on a simulator and a physical device.
 

@@ -12,4 +12,5 @@ permissions = [
   "allow-git-credentials",
   "allow-ssh-keys",
   "allow-pick-files",
+  "allow-commit-signing",
 ]

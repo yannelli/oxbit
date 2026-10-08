@@ -334,6 +334,8 @@ function decodeBase64(value: string): Uint8Array {
 }
 export class RuntimeFileSystem implements FileSystem {
   readonly id: string;
+  /** Set while the collaboration feature is active; reads join shared rooms only then. */
+  collaborative = false;
   beforeWrite?: () => Promise<void>;
   private watcherCount = 0;
   readonly shared = new Map<
@@ -388,6 +390,7 @@ export class RuntimeFileSystem implements FileSystem {
     const snapshot = await this.client.request<FileSnapshot>("fs.read", {
       path,
     });
+    if (!this.collaborative) return snapshot;
     try {
       const room = await this.client.request<{
         update: string;
@@ -415,12 +418,12 @@ export class RuntimeFileSystem implements FileSystem {
     }
   }
   async write(path: string, text: string, options: WriteOptions) {
-    if (this.shared.has(path) && !this.beforeWrite) throw new RpcError("COLLAB_UNAVAILABLE", "Enable collaboration to synchronize and save this shared document");
-    await this.beforeWrite?.();
-    return this.client.request<FileSnapshot>(
-      this.shared.has(path) ? "collab.save" : "fs.write",
-      { path, text, ...options },
-    );
+    if (this.shared.has(path) && this.beforeWrite) {
+      await this.beforeWrite();
+      return this.client.request<FileSnapshot>("collab.save", { path, text, ...options });
+    }
+    this.shared.delete(path);
+    return this.client.request<FileSnapshot>("fs.write", { path, text, ...options });
   }
   async mkdir(path: string) {
     await this.client.request("fs.mkdir", { path });
