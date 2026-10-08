@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
-import { GIT_ACCOUNT_KEY, native, type GitAccount, type GitCredentials, type IosGitClient } from "@oxbit/host-ios";
+import { GIT_ACCOUNT_KEY, GIT_SSH_KEY, native, ssh, type GitAccount, type GitCredentials, type IosGitClient, type SshKeyInfo } from "@oxbit/host-ios";
 import { Dialog, Icon, Select } from "@oxbit/ui";
 import { CommitSigning } from "./commit-signing.js";
 
@@ -16,8 +16,10 @@ export function GitSettings({ repository, onClose }: { repository?: IosGitClient
   const [token, setToken] = useState("");
   const [giteaUrl, setGiteaUrl] = useState("");
   const [removing, setRemoving] = useState<string>();
-  const [remote, setRemote] = useState<{ host?: string }>();
+  const [remote, setRemote] = useState<{ host?: string; sshHost?: string }>();
   const [binding, setBinding] = useState("");
+  const [sshKeys, setSshKeys] = useState<SshKeyInfo[]>([]);
+  const [sshBinding, setSshBinding] = useState("");
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -32,9 +34,16 @@ export function GitSettings({ repository, onClose }: { repository?: IosGitClient
       setCredentials(value);
       setName(value.name ?? "");
       setEmail(value.email ?? "");
-      if (repositoryStatus?.repository) setRemote({ host: remoteHost(repositoryStatus) });
+      if (repositoryStatus?.repository) setRemote({ host: remoteHost(repositoryStatus), sshHost: sshRemoteHost(repositoryStatus) });
       setBinding(typeof bound === "string" ? bound : "");
-    }, failure => {
+      if (repository && repositoryStatus && sshRemoteHost(repositoryStatus)) return Promise.all([
+        ssh.keys(), native.storageGet<string>(repository.id, GIT_SSH_KEY),
+      ]).then(([keys, key]) => {
+        if (!active) return;
+        setSshKeys(keys);
+        setSshBinding(typeof key === "string" ? key : "");
+      });
+    }).catch(failure => {
       if (active) setError(failure instanceof Error ? failure.message : String(failure));
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
@@ -148,7 +157,17 @@ export function GitSettings({ repository, onClose }: { repository?: IosGitClient
             setBinding(value);
             return "Repository account saved.";
           })} />
-        <p className="small muted">{!remote.host ? "Add an HTTPS remote to use an account. The choice applies to remotes on the account’s server."
+        {remote.sshHost && <>
+          <Select label="SSH key for this repository" value={sshBinding} disabled={busy}
+            options={[{ value: "", label: "Saved host key" }, ...sshKeys.map(key => ({ value: key.id, label: `${key.name} (${key.algorithm})` }))]}
+            onChange={value => repository && void perform(async () => {
+              await native.storageSet(repository.id, GIT_SSH_KEY, value || null);
+              setSshBinding(value);
+              return "Repository SSH key saved.";
+            })} />
+          <p className="small muted">{`Without a choice, Git uses the key of a saved SSH host for ${remote.sshHost}, or asks for one.`}</p>
+        </>}
+        <p className="small muted">{remote.sshHost && !remote.host ? "Accounts apply to HTTPS remotes." : !remote.host ? "Add an HTTPS remote to use an account. The choice applies to remotes on the account’s server."
           : used ? `Fetch, pull, and push to ${remote.host} use ${used.login}.`
             : `Add an account for ${remote.host} to use private repositories.`}</p>
       </section>}
@@ -173,6 +192,15 @@ export function remoteHost(status: RepositoryStatus): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Returns the server of an `ssh://` or scp-style remote chosen the same way as `remoteHost`. */
+export function sshRemoteHost(status: RepositoryStatus): string | undefined {
+  const remotes = status.remotes ?? [];
+  const upstream = status.upstream?.split("/")[0];
+  const url = (remotes.find(item => item.name === upstream) ?? remotes.find(item => item.name === "origin") ?? remotes[0])?.url ?? "";
+  const match = /^ssh:\/\/(?:[^@/]+@)?(\[[^\]]+\]|[^:/]+)/.exec(url) ?? (url.includes("://") ? null : /^(?:[^@/:]+@)?(\[[^\]]+\]|[^:/]+):/.exec(url));
+  return match?.[1]?.toLowerCase();
 }
 
 /** Returns the HTTPS server base for the token link, or nothing while the address is incomplete. */

@@ -24,8 +24,8 @@ async function shoot(page: Page, name: string) {
   await page.setViewportSize({ width: 393, height: 852 });
 }
 
-async function topmost(page: Page, name: string) {
-  const dialog = page.getByRole("dialog", { name, exact: true });
+async function topmost(page: Page, name: string, role: "dialog" | "alertdialog" = "dialog") {
+  const dialog = page.getByRole(role, { name, exact: true });
   await expect(dialog).toBeVisible();
   return dialog.evaluate(element => {
     const box = element.getBoundingClientRect();
@@ -150,5 +150,58 @@ test("uploads and downloads show progress, finish, and cancel from the explorer 
   expect(await page.evaluate(() => (window as any).__sshMock.calls)).toContain("plugin:oxbit-files|forget_folder");
   await download.getByRole("button", { name: "Done", exact: true }).click();
   await expect(download).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+async function cloneOverSsh(page: Page) {
+  await page.getByRole("button", { name: "Clone Repository…", exact: true }).click();
+  const url = page.getByRole("textbox", { name: "Repository URL" });
+  await url.fill("git@github.com:owner/repo.git");
+  await url.blur();
+  await expect(page.getByRole("textbox", { name: "Clone folder name" })).toHaveValue("repo");
+  await page.getByRole("button", { name: "Clone and Open", exact: true }).click();
+}
+
+test("cloning an SSH remote asks for a key, then confirms the host key, then clones", async ({ page }) => {
+  const errors = await start(page, { keys: [key], clone: ["SSH_KEY_REQUIRED", "HOST_KEY_UNKNOWN"] });
+  await cloneOverSsh(page);
+  expect(await topmost(page, "Choose SSH Key")).toBe(true);
+  const choose = page.getByRole("dialog", { name: "Choose SSH Key", exact: true });
+  await expect(choose).toContainText("github.com");
+  await expect(choose.getByRole("combobox", { name: "SSH key" })).toHaveValue("key-1");
+  await expect(choose.getByRole("textbox", { name: "SSH user name" })).toHaveValue("git");
+  await shoot(page, "git-key-prompt");
+  await choose.getByRole("button", { name: "Save and Continue", exact: true }).click();
+
+  expect(await topmost(page, "Confirm Host Key")).toBe(true);
+  const confirm = page.getByRole("dialog", { name: "Confirm Host Key", exact: true });
+  await expect(confirm).toContainText(PRESENTED.fingerprint);
+  await expect(confirm).toContainText("github.com");
+  await shoot(page, "git-host-key-prompt");
+  await confirm.getByRole("button", { name: "Trust and Continue", exact: true }).click();
+
+  await expect(page.getByRole("dialog", { name: "Clone Repository" })).toHaveCount(0);
+  const calls: string[] = await page.evaluate(() => (window as any).__sshMock.calls);
+  expect(calls.filter(call => call === "git.clone")).toHaveLength(3);
+  expect(calls).toEqual(expect.arrayContaining(["ios_ssh_host_save", "ios_ssh_git_trust"]));
+  expect(errors).toEqual([]);
+});
+
+test("a changed host key on a Git remote is refused with both fingerprints", async ({ page }) => {
+  const errors = await start(page, { keys: [key], clone: ["HOST_KEY_CHANGED"] });
+  await cloneOverSsh(page);
+  expect(await topmost(page, "Host Key Changed", "alertdialog")).toBe(true);
+  const refused = page.getByRole("alertdialog", { name: "Host Key Changed", exact: true });
+  await expect(refused).toContainText(`Saved${SAVED.algorithm}${SAVED.fingerprint}`);
+  await expect(refused).toContainText(`Presented${PRESENTED.algorithm}${PRESENTED.fingerprint}`);
+  await shoot(page, "git-host-key-changed");
+  await refused.getByRole("button", { name: "Forget saved host key", exact: true }).click();
+  await expect(refused.getByRole("status")).toHaveText("Forgot the saved host key. Run the Git command again to review the new fingerprint.");
+  await refused.getByRole("button", { name: "Done", exact: true }).click();
+  const clone = page.getByRole("dialog", { name: "Clone Repository", exact: true });
+  await expect(clone.getByRole("alert")).toContainText("does not match the saved key");
+  const calls: string[] = await page.evaluate(() => (window as any).__sshMock.calls);
+  expect(calls.filter(call => call === "git.clone")).toHaveLength(1);
+  expect(calls).toContain("ios_ssh_git_forget_host_key");
   expect(errors).toEqual([]);
 });

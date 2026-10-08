@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
-import { native, type RecentWorkspace, type SshFileSystem } from "@oxbit/host-ios";
+import { IosGitClient, native, type RecentWorkspace, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -13,6 +13,7 @@ import { CloneRepository } from "./clone-repository.js";
 import { SshSettings } from "./ssh-settings.js";
 import { SshConnect, type SshTarget } from "./ssh-connect.js";
 import { SshTransfer, type TransferRequest } from "./ssh-transfer.js";
+import { SshGitPrompt } from "./ssh-git-prompt.js";
 import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
@@ -60,12 +61,28 @@ function App() {
   const [sshSettings, setSshSettings] = useState(false);
   const [sshConnect, setSshConnect] = useState<{ preset?: SshTarget }>();
   const [transfer, setTransfer] = useState<TransferRequest>();
+  const [gitPrompt, setGitPrompt] = useState<{ rootId: string; resolve: (retry: boolean) => void }>();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [restoring, setRestoring] = useState(true);
   const current = useRef<OpenWorkspace>(undefined);
   const opening = useRef(false);
   current.current = workspace;
+  useEffect(() => {
+    // One prompt at a time; a second request that needs one fails with its own error.
+    IosGitClient.sshPrompt = rootId => new Promise<boolean>(resolve => setGitPrompt(active => {
+      if (active) {
+        resolve(false);
+        return active;
+      }
+      return { rootId, resolve };
+    }));
+    return () => { IosGitClient.sshPrompt = undefined; };
+  }, []);
+  const finishGitPrompt = useCallback((retry: boolean) => setGitPrompt(active => {
+    active?.resolve(retry);
+    return undefined;
+  }), []);
 
   const open = useCallback(async (request: OpenRequest) => {
     if (opening.current) return "A workspace is already opening.";
@@ -212,6 +229,8 @@ function App() {
       {sshSettings && <SshSettings onClose={() => setSshSettings(false)} />}
       {transfer && <SshTransfer request={transfer} onDone={() => { if (transfer.kind === "upload") void workspace?.session.workbench.refreshFiles(); }}
         onClose={() => setTransfer(undefined)} />}
+      {gitPrompt && <SshGitPrompt rootId={gitPrompt.rootId} onDone={finishGitPrompt}
+        onManage={() => { finishGitPrompt(false); setSshSettings(true); }} />}
     </Shell>
   );
 }

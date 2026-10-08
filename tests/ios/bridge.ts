@@ -128,6 +128,8 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return { payload: JSON.stringify({ result: args.method === "initialize" ? { capabilities: { textDocumentSync: 1 } } : null, notifications: [] }) };
         }
         if (command === "ios_git_request") {
+          const handled = (window as any).__sshMock?.gitRequest(args);
+          if (handled !== undefined) return handled;
           if (!repository) throw { code: "NOT_REPOSITORY", message: "Not a git repository" };
           return args.method === "status" ? status : [];
         }

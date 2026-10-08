@@ -47,12 +47,12 @@ export function CloneRepository({ baseGit, onOpen, onClose }: { baseGit?: IosGit
         }
       })();
     }}>
-      <p>Clone an HTTPS repository into the Oxbit folder in Files, then open it.</p>
-      <label>Repository URL<input type="url" inputMode="url" required autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Repository URL" placeholder="https://github.com/owner/repository.git" value={url} onChange={event => setUrl(event.target.value)} onBlur={() => {
-        if (!directory) setDirectory(url.trim().replace(/\/$/, "").split("/").at(-1)?.replace(/\.git$/, "") ?? "");
+      <p>Clone an HTTPS or SSH repository into the Oxbit folder in Files, then open it.</p>
+      <label>Repository URL<input type="text" inputMode="url" required autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Repository URL" placeholder="https://github.com/owner/repository.git" value={url} onChange={event => setUrl(event.target.value)} onBlur={() => {
+        if (!directory) setDirectory(url.trim().replace(/\/$/, "").split(/[/:]/).at(-1)?.replace(/\.git$/, "") ?? "");
       }} disabled={busy} /></label>
       <label>Folder name<input required autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Clone folder name" value={directory} onChange={event => setDirectory(event.target.value)} disabled={busy} /></label>
-      <p className="small muted">Add a GitHub or Gitea account in Git Accounts and Commit Author to clone private repositories. Clone uses the default account for the server.</p>
+      <p className="small muted">Add a GitHub or Gitea account in Git Accounts and Commit Author to clone private repositories. Clone uses the default account for the server. SSH remotes such as git@github.com:owner/repository.git use the key of a saved SSH host, or ask for one.</p>
       {progress && <p role="status" className="small muted">{progress}</p>}
       {error && <p className="error-text" role="alert">{error}</p>}
       <div className="dialog-actions">

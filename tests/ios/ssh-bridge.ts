@@ -4,6 +4,8 @@ export interface SshSeed {
   hosts?: { id: string; label: string; hostname: string; port: number; username: string; auth: "key" | "password"; keyId?: string; passwordSaved: boolean }[];
   keys?: { id: string; name: string; algorithm: string; fingerprint: string; publicKey: string }[];
   known?: Record<string, { algorithm: string; fingerprint: string; added: number }[]>;
+  /** Errors that `git.clone` returns in order before it succeeds. */
+  clone?: ("SSH_KEY_REQUIRED" | "HOST_KEY_UNKNOWN" | "HOST_KEY_CHANGED")[];
 }
 
 export const PRESENTED = { algorithm: "ssh-ed25519", fingerprint: "SHA256:qP8mY2tVt3rJ0q7dGm1xC5sWn9uL4kHf6aZ2bE8cR0o" };
@@ -11,7 +13,7 @@ export const SAVED = { algorithm: "ssh-ed25519", fingerprint: "SHA256:Lk3Vx9aQe2
 
 /** Serves the SSH commands from memory. Transfers hold at 40% until `__sshMock.release()` or a cancel. */
 export async function installSshBridge(page: Page, seed: SshSeed = {}) {
-  await page.addInitScript(({ seed, presented }) => {
+  await page.addInitScript(({ seed, presented, saved }) => {
     const encoder = new TextEncoder();
     const hosts = seed.hosts ?? [];
     const keys = seed.keys ?? [];
@@ -22,6 +24,9 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
     const directories = new Set(["src"]);
     const pending = new Map<string, { finish: () => void; cancel: () => void }>();
     const calls: string[] = [];
+    const clone = [...(seed.clone ?? [])];
+    const prompts = new Map<string, any>();
+    const remoteKey = { host: "github.com", port: 22, ...presented };
     let count = 0;
     const fail = (code: string, message: string) => { throw { code, message }; };
     const children = (path: string) => [
@@ -100,6 +105,12 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
         return { files: 1, bytes: 4_200_000 };
       }),
       ios_ssh_download: ({ transferId, path }, emit) => hold(transferId, path || "workspace", 2_400_000, emit, () => ({ files: 1, bytes: 2_400_000 })),
+      ios_ssh_git_prompt: ({ id }) => prompts.get(id) ?? null,
+      ios_ssh_git_trust: ({ id, fingerprint }) => {
+        if (prompts.get(id)?.hostKey?.fingerprint !== fingerprint) fail("NOT_FOUND", "Run the Git request again to review the server.");
+        prompts.delete(id);
+      },
+      ios_ssh_git_forget_host_key: ({ id }) => { prompts.delete(id); },
       ios_ssh_transfer_cancel: ({ transferId }) => { pending.get(transferId)?.cancel(); pending.delete(transferId); },
     };
     Object.assign(window, {
@@ -107,6 +118,17 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
         calls,
         files,
         handles: (command: string) => command in handlers,
+        /** Answers `git.clone`; other Git requests return undefined and reach the default bridge. */
+        gitRequest({ id, method, params }: { id: string; method: string; params: { destination: string } }) {
+          if (method !== "clone" || !seed.clone) return undefined;
+          calls.push("git.clone");
+          const code = clone.shift();
+          if (!code) return { path: params.destination };
+          prompts.set(id, code === "SSH_KEY_REQUIRED" ? { status: "keyRequired", hostname: "github.com", port: 22, username: "git" }
+            : code === "HOST_KEY_UNKNOWN" ? { status: "hostUnknown", hostKey: remoteKey }
+              : { status: "hostChanged", hostKey: remoteKey, known: [{ ...saved, added: 1 }] });
+          throw { code, message: code === "HOST_KEY_CHANGED" ? "The host key for github.com does not match the saved key. Oxbit did not connect." : `Prompt ${code}` };
+        },
         invoke(command: string, args: unknown, emit: (event: string, payload: unknown) => void, options?: unknown) {
           calls.push(command);
           return handlers[command]!(args, emit, options);
@@ -116,5 +138,5 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
         },
       },
     });
-  }, { seed, presented: PRESENTED });
+  }, { seed, presented: PRESENTED, saved: SAVED });
 }

@@ -10,6 +10,7 @@ export {
   type GitCredentials,
   type GitCredentialRequest,
   GIT_ACCOUNT_KEY,
+  GIT_SSH_KEY,
   type CommitSigningKey,
   type CommitSigningState,
   type CommitSigningRequest,
@@ -20,11 +21,12 @@ export {
   type SshAuth,
   type KnownHostKey,
   type SshConnectOutcome,
+  type GitSshPrompt,
   type PickedFile,
   type TransferProgress,
   type TransferSummary,
 } from "./native.js";
-export { IosGitClient } from "./git.js";
+export { IosGitClient, SSH_PROMPT_CODES, type SshGitPromptHandler } from "./git.js";
 export { IosFileSystem, SshFileSystem, revisionOf } from "./filesystem.js";
 export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";
 export { IosIconPackStore } from "./icon-packs.js";

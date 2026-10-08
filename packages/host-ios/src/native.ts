@@ -73,6 +73,10 @@ export type SshConnectOutcome =
   | { status: "hostUnknown"; hostKey: SshHostKey }
   | { status: "hostChanged"; hostKey: SshHostKey; known: KnownHostKey[] }
   | { status: "passwordRequired" };
+export type GitSshPrompt =
+  | { status: "hostUnknown"; hostKey: SshHostKey }
+  | { status: "hostChanged"; hostKey: SshHostKey; known: KnownHostKey[] }
+  | { status: "keyRequired"; hostname: string; port: number; username: string };
 export interface PickedFile {
   name: string;
   path: string;
@@ -95,6 +99,8 @@ export type GitCredentialRequest =
   | { operation: "remove" | "setDefault"; id: string };
 /** Workspace storage key holding the account ID that native Git uses for the workspace root. */
 export const GIT_ACCOUNT_KEY = "git-account";
+/** Workspace storage key holding the SSH key ID that native Git uses for SSH remotes. */
+export const GIT_SSH_KEY = "git-ssh-key";
 
 export interface CommitSigningKey {
   fingerprint: string;
@@ -183,6 +189,9 @@ export const ssh = {
     call<void>("ios_ssh_trust", { hostId, algorithm: hostKey.algorithm, fingerprint: hostKey.fingerprint }),
   forgetHostKey: (hostId: string) => call<void>("ios_ssh_forget_host_key", { hostId }),
   disconnect: (hostId: string) => call<void>("ios_ssh_disconnect", { hostId }),
+  gitPrompt: (id: string) => call<GitSshPrompt | null>("ios_ssh_git_prompt", { id }),
+  gitTrust: (id: string, fingerprint: string) => call<void>("ios_ssh_git_trust", { id, fingerprint }),
+  gitForgetHostKey: (id: string) => call<void>("ios_ssh_git_forget_host_key", { id }),
   pickFiles: async (multiple = false) =>
     (await call<{ files: PickedFile[] }>("plugin:oxbit-files|pick_files", { multiple })).files,
   upload: (id: string, transferId: string, directory: string, files: string[]) =>

@@ -121,7 +121,7 @@ export function SshConnect({ preset, onOpen, onManage, onClose }: {
   </Dialog>;
 }
 
-function ChangedKey({ label, algorithm, fingerprint }: { label: string; algorithm: string; fingerprint: string }) {
+export function ChangedKey({ label, algorithm, fingerprint }: { label: string; algorithm: string; fingerprint: string }) {
   return <>
     <dt>{label}</dt>
     <dd>{algorithm}<br /><code className="ssh-fingerprint">{fingerprint}</code></dd>
