@@ -36,7 +36,17 @@ impl<R: Runtime> OxbitFiles<R> {
         Err(UNSUPPORTED)
     }
 
-    pub fn download_runtime(&self, _url: &str, _sha256: &str) -> crate::Result<serde_json::Value> {
+    pub fn download_runtime(
+        &self,
+        _id: &str,
+        _url: &str,
+        _sha256: &str,
+        _size: u64,
+    ) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
+    pub fn cancel_runtime_download(&self, _id: &str) -> crate::Result<()> {
         Err(UNSUPPORTED)
     }
 

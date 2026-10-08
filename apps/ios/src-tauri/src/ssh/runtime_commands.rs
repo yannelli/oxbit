@@ -37,13 +37,18 @@ fn started(runtime: &RemoteRuntime, ready: Ready) -> Started {
     }
 }
 
-fn device_fetch(app: AppHandle) -> Fetch {
+/// `id` is the runtime's ID, so stopping the runtime cancels its download.
+fn device_fetch(app: AppHandle, id: String) -> Fetch {
     Arc::new(move |download| {
-        let app = app.clone();
+        let (app, id) = (app.clone(), id.clone());
         Box::pin(async move {
             let saved = tauri::async_runtime::spawn_blocking(move || {
-                app.oxbit_files()
-                    .download_runtime(&download.url, &download.sha256)
+                app.oxbit_files().download_runtime(
+                    &id,
+                    &download.url,
+                    &download.sha256,
+                    download.size,
+                )
             })
             .await
             .map_err(|_| Error::new("REMOTE_RUNTIME", "The download did not finish."))?
@@ -99,7 +104,7 @@ pub async fn ios_ssh_runtime_start(
     });
     let source = Source {
         lookup: Arc::new(runtime_install::pinned),
-        fetch: device_fetch(app),
+        fetch: device_fetch(app, id.clone()),
     };
     let options = Options {
         host_id,
@@ -134,9 +139,15 @@ pub async fn ios_ssh_runtime_resume(state: State<'_, AppState>, id: String) -> R
 }
 
 #[tauri::command]
-pub async fn ios_ssh_runtime_stop(state: State<'_, AppState>, id: String) -> Result<()> {
+pub async fn ios_ssh_runtime_stop(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<()> {
     let removed = state.ssh.runtimes.lock().unwrap().remove(&id);
     if let Some(runtime) = removed {
+        // A running install holds the launch lock until its download ends.
+        let _ = app.oxbit_files().cancel_runtime_download(&id);
         runtime.stop().await;
     }
     Ok(())

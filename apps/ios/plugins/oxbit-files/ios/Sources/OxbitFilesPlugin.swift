@@ -65,6 +65,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
     runtimeDownload.handle(invoke)
   }
 
+  @objc public func cancelRuntimeDownload(_ invoke: Invoke) {
+    runtimeDownload.cancel(invoke)
+  }
+
   @objc public func pickFiles(_ invoke: Invoke) {
     filePicker.pick(invoke, from: manager.viewController)
   }

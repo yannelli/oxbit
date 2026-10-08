@@ -140,6 +140,13 @@ if (mode === "check") {
       "-o", profileTests,
     ]);
     run(profileTests, []);
+    const runtimeDownload = join(nativeTests, "runtime-download");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/RuntimeDownloadStore.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/RuntimeDownload/main.swift",
+      "-o", runtimeDownload,
+    ]);
+    run(runtimeDownload, []);
   } finally {
     rmSync(nativeTests, { recursive: true, force: true });
   }
