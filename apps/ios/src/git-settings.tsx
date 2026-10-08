@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { GIT_ACCOUNT_KEY, native, type GitAccount, type GitCredentials, type IosGitClient } from "@oxbit/host-ios";
 import { Dialog, Icon, Select } from "@oxbit/ui";
+import { CommitSigning } from "./commit-signing.js";
 
 type Provider = GitAccount["provider"];
 interface RepositoryStatus { repository?: boolean; upstream?: string | null; remotes?: { name: string; url: string }[] }
@@ -95,6 +96,7 @@ export function GitSettings({ repository, onClose }: { repository?: IosGitClient
       <p>Use this author for commits in device folders. An existing repository’s Git identity takes precedence.</p>
       <label>Author name<input required maxLength={256} autoComplete="name" aria-label="Git author name" value={name} onChange={event => setName(event.target.value)} disabled={busy} /></label>
       <label>Author email<input type="email" required maxLength={320} autoComplete="email" autoCapitalize="none" aria-label="Git author email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} /></label>
+      <CommitSigning authorName={name} authorEmail={email} />
       <section className="git-section" aria-labelledby="git-accounts-title">
         <h3 id="git-accounts-title">Accounts</h3>
         {credentials.accounts.length ? <ul className="git-account-list">

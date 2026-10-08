@@ -66,18 +66,57 @@ pub(super) fn create_commit(
         confine_ref(ctx, repo, reference)?;
     }
     ctx.check_cancel()?;
-    let id = ctx.git(repo.commit(
-        Some("HEAD"),
-        author.unwrap_or(&signature),
-        &signature,
-        message,
-        &tree,
-        &parents.iter().collect::<Vec<_>>(),
-    ))?;
+    let parents = parents.iter().collect::<Vec<_>>();
+    let author = author.unwrap_or(&signature);
+    let id = match &ctx.credentials.signer {
+        None => ctx.git(repo.commit(Some("HEAD"), author, &signature, message, &tree, &parents))?,
+        Some(signer) => {
+            let buffer =
+                ctx.git(repo.commit_create_buffer(author, &signature, message, &tree, &parents))?;
+            let content = std::str::from_utf8(&buffer)
+                .map_err(|_| Error::new("GIT_FAILED", "Commit content is not UTF-8"))?;
+            let armored = signer
+                .sign(content.as_bytes())
+                .map_err(|error| Error::new("COMMIT_SIGNING", error.to_string()))?;
+            let id = ctx.git(repo.commit_signed(content, &armored, None))?;
+            advance_head(
+                ctx,
+                repo,
+                id,
+                parents.first().map(|parent| parent.id()),
+                message,
+            )?;
+            id
+        }
+    };
     if matches!(operation, Some("merge" | "cherry-pick" | "revert")) {
         ctx.git(repo.cleanup_state())?;
     }
     Ok(id)
+}
+
+/// `commit_signed` writes only the object, so move HEAD the way `Repository::commit` does.
+fn advance_head(
+    ctx: &Context<'_>,
+    repo: &Repository,
+    id: Oid,
+    parent: Option<Oid>,
+    message: &str,
+) -> Result<()> {
+    let summary = message.lines().next().unwrap_or_default();
+    let log = match parent {
+        None => format!("commit (initial): {summary}"),
+        Some(_) => format!("commit: {summary}"),
+    };
+    let head = ctx.git(repo.find_reference("HEAD"))?;
+    let Some(branch) = ctx.git(head.symbolic_target())? else {
+        return ctx.git(repo.set_head_detached(id));
+    };
+    match parent {
+        Some(parent) => ctx.git(repo.reference_matching(branch, id, true, parent, &log)),
+        None => ctx.git(repo.reference(branch, id, false, &log)),
+    }?;
+    Ok(())
 }
 
 fn merge(ctx: &Context<'_>, repo: &mut Repository, params: &Value) -> Result<()> {

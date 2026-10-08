@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the close_folder command without any pre-configured scope."
         },
         {
+          "description": "Enables the commit_signing command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-commit-signing",
+          "markdownDescription": "Enables the commit_signing command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the commit_signing command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-commit-signing",
+          "markdownDescription": "Denies the commit_signing command without any pre-configured scope."
+        },
+        {
           "description": "Enables the documents_path command without any pre-configured scope.",
           "type": "string",
           "const": "allow-documents-path",
@@ -329,6 +341,18 @@
           "type": "string",
           "const": "deny-forget-folder",
           "markdownDescription": "Denies the forget_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the git_credentials command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-git-credentials",
+          "markdownDescription": "Enables the git_credentials command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the git_credentials command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-git-credentials",
+          "markdownDescription": "Denies the git_credentials command without any pre-configured scope."
         },
         {
           "description": "Enables the open_folder command without any pre-configured scope.",
@@ -367,10 +391,10 @@
           "markdownDescription": "Denies the runtime_credentials command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`",
+          "description": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-commit-signing`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`"
+          "markdownDescription": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-commit-signing`"
         }
       ]
     }

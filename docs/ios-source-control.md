@@ -37,3 +37,31 @@ Profiles saved before multiple accounts held one GitHub `token` and `login` and 
 Consult the [git2 API](https://docs.rs/git2/0.21.0/git2/) when changing operations. The enabled features are HTTPS, vendored libgit2, and vendored OpenSSL. The published [build script](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/build.rs) selects SecureTransport on Apple targets; its [Cargo manifest](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/Cargo.toml.orig) also enables OpenSSL through HTTPS. Vendoring supplies that build dependency.
 
 The iOS CI simulator build compiles the Swift plugin. Device Keychain behavior and live GitHub and Gitea validation remain unrun.
+
+## Commit signing
+
+**Commit Signing** in **Git Accounts and Commit Author** creates an OpenPGP key from the author name and email in the dialog, or imports an armored secret key (`-----BEGIN PGP PRIVATE KEY BLOCK-----`). For a passphrase-protected key, enter the passphrase at import; Oxbit removes the passphrase protection and stores the unlocked key. Generated keys are v4 EdDSA keys (rPGP `KeyType::Ed25519Legacy`, algorithm 22), which `git verify-commit` accepts under GnuPG 2.5.20. Oxbit does not generate RFC 9580 Ed25519 (algorithm 27) keys. Signatures use SHA-256 and the primary key when its self-signature allows signing, otherwise the first signing subkey.
+
+**Copy Public Key** copies the armored public key. **Add Key on GitHub** opens [GitHub's new GPG key page](https://github.com/settings/gpg/new); Gitea takes the same key under **Settings → SSH / GPG Keys**. The section warns when no user ID on the key contains the author email in the dialog, because GitHub and Gitea show such signatures as unverified. A repository's own `user.email` takes precedence for commits and is not part of that comparison.
+
+`CommitSigning.swift` keeps `{secretKey, enabled}` in one Keychain item (service `com.yannelli.oxbit.commit-signing`) with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. Public `commit_signing` calls accept `get`, `generate`, `import`, `setEnabled`, and `remove`. They return `enabled` and a `key` object with `fingerprint`, `keyId`, `userIds`, `createdAt` (Unix seconds), and `publicKey`. Rust rejects `read`, `save`, and unknown fields, and builds each response from the parsed key, so the secret key stays out of the webview. **Remove Signing Key…** deletes the Keychain item, which turns signing off.
+
+With **Sign commits** on, these methods sign through `commit_create_buffer`, a detached signature, and `commit_signed`, then move HEAD:
+
+- `git.commit`
+- `git.merge` when it creates a merge commit
+- `git.cherryPick` and `git.revert`
+- `git.continue` for a merge, cherry-pick, or revert
+
+The native Git command reads the key for these methods only. A locked device or an unreadable key fails the commit with `COMMIT_SIGNING`.
+
+These commit paths stay unsigned:
+
+- Rebase steps, including `git.continue` during a rebase (`Rebase::commit`)
+- `git.stashSave` (stash commits)
+
+`pgp` 0.21 builds with `default-features = false`, which drops the `bzip2` feature. Bzip2 applies to compressed message packets; keys and detached signatures do not use it. The plugin declares `rand` 0.8 because `pgp` takes a rand 0.8 RNG and does not re-export it.
+
+Tests: in `apps/ios/src-tauri`, `cargo test -p tauri-plugin-oxbit-files` covers request validation, metadata, generation, and passphrase import. `cargo test signing_tests -- --nocapture` signs commits on a branch, an unborn branch, a detached HEAD, and a cherry-pick. When `gpg` is on PATH, it also runs `git verify-commit --raw` in a temporary `GNUPGHOME` for a generated key and for a passphrase-protected GnuPG key whose signing key is a subkey.
+
+References: [rPGP 0.21](https://docs.rs/pgp/0.21.0/pgp/), [`Repository::commit_signed`](https://docs.rs/git2/0.21.0/git2/struct.Repository.html#method.commit_signed), [GitHub: adding a GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account), [Apple: `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`](https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlockedthisdeviceonly).

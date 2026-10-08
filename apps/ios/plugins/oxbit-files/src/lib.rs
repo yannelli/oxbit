@@ -6,6 +6,7 @@ use tauri::{
 };
 
 mod commands;
+mod commit_signing;
 #[cfg(desktop)]
 mod desktop;
 mod error;
@@ -14,6 +15,7 @@ mod git_credentials;
 mod mobile;
 mod models;
 
+pub use commit_signing::CommitSigner;
 pub use error::{Error, Result};
 pub use models::*;
 
@@ -42,6 +44,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::documents_path,
             commands::runtime_credentials,
             commands::git_credentials,
+            commands::commit_signing,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

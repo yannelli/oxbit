@@ -19,6 +19,8 @@ mod operation_tests;
 mod operations;
 #[cfg(test)]
 mod security_tests;
+#[cfg(test)]
+mod signing_tests;
 mod status;
 #[cfg(test)]
 mod tests;
@@ -34,6 +36,8 @@ pub struct Credentials {
     /// The account ID chosen for this workspace in Git Accounts and Commit Author.
     #[serde(skip)]
     pub binding: Option<String>,
+    #[serde(skip)]
+    pub signer: Option<tauri_plugin_oxbit_files::CommitSigner>,
 }
 
 #[derive(Default, Deserialize)]
@@ -53,6 +57,14 @@ impl Credentials {
             .map(|account| account.token.as_str())
             .collect()
     }
+}
+
+/// Methods that reach `operations::create_commit`, so the host loads the signing key only for them.
+pub fn creates_commit(method: &str) -> bool {
+    matches!(
+        method.strip_prefix("git.").unwrap_or(method),
+        "commit" | "merge" | "cherryPick" | "revert" | "continue"
+    )
 }
 
 struct Context<'a> {

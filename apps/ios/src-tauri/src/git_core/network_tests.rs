@@ -67,6 +67,7 @@ impl Fixture {
                     true,
                 )],
                 binding: None,
+                signer: None,
             },
             cancel: AtomicBool::new(false),
             progress: RefCell::new(Vec::new()),

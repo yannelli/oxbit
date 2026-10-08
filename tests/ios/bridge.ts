@@ -42,6 +42,8 @@ export async function installBridge(page: Page, { repository = false, accounts =
     const roots = new Set<string>();
     const packs = new Map<string, unknown>();
     const closed: { id: string; title: string | null | undefined }[] = [];
+    const copied: string[] = [];
+    let signing: { enabled: boolean; key?: Record<string, unknown> } = { enabled: false };
     let callback = 0;
     let opened = 0;
     const files = ["example.ts", "settings.jsonc"];
@@ -59,6 +61,21 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return { id: "second", name: "Second", path: "/device/Second", stale: false };
         if (command === "plugin:oxbit-files|close_folder") return;
         if (command === "plugin:oxbit-files|git_credentials") return gitCredentials(args.request);
+        if (command === "plugin:oxbit-files|commit_signing") {
+          const request = args.request;
+          if (request.operation === "generate") signing = {
+            enabled: signing.enabled,
+            key: {
+              fingerprint: "0123456789ABCDEF0123456789ABCDEF01234567", keyId: "89ABCDEF01234567",
+              userIds: [`${request.name} <${request.email}>`], createdAt: 1791417600,
+              publicKey: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nfixture\n-----END PGP PUBLIC KEY BLOCK-----\n",
+            },
+          };
+          if (request.operation === "setEnabled") signing = { ...signing, enabled: request.enabled };
+          if (request.operation === "remove") signing = { enabled: false };
+          return signing;
+        }
+        if (command === "plugin:clipboard-manager|write_text") { copied.push(args.text); return; }
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
         if (command === "ios_icon_packs_read") return [...packs.values()];
@@ -105,7 +122,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, storage, get opened() { return opened; } },
+      __iosTest: { closed, copied, storage, get opened() { return opened; }, get signing() { return signing; } },
     });
   }, { repository, accounts });
 }
