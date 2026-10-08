@@ -1,8 +1,43 @@
 import type { Page } from "@playwright/test";
 
-/** Installs a Tauri bridge that serves the iOS shell from memory. With `repository`, the Documents folder is a clean Git repository. */
-export async function installBridge(page: Page, { repository = false } = {}) {
-  await page.addInitScript(({ repository }) => {
+export interface BridgeAccount { id: string; provider: "github" | "gitea"; host: string; url?: string; login: string; isDefault: boolean }
+
+/** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
+/** An added token names its login; the token `rejected` fails validation. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[] } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded }) => {
+    const author = { name: "Oxbit Test", email: "oxbit@example.test" };
+    let accounts = seeded.map(account => ({ ...account }));
+    let created = 0;
+    const credentials = () => ({ ...author, accounts: accounts.map(account => ({ ...account })) });
+    const missing = { code: "GIT_CREDENTIALS", message: "This Git account no longer exists." };
+    function add(provider: "github" | "gitea", host: string, login: string, url?: string) {
+      const known = accounts.find(account => account.provider === provider && account.host === host && account.login.toLowerCase() === login.toLowerCase());
+      if (known) return;
+      accounts.push({ id: `account-${++created}`, provider, host, url, login, isDefault: !accounts.some(account => account.host === host && account.isDefault) });
+    }
+    function gitCredentials(request: { operation: string; id?: string; token?: string; url?: string; name?: string; email?: string }) {
+      if (request.token === "rejected") throw { code: "GIT_CREDENTIALS", message: "GitHub rejected this token or its permissions." };
+      if (request.operation === "save") Object.assign(author, { name: request.name, email: request.email });
+      if (request.operation === "addGitHub") add("github", "github.com", request.token!);
+      if (request.operation === "addGitea") {
+        const url = new URL(request.url!);
+        add("gitea", url.host, request.token!, url.origin + url.pathname.replace(/\/+$/, ""));
+      }
+      if (request.operation === "remove") {
+        const removed = accounts.find(account => account.id === request.id);
+        if (!removed) throw missing;
+        accounts = accounts.filter(account => account !== removed);
+        const next = accounts.find(account => account.host === removed.host);
+        if (removed.isDefault && next) next.isDefault = true;
+      }
+      if (request.operation === "setDefault") {
+        const chosen = accounts.find(account => account.id === request.id);
+        if (!chosen) throw missing;
+        for (const account of accounts) if (account.host === chosen.host) account.isDefault = account === chosen;
+      }
+      return credentials();
+    }
     const storage = new Map<string, unknown>();
     const roots = new Set<string>();
     const packs = new Map<string, unknown>();
@@ -23,7 +58,7 @@ export async function installBridge(page: Page, { repository = false } = {}) {
         if (command === "plugin:oxbit-files|pick_folder")
           return { id: "second", name: "Second", path: "/device/Second", stale: false };
         if (command === "plugin:oxbit-files|close_folder") return;
-        if (command === "plugin:oxbit-files|git_credentials") return { authenticated: false, name: "Oxbit Test", email: "oxbit@example.test" };
+        if (command === "plugin:oxbit-files|git_credentials") return gitCredentials(args.request);
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
         if (command === "ios_icon_packs_read") return [...packs.values()];
@@ -70,7 +105,7 @@ export async function installBridge(page: Page, { repository = false } = {}) {
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, get opened() { return opened; } },
+      __iosTest: { closed, storage, get opened() { return opened; } },
     });
-  }, { repository });
+  }, { repository, accounts });
 }

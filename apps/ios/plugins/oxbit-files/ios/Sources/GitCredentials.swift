@@ -8,21 +8,7 @@ private struct GitCredentialArgs: Decodable {
   let name: String?
   let email: String?
   let url: String?
-}
-
-private struct GiteaCredentialProfile: Codable {
-  var url: String
-  var host: String
-  var token: String
-  var login: String
-}
-
-private struct GitCredentialProfile: Codable {
-  var token: String?
-  var login: String?
-  var name: String?
-  var email: String?
-  var gitea: GiteaCredentialProfile?
+  let id: String?
 }
 
 private struct GiteaServer {
@@ -38,6 +24,7 @@ private func gitCredentialFailure(_ message: String) -> NSError {
 final class GitCredentials {
   private let queue = DispatchQueue(label: "com.yannelli.oxbit.git-credentials")
   private var verifying = false
+  private let maximumProfileBytes = 65_536
 
   func handle(_ invoke: Invoke) {
     let args: GitCredentialArgs
@@ -52,72 +39,43 @@ final class GitCredentials {
 
   private func process(_ args: GitCredentialArgs, invoke: Invoke) {
     do {
+      if args.operation != "get" && args.operation != "read" {
+        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+      }
       switch args.operation {
       case "get":
         invoke.resolve(metadata(try read()))
       case "read":
         invoke.resolve(credentials(try read()))
-      case "forget":
-        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+      case "save":
         var profile = try read()
-        profile.token = nil
-        profile.login = nil
+        profile.name = try identity(args.name, field: "name", limit: 256)
+        profile.email = try identity(args.email, field: "email", limit: 320)
         try save(profile)
         invoke.resolve(metadata(profile))
-      case "save":
-        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
-        let name = try identity(args.name, field: "name", limit: 256)
-        let email = try identity(args.email, field: "email", limit: 320)
-        var profile = try read()
-        profile.name = name
-        profile.email = email
-        let token = try normalizedToken(args.token)
-        guard let token else {
-          try save(profile)
-          invoke.resolve(metadata(profile))
-          return
+      case "addGitHub":
+        guard let token = try normalizedToken(args.token) else { throw gitCredentialFailure("Enter a GitHub token.") }
+        verify(AccountValidation.gitHub, token: token, invoke: invoke) { login in
+          GitAccountRecord(id: UUID().uuidString, provider: "github", host: "github.com", url: nil,
+            login: login, token: token, isDefault: false)
         }
-        let pendingProfile = profile
-        verifying = true
-        AccountValidation.gitHub(token: token) { result in
-          self.queue.async {
-            self.verifying = false
-            do {
-              var verifiedProfile = pendingProfile
-              verifiedProfile.login = try result.get()
-              verifiedProfile.token = token
-              try self.save(verifiedProfile)
-              invoke.resolve(self.metadata(verifiedProfile))
-            } catch {
-              self.reject(error, invoke: invoke)
-            }
-          }
-        }.start()
-      case "connectGitea":
-        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+      case "addGitea":
         let server = try giteaServer(args.url)
         guard let token = try normalizedToken(args.token, provider: "Gitea") else {
           throw gitCredentialFailure("Enter a Gitea access token.")
         }
-        verifying = true
-        AccountValidation.gitea(server: server, token: token) { result in
-          self.queue.async {
-            self.verifying = false
-            do {
-              let login = try result.get()
-              var profile = try self.read()
-              profile.gitea = GiteaCredentialProfile(url: server.url, host: server.host, token: token, login: login)
-              try self.save(profile)
-              invoke.resolve(self.metadata(profile))
-            } catch {
-              self.reject(error, invoke: invoke)
-            }
-          }
-        }.start()
-      case "forgetGitea":
-        guard !verifying else { throw gitCredentialFailure("Git credentials are being verified. Try again when validation finishes.") }
+        verify({ AccountValidation.gitea(server: server, token: $0, completion: $1) }, token: token, invoke: invoke) { login in
+          GitAccountRecord(id: UUID().uuidString, provider: "gitea", host: server.host, url: server.url,
+            login: login, token: token, isDefault: false)
+        }
+      case "remove":
         var profile = try read()
-        profile.gitea = nil
+        guard profile.remove(id: args.id ?? "") else { throw gitCredentialFailure("This Git account no longer exists.") }
+        try save(profile)
+        invoke.resolve(metadata(profile))
+      case "setDefault":
+        var profile = try read()
+        guard profile.setDefault(id: args.id ?? "") else { throw gitCredentialFailure("This Git account no longer exists.") }
         try save(profile)
         invoke.resolve(metadata(profile))
       default:
@@ -126,6 +84,33 @@ final class GitCredentials {
     } catch {
       reject(error, invoke: invoke)
     }
+  }
+
+  /// Validates the token with its provider, then adds the account named by the returned login.
+  private func verify(_ validation: (String, @escaping (Result<String, Error>) -> Void) -> AccountValidation,
+    token: String, invoke: Invoke, account: @escaping (String) -> GitAccountRecord) {
+    verifying = true
+    validation(token) { result in
+      self.queue.async {
+        self.verifying = false
+        do {
+          var profile = try self.read()
+          let added = account(try result.get())
+          let known = profile.accountList.contains {
+            $0.provider == added.provider && $0.host == added.host
+              && $0.login.caseInsensitiveCompare(added.login) == .orderedSame
+          }
+          guard known || profile.accountList.count < GitCredentialProfile.maximumAccounts else {
+            throw gitCredentialFailure("Remove a Git account before adding another.")
+          }
+          _ = profile.add(added)
+          try self.save(profile)
+          invoke.resolve(self.metadata(profile))
+        } catch {
+          self.reject(error, invoke: invoke)
+        }
+      }
+    }.start()
   }
 
   private func identity(_ value: String?, field: String, limit: Int) throws -> String {
@@ -188,24 +173,23 @@ final class GitCredentials {
   }
 
   private func metadata(_ profile: GitCredentialProfile) -> [String: Any] {
-    var result: [String: Any] = ["authenticated": profile.token != nil && profile.login != nil]
-    if let login = profile.login { result["login"] = login }
-    if let name = profile.name { result["name"] = name }
-    if let email = profile.email { result["email"] = email }
-    if let gitea = profile.gitea {
-      result["gitea"] = ["authenticated": true, "url": gitea.url, "host": gitea.host, "login": gitea.login] as [String: Any]
-    }
-    return result
+    describe(profile, includingTokens: false)
   }
 
   private func credentials(_ profile: GitCredentialProfile) -> [String: Any] {
+    describe(profile, includingTokens: true)
+  }
+
+  private func describe(_ profile: GitCredentialProfile, includingTokens: Bool) -> [String: Any] {
     var result: [String: Any] = [:]
-    if let token = profile.token { result["token"] = token }
-    if let login = profile.login { result["login"] = login }
     if let name = profile.name { result["name"] = name }
     if let email = profile.email { result["email"] = email }
-    if let gitea = profile.gitea {
-      result["gitea"] = ["url": gitea.url, "host": gitea.host, "login": gitea.login, "token": gitea.token] as [String: Any]
+    result["accounts"] = profile.accountList.map { account -> [String: Any] in
+      var value: [String: Any] = ["id": account.id, "provider": account.provider, "host": account.host,
+        "login": account.login, "isDefault": account.isDefault]
+      if let url = account.url { value["url"] = url }
+      if includingTokens { value["token"] = account.token }
+      return value
     }
     return result
   }
@@ -224,31 +208,41 @@ final class GitCredentials {
     let status = SecItemCopyMatching(attributes as CFDictionary, &result)
     if status == errSecItemNotFound { return GitCredentialProfile() }
     guard status == errSecSuccess else { throw gitCredentialFailure("Could not access saved Git credentials on this device.") }
-    guard let data = result as? Data, data.count <= 8_192,
-      let profile = try? JSONDecoder().decode(GitCredentialProfile.self, from: data),
+    guard let data = result as? Data, data.count <= maximumProfileBytes,
+      var profile = try? JSONDecoder().decode(GitCredentialProfile.self, from: data),
       (profile.token == nil) == (profile.login == nil)
     else { throw gitCredentialFailure("The saved Git credentials could not be read.") }
-    if let token = profile.token {
-      guard try normalizedToken(token) == token else { throw gitCredentialFailure("The saved GitHub token could not be read.") }
-    }
-    if let login = profile.login {
-      guard AccountValidation.validGitHubLogin(login) else { throw gitCredentialFailure("The saved GitHub account could not be read.") }
-    }
-    if let gitea = profile.gitea {
-      let server = try? giteaServer(gitea.url)
-      guard server?.url == gitea.url, server?.host == gitea.host,
-        try normalizedToken(gitea.token, provider: "Gitea") == gitea.token,
-        AccountValidation.validGiteaLogin(gitea.login)
-      else { throw gitCredentialFailure("The saved Gitea account could not be read.") }
-    }
+    let migrated = profile.migrate()
+    guard profile.hasConsistentAccounts else { throw gitCredentialFailure("The saved Git accounts could not be read.") }
+    for account in profile.accountList { try validate(account) }
     if let name = profile.name { _ = try identity(name, field: "name", limit: 256) }
     if let email = profile.email { _ = try identity(email, field: "email", limit: 320) }
+    if migrated { try save(profile) }
     return profile
+  }
+
+  private func validate(_ account: GitAccountRecord) throws {
+    guard UUID(uuidString: account.id) != nil else { throw gitCredentialFailure("The saved Git accounts could not be read.") }
+    switch account.provider {
+    case "github":
+      guard account.host == "github.com", account.url == nil,
+        try normalizedToken(account.token) == account.token,
+        AccountValidation.validGitHubLogin(account.login)
+      else { throw gitCredentialFailure("The saved GitHub account could not be read.") }
+    case "gitea":
+      let server = try? giteaServer(account.url)
+      guard server?.url == account.url, server?.host == account.host,
+        try normalizedToken(account.token, provider: "Gitea") == account.token,
+        AccountValidation.validGiteaLogin(account.login)
+      else { throw gitCredentialFailure("The saved Gitea account could not be read.") }
+    default:
+      throw gitCredentialFailure("The saved Git accounts could not be read.")
+    }
   }
 
   private func save(_ profile: GitCredentialProfile) throws {
     let data = try JSONEncoder().encode(profile)
-    guard data.count <= 8_192 else { throw gitCredentialFailure("The Git credentials are too large to save.") }
+    guard data.count <= maximumProfileBytes else { throw gitCredentialFailure("The Git credentials are too large to save.") }
     let values: [String: Any] = [kSecValueData as String: data,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
     let existing = query()
