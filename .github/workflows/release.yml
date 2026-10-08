@@ -143,7 +143,7 @@ jobs:
           path: .remote-manifest
       - name: Signed App Store build
         env:
-          OXBIT_REMOTE_RUNTIME_MANIFEST: ${{ github.workspace }}/.remote-manifest/remote-runtime-manifest.json
+          TAURI_OXBIT_REMOTE_RUNTIME_MANIFEST: ${{ github.workspace }}/.remote-manifest/remote-runtime-manifest.json
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}

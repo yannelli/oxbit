@@ -29,7 +29,7 @@ pub struct Download {
     pub size: u64,
 }
 
-/// `Ok(None)` when the build had no `OXBIT_REMOTE_RUNTIME_MANIFEST`.
+/// `Ok(None)` when the build had no `TAURI_OXBIT_REMOTE_RUNTIME_MANIFEST`.
 pub fn pinned_manifest() -> Result<Option<Manifest>, String> {
     PINNED_MANIFEST
         .map(|text| parse(text, env!("CARGO_PKG_VERSION")))

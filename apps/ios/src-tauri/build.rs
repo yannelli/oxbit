@@ -1,6 +1,8 @@
 use std::{env, fs, path::PathBuf};
 
-const MANIFEST_VARIABLE: &str = "OXBIT_REMOTE_RUNTIME_MANIFEST";
+// `tauri ios build` runs cargo from the Xcode script phase with a filtered
+// environment that keeps TAURI_ variables and drops OXBIT_ ones.
+const MANIFEST_VARIABLE: &str = "TAURI_OXBIT_REMOTE_RUNTIME_MANIFEST";
 
 fn main() {
     println!("cargo:rerun-if-env-changed={MANIFEST_VARIABLE}");
