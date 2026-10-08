@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 // @ts-expect-error plain-node release script without types
-import { declareEncryption, distributeTestFlight, loadTestNotes } from "../scripts/ios/distribute-testflight.mjs";
+import { distributeTestFlight, loadTestNotes } from "../scripts/ios/distribute-testflight.mjs";
 
 function fixture() {
   const state = {
@@ -15,7 +15,6 @@ function fixture() {
     locales: [{ id: "german", attributes: { locale: "de", whatsNew: "Behalten" } }],
     members: [] as { id: string; type: string }[], reviews: [] as { attributes: { betaReviewState: string } }[],
     notify: false, clock: 0, ignoreAssignment: false, ignoreNotes: false, detailDelay: 0, reviewConflict: false,
-    encryption: false, declarations: [] as { id: string; attributes: Record<string, unknown> }[], declaredBuilds: [] as string[],
   };
   const details = () => ({ id: "detail", type: "buildBetaDetails", attributes: { externalBuildState: state.external, internalBuildState: state.internal, autoNotifyEnabled: state.notify } });
   const api = vi.fn(async (method: string, route: string, body?: any): Promise<any> => {
@@ -31,7 +30,7 @@ function fixture() {
       });
       const processingState = state.processing.length > 1 ? state.processing.shift() : state.processing[0];
       if (processingState === "absent") return { data: [] };
-      const build = { id: "build", attributes: { version: "7", processingState, expired: state.expired, usesNonExemptEncryption: state.encryption },
+      const build = { id: "build", attributes: { version: "7", processingState, expired: state.expired },
         relationships: { preReleaseVersion: { data: { id: "release" } }, buildBetaDetail: { data: { id: "detail" } } } };
       return { data: [
         { ...build, id: "wrong-number", attributes: { ...build.attributes, version: "6" } },
@@ -44,21 +43,6 @@ function fixture() {
       ] };
     }
     if (method === "GET" && resource === "/v1/builds/build/buildBetaDetail") return { data: details() };
-    if (method === "GET" && resource === "/v1/appEncryptionDeclarations") {
-      expect(url.searchParams.get("filter[app]")).toBe("app");
-      return { data: state.declarations };
-    }
-    if (method === "POST" && resource === "/v1/appEncryptionDeclarations") {
-      expect(body.data.relationships.app.data).toEqual({ type: "apps", id: "app" });
-      return { data: { id: "declared", attributes: { ...body.data.attributes, appEncryptionDeclarationState: "APPROVED" } } };
-    }
-    const declaration = /^\/v1\/appEncryptionDeclarations\/([\w-]+)\/relationships\/builds$/.exec(resource);
-    if (method === "POST" && declaration) {
-      expect(body.data).toEqual([{ type: "builds", id: "build" }]);
-      state.declaredBuilds.push(declaration[1]);
-      if (state.internal === "MISSING_EXPORT_COMPLIANCE") state.internal = "READY_FOR_BETA_TESTING";
-      return undefined;
-    }
     if (method === "GET" && resource === "/v1/builds/build/betaBuildLocalizations") return { data: state.locales };
     if (method === "POST" && resource === "/v1/betaBuildLocalizations") {
       expect(body.data.relationships.build.data).toEqual({ id: "build", type: "builds" });
@@ -221,47 +205,6 @@ describe("TestFlight internal distribution", () => {
     state.internal = "MISSING_EXPORT_COMPLIANCE";
     await expect(distributeTestFlight({ ...options, internal: true })).rejects.toThrow("MISSING_EXPORT_COMPLIANCE");
     expect(writes()).toEqual([]);
-  });
-});
-
-describe("TestFlight export compliance", () => {
-  const approved = (id: string, createdDate: string) => ({ id, attributes: { appEncryptionDeclarationState: "APPROVED", createdDate } });
-
-  it("links a non-exempt build to the newest approved declaration, then distributes", async () => {
-    const { state, options, writes } = fixture();
-    state.encryption = true;
-    state.internal = "MISSING_EXPORT_COMPLIANCE";
-    state.declarations = [approved("old", "2026-01-01T00:00:00Z"), { id: "pending", attributes: { appEncryptionDeclarationState: "IN_REVIEW", createdDate: "2026-12-01T00:00:00Z" } }, approved("new", "2026-10-01T00:00:00Z")];
-    const result = await distributeTestFlight({ ...options, internal: true });
-    expect(state.declaredBuilds).toEqual(["new"]);
-    expect(result.internalBuildState).toBe("READY_FOR_BETA_TESTING");
-    expect(writes().map(([, route]) => route)[0]).toBe("/v1/appEncryptionDeclarations/new/relationships/builds");
-  });
-
-  it("stops before other writes when no declaration is approved", async () => {
-    const { state, options, writes } = fixture();
-    state.encryption = true;
-    state.internal = "MISSING_EXPORT_COMPLIANCE";
-    state.declarations = [{ id: "pending", attributes: { appEncryptionDeclarationState: "IN_REVIEW", createdDate: "2026-10-01T00:00:00Z" } }];
-    await expect(distributeTestFlight({ ...options, internal: true })).rejects.toThrow("--declare-encryption");
-    expect(writes()).toEqual([]);
-  });
-
-  it("times out when the build stays without compliance after linking", async () => {
-    const { state, options } = fixture();
-    state.encryption = true;
-    state.external = "MISSING_EXPORT_COMPLIANCE";
-    state.declarations = [approved("only", "2026-10-01T00:00:00Z")];
-    await expect(distributeTestFlight(options)).rejects.toThrow("Timed out");
-    expect(state.declaredBuilds).toEqual(["only"]);
-    expect(state.members).toEqual([]);
-  });
-
-  it("declares standard third-party cryptography outside the French App Store", async () => {
-    const { api } = fixture();
-    const result = await declareEncryption({ api, identifier: "com.yannelli.oxbit" });
-    expect(result).toMatchObject({ id: "declared", containsProprietaryCryptography: false, containsThirdPartyCryptography: true, availableOnFrenchStore: false });
-    expect(result.appDescription).toContain("SSH");
   });
 });
 

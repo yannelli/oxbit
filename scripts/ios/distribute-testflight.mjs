@@ -17,9 +17,6 @@ export function loadTestNotes(version, buildNumber, directory = root) {
   return notes;
 }
 
-const ENCRYPTION_DESCRIPTION = "Oxbit connects to the user's own servers over SSH (russh with aws-lc) for files, Git, and remote runtimes. "
-  + "It also uses HTTPS through Apple's URLSession and OpenPGP signatures for Git commits. All algorithms are industry standard.";
-
 async function collection(api, path) {
   const entries = [];
   while (path) {
@@ -28,30 +25,6 @@ async function collection(api, path) {
     path = response.links?.next;
   }
   return entries;
-}
-
-/** Links a build that declares non-exempt encryption to the app's newest approved encryption declaration. */
-async function assignEncryptionDeclaration(api, appId, buildId) {
-  const approved = (await collection(api, `/v1/appEncryptionDeclarations?filter[app]=${appId}&limit=200`))
-    .filter((entry) => entry.attributes.appEncryptionDeclarationState === "APPROVED")
-    .sort((a, b) => String(b.attributes.createdDate).localeCompare(String(a.attributes.createdDate)));
-  if (!approved.length)
-    throw new Error("This build declares non-exempt encryption, and the app has no approved encryption declaration. Run node scripts/ios/distribute-testflight.mjs --declare-encryption once, then retry.");
-  await api("POST", `/v1/appEncryptionDeclarations/${approved[0].id}/relationships/builds`, { data: [{ type: "builds", id: buildId }] });
-  return approved[0].id;
-}
-
-/** Creates the app's encryption declaration: standard third-party algorithms, no proprietary cryptography, not on the French App Store. */
-export async function declareEncryption({ api, identifier }) {
-  const apps = await collection(api, `/v1/apps?filter[bundleId]=${encodeURIComponent(identifier)}&limit=200`);
-  const app = apps.find((entry) => entry.attributes.bundleId === identifier);
-  if (!app) throw new Error(`App Store Connect has no app for ${identifier}`);
-  const response = await api("POST", "/v1/appEncryptionDeclarations", {
-    data: { type: "appEncryptionDeclarations",
-      attributes: { appDescription: ENCRYPTION_DESCRIPTION, containsProprietaryCryptography: false, containsThirdPartyCryptography: true, availableOnFrenchStore: false },
-      relationships: { app: { data: { type: "apps", id: app.id } } } },
-  });
-  return { id: response.data.id, ...response.data.attributes };
 }
 
 export async function distributeTestFlight({
@@ -76,7 +49,6 @@ export async function distributeTestFlight({
   const deadline = now() + timeoutMs;
   let build;
   let details;
-  let declared = false;
   const waitingStates = ["PROCESSING", "IN_EXPORT_COMPLIANCE_REVIEW"];
   const stateKey = internal ? "internalBuildState" : "externalBuildState";
   while (now() < deadline) {
@@ -90,19 +62,12 @@ export async function distributeTestFlight({
     if (build?.attributes.expired) throw new Error("The uploaded TestFlight build has expired");
     const state = build?.attributes.processingState;
     details = response.included?.find((entry) => entry.type === "buildBetaDetails" && entry.id === build?.relationships?.buildBetaDetail?.data?.id);
-    const missingCompliance = details?.attributes[stateKey] === "MISSING_EXPORT_COMPLIANCE";
-    if (state === "VALID" && missingCompliance && build.attributes.usesNonExemptEncryption && !declared) {
-      log(`Assigned encryption declaration ${await assignEncryptionDeclaration(api, app.id, build.id)} to TestFlight ${version} (${buildNumber})`);
-      declared = true;
-      continue;
-    }
-    if (state === "VALID" && details && !waitingStates.includes(details.attributes[stateKey]) && !(declared && missingCompliance)) break;
+    if (state === "VALID" && details && !waitingStates.includes(details.attributes[stateKey])) break;
     if (build && state !== "PROCESSING" && state !== "VALID") throw new Error(`TestFlight processing failed: ${state}`);
     log(`Waiting for TestFlight ${version} (${buildNumber}): ${details?.attributes[stateKey] ?? state ?? "not visible"}`);
     await sleep(Math.min(pollMs, Math.max(0, deadline - now())));
   }
-  if (build?.attributes.processingState !== "VALID" || !details || waitingStates.includes(details.attributes[stateKey])
-    || (declared && details.attributes[stateKey] === "MISSING_EXPORT_COMPLIANCE"))
+  if (build?.attributes.processingState !== "VALID" || !details || waitingStates.includes(details.attributes[stateKey]))
     throw new Error("Timed out waiting for TestFlight processing");
   const buildState = details.attributes[stateKey];
   const distributable = internal
@@ -155,13 +120,8 @@ export async function distributeTestFlight({
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { values } = parseArgs({ options: { build: { type: "string" }, "check-notes": { type: "boolean" }, internal: { type: "boolean" }, "declare-encryption": { type: "boolean" } } });
+  const { values } = parseArgs({ options: { build: { type: "string" }, "check-notes": { type: "boolean" }, internal: { type: "boolean" } } });
   const { version } = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  if (values["declare-encryption"]) {
-    const { identifier } = JSON.parse(fs.readFileSync(path.join(root, "apps/ios/src-tauri/tauri.conf.json"), "utf8"));
-    console.log(JSON.stringify(await declareEncryption({ api: createAppStoreConnectApi(), identifier })));
-    process.exit(0);
-  }
   const notes = loadTestNotes(version, values.build);
   if (values["check-notes"]) console.log(notes);
   else {
