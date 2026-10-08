@@ -41,6 +41,17 @@ describe('shared document lifecycle',()=>{
     expect(other.text.toString()).toBe('saved with shared edit');
     collaboration.dispose();await fixture.documents.dispose();fixture.kernel.dispose();fixture.server.destroy();
   });
+  it('joins restored drafts without duplicating their text',async()=>{
+    const fixture=await setup();fixture.doc.replace('saved local');await fixture.documents.persist();
+    const documents=new DocumentService(fixture.filesystem,(fixture.documents as any).persistence,fixture.kernel);await documents.restore();
+    const restored=documents.get('file.ts')!;
+    expect(restored.text.toString()).toBe('saved local');
+    const collaboration=new CollaborationService({...fixture.options,documents} as FeatureOptions);await collaboration.flush();
+    expect(fixture.filesystem.shared.has('file.ts')).toBe(true);
+    expect(restored.text.toString()).toBe('saved local');
+    expect(fixture.server.getText('content').toString()).toBe('saved local');
+    collaboration.dispose();await documents.dispose();await fixture.documents.dispose();fixture.kernel.dispose();fixture.server.destroy();
+  });
   it('keeps dirty documents local when the room has unsaved shared edits',async()=>{
     const fixture=await setup();fixture.server.getText('content').insert(5,' with shared edit');fixture.doc.replace('local draft');
     const collaboration=new CollaborationService(fixture.options);await collaboration.flush();
