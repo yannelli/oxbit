@@ -13,7 +13,43 @@ afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();Socket.instances=[];});
 describe('runtime connection recovery',()=>{
   it('queries durable operation status after reconnect without repeating execution',async()=>{vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();const recovered:any[]=[];client.subscribe('operation.recovered',value=>recovered.push(value));const pending=client.request('git.commit',{message:'one commit'},{id:'commit-1'});const rejected=expect(pending).rejects.toMatchObject({code:'CONNECTION_LOST'});Socket.instances[0].close();await rejected;await vi.advanceTimersByTimeAsync(1000);expect(Socket.instances.flatMap(socket=>socket.sent).filter(message=>message.method==='git.commit')).toHaveLength(1);expect(recovered[0]).toMatchObject({id:'commit-1',status:'completed',result:{commit:'saved'}});client.dispose();});
   it('rejects oversized and buffered requests before enqueueing them',async()=>{vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();await expect(client.request('fs.write',{text:'🚀'.repeat(600000)})).rejects.toMatchObject({code:'TOO_LARGE'});Socket.instances[0].bufferedAmount=1048577;await expect(client.request('fs.list')).rejects.toMatchObject({code:'BUSY'});client.dispose();});
-  it('renews and disposes filesystem watches and rejects unsynchronized shared saves',async()=>{const listeners=new Map<string,Set<(value:any)=>void>>(),calls:string[]=[];const client:RpcClient={connected:true,request:async<T>(method:string)=>{calls.push(method);return {ok:true} as T;},subscribe(event,listener){const set=listeners.get(event)??new Set();set.add(listener);listeners.set(event,set);return()=>{set.delete(listener);};}};const files=new RuntimeFileSystem(client),watch=files.watch(()=>{});for(const listener of listeners.get('connection.change')??[])listener({state:'connected'});expect(calls.filter(method=>method==='fs.watch')).toHaveLength(2);watch.dispose();expect(calls.at(-1)).toBe('fs.unwatch');files.shared.set('file.ts',{revision:'old',savedText:'saved',update:''});await expect(files.write('file.ts','local',{expectedRevision:'old'})).rejects.toMatchObject({code:'COLLAB_UNAVAILABLE'});expect(calls).not.toContain('collab.save');});
+  it('renews and disposes filesystem watches and saves detached shared documents through fs.write',async()=>{const listeners=new Map<string,Set<(value:any)=>void>>(),calls:string[]=[];const client:RpcClient={connected:true,request:async<T>(method:string)=>{calls.push(method);return {ok:true} as T;},subscribe(event,listener){const set=listeners.get(event)??new Set();set.add(listener);listeners.set(event,set);return()=>{set.delete(listener);};}};const files=new RuntimeFileSystem(client),watch=files.watch(()=>{});for(const listener of listeners.get('connection.change')??[])listener({state:'connected'});expect(calls.filter(method=>method==='fs.watch')).toHaveLength(2);watch.dispose();expect(calls.at(-1)).toBe('fs.unwatch');files.shared.set('file.ts',{revision:'old',savedText:'saved',update:''});await files.write('file.ts','local',{expectedRevision:'old'});expect(calls.at(-1)).toBe('fs.write');expect(files.shared.has('file.ts')).toBe(false);});
+});
+
+describe('collaboration routing',()=>{
+  function fixture(){
+    const calls:{method:string;params:Record<string,unknown>}[]=[];
+    const client:RpcClient={connected:true,async request<T>(method:string,params:Record<string,unknown>={}){calls.push({method,params});if(method==='collab.join')return {update:'',revision:'room',savedText:'shared'} as T;return {path:params.path,text:'disk',revision:'disk',encoding:'utf-8',eol:'LF'} as T;},subscribe:()=>()=>{}};
+    return {calls,files:new RuntimeFileSystem(client),methods:()=>calls.map(call=>call.method)};
+  }
+  it('reads and saves through fs.read and fs.write while collaboration is off',async()=>{
+    const {files,calls,methods}=fixture();
+    expect((await files.read('a.ts')).text).toBe('disk');
+    await files.write('a.ts','next',{expectedRevision:'disk'});
+    expect(methods()).toEqual(['fs.read','fs.write']);
+    expect(calls[1]!.params).toMatchObject({path:'a.ts',text:'next',expectedRevision:'disk'});
+    expect(files.shared.size).toBe(0);
+  });
+  it('joins rooms and saves through collab.save after flushing while collaboration is on',async()=>{
+    const {files,methods}=fixture(),flush=vi.fn(async()=>{});
+    files.collaborative=true;files.beforeWrite=flush;
+    expect(await files.read('a.ts')).toMatchObject({text:'shared',revision:'room',sharedUpdate:''});
+    await files.write('a.ts','next',{expectedRevision:'room'});
+    expect(methods()).toEqual(['fs.read','collab.join','collab.save']);
+    expect(flush).toHaveBeenCalledOnce();
+  });
+  it('keeps documents saveable when collaboration is toggled',async()=>{
+    const {files,methods}=fixture();
+    await files.read('local.ts');
+    files.collaborative=true;files.beforeWrite=async()=>{};
+    await files.read('shared.ts');
+    await files.write('local.ts','next',{expectedRevision:'disk'});
+    files.collaborative=false;delete files.beforeWrite;
+    await files.write('shared.ts','next',{expectedRevision:'room'});
+    await files.read('later.ts');
+    expect(methods()).toEqual(['fs.read','fs.read','collab.join','fs.write','fs.write','fs.read']);
+    expect(files.shared.size).toBe(0);
+  });
 });
 
 describe('chunked binary reads',()=>{

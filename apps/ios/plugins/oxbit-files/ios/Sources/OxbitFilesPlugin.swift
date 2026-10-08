@@ -25,6 +25,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let runtime = RuntimeCredentials()
   private let languageServers = LanguageServers()
   private let git = GitCredentials()
+  private let signing = CommitSigning()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -51,6 +52,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func gitCredentials(_ invoke: Invoke) {
     git.handle(invoke)
+  }
+
+  @objc public func commitSigning(_ invoke: Invoke) {
+    signing.handle(invoke)
   }
 
   @objc public func pickFolder(_ invoke: Invoke) {

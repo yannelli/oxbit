@@ -158,6 +158,7 @@ async function serve(
     host,
     dataDir,
     pairingCode: setting("PAIRING_CODE", env),
+    pairingAttemptsPerMinute: setting("PAIRING_ATTEMPTS_PER_MINUTE", env) === undefined ? undefined : Number(setting("PAIRING_ATTEMPTS_PER_MINUTE", env)),
     origins: setting("ORIGINS", env)?.split(",").filter(Boolean),
     webRoot: setting("WEB_ROOT", env),
   });

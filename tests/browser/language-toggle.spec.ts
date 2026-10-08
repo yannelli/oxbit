@@ -42,6 +42,7 @@ test("turns language server features off and on for one file for the session", a
   await expect.poll(() => errors(page), { timeout: 30000 }).toBeGreaterThan(0);
   expect(await completes(page)).toBe(true);
 
+  const savedSettings = await page.evaluate(() => JSON.stringify((window as any).__oxbit.kernel.configuration.get("languageServers") ?? {}));
   await indicator(page).click();
   await expect(fileSwitch(page)).toHaveAttribute("aria-checked", "true");
   await fileSwitch(page).click();
@@ -53,7 +54,7 @@ test("turns language server features off and on for one file for the session", a
   await expect.poll(() => errors(page)).toBe(0);
   expect(await page.evaluate((path) => (window as any).__oxbit.kernel.services.get("language").diagnostics.has(path), first)).toBe(false);
   expect(await completes(page)).toBe(false);
-  expect(await page.evaluate(() => JSON.stringify((window as any).__oxbit.kernel.configuration.get("languageServers") ?? {}))).toBe("{}");
+  expect(await page.evaluate(() => JSON.stringify((window as any).__oxbit.kernel.configuration.get("languageServers") ?? {}))).toBe(savedSettings);
 
   await open(page, second);
   await expect.poll(() => errors(page), { timeout: 30000 }).toBeGreaterThan(0);

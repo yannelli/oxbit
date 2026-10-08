@@ -15,11 +15,9 @@ impl Fixture {
         let fixture = Self {
             root,
             credentials: Credentials {
-                login: None,
-                token: None,
                 name: Some("Saved User".into()),
                 email: Some("saved@example.test".into()),
-                gitea: None,
+                ..Credentials::default()
             },
         };
         fixture.run("init", json!({})).unwrap();

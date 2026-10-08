@@ -11,6 +11,7 @@ Pick Files app folders, reopen them from bookmarks, and locate the Documents dir
 - `allow-documents-path`
 - `allow-runtime-credentials`
 - `allow-git-credentials`
+- `allow-commit-signing`
 
 ## Permission Table
 
@@ -43,6 +44,32 @@ Enables the close_folder command without any pre-configured scope.
 <td>
 
 Denies the close_folder command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-commit-signing`
+
+</td>
+<td>
+
+Enables the commit_signing command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-commit-signing`
+
+</td>
+<td>
+
+Denies the commit_signing command without any pre-configured scope.
 
 </td>
 </tr>

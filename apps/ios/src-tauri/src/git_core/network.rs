@@ -101,11 +101,12 @@ pub(super) fn validate_url(ctx: &Context<'_>, url: &str) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn credentials_for(
-    credentials: &Credentials,
+/// Uses the workspace's bound account when its host matches the remote, then the host's default.
+pub(super) fn account_for<'a>(
+    credentials: &'a Credentials,
     url: &str,
     allowed: CredentialType,
-) -> std::result::Result<Cred, git2::Error> {
+) -> std::result::Result<&'a Account, git2::Error> {
     let authority = if url.len() > 4096
         || url
             .bytes()
@@ -116,36 +117,39 @@ pub(super) fn credentials_for(
     } else {
         https_authority(url).ok()
     };
-    let gitea = credentials.gitea.as_ref().filter(|gitea| {
-        gitea
-            .host
-            .as_deref()
-            .zip(authority)
-            .is_some_and(|(host, authority)| {
-                let authority = authority.strip_suffix(":443").unwrap_or(authority);
-                !host.is_empty() && host.eq_ignore_ascii_case(authority)
-            })
+    let host = authority
+        .map(|authority| authority.strip_suffix(":443").unwrap_or(authority))
+        .ok_or_else(|| {
+            git2::Error::from_str(
+                "Authentication requires an HTTPS remote and an account in Git Accounts and Commit Author",
+            )
+        })?;
+    let mut accounts = credentials.accounts.iter().filter(|account| {
+        !account.host.is_empty()
+            && account.host.eq_ignore_ascii_case(host)
+            && !account.login.is_empty()
+            && !account.token.is_empty()
     });
-    let (login, token, provider) = match (authority, gitea) {
-        (Some("github.com"), _) => (
-            credentials.login.as_deref(),
-            credentials.token.as_deref(),
-            "GitHub",
-        ),
-        (Some(_), Some(gitea)) => (gitea.login.as_deref(), gitea.token.as_deref(), "Gitea"),
-        _ => return Err(git2::Error::from_str(
-            "Authentication requires an HTTPS remote on github.com or the connected Gitea server",
-        )),
-    };
-    match (
-        login.filter(|value| !value.is_empty()),
-        token.filter(|value| !value.is_empty()),
-    ) {
-        (Some(login), Some(token)) => Cred::userpass_plaintext(login, token),
-        _ => Err(git2::Error::from_str(&format!(
-            "Connect {provider} in Git Accounts and Commit Author from the Source Control toolbar"
-        ))),
-    }
+    let bound = credentials
+        .binding
+        .as_deref()
+        .and_then(|id| accounts.clone().find(|account| account.id == id));
+    bound
+        .or_else(|| accounts.find(|account| account.is_default))
+        .ok_or_else(|| {
+            git2::Error::from_str(&format!(
+                "Add an account for {host} in Git Accounts and Commit Author from the Source Control toolbar"
+            ))
+        })
+}
+
+pub(super) fn credentials_for(
+    credentials: &Credentials,
+    url: &str,
+    allowed: CredentialType,
+) -> std::result::Result<Cred, git2::Error> {
+    let account = account_for(credentials, url, allowed)?;
+    Cred::userpass_plaintext(&account.login, &account.token)
 }
 
 fn cancelled(ctx: &Context<'_>) -> std::result::Result<(), git2::Error> {
