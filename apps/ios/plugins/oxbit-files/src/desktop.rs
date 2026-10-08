@@ -32,6 +32,14 @@ impl<R: Runtime> OxbitFiles<R> {
         Err(UNSUPPORTED)
     }
 
+    pub fn ssh_keys(&self, _request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
+    pub fn pick_files(&self, _multiple: bool) -> crate::Result<PickedFiles> {
+        Err(UNSUPPORTED)
+    }
+
     pub fn runtime_credentials(
         &self,
         _request: serde_json::Value,

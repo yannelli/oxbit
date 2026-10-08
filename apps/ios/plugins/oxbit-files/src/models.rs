@@ -21,3 +21,17 @@ pub struct Folder {
 pub struct DocumentsPath {
     pub path: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickedFile {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickedFiles {
+    pub files: Vec<PickedFile>,
+}

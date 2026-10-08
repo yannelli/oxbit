@@ -52,6 +52,19 @@ impl<R: Runtime> OxbitFiles<R> {
         self.git_credentials(serde_json::json!({ "operation": "read" }))
     }
 
+    /// Internal callers reach every operation, including `read` and the host password ones.
+    pub fn ssh_keys(&self, request: serde_json::Value) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("sshKeys", request)
+            .map_err(Into::into)
+    }
+
+    pub fn pick_files(&self, multiple: bool) -> crate::Result<PickedFiles> {
+        self.0
+            .run_mobile_plugin("pickFiles", serde_json::json!({ "multiple": multiple }))
+            .map_err(Into::into)
+    }
+
     pub fn runtime_credentials(
         &self,
         request: serde_json::Value,

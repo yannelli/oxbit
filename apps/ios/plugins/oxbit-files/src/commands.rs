@@ -3,6 +3,7 @@ use tauri::{command, AppHandle, Runtime};
 use crate::{
     git_credentials::{git_credential_metadata, validate_git_credential_request},
     models::*,
+    ssh_keys::{ssh_key_metadata, validate_ssh_key_request},
     OxbitFilesExt, Result,
 };
 
@@ -46,4 +47,21 @@ pub(crate) async fn git_credentials<R: Runtime>(
 ) -> Result<serde_json::Value> {
     validate_git_credential_request(&request)?;
     git_credential_metadata(app.oxbit_files().git_credentials(request)?)
+}
+
+#[command]
+pub(crate) async fn ssh_keys<R: Runtime>(
+    app: AppHandle<R>,
+    request: serde_json::Value,
+) -> Result<serde_json::Value> {
+    validate_ssh_key_request(&request)?;
+    ssh_key_metadata(app.oxbit_files().ssh_keys(request)?)
+}
+
+#[command]
+pub(crate) async fn pick_files<R: Runtime>(
+    app: AppHandle<R>,
+    multiple: Option<bool>,
+) -> Result<PickedFiles> {
+    app.oxbit_files().pick_files(multiple.unwrap_or(false))
 }

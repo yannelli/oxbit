@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-ssh-keys"
+description = "Enables the ssh_keys command without any pre-configured scope."
+commands.allow = ["ssh_keys"]
+
+[[permission]]
+identifier = "deny-ssh-keys"
+description = "Denies the ssh_keys command without any pre-configured scope."
+commands.deny = ["ssh_keys"]

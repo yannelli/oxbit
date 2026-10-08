@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, and list SSH key metadata.
 
 #### This default permission set includes the following:
 
@@ -11,6 +11,8 @@ Pick Files app folders, reopen them from bookmarks, and locate the Documents dir
 - `allow-documents-path`
 - `allow-runtime-credentials`
 - `allow-git-credentials`
+- `allow-ssh-keys`
+- `allow-pick-files`
 
 ## Permission Table
 
@@ -154,6 +156,32 @@ Denies the open_folder command without any pre-configured scope.
 <tr>
 <td>
 
+`oxbit-files:allow-pick-files`
+
+</td>
+<td>
+
+Enables the pick_files command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-pick-files`
+
+</td>
+<td>
+
+Denies the pick_files command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `oxbit-files:allow-pick-folder`
 
 </td>
@@ -199,6 +227,32 @@ Enables the runtime_credentials command without any pre-configured scope.
 <td>
 
 Denies the runtime_credentials command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-ssh-keys`
+
+</td>
+<td>
+
+Enables the ssh_keys command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-ssh-keys`
+
+</td>
+<td>
+
+Denies the ssh_keys command without any pre-configured scope.
 
 </td>
 </tr>
