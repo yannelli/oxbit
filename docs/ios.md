@@ -4,6 +4,8 @@ Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the Reac
 
 [Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores GitHub and Gitea tokens and the default author in Keychain.
 
+[SSH and SFTP workspaces](ios-ssh.md) open folders on a server with keys or passwords stored in the Keychain, trust-on-first-use host keys, and file upload and download.
+
 The minimum system version is iOS 26.0. The bundle identifier is `com.yannelli.oxbit`, the same App ID as the desktop app.
 
 ## Layout
@@ -143,5 +145,5 @@ upload or distribute a build.
 
 ## Not implemented
 
-- SSH tunnel: a Rust port of the local half of `apps/runtime/src/ssh.ts` on `russh`, reusing the remote runtime payload and installer.
+- SSH tunnel to a remote runtime: a Rust port of the local half of `apps/runtime/src/ssh.ts`. The `russh` session pool from [SSH and SFTP workspaces](ios-ssh.md) can carry its exec and direct-tcpip channels.
 - Touch drag and drop for editor tabs and explorer rows.
