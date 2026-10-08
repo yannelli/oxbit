@@ -133,7 +133,7 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 ## TestFlight
 
-`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to true because the SSH stack bundles russh and aws-lc; see [export compliance](release.md#export-compliance). `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
+`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; see [export compliance](release.md#export-compliance). `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
 
 Each release needs `docs/testflight/<full-package-version>.md` with iPhone and iPad
 tester instructions. The tag workflow validates that file before building, fills
