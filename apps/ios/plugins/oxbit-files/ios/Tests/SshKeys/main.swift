@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 func expect(_ value: @autoclosure () throws -> Bool, _ message: String) throws {
   guard try value() else {
@@ -52,6 +53,20 @@ let suffix = UUID().uuidString
 let store = SshKeyStore(keyService: "com.yannelli.oxbit.ssh-key.test-\(suffix)",
   passwordService: "com.yannelli.oxbit.ssh-password.test-\(suffix)")
 let first = UUID().uuidString, second = UUID().uuidString, host = UUID().uuidString
+
+/// A locked login keychain answers reads with errSecItemNotFound, so the first call is a write.
+let probe: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+  kSecAttrService as String: store.keyService, kSecAttrAccount as String: "probe"]
+let probed = SecItemAdd(probe.merging([kSecValueData as String: Data()]) { $1 } as CFDictionary, nil)
+if probed == errSecInteractionNotAllowed {
+  print("SshKeyStore tests skipped: the login keychain is locked in this session")
+  exit(0)
+}
+SecItemDelete(probe as CFDictionary)
+guard probed == errSecSuccess else {
+  FileHandle.standardError.write(Data("SshKeyStore Keychain tests failed: SecItemAdd returned \(probed)\n".utf8))
+  exit(1)
+}
 do {
   defer {
     try? store.deleteKey(first)
