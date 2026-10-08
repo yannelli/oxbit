@@ -124,7 +124,7 @@ pub async fn ios_fs_read(state: State<'_, AppState>, id: String, path: String) -
     root(&state, &id)?.read(&relative).map(Response::new)
 }
 
-fn header<'a>(request: &'a Request<'_>, name: &str) -> Result<&'a str> {
+pub(crate) fn header<'a>(request: &'a Request<'_>, name: &str) -> Result<&'a str> {
     request
         .headers()
         .get(name)
@@ -132,7 +132,7 @@ fn header<'a>(request: &'a Request<'_>, name: &str) -> Result<&'a str> {
         .ok_or_else(|| Error::invalid(format!("Missing {name} header")))
 }
 
-fn percent_decode(input: &str) -> Result<String> {
+pub(crate) fn percent_decode(input: &str) -> Result<String> {
     let bytes = input.as_bytes();
     let mut output = Vec::with_capacity(bytes.len());
     let mut index = 0;

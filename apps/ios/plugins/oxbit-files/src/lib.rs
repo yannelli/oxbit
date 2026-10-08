@@ -14,6 +14,7 @@ mod git_credentials;
 #[cfg(mobile)]
 mod mobile;
 mod models;
+mod ssh_keys;
 
 pub use commit_signing::CommitSigner;
 pub use error::{Error, Result};
@@ -44,6 +45,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::documents_path,
             commands::runtime_credentials,
             commands::git_credentials,
+            commands::ssh_keys,
+            commands::pick_files,
             commands::commit_signing,
         ])
         .setup(|app, api| {

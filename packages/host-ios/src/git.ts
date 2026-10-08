@@ -2,7 +2,14 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { RpcClient, Unsubscribe } from "@oxbit/sdk";
 import { native } from "./native.js";
 
+/** Errors from Git over SSH that the app answers with a prompt before the request runs again. */
+export const SSH_PROMPT_CODES = new Set(["HOST_KEY_UNKNOWN", "HOST_KEY_CHANGED", "SSH_KEY_REQUIRED"]);
+const MAX_PROMPTS = 3;
+/** Shows the prompt left for the root; resolves `true` to run the request again. */
+export type SshGitPromptHandler = (rootId: string) => Promise<boolean>;
+
 export class IosGitClient implements RpcClient {
+  static sshPrompt?: SshGitPromptHandler;
   private disposed = false;
   private listeners = new Map<string, Set<(params: unknown) => void>>();
   private subscription?: Promise<UnlistenFn>;
@@ -34,20 +41,32 @@ export class IosGitClient implements RpcClient {
     await this.subscription;
     if (this.disposed) throw new Error("The Git workspace is closed.");
     options?.signal?.throwIfAborted();
+    for (let prompts = 0; ; prompts++) {
+      try {
+        const result = await this.send<T>(method.slice(4), params, options?.signal);
+        if (!["status", "diff", "log", "show", "commitDiff", "stashes", "stashDiff"].includes(method.slice(4)))
+          this.emit("fs.change", {});
+        return result;
+      } catch (failure) {
+        const code = (failure as { code?: string }).code ?? "";
+        const prompt = IosGitClient.sshPrompt;
+        if (prompts >= MAX_PROMPTS || !SSH_PROMPT_CODES.has(code) || !prompt || this.disposed || options?.signal?.aborted ||
+          !(await prompt(this.id))) throw failure;
+      }
+    }
+  }
+  private async send<T>(method: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
     const requestId = crypto.randomUUID();
     const cancel = () => {
       void native.gitCancel(this.id, requestId).catch(error => this.emit("git.progress", { message: String(error) }));
     };
-    options?.signal?.addEventListener("abort", cancel, { once: true });
-    const operation = native.gitRequest<T>(this.id, requestId, method.slice(4), params);
+    signal?.addEventListener("abort", cancel, { once: true });
+    const operation = native.gitRequest<T>(this.id, requestId, method, params);
     this.pending.set(requestId, operation);
     try {
-      const result = await operation;
-      if (!["status", "diff", "log", "show", "commitDiff", "stashes", "stashDiff"].includes(method.slice(4)))
-        this.emit("fs.change", {});
-      return result;
+      return await operation;
     } finally {
-      options?.signal?.removeEventListener("abort", cancel);
+      signal?.removeEventListener("abort", cancel);
       this.pending.delete(requestId);
     }
   }

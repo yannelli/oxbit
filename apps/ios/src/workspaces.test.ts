@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   storageGet: vi.fn(), storageSet: vi.fn(), credentials: vi.fn(),
   remember: vi.fn(), recents: vi.fn(), forget: vi.fn(), connect: vi.fn(), scope: vi.fn(),
   createLanguage: vi.fn(), registerLanguage: vi.fn(), activateLanguage: vi.fn(), persistenceGet: vi.fn(),
+  sshConnect: vi.fn(),
 }));
 vi.mock("@oxbit/app-workbench", () => ({
   createWorkbenchSession: mocks.createSession,
@@ -18,6 +19,7 @@ vi.mock("@oxbit/host-ios", () => ({
     dispose = mocks.disposeGit;
   },
   IosIconPackStore: class {},
+  SshFileSystem: { connect: mocks.sshConnect },
   IosPersistence: class {
     constructor(readonly id: string) {}
     get = mocks.persistenceGet;
@@ -145,5 +147,24 @@ describe("native Git workspaces", () => {
     expect(mocks.forget).toHaveBeenCalledWith("documents:example");
     expect(mocks.forgetFolder).not.toHaveBeenCalled();
     expect(mocks.disposeFilesystem).not.toHaveBeenCalled();
+  });
+  it("opens an SFTP root without device Git or language servers and disposes it on close", async () => {
+    const filesystem = { id: "ios:remote", name: "project", root: "/srv/project", dispose: mocks.disposeFilesystem };
+    mocks.sshConnect.mockResolvedValue(filesystem);
+    const workspace = await openWorkspace({ kind: "ssh", hostId: "host-1", path: "~/project", label: "Build box" });
+    expect(mocks.sshConnect).toHaveBeenCalledWith("host-1", "~/project");
+    const options = mocks.createSession.mock.calls[0]![0];
+    expect(options).toMatchObject({ filesystem, preserveFilesystem: true });
+    expect(options.git).toBeUndefined();
+    expect(mocks.createLanguage).not.toHaveBeenCalled();
+    expect(workspace.recent).toMatchObject({ id: "ssh:remote", kind: "ssh", name: "Build box: project", hostId: "host-1", remotePath: "/srv/project" });
+    await closeWorkspace(workspace);
+    expect(mocks.disposeFilesystem).toHaveBeenCalledOnce();
+  });
+  it("closes the SFTP root when the workbench cannot start", async () => {
+    mocks.sshConnect.mockResolvedValue({ id: "ios:remote", name: "project", root: "/srv/project", dispose: mocks.disposeFilesystem });
+    mocks.createSession.mockRejectedValue(new Error("Cannot restore workspace"));
+    await expect(openWorkspace({ kind: "ssh", hostId: "host-1", path: "", label: "Box" })).rejects.toThrow("Cannot restore workspace");
+    expect(mocks.disposeFilesystem).toHaveBeenCalledOnce();
   });
 });

@@ -1,6 +1,6 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-07.
+Created: 2026-10-02. Last updated: 2026-10-08.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
@@ -92,6 +92,17 @@ The workflow writes the existing `APPLE_API_KEY_BASE64` secret to a `.p8` file a
 passes its location as `APPLE_API_KEY_PATH`, alongside `APPLE_API_KEY` and
 `APPLE_API_ISSUER`. Distribution needs no additional credentials.
 
+### Export compliance
+
+`Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false. The iOS SSH stack
+bundles russh with aws-lc, which implements industry standard algorithms outside
+the operating system. For that case Apple requires only the French encryption
+declaration, and only for App Store distribution in France, so the app is exempt
+from documentation upload. App Store Connect rejects an app encryption declaration
+that has no proprietary cryptography and no French availability. Before
+distributing on the App Store in France, upload the French declaration, set the key
+to true, and add the approved code as `ITSEncryptionExportComplianceCode`.
+
 ## Secrets
 
 | Name | Value |
@@ -135,6 +146,9 @@ Repository variable `OXBIT_UPDATER_PUBLIC_KEY` holds the updater public key.
 - [Assigning builds to beta groups](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betagroups-_id_-relationships-builds)
 - [Submitting beta app review](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betaappreviewsubmissions)
 - [Inviting external testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers)
+- [Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations)
+  and [export compliance documentation](https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption)
+- [Annual self-classification report](https://www.bis.doc.gov/index.php/policy-guidance/encryption/4-reports-and-reviews/a-annual-self-classification)
 - [Fastlane's review and group assignment order](https://github.com/fastlane/fastlane/blob/master/pilot/lib/pilot/build_manager.rb)
 
 Use the TestFlight references above when changing tester notes, external group

@@ -367,6 +367,18 @@
           "markdownDescription": "Denies the open_folder command without any pre-configured scope."
         },
         {
+          "description": "Enables the pick_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pick-files",
+          "markdownDescription": "Enables the pick_files command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pick_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pick-files",
+          "markdownDescription": "Denies the pick_files command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pick_folder command without any pre-configured scope.",
           "type": "string",
           "const": "allow-pick-folder",
@@ -391,10 +403,22 @@
           "markdownDescription": "Denies the runtime_credentials command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-commit-signing`",
+          "description": "Enables the ssh_keys command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-ssh-keys",
+          "markdownDescription": "Enables the ssh_keys command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the ssh_keys command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-ssh-keys",
+          "markdownDescription": "Denies the ssh_keys command without any pre-configured scope."
+        },
+        {
+          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, and list SSH key metadata.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-commit-signing`"
+          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, and list SSH key metadata.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`"
         }
       ]
     }

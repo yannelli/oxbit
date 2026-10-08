@@ -1,6 +1,33 @@
-export { native, toError, type NativeError, type OpenedRoot, type Folder, type WriteResult, type GitAccount, type GitCredentials, type GitCredentialRequest, GIT_ACCOUNT_KEY, type CommitSigningKey, type CommitSigningState, type CommitSigningRequest } from "./native.js";
-export { IosGitClient } from "./git.js";
-export { IosFileSystem, revisionOf } from "./filesystem.js";
+export {
+  native,
+  ssh,
+  toError,
+  type NativeError,
+  type OpenedRoot,
+  type Folder,
+  type WriteResult,
+  type GitAccount,
+  type GitCredentials,
+  type GitCredentialRequest,
+  GIT_ACCOUNT_KEY,
+  GIT_SSH_KEY,
+  type CommitSigningKey,
+  type CommitSigningState,
+  type CommitSigningRequest,
+  type SshKeyInfo,
+  type SshHost,
+  type SshHostInput,
+  type SshHostKey,
+  type SshAuth,
+  type KnownHostKey,
+  type SshConnectOutcome,
+  type GitSshPrompt,
+  type PickedFile,
+  type TransferProgress,
+  type TransferSummary,
+} from "./native.js";
+export { IosGitClient, SSH_PROMPT_CODES, type SshGitPromptHandler } from "./git.js";
+export { IosFileSystem, SshFileSystem, revisionOf } from "./filesystem.js";
 export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";
 export { IosIconPackStore } from "./icon-packs.js";
 export { IosLanguageTransport, createIosLanguageFeature, type IosLanguageServerKind } from "./language.js";

@@ -6,6 +6,8 @@ const COMMANDS: &[&str] = &[
     "documents_path",
     "runtime_credentials",
     "git_credentials",
+    "ssh_keys",
+    "pick_files",
     "commit_signing",
 ];
 

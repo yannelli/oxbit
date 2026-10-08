@@ -50,6 +50,7 @@
     "ios:adhoc": "node scripts/ios/run.mjs adhoc",
     "ios:check": "node scripts/ios/run.mjs check",
     "ios:simulator": "node scripts/ios/run.mjs simulator",
+    "ios:ssh-live": "node scripts/ios/ssh-live.mjs",
     "ios:upload": "node scripts/ios/run.mjs upload",
     "ios:icons": "node scripts/ios/render-icons.mjs",
     "ios:graphics": "node scripts/ios/render-release-assets.mjs",

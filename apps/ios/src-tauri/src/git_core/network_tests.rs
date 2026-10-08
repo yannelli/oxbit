@@ -68,6 +68,7 @@ impl Fixture {
                 )],
                 binding: None,
                 signer: None,
+                ssh: None,
             },
             cancel: AtomicBool::new(false),
             progress: RefCell::new(Vec::new()),
@@ -456,6 +457,8 @@ fn validates_repository_urls_and_confines_github_credentials() {
         "https://example.test/repo.git",
         "https://example.test:8443/repo.git",
         "https://[::1]:8443/repo.git",
+        "ssh://git@github.com/owner/repo.git",
+        "git@github.com:owner/repo.git",
     ] {
         assert!(network::validate_url(&ctx, url).is_ok(), "{url}");
     }
@@ -466,8 +469,8 @@ fn validates_repository_urls_and_confines_github_credentials() {
     assert!(network::validate_url(&ctx, &encoded_file).is_ok());
     for url in [
         "http://github.com/owner/repo.git",
-        "ssh://git@github.com/owner/repo.git",
-        "git@github.com:owner/repo.git",
+        "ssh://git:secret@github.com/owner/repo.git",
+        "git@github.com:",
         "https://octocat:token@github.com/owner/repo.git",
         "https://github.com%40example.test/repo.git",
         "https://github.com\\@example.test/repo.git",

@@ -1,7 +1,7 @@
 "$schema" = "schemas/schema.json"
 
 [default]
-description = "Pick Files app folders, reopen them from bookmarks, and locate the Documents directory."
+description = "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, and list SSH key metadata."
 permissions = [
   "allow-pick-folder",
   "allow-open-folder",
@@ -10,5 +10,7 @@ permissions = [
   "allow-documents-path",
   "allow-runtime-credentials",
   "allow-git-credentials",
+  "allow-ssh-keys",
+  "allow-pick-files",
   "allow-commit-signing",
 ]

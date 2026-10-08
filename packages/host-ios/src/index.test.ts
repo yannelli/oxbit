@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/event", () => ({
   },
 }));
 
-const { IosFileSystem, IosPersistence, revisionOf, toError, rememberWorkspace, RECENTS_LIMIT } = await import("./index.js");
+const { IosFileSystem, IosPersistence, SshFileSystem, ssh, revisionOf, toError, rememberWorkspace, RECENTS_LIMIT } = await import("./index.js");
 const root = { id: "ios:abc", root: "/tmp/root", name: "root" };
 const encoder = new TextEncoder();
 
@@ -87,6 +87,42 @@ describe("IosFileSystem", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(unlisten).toHaveBeenCalledTimes(1);
     expect(invoke).toHaveBeenCalledWith("ios_fs_unwatch", { id: "ios:abc" }, undefined);
+  });
+});
+
+describe("SshFileSystem", () => {
+  it("routes file operations to the SFTP commands and writes the raw body", async () => {
+    invoke.mockResolvedValueOnce(root);
+    const fs = await SshFileSystem.connect("host-1", "~/project");
+    expect(invoke).toHaveBeenCalledWith("ios_ssh_open_root", { hostId: "host-1", path: "~/project" }, undefined);
+    expect(fs.hostId).toBe("host-1");
+    invoke.mockResolvedValueOnce([]);
+    await fs.list("src");
+    expect(invoke).toHaveBeenLastCalledWith("ios_ssh_fs_list", { id: "ios:abc", path: "src" }, undefined);
+    invoke.mockResolvedValueOnce({ revision: "r2", size: 1 });
+    await fs.write("a.txt", "x", { expectedRevision: null });
+    const [command, body, options] = invoke.mock.calls.at(-1)!;
+    expect(command).toBe("ios_ssh_fs_write");
+    expect([...(body as Uint8Array)]).toEqual([0x78]);
+    expect(options).toEqual({ headers: { "x-oxbit-root": "ios:abc", "x-oxbit-path": "a.txt", "x-oxbit-expected": "" } });
+    await fs.rename("a.txt", "b/c.txt");
+    expect(invoke).toHaveBeenLastCalledWith("ios_ssh_fs_rename", { id: "ios:abc", path: "a.txt", to: "b/c.txt" }, undefined);
+  });
+  it("starts no native watcher and closes the SFTP root once", async () => {
+    invoke.mockResolvedValue(undefined);
+    const fs = new SshFileSystem(root, "host-1");
+    fs.watch(() => {}).dispose();
+    await Promise.all([fs.close(), fs.dispose()]);
+    expect(invoke.mock.calls.map(([command]) => command)).toEqual(["ios_ssh_close_root"]);
+    expect(listeners.size).toBe(0);
+  });
+  it("returns key metadata lists from the plugin and passes trust arguments", async () => {
+    const key = { id: "k", name: "Phone", algorithm: "ssh-ed25519", fingerprint: "SHA256:x", publicKey: "ssh-ed25519 AAAA" };
+    invoke.mockResolvedValueOnce({ keys: [key] });
+    expect(await ssh.keys()).toEqual([key]);
+    expect(invoke).toHaveBeenLastCalledWith("plugin:oxbit-files|ssh_keys", { request: { operation: "list" } }, undefined);
+    await ssh.trust("host-1", { algorithm: "ssh-ed25519", fingerprint: "SHA256:x" });
+    expect(invoke).toHaveBeenLastCalledWith("ios_ssh_trust", { hostId: "host-1", algorithm: "ssh-ed25519", fingerprint: "SHA256:x" }, undefined);
   });
 });
 

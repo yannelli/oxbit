@@ -4,6 +4,8 @@ Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the Reac
 
 [Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores the default author and any number of GitHub and Gitea accounts in Keychain. Each server has one default account, and each repository can choose its own account.
 
+[SSH and SFTP workspaces](ios-ssh.md) open folders on a server with keys or passwords stored in the Keychain, trust-on-first-use host keys, and file upload and download.
+
 The minimum system version is iOS 26.0. The bundle identifier is `com.yannelli.oxbit`, the same App ID as the desktop app.
 
 ## Layout
@@ -30,7 +32,7 @@ Install Node 24.20.0, Bun 1.4.2, Rust 1.97.1 with the `aarch64-apple-ios` and `a
 | `bun run ios:init` | Regenerate the Xcode project under `gen/apple` |
 | `bun run ios:dev "Oxbit iPhone"` | Run with the Vite dev server on a named simulator or device |
 | `bun run ios:simulator` | Debug build for the arm64 simulator at `gen/apple/build/arm64-sim/Oxbit.app` |
-| `bun run ios:check` | Frontend build, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
+| `bun run ios:check` | Frontend build, the Swift file and SSH Keychain harnesses, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
 | `bun run ios:build` | Signed App Store Connect archive and IPA |
 | `bun run ios:adhoc` | Signed ad hoc archive and IPA for the devices in the provisioning profile |
 | `bun run release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this IPA, and collect it under `release/v<version>/ios/` |
@@ -131,7 +133,7 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 ## TestFlight
 
-`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false. `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
+`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; see [export compliance](release.md#export-compliance). `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
 
 Each release needs `docs/testflight/<full-package-version>.md` with iPhone and iPad
 tester instructions. The tag workflow validates that file before building, fills
@@ -143,5 +145,5 @@ upload or distribute a build.
 
 ## Not implemented
 
-- SSH tunnel: a Rust port of the local half of `apps/runtime/src/ssh.ts` on `russh`, reusing the remote runtime payload and installer.
+- SSH tunnel to a remote runtime: a Rust port of the local half of `apps/runtime/src/ssh.ts`. The `russh` session pool from [SSH and SFTP workspaces](ios-ssh.md) can carry its exec and direct-tcpip channels.
 - Touch drag and drop for editor tabs and explorer rows.

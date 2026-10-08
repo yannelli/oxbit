@@ -6,6 +6,7 @@ import {
   IosGitClient,
   IosIconPackStore,
   IosPersistence,
+  SshFileSystem,
   createIosLanguageFeature,
   SESSION_SCOPE,
   forgetWorkspace,
@@ -28,11 +29,12 @@ export type OpenRequest =
   | { kind: "documents"; directory?: string }
   | { kind: "pick" }
   | { kind: "runtime"; url: string; code?: string }
+  | { kind: "ssh"; hostId: string; path: string; label: string }
   | { kind: "recent"; recent: RecentWorkspace };
 
 const iconPackStore = new IosIconPackStore();
 
-async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
+async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ssh" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
   if (request.kind === "documents" || (request.kind === "recent" && request.recent.kind === "documents")) {
     const directory = request.kind === "documents" ? request.directory : request.recent.directory;
     const relative = directory ? normalizePath(directory) : undefined;
@@ -70,6 +72,8 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
       throw error;
     }
   }
+  if (request.kind === "ssh") return openSsh(request);
+  if (request.kind === "recent" && request.recent.kind === "ssh") throw new Error("Connect to this server again from Connect with SSH.");
   const { path, recent } = await resolvePath(request);
   const filesystem = await IosFileSystem.open(path);
   const persistence = new IosPersistence(filesystem.id);
@@ -94,13 +98,35 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   }
 }
 
+/** The host must already be connected; the SSH connect dialog handles passwords and host keys. */
+async function openSsh(request: Extract<OpenRequest, { kind: "ssh" }>): Promise<OpenWorkspace> {
+  const filesystem = await SshFileSystem.connect(request.hostId, request.path);
+  let session: Session | undefined;
+  try {
+    session = await createWorkbenchSession({
+      filesystem, persistence: new IosPersistence(filesystem.id), protectUnload: false, preserveFilesystem: true, iconPackStore,
+    });
+    const recent: RecentWorkspace = {
+      id: "ssh:" + filesystem.id.slice(4), kind: "ssh", name: `${request.label}: ${filesystem.name}`,
+      hostId: request.hostId, remotePath: filesystem.root, lastOpened: Date.now(),
+    };
+    await rememberWorkspace(recent);
+    await native.storageSet(SESSION_SCOPE, LAST_KEY, recent.id);
+    return { recent, session };
+  } catch (error) {
+    await session?.dispose();
+    await filesystem.dispose();
+    throw error;
+  }
+}
+
 export async function closeWorkspace(workspace: OpenWorkspace) {
   await workspace.session.persist().catch(() => {});
   try {
     await workspace.git?.dispose();
     await workspace.session.dispose();
   } finally {
-    if (workspace.git) await workspace.session.filesystem.dispose?.();
+    if (workspace.git || workspace.recent.kind === "ssh") await workspace.session.filesystem.dispose?.();
     if (workspace.recent.kind === "bookmark") await native.closeFolder(workspace.recent.id).catch(() => {});
   }
 }

@@ -21,6 +21,10 @@ The VS Code and VS Code High Contrast theme packs adapt palettes from
 copyright Microsoft Corporation, under the MIT License.
 The full [license notice](packages/features/themes/LICENSE.vscode.txt) is included.
 
+## iOS SSH crates
+
+The iOS app links russh 0.64.1, russh-sftp 3.0.1, ssh-key 0.7.0-rc.11, aws-lc-rs 1.18.1, and their dependencies for SSH and SFTP. They are licensed under Apache-2.0, MIT, BSD-3-Clause, and ISC; aws-lc-sys also carries the OpenSSL and BoringSSL notices in its license file. The crate list and each crate's published license files are in [ios-ssh-crates.txt](apps/web/public/licenses/ios-ssh-crates.txt), which ships with the app.
+
 ## Managed language servers
 
 Separately installed language servers and their pinned dependency trees are documented in [managed server notices](apps/runtime/src/managed/NOTICES.md). Original package licenses are retained in the runtime cache; Intelephense is acquired directly from upstream and is not redistributed in Oxbit's open-source server bundles.

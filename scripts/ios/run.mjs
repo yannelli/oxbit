@@ -126,6 +126,13 @@ if (mode === "check") {
       "-o", binary,
     ]);
     run(binary, []);
+    const sshKeys = join(nativeTests, "ssh-keys");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/SshKeyStore.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/SshKeys/main.swift",
+      "-o", sshKeys,
+    ]);
+    run(sshKeys, []);
     const profileTests = join(nativeTests, "git-credential-profile");
     run("swiftc", [
       "apps/ios/plugins/oxbit-files/ios/Sources/GitCredentialProfile.swift",

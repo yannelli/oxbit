@@ -1,3 +1,4 @@
+use super::ssh_transport;
 use super::*;
 use git2::{
     build::{CloneLocal, RepoBuilder},
@@ -8,7 +9,7 @@ use git2::{
 fn https_authority(url: &str) -> Result<&str> {
     let remainder = url
         .strip_prefix("https://")
-        .ok_or_else(|| Error::invalid("Use an HTTPS or file repository URL"))?;
+        .ok_or_else(|| Error::invalid("Use an HTTPS, SSH, or file repository URL"))?;
     let authority = remainder.split(['/', '?', '#']).next().unwrap_or("");
     if authority.is_empty() || authority.contains(['@', '%', '\\']) {
         return Err(Error::invalid(
@@ -51,7 +52,7 @@ fn decode_file_path(url: &str) -> Result<String> {
     let path = url
         .strip_prefix("file://")
         .filter(|path| path.starts_with('/'))
-        .ok_or_else(|| Error::invalid("Use an HTTPS or file repository URL"))?;
+        .ok_or_else(|| Error::invalid("Use an HTTPS, SSH, or file repository URL"))?;
     if path.contains(['?', '#']) {
         return Err(Error::invalid("Invalid file repository URL"));
     }
@@ -84,10 +85,14 @@ pub(super) fn validate_url(ctx: &Context<'_>, url: &str) -> Result<()> {
             .bytes()
             .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
     {
-        return Err(Error::invalid("Use an HTTPS or file repository URL"));
+        return Err(Error::invalid("Use an HTTPS, SSH, or file repository URL"));
     }
     if url.starts_with("https://") {
         https_authority(url)?;
+        return Ok(());
+    }
+    if ssh_transport::is_ssh_url(url) {
+        ssh_transport::parse_ssh_url(url)?;
         return Ok(());
     }
     let path = decode_file_path(url)?;

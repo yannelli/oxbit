@@ -101,6 +101,26 @@ describe("IosGitClient", () => {
     expect(unlisten).toHaveBeenCalledTimes(1);
     await expect(git.request("git.status")).rejects.toThrow(/closed/);
   });
+  it("runs a request again after the SSH prompt handler accepts, and stops when it declines", async () => {
+    const prompt = vi.fn<(rootId: string) => Promise<boolean>>().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    IosGitClient.sshPrompt = prompt;
+    try {
+      invoke.mockRejectedValueOnce({ code: "HOST_KEY_UNKNOWN", message: "Confirm the host key for github.com." })
+        .mockResolvedValueOnce({ ok: true });
+      expect(await client().request("git.fetch")).toEqual({ ok: true });
+      expect(prompt).toHaveBeenCalledWith("ios:repository");
+      const ids = invoke.mock.calls.map(([, args]) => (args as { requestId: string }).requestId);
+      expect(new Set(ids).size).toBe(2);
+
+      invoke.mockRejectedValueOnce({ code: "SSH_KEY_REQUIRED", message: "Choose an SSH key for git@github.com." });
+      await expect(client().request("git.push")).rejects.toMatchObject({ code: "SSH_KEY_REQUIRED" });
+      invoke.mockRejectedValueOnce({ code: "GIT_FAILED", message: "Remote rejected the push" });
+      await expect(client().request("git.push")).rejects.toMatchObject({ code: "GIT_FAILED" });
+      expect(prompt).toHaveBeenCalledTimes(2);
+    } finally {
+      IosGitClient.sshPrompt = undefined;
+    }
+  });
 });
 
 describe("Git account bridge", () => {

@@ -1,14 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
 import { installBridge } from "./bridge.js";
+import { installSshBridge } from "./ssh-bridge.js";
 
 const dialogs = [
   { button: "Connect Runtime…", dialog: "Runtime Connection" },
   { button: "Clone Repository…", dialog: "Clone Repository" },
   { button: "Git Accounts and Commit Author…", dialog: "Git Accounts and Commit Author" },
+  { button: "Connect with SSH…", dialog: "Connect with SSH" },
+  { button: "SSH Hosts and Keys…", dialog: "SSH Hosts and Keys" },
 ];
 
 async function openDocuments(page: Page) {
   await installBridge(page, { repository: true });
+  await installSshBridge(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Oxbit Files app" }).click();
   await expect(page.locator(".workspace-title")).toHaveText("Oxbit");
