@@ -21,6 +21,9 @@ mod operations;
 mod security_tests;
 #[cfg(test)]
 mod signing_tests;
+pub mod ssh_transport;
+#[cfg(test)]
+mod ssh_transport_tests;
 mod status;
 #[cfg(test)]
 mod tests;
@@ -38,6 +41,9 @@ pub struct Credentials {
     pub binding: Option<String>,
     #[serde(skip)]
     pub signer: Option<tauri_plugin_oxbit_files::CommitSigner>,
+    /// Opens SSH exec channels for `ssh://` and scp-style remotes.
+    #[serde(skip)]
+    pub ssh: Option<std::sync::Arc<dyn ssh_transport::SshConnector>>,
 }
 
 #[derive(Default, Deserialize)]
@@ -75,6 +81,19 @@ struct Context<'a> {
 }
 
 pub fn dispatch(
+    root: &Root,
+    method: &str,
+    params: &Value,
+    credentials: &Credentials,
+    cancel: &AtomicBool,
+    progress: &dyn Fn(&str),
+) -> Result<Value> {
+    ssh_transport::scoped(credentials.ssh.clone(), || {
+        run(root, method, params, credentials, cancel, progress)
+    })
+}
+
+fn run(
     root: &Root,
     method: &str,
     params: &Value,
@@ -146,7 +165,7 @@ impl Context<'_> {
             Err(_) if self.cancel.load(Ordering::Relaxed) => {
                 Err(Error::new("CANCELLED", "Operation was cancelled"))
             }
-            Err(error) => Err(git_error(error)),
+            Err(error) => Err(ssh_transport::take_failure().unwrap_or_else(|| git_error(error))),
         }
     }
 

@@ -34,7 +34,7 @@ try {
   docker("exec", name, "sh", "-c",
     "cp /test-key /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys && " +
     `echo 'root:${password}' | chpasswd && /usr/sbin/sshd -p 2222 -o PasswordAuthentication=yes -o UsePAM=no -o PermitRootLogin=yes`);
-  run("cargo", ["test", "--locked", "--lib", "ssh::live_tests", "--", "--ignored", "--nocapture"], {
+  run("cargo", ["test", "--locked", "--lib", "ssh::live_", "--", "--ignored", "--nocapture", "--test-threads=1"], {
     cwd: crate,
     env: {
       ...process.env,

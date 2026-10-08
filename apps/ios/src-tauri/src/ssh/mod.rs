@@ -1,11 +1,16 @@
 //! Built-in SSH: saved hosts, Keychain keys, trust-on-first-use host keys, pooled connections,
-//! SFTP workspaces, and file transfers.
+//! SFTP workspaces, file transfers, and Git over SSH.
 pub mod commands;
 pub mod connect;
 pub mod fs_commands;
+pub mod git;
+pub mod git_commands;
+mod git_stream;
 pub mod hosts;
 pub mod keys;
 pub mod known_hosts;
+#[cfg(test)]
+mod live_git_tests;
 #[cfg(test)]
 mod live_tests;
 pub mod session;
@@ -27,6 +32,8 @@ pub struct Ssh {
     pub pool: session::Pool,
     pub transfers: transfer::Transfers,
     roots: Mutex<HashMap<String, RemoteRoot>>,
+    /// The last Git over SSH prompt per workspace root, read by the UI after a failed request.
+    pub git_prompts: Mutex<HashMap<String, git::Prompt>>,
 }
 
 pub fn root_id(host_id: &str, path: &str) -> String {
@@ -47,6 +54,7 @@ impl Ssh {
             known,
             transfers: transfer::Transfers::default(),
             roots: Mutex::new(HashMap::new()),
+            git_prompts: Mutex::new(HashMap::new()),
         }
     }
 

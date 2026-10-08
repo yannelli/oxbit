@@ -2,11 +2,13 @@ use crate::{
     fs_core::{Error, Result},
     git_core,
     git_requests::{safe_output, validate_request, validate_request_id},
+    ssh::git::{GitConnector, GIT_SSH_KEY},
     AppState,
 };
 use serde::Serialize;
-use serde_json::Value;
-use tauri::{AppHandle, Emitter, State};
+use serde_json::{json, Value};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_oxbit_files::OxbitFilesExt;
 
 /// Workspace storage key for the account ID that Git Accounts and Commit Author binds to the root.
@@ -43,6 +45,15 @@ pub async fn ios_git_request(
         .storage
         .get(&root.id, GIT_ACCOUNT_KEY)?
         .and_then(|value| value.as_str().map(str::to_owned));
+    let connector = if matches!(
+        method.strip_prefix("git.").unwrap_or(&method),
+        "clone" | "fetch" | "pull" | "push" | "publish"
+    ) {
+        state.ssh.git_prompts.lock().unwrap().remove(&root.id);
+        Some(Arc::new(ssh_connector(&app, &state, &root.id, &operation)?))
+    } else {
+        None
+    };
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = operation.lock();
         if operation.is_cancelled() {
@@ -55,6 +66,9 @@ pub async fn ios_git_request(
         let mut credentials: git_core::Credentials = serde_json::from_value(response)
             .map_err(|_| Error::new("AUTH", "Invalid native Git credentials"))?;
         credentials.binding = binding;
+        credentials.ssh = connector
+            .clone()
+            .map(|connector| connector as Arc<dyn git_core::ssh_transport::SshConnector>);
         if git_core::creates_commit(&method) {
             credentials.signer = app
                 .oxbit_files()
@@ -77,15 +91,24 @@ pub async fn ios_git_request(
                 );
             }
         };
-        git_core::dispatch(
+        let result = git_core::dispatch(
             &root,
             &method,
             &params,
             &credentials,
             operation.cancellation(),
             &progress,
-        )
-        .map_err(|error| {
+        );
+        if let Some(prompt) = connector.and_then(|connector| connector.take_prompt()) {
+            let state = app.state::<AppState>();
+            state
+                .ssh
+                .git_prompts
+                .lock()
+                .unwrap()
+                .insert(root.id.clone(), prompt);
+        }
+        result.map_err(|error| {
             Error::new(
                 error.code,
                 safe_output(&error.message, &credentials.tokens()),
@@ -105,4 +128,39 @@ pub fn ios_git_cancel(state: State<'_, AppState>, id: String, request_id: String
         .map_err(|_| Error::new("IO", "Workspace roots are unavailable"))?;
     roots.get(&id)?;
     state.git.cancel(&id, &request_id)
+}
+
+/// Reads hosts and the repository's key binding now; private keys load only when a remote needs one.
+fn ssh_connector(
+    app: &AppHandle,
+    state: &AppState,
+    root_id: &str,
+    operation: &crate::git_operations::Operation,
+) -> Result<GitConnector> {
+    let binding = state
+        .storage
+        .get(root_id, GIT_SSH_KEY)?
+        .and_then(|value| value.as_str().map(str::to_owned));
+    let keychain = app.clone();
+    Ok(GitConnector {
+        runtime: tokio::runtime::Handle::current(),
+        known: state.ssh.known.clone(),
+        hosts: state.ssh.hosts.list()?,
+        binding,
+        private_key: Box::new(move |id| {
+            keychain
+                .oxbit_files()
+                .ssh_keys(json!({ "operation": "read", "id": id }))
+                .ok()
+                .and_then(|saved| saved.get("privateKey")?.as_str().map(str::to_owned))
+                .ok_or_else(|| {
+                    Error::new(
+                        "KEY_INVALID",
+                        "The SSH key for this remote is no longer on this device.",
+                    )
+                })
+        }),
+        cancel: operation.cancel_flag(),
+        prompt: Mutex::new(None),
+    })
 }

@@ -14,12 +14,12 @@ use std::{
     time::Duration,
 };
 
-fn env(name: &str) -> String {
+pub(super) fn env(name: &str) -> String {
     std::env::var(name)
         .unwrap_or_else(|_| panic!("{name} is required; run scripts/ios/ssh-live.mjs"))
 }
 
-fn docker(args: &[&str]) -> String {
+pub(super) fn docker(args: &[&str]) -> String {
     let output = Command::new("docker").args(args).output().unwrap();
     assert!(
         output.status.success(),
@@ -29,11 +29,11 @@ fn docker(args: &[&str]) -> String {
     String::from_utf8(output.stdout).unwrap().trim().to_string()
 }
 
-fn exec(container: &str, script: &str) -> String {
+pub(super) fn exec(container: &str, script: &str) -> String {
     docker(&["exec", container, "sh", "-c", script])
 }
 
-fn host_fingerprint(container: &str) -> String {
+pub(super) fn host_fingerprint(container: &str) -> String {
     exec(
         container,
         "ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub",

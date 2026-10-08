@@ -1,5 +1,5 @@
 //! Opens one authenticated SSH connection: TCP, host key check against the known hosts,
-//! public key or password authentication, then the SFTP subsystem.
+//! public key or password authentication, then the SFTP subsystem or a caller's own channel.
 use super::known_hosts::{authority, KnownHosts, KnownKey, Verdict};
 use crate::fs_core::{Error, Result};
 use russh::{
@@ -130,7 +130,7 @@ fn config(known: &[KnownKey]) -> Arc<client::Config> {
     })
 }
 
-fn failed(target: &Target, error: impl std::fmt::Display) -> Error {
+pub(super) fn failed(target: &Target, error: impl std::fmt::Display) -> Error {
     Error::new(
         "CONNECT_FAILED",
         format!(
@@ -146,6 +146,35 @@ pub async fn establish(
     target: &Target,
     credential: &Credential,
 ) -> Result<std::result::Result<Connection, Outcome>> {
+    let handle = match authenticate(known, target, credential).await? {
+        Ok(handle) => handle,
+        Err(outcome) => return Ok(Err(outcome)),
+    };
+    let channel = handle
+        .channel_open_session()
+        .await
+        .map_err(|error| failed(target, error))?;
+    channel
+        .request_subsystem(true, "sftp")
+        .await
+        .map_err(|error| failed(target, error))?;
+    let sftp = SftpSession::new(channel.into_stream())
+        .await
+        .map_err(|error| failed(target, format!("SFTP is unavailable ({error})")))?;
+    sftp.set_timeout(30);
+    let home = sftp
+        .canonicalize(".")
+        .await
+        .map_err(|error| failed(target, error))?;
+    Ok(Ok(Connection { handle, sftp, home }))
+}
+
+/// Connects, checks the host key, and authenticates, without opening a channel.
+pub async fn authenticate(
+    known: Arc<KnownHosts>,
+    target: &Target,
+    credential: &Credential,
+) -> Result<std::result::Result<Handle<Client>, Outcome>> {
     let seen: Seen = Arc::new(Mutex::new(None));
     let client = Client {
         known: known.clone(),
@@ -199,21 +228,5 @@ pub async fn establish(
             ),
         ));
     }
-    let channel = handle
-        .channel_open_session()
-        .await
-        .map_err(|error| failed(target, error))?;
-    channel
-        .request_subsystem(true, "sftp")
-        .await
-        .map_err(|error| failed(target, error))?;
-    let sftp = SftpSession::new(channel.into_stream())
-        .await
-        .map_err(|error| failed(target, format!("SFTP is unavailable ({error})")))?;
-    sftp.set_timeout(30);
-    let home = sftp
-        .canonicalize(".")
-        .await
-        .map_err(|error| failed(target, error))?;
-    Ok(Ok(Connection { handle, sftp, home }))
+    Ok(Ok(handle))
 }

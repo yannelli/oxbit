@@ -28,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_oxbit_files::init())
         .setup(|app| {
+            git_core::ssh_transport::register().map_err(|error| error.message)?;
             let directory = app.path().app_data_dir()?;
             let ssh = ssh::Ssh::new(&directory.join("ssh"));
             app.manage(AppState {
@@ -70,6 +71,9 @@ pub fn run() {
             ssh::commands::ios_ssh_trust,
             ssh::commands::ios_ssh_forget_host_key,
             ssh::commands::ios_ssh_disconnect,
+            ssh::git_commands::ios_ssh_git_prompt,
+            ssh::git_commands::ios_ssh_git_trust,
+            ssh::git_commands::ios_ssh_git_forget_host_key,
             ssh::fs_commands::ios_ssh_open_root,
             ssh::fs_commands::ios_ssh_close_root,
             ssh::fs_commands::ios_ssh_fs_list,
