@@ -60,7 +60,7 @@ for (const [width, height] of [[320, 852], [393, 852], [1280, 800]]) {
 
 test("Git Accounts appears in Settings only while git.account is available", async ({ page }) => {
   await openSettings(page, 1280, 800);
-  const button = page.getByRole("button", { name: "Git Accounts…" });
+  const button = page.getByRole("button", { name: "Git Accounts and Commit Author…" });
   await expect(button).toHaveCount(0);
   await page.evaluate(() => {
     const app = (window as any).__oxbit;

@@ -82,7 +82,7 @@ For isolated hosts/tests, `OXBIT_SETTINGS_FILE` overrides the user settings path
 
 The header has three rows: the title with a Keyboard Shortcuts button, the search box, and the filters. The filters are a User/Workspace segmented control, the language override select, and a Modified toggle chip. All header controls share one height: 30px on desktop and tablet, 44px below 600px width. Below 600px the header scrolls with the list, and while the software keyboard is open only the search box stays in the header.
 
-The All Settings and Source Control categories show a Git Accounts… button when the `git.account` command is registered and enabled. iOS registers it; desktop and web hide the button.
+The All Settings and Source Control categories show a Git Accounts and Commit Author… button when the `git.account` command is registered and enabled. iOS registers it; desktop and web hide the button.
 
 ## Verification
 

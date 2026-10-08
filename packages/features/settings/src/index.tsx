@@ -112,7 +112,7 @@ export function Settings({
         </nav>
         <div className="settings-list">
           {!query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
-          {!query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts…")}</button>}
+          {!query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts and Commit Author…")}</button>}
           {selected.map((s) => (
             <SettingRow
               key={`${s.id}:${scope}:${language}`}
