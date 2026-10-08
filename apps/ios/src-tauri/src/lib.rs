@@ -5,6 +5,7 @@ mod git_host;
 mod git_operations;
 mod git_requests;
 mod icon_packs;
+mod ssh;
 mod storage;
 mod watch;
 
