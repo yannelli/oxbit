@@ -969,9 +969,14 @@ export class LanguageService {
                 textDocument: { uri: this.uri(path), version },
                 contentChanges: [{ text: doc.text.toString() }],
               };
-        if (this.transport instanceof RuntimeLanguageTransport)
-          await this.o.runtime!.request("lsp.notify", { method, params, ...this.transport.scope });
-        else {
+        if (this.transport instanceof RuntimeLanguageTransport) {
+          const scope = this.transport.scope;
+          // Leaving a shared room closes the runtime's copy of the document, so reopen it from this client.
+          await this.o.runtime!.request("lsp.notify", { method, params, ...scope }).catch((error: { code?: string }) => {
+            if (error?.code !== "NOT_OPEN") throw error;
+            return this.o.runtime!.request("lsp.notify", { method: "textDocument/didOpen", params: { textDocument: { uri: this.uri(path), version, languageId, text: doc.text.toString() } }, ...scope });
+          });
+        } else {
           const sync = synchronization(this.effective(path));
           if (previous === undefined ? sync.openClose : sync.change) {
             if (previous !== undefined && sync.change === 2) (params as any).contentChanges = [incrementalChange(this.syncedText.get(path) ?? "", doc.text.toString())];

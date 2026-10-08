@@ -684,3 +684,53 @@ describe("authenticated runtime with real services", () => {
     expect(await client.request("terminal.list")).toEqual([]);
   }, 20000);
 });
+
+describe("pairing rate limit", () => {
+  async function start(pairingAttemptsPerMinute?: number) {
+    const directory = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-pairing-"));
+    await fs.mkdir(path.join(directory, "workspace"));
+    const runtime = await createRuntime({
+      root: path.join(directory, "workspace"),
+      tasksHome: directory,
+      port: 0,
+      dataDir: path.join(directory, "state"),
+      projectsDir: path.join(directory, "projects"),
+      settingsFile: path.join(directory, "settings.json"),
+      pairingCode: "rate-limit-code",
+      pairingAttemptsPerMinute,
+    });
+    const pair = async (code: string) =>
+      (await fetch(`http://127.0.0.1:${runtime.port}/api/pair`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      })).status;
+    const close = async () => {
+      await runtime.close();
+      await fs.rm(directory, { recursive: true, force: true });
+    };
+    return { pair, close };
+  }
+  it("accepts 10 attempts per minute by default", async () => {
+    const { pair, close } = await start();
+    try {
+      const statuses = [];
+      for (let attempt = 0; attempt < 11; attempt++) statuses.push(await pair("rate-limit-code"));
+      expect(statuses).toEqual([...Array(10).fill(200), 429]);
+    } finally {
+      await close();
+    }
+  });
+  it("applies a configured limit and still validates the pairing code", async () => {
+    const { pair, close } = await start(3);
+    try {
+      expect([await pair("wrong-code-value"), await pair("rate-limit-code"), await pair("rate-limit-code"), await pair("rate-limit-code")])
+        .toEqual([401, 200, 200, 429]);
+    } finally {
+      await close();
+    }
+  });
+  it("rejects a limit that is not a positive whole number", async () => {
+    await expect(start(0)).rejects.toThrow("Pairing attempts per minute");
+  });
+});

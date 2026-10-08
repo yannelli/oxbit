@@ -56,6 +56,9 @@ test("custom selects, styled checkboxes, presence spacing and fold alignment", a
   await channel.press("Tab");
   await expect(channel).toHaveAttribute("aria-expanded", "false");
 
+  await page.evaluate(() =>
+    (window as any).__oxbit.kernel.extensions.activate("oxbit.collaboration"),
+  );
   await surface(page, "collaboration");
   const heading = await page.locator(".presence-heading").boundingBox();
   const rename = await page

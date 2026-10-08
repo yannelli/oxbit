@@ -5,6 +5,7 @@ import * as Y from "yjs";
 import {
   encodeAwarenessUpdate,
   applyAwarenessUpdate,
+  removeAwarenessStates,
 } from "y-protocols/awareness";
 import { REMOTE_ORIGIN } from "@oxbit/documents";
 import type { Extension, FeatureOptions } from "@oxbit/sdk";
@@ -16,6 +17,14 @@ const encode = (bytes: Uint8Array) => {
 };
 const decode = (text: string) =>
   Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+export const COLLABORATION_FEATURE_ID = "oxbit.collaboration";
+interface Room {
+  update: string;
+  revision: string | null;
+  savedText: string;
+  awareness?: string;
+  conflict?: boolean;
+}
 export class CollaborationService {
   private attached = new Map<
     string,
@@ -24,6 +33,7 @@ export class CollaborationService {
   private offs: (() => void)[] = [];
   private chain = Promise.resolve();
   private resynchronizing?: Promise<void>;
+  private joining = new Map<string, Promise<void>>();
   private disposed = false;
   private listeners = new Set<() => void>();
   following?: number;
@@ -34,6 +44,10 @@ export class CollaborationService {
     this.offs.push(
       o.kernel.events.on("document.open", ({ path }) => this.attach(path))
         .dispose,
+      o.kernel.events.on("document.save", ({ id }) => {
+        const doc = [...o.documents.documents.values()].find((doc) => doc.id === id);
+        if (doc) void this.share(doc.path);
+      }).dispose,
       o.kernel.events.on("document.close", () => { for (const [path, item] of this.attached) if (!o.documents.get(path)) { item.dispose(); this.attached.delete(path); (o.filesystem as any).shared?.delete(path); if (o.runtime?.connected) void o.runtime.request("collab.leave", {path}).catch(() => {}); } }).dispose,
       o.runtime.subscribe("collab.update", (p) => {
         const item = this.attached.get(p.path);
@@ -80,13 +94,63 @@ export class CollaborationService {
         this.state = p.state;
         this.changed();
         if (p.state === "connected")
-          void this.resync().catch((e) =>
+          void this.resync().then(() => this.shareOpen()).catch((e) =>
             o.workbench.notify(String(e), "error"),
           );
       }),
     );
     for (const doc of o.documents.documents.values()) this.attach(doc.path);
+    (o.filesystem as any).collaborative = true;
     (o.filesystem as any).beforeWrite = () => this.flush();
+    this.shareOpen();
+  }
+  private shareOpen() {
+    for (const doc of this.o.documents.documents.values()) void this.share(doc.path);
+  }
+  // A document opened while collaboration was off has a Yjs history independent of the room, so after
+  // merging the room state its text is replaced with one side's text to drop the duplicated content.
+  share(path: string): Promise<void> {
+    const files = this.o.filesystem as any;
+    if (this.disposed || !this.o.runtime?.connected || !files.shared || files.shared.has(path)) return Promise.resolve();
+    const pending = this.joining.get(path) ?? this.join(path).finally(() => this.joining.delete(path));
+    this.joining.set(path, pending);
+    return pending;
+  }
+  private async join(path: string) {
+    const runtime = this.o.runtime!, files = this.o.filesystem as any;
+    let room: Room;
+    try {
+      room = await runtime.request<Room>("collab.join", { path });
+    } catch (error) {
+      if (!["FORBIDDEN", "CAPABILITY_DENIED", "PERMISSION_DENIED"].includes((error as { code?: string }).code ?? ""))
+        this.o.workbench.notify(String(error), "error");
+      return;
+    }
+    const doc = this.o.documents.get(path);
+    const remote = new Y.Doc();
+    Y.applyUpdate(remote, decode(room.update));
+    const roomText = remote.getText("content").toString();
+    remote.destroy();
+    const dirty = doc?.dirty ?? false;
+    const adoptable = doc && !this.disposed && !files.shared.has(path) && !room.conflict &&
+      (!dirty || (room.revision === doc.savedRevision && roomText === room.savedText));
+    if (!adoptable) {
+      if (!files.shared.has(path)) await runtime.request("collab.leave", { path }).catch(() => {});
+      return;
+    }
+    const text = dirty ? doc.text.toString() : roomText;
+    files.shared.set(path, room);
+    Y.applyUpdate(doc.ydoc, decode(room.update), REMOTE_ORIGIN);
+    doc.replace(text, REMOTE_ORIGIN);
+    if (!dirty && room.revision)
+      this.o.documents.markSaved(path, { path, text: room.savedText, revision: room.revision, encoding: doc.savedEncoding, eol: doc.savedEol });
+    this.attach(path);
+    const item = this.attached.get(path);
+    if (!item) return;
+    const generation = item.generation;
+    await runtime.request("collab.update", { path, update: encode(Y.encodeStateAsUpdate(doc.ydoc)) });
+    item.synced = Math.max(item.synced, generation);
+    item.pending = item.synced < item.generation;
   }
   private changed() {
     for (const fn of this.listeners) fn();
@@ -175,9 +239,10 @@ export class CollaborationService {
       generation: doc.dirty ? 1 : 0,
       synced: 0,
       dispose: () => {
-        doc.awareness.setLocalState(null);
         doc.ydoc.off("update", update);
         doc.awareness.off("update", awareness);
+        doc.awareness.setLocalState(null);
+        removeAwarenessStates(doc.awareness, [...doc.awareness.getStates().keys()], REMOTE_ORIGIN);
       },
     });
     void this.o.runtime
@@ -195,6 +260,7 @@ export class CollaborationService {
     if (!this.o.runtime?.connected)
       throw new Error("Shared file save requires a runtime connection");
     await this.resynchronizing;
+    await Promise.all(this.joining.values());
     await this.chain;
     for (const [path, item] of this.attached) {
       if (item.pending) {
@@ -263,14 +329,19 @@ export class CollaborationService {
       /* A participant can close a document while a selection is arriving. */
     }
   }
+  /** Leaves every room; open documents stay with their text and save through fs.write against their last saved revision. */
   dispose() {
     this.disposed = true;
-    for (const [path] of this.attached) if (this.o.runtime?.connected) void this.o.runtime.request("collab.leave", {path}).catch(() => {});
     for (const off of this.offs) off();
     for (const item of this.attached.values()) item.dispose();
     this.attached.clear();
     this.listeners.clear();
-    delete (this.o.filesystem as any).beforeWrite;
+    if (!this.o.runtime) return;
+    const files = this.o.filesystem as any;
+    for (const path of files.shared?.keys() ?? []) if (this.o.runtime.connected) void this.o.runtime.request("collab.leave", {path}).catch(() => {});
+    files.shared?.clear();
+    files.collaborative = false;
+    delete files.beforeWrite;
   }
 }
 export function createFeature(o: FeatureOptions): Extension {
@@ -346,10 +417,12 @@ export function createFeature(o: FeatureOptions): Extension {
   return {
     manifest: {
       manifestVersion: 1,
-      id: "oxbit.collaboration",
+      id: COLLABORATION_FEATURE_ID,
       name: "Collaboration",
       version: "1.0.0",
       sdk: "^1.0.0",
+      description: "Shares runtime documents and presence with other paired sessions.",
+      enabledByDefault: false,
       environments: ["browser", "embedded"],
       activation: ["*"],
       capabilities: ["collaboration"],

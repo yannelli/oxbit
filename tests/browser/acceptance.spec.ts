@@ -24,6 +24,10 @@ const runtime = async (page: Page) => {
       (window as any).__oxbit.runtime?.connected,
   );
 };
+const enableCollaboration = (page: Page) =>
+  page.evaluate(() =>
+    (window as any).__oxbit.kernel.extensions.activate("oxbit.collaboration"),
+  );
 const open = async (page: Page, path: string) => {
   await page.evaluate(async (path) => {
     await (window as any).__oxbit.workbench.openFile(path, { preview: false });
@@ -217,7 +221,6 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
   expect(await text(page, "acceptance.ts")).toContain("recovery draft");
   await page.evaluate(async () => {
     await (window as any).__oxbit.runtime.connect();
-    await (window as any).__oxbit.kernel.services.get("collaboration").resync();
     await (window as any).__oxbit.documents.save("acceptance.ts");
   });
   expect(
@@ -230,6 +233,46 @@ test("runtime filesystem, revision checked save, refresh and failed save recover
         ).text,
     ),
   ).toContain("recovery draft");
+});
+
+test("runtime files save with collaboration off and stay saveable when it is toggled", async ({
+  page,
+}) => {
+  await runtime(page);
+  const participants = page.locator(".statusbar").getByRole("button", { name: "Participants" });
+  const disk = () =>
+    page.evaluate(async () => (await (window as any).__oxbit.runtime.request("fs.read", { path: "collab-off.ts" })).text);
+  const save = async () => {
+    await page.keyboard.press("Control+s");
+    await expect.poll(() => page.evaluate(() => (window as any).__oxbit.documents.get("collab-off.ts").dirty)).toBe(false);
+  };
+  const shared = () => page.evaluate(() => (window as any).__oxbit.filesystem.shared.has("collab-off.ts"));
+  await page.evaluate(() =>
+    (window as any).__oxbit.runtime.request("fs.write", { path: "collab-off.ts", text: "export const value = 1;\n", expectedRevision: null }),
+  );
+  await expect(participants).toHaveCount(0);
+  await open(page, "collab-off.ts");
+  expect(await shared()).toBe(false);
+  await page.locator(".cm-content").first().click();
+  await page.keyboard.press("ControlOrMeta+End");
+  await page.keyboard.type("// saved without collaboration\n");
+  await save();
+  expect(await disk()).toContain("// saved without collaboration");
+  await page.evaluate(() => (window as any).__oxbit.kernel.extensions.activate("oxbit.collaboration"));
+  await expect(participants).toHaveCount(1);
+  await expect.poll(shared).toBe(true);
+  expect((await disk()).match(/value = 1/g)).toHaveLength(1);
+  await page.keyboard.type("// saved while shared\n");
+  await save();
+  expect(await disk()).toContain("// saved while shared");
+  await page.keyboard.type("// saved after disabling\n");
+  await page.evaluate(() => (window as any).__oxbit.kernel.extensions.disable("oxbit.collaboration"));
+  await expect(participants).toHaveCount(0);
+  expect(await shared()).toBe(false);
+  await save();
+  const text = await disk();
+  expect(text).toContain("// saved after disabling");
+  expect(text.match(/value = 1/g)).toHaveLength(1);
 });
 
 test("real language responses, diagnostics, rename edits and supported code action", async ({
@@ -260,7 +303,7 @@ test("real language responses, diagnostics, rename edits and supported code acti
       { newName: "afterName" },
     );
     await language.applyWorkspaceEdit(edits, versions);
-    await z.kernel.services.get("collaboration").flush();
+    await z.kernel.services.optional("collaboration")?.flush();
     const actionVersions = await language.snapshots();
     const actions = await language.request("textDocument/codeAction", {
       textDocument: { uri: language.uri("rename.ts") },
@@ -439,6 +482,8 @@ test("two independent browsers converge concurrent offline edits and keep per-us
   try {
     await runtime(left);
     await runtime(right);
+    await enableCollaboration(left);
+    await enableCollaboration(right);
     await open(left, "collab.ts");
     await open(right, "collab.ts");
     await right.evaluate(() => (window as any).__oxbit.runtime.disconnect());
@@ -815,9 +860,7 @@ test("runtime process loss preserves browser drafts and reports lost PTYs", asyn
       )
       .toBe(true);
     await page.evaluate(async () => {
-      const z = (window as any).__oxbit;
-      await z.kernel.services.get("collaboration").resync();
-      await z.documents.save("recovery.ts");
+      await (window as any).__oxbit.documents.save("recovery.ts");
     });
     expect(await readFile(path.join(root, "recovery.ts"), "utf8")).toContain(
       "survived runtime loss",

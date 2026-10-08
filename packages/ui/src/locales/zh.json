@@ -586,6 +586,7 @@
   "Codex ACP arguments (JSON array)": "Codex ACP 参数（JSON 数组）",
   "Codex ACP executable": "Codex ACP 可执行文件",
   "Codex ACP, Cursor ACP, and Amp Agent ACP with conversations, editor context, tool activity, and approvals.": "Codex ACP、Cursor ACP 和 Amp Agent ACP，支持对话、编辑器上下文、工具活动和审批。",
+  "Shares runtime documents and presence with other paired sessions.": "与其他已配对会话共享运行时文档和在线状态。",
   "Connect": "连接",
   "Connect to a runtime workspace to use agents.": "连接到运行时工作区以使用代理。",
   "Connecting may download the adapter. Agents run with the trusted runtime's privileges and use its existing credentials.": "连接可能会下载适配器。代理将使用受信任运行时的权限及其现有凭据运行。",

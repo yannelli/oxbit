@@ -37,7 +37,7 @@ import {
 import { createFeature as terminalFeature } from "@oxbit/feature-terminal";
 import { createFeature as tasksFeature } from "@oxbit/feature-tasks";
 import { createFeature as gitFeature } from "@oxbit/feature-git";
-import { createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
+import { COLLABORATION_FEATURE_ID, createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
 import { createFeature as agentACPFeature } from "@oxbit/feature-agent-acp";
 import bundleInspector from "@oxbit/bundle-inspector";
 import { ScopedConfigurationPersistence } from "./configuration.js";
@@ -163,6 +163,11 @@ export async function createWorkbenchSession({
   try {
     await seedIconPack(packStore);
     await iconThemes.initialize().catch(error => workbench.notify(`Icon packs could not be loaded: ${String(error)}`, "warning"));
+    // Restored drafts join their rooms only when collaboration will activate.
+    if ("collaborative" in filesystem)
+      filesystem.collaborative =
+        ((await persistence.get<string[]>("extension-enabled")) ?? []).includes(COLLABORATION_FEATURE_ID) &&
+        !((await persistence.get<string[]>("extension-disabled")) ?? []).includes(COLLABORATION_FEATURE_ID);
     await documents.restore();
     const options = { kernel, documents, filesystem, runtime, git, workbench };
     const connection = runtime?.subscribe("connection.change", ({ state }) => {

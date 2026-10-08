@@ -14,6 +14,8 @@ const child = spawn("bun", ["run", "--cwd", "apps/runtime", "start"], {
     OXBIT_SETTINGS_FILE: dataDir + "/settings.json",
     OXBIT_PROJECTS_DIR: dataDir + "/projects",
     OXBIT_PAIRING_CODE: "oxbit-acceptance-2026",
+    // Every browser test pairs again; the production limit of 10 per minute rejects bursts.
+    OXBIT_PAIRING_ATTEMPTS_PER_MINUTE: "1000",
   },
 });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
