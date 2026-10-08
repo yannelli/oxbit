@@ -8,6 +8,12 @@ export async function installBridge(page: Page, { repository = false } = {}) {
     const packs = new Map<string, unknown>();
     const closed: { id: string; title: string | null | undefined }[] = [];
     let callback = 0;
+    const callbacks = new Map<number, (event: unknown) => void>();
+    const listeners: { id: number; event: string; handler: number }[] = [];
+    const emit = (event: string, payload: unknown) => {
+      for (const listener of listeners.filter(item => item.event === event))
+        callbacks.get(listener.handler)?.({ event, id: listener.id, payload });
+    };
     let opened = 0;
     const files = ["example.ts", "settings.jsonc"];
     const status = {
@@ -15,10 +21,20 @@ export async function installBridge(page: Page, { repository = false } = {}) {
       refs: [], changes: [], remotes: [{ name: "origin", url: "https://github.com/example/oxbit.git" }], ahead: 0, behind: 0,
     };
     const bridge = {
-      transformCallback: () => ++callback,
-      async invoke(command: string, args: any = {}) {
-        if (command === "plugin:event|listen") return ++callback;
-        if (command === "plugin:event|unlisten") return;
+      transformCallback: (handler: (event: unknown) => void) => {
+        callbacks.set(++callback, handler);
+        return callback;
+      },
+      async invoke(command: string, args: any = {}, options?: unknown) {
+        if (command === "plugin:event|listen") {
+          listeners.push({ id: ++callback, event: args.event, handler: args.handler });
+          return callback;
+        }
+        if (command === "plugin:event|unlisten") {
+          const index = listeners.findIndex(item => item.id === args.eventId);
+          if (index >= 0) listeners.splice(index, 1);
+          return;
+        }
         if (command === "ios_documents_path") return "/device/Documents";
         if (command === "plugin:oxbit-files|pick_folder")
           return { id: "second", name: "Second", path: "/device/Second", stale: false };
@@ -64,6 +80,8 @@ export async function installBridge(page: Page, { repository = false } = {}) {
           return args.method === "status" ? status : [];
         }
         if (command === "ios_git_cancel") return;
+        const ssh = (window as any).__sshMock;
+        if (ssh?.handles(command)) return ssh.invoke(command, args, emit, options);
         throw new Error(`Unexpected native command: ${command}`);
       },
     };

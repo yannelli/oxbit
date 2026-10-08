@@ -83,7 +83,7 @@ export function SshTransfer({ request, onDone, onClose }: { request: TransferReq
       {running && !progress && <p role="status">{request.kind === "upload" ? "Choose files to upload…" : "Choose a folder on this device…"}</p>}
       {progress && <>
         <progress max={100} value={percent} aria-label={`${title} progress`} />
-        <p className="small" role="status">{percent}% · {formatBytes(progress.transferred)} of {formatBytes(progress.total)}</p>
+        <p className="small">{percent}% · {formatBytes(progress.transferred)} of {formatBytes(progress.total)}</p>
         <p className="small muted ssh-transfer-file">{progress.file}</p>
       </>}
       {result && <p role="status">{result}</p>}
