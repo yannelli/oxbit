@@ -32,7 +32,7 @@ Install Node 24.20.0, Bun 1.4.2, Rust 1.97.1 with the `aarch64-apple-ios` and `a
 | `bun run ios:init` | Regenerate the Xcode project under `gen/apple` |
 | `bun run ios:dev "Oxbit iPhone"` | Run with the Vite dev server on a named simulator or device |
 | `bun run ios:simulator` | Debug build for the arm64 simulator at `gen/apple/build/arm64-sim/Oxbit.app` |
-| `bun run ios:check` | Frontend build, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
+| `bun run ios:check` | Frontend build, the Swift file and SSH Keychain harnesses, `cargo fmt --check`, `cargo clippy`, and `cargo test` on the macOS host |
 | `bun run ios:build` | Signed App Store Connect archive and IPA |
 | `bun run ios:adhoc` | Signed ad hoc archive and IPA for the devices in the provisioning profile |
 | `bun run release <patch\|minor\|major\|X.Y.Z>` | Bump every version file, build everything including this IPA, and collect it under `release/v<version>/ios/` |

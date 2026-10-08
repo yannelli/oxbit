@@ -16,7 +16,7 @@ All four dialogs render as `.ios-shell > .modal-scrim`, above the workspace shee
 
 Generate Ed25519 Key creates the key on the device with `ssh-key` (comment `<name>@oxbit-ios`). Import Key… accepts a pasted key or a file from the Files picker, with an optional passphrase. Import goes through `russh::keys::decode_secret_key`, which reads OpenSSH, PEM (PKCS#1), and PKCS#8 keys, encrypted or not. The decrypted key is re-encoded as unencrypted OpenSSH before it is stored, so the passphrase is not saved. `PASSPHRASE_REQUIRED` and `KEY_INVALID` errors reach the dialog.
 
-`SshKeys.swift` stores one generic-password item per key or password:
+`SshKeyStore.swift` (Foundation and Security only) stores one generic-password item per key or password; `SshKeys.swift` maps plugin requests onto it:
 
 | Item | Service | Account | Accessibility |
 | --- | --- | --- | --- |
@@ -89,6 +89,7 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 ## Testing
 
 - Unit tests: `cargo test --locked` in `apps/ios/src-tauri` (keys, hosts, known hosts) and `cargo test --locked -p tauri-plugin-oxbit-files` in the same folder (request validation and metadata filtering).
+- Keychain: `bun run ios:check` compiles `SshKeyStore.swift` with `Tests/SshKeys/main.swift` and runs save, read, list, update, delete, and password save/read/forget against the macOS login keychain, under per-run service names that it deletes afterwards. It needs an unlocked login keychain, so it fails from a `Background` launchd session (`launchctl managername`). An unsigned binary on macOS uses the file-based keychain, which rejects `kSecReturnData` with `kSecMatchLimitAll` (`errSecParam`), so `keys()` lists accounts and reads each item. The macOS run does not exercise the data-protection keychain or `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` as iOS applies them.
 - Live tests: `bun run ios:ssh-live` builds `scripts/remote/sshd.Dockerfile`, starts a container with a key port and a password port, and runs the ignored `ssh::live_tests` test. It covers key auth with a passphrase-protected key, first-use trust, SFTP list/read/write/conflict/mkdir/rename/delete, upload and download with progress and cancel, password auth, reconnect after `docker restart`, and refusal after the container's host keys are regenerated. The script removes the container afterwards.
 - UI: `bunx playwright test -c tests/ios/playwright.config.ts ssh.spec.ts` with the in-memory SSH bridge in `tests/ios/ssh-bridge.ts`. `OXBIT_SSH_SCREENSHOTS` sets the screenshot folder (default `evidence/ios-ssh`).
 
@@ -106,6 +107,7 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 - ssh-key 0.7.0-rc.11: https://docs.rs/ssh-key/0.7.0-rc.11/ssh_key/
 - aws-lc-rs platform support: https://aws.github.io/aws-lc-rs/platform_support.html
 - Keychain item accessibility: https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlockedthisdeviceonly
+- TN3137, On Mac keychain APIs and implementations: https://developer.apple.com/documentation/technotes/tn3137-on-mac-keychains
 - UIDocumentPickerViewController: https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller
 - init(forOpeningContentTypes:asCopy:): https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller/init(forOpeningContentTypes:asCopy:)
 - SSH transport and host keys: https://www.rfc-editor.org/rfc/rfc4253
