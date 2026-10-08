@@ -74,7 +74,7 @@ fn builds_the_shared_remote_commands() {
     let url = "https://github.com/yannelli/oxbit/releases/download/v0.3.4/remote-runtime-linux-x64.tar.gz";
     let curl = host_install_command(KEY, url, Downloader::Curl).unwrap();
     assert!(
-        curl.starts_with("sh -c 'curl -fsSL --connect-timeout 15 '\\''https://github.com/"),
+        curl.starts_with("sh -c 'curl -fsSL --connect-timeout 15 --speed-limit 1024 --speed-time 30 '\\''https://github.com/"),
         "{curl}"
     );
     assert!(curl.contains(KEY));

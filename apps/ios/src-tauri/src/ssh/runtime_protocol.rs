@@ -134,7 +134,7 @@ pub fn host_install_command(digest: &str, url: &str, downloader: Downloader) -> 
         return Err(Error::invalid("Invalid runtime download URL"));
     }
     let fetch = match downloader {
-        Downloader::Curl => "curl -fsSL --connect-timeout 15",
+        Downloader::Curl => "curl -fsSL --connect-timeout 15 --speed-limit 1024 --speed-time 30",
         Downloader::Wget => "wget -qO- -T 15",
     };
     let pipeline = format!(

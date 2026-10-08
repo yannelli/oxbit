@@ -12,6 +12,8 @@ pub mod known_hosts;
 #[cfg(test)]
 mod live_git_tests;
 #[cfg(test)]
+mod live_runtime_tests;
+#[cfg(test)]
 mod live_tests;
 pub mod runtime_commands;
 pub mod runtime_frames;
