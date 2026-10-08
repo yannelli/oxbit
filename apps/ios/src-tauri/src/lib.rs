@@ -18,6 +18,7 @@ pub struct AppState {
     pub watchers: watch::Watchers,
     pub language_servers: Mutex<()>,
     pub git: git_operations::Operations,
+    pub ssh: ssh::Ssh,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -28,12 +29,14 @@ pub fn run() {
         .plugin(tauri_plugin_oxbit_files::init())
         .setup(|app| {
             let directory = app.path().app_data_dir()?;
+            let ssh = ssh::Ssh::new(&directory.join("ssh"));
             app.manage(AppState {
                 storage: storage::Storage::new(directory),
                 roots: Mutex::new(fs_core::Roots::default()),
                 watchers: watch::Watchers::default(),
                 language_servers: Mutex::new(()),
                 git: git_operations::Operations::default(),
+                ssh,
             });
             Ok(())
         })
@@ -57,6 +60,27 @@ pub fn run() {
             commands::ios_open_external,
             git_host::ios_git_request,
             git_host::ios_git_cancel,
+            ssh::commands::ios_ssh_hosts_list,
+            ssh::commands::ios_ssh_host_save,
+            ssh::commands::ios_ssh_host_remove,
+            ssh::commands::ios_ssh_forget_password,
+            ssh::commands::ios_ssh_keys_generate,
+            ssh::commands::ios_ssh_keys_import,
+            ssh::commands::ios_ssh_connect,
+            ssh::commands::ios_ssh_trust,
+            ssh::commands::ios_ssh_forget_host_key,
+            ssh::commands::ios_ssh_disconnect,
+            ssh::fs_commands::ios_ssh_open_root,
+            ssh::fs_commands::ios_ssh_close_root,
+            ssh::fs_commands::ios_ssh_fs_list,
+            ssh::fs_commands::ios_ssh_fs_read,
+            ssh::fs_commands::ios_ssh_fs_write,
+            ssh::fs_commands::ios_ssh_fs_mkdir,
+            ssh::fs_commands::ios_ssh_fs_rename,
+            ssh::fs_commands::ios_ssh_fs_delete,
+            ssh::fs_commands::ios_ssh_upload,
+            ssh::fs_commands::ios_ssh_download,
+            ssh::fs_commands::ios_ssh_transfer_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Oxbit");
