@@ -2,7 +2,7 @@
 
 Created: 2026-10-08. Last updated: 2026-10-08.
 
-The iOS app opens folders on a server over SFTP. Keys, saved hosts, host-key trust, the connection pool, and transfers live in the iOS crate (`apps/ios/src-tauri/src/ssh/`). Private keys and saved passwords live in the Keychain through the `oxbit-files` plugin.
+The iOS app opens folders on a server over SFTP and uses SSH remotes for Git in device folders. Keys, saved hosts, host-key trust, the connection pool, and transfers live in the iOS crate (`apps/ios/src-tauri/src/ssh/`). Private keys and saved passwords live in the Keychain through the `oxbit-files` plugin.
 
 ## Entry points
 
@@ -51,7 +51,7 @@ During the handshake, `Client::check_server_key` records the presented key and i
 
 - Keepalive every 15 s, disconnect after 3 missed replies, no inactivity timeout. Connect times out after 20 s; SFTP requests after 30 s.
 - `Pool::run` checks `Handle::is_closed` first. When the connection is closed or an SFTP call fails with `CONNECTION_LOST`, it reconnects with the stored credential and retries the operation once.
-- `connect.rs` opens a session channel, requests the `sftp` subsystem, and passes the channel stream to `SftpSession::new`. Exec and port forwarding can open more channels on `Connection.handle` (`channel_open_session`, `channel_open_direct_tcpip`); nothing calls them yet.
+- `connect::authenticate` runs the TCP connect, host key check, and authentication. `connect::establish` adds a session channel with the `sftp` subsystem and passes the channel stream to `SftpSession::new`. Git over SSH calls `authenticate` and opens its own exec channel on a separate connection (see below). Port forwarding (`channel_open_direct_tcpip`) has no caller.
 
 ## FileSystem mapping
 
@@ -77,6 +77,33 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 - Download picks a device folder with the existing folder picker, keeps its security scope open for the transfer, then closes and forgets the bookmark. Files and folders (up to 10,000 entries) download into a hidden staging folder inside the destination, which is renamed to the final name on success.
 - Both send 256 KiB chunks and emit `ios-ssh-transfer:<transferId>` events with `transferred`, `total`, and `file`. `ios_ssh_transfer_cancel` sets a flag that the copy loop checks between chunks; a cancelled transfer removes its temporary files and returns `CANCELLED`.
 
+## Git over SSH
+
+Fetch, pull, push, publish, and clone accept `ssh://[user@]host[:port]/path` and scp-style `[user@]host:path` remotes for device folders. The git2 build keeps its `ssh` feature off; libssh2 is not linked.
+
+- `git_core/ssh_transport.rs` registers a custom `ssh://` smart subtransport with `git2::transport::register` at app startup. libgit2 also routes scp-style URLs to the transport registered for `ssh://` ([transport lookup](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/libgit2/src/libgit2/transport.c)). The transport is stateful (`rpc: false`): git2 calls `action` for `UploadPackLs` or `ReceivePackLs` and reuses that stream for the pack exchange.
+- `ssh/git.rs` (`GitConnector`) picks the key, connects with `connect::authenticate` against `known_hosts.json`, and runs `git-upload-pack '<path>'` or `git-receive-pack '<path>'` on an exec channel. The path is single-quoted with `'` written as `'\''`, as Git's SSH transport does. `ssh/git_stream.rs` bridges the channel to blocking `Read`/`Write` on the Git operation thread through the Tokio runtime handle, checks the cancel flag every 250 ms, and stops after 120 s without data. A non-zero exit status turns the server's stderr (up to 4 KiB) into the `GIT_FAILED` message, such as `fatal: '/root/missing.git' does not appear to be a git repository`.
+- `ssh://host/~/repo` sends `~/repo`, relative to the login's home folder. scp-style paths are sent as written.
+- URL rules: the user is `[A-Za-z0-9._-]` without a leading `-`; a `user:password@` form, `%` in the authority, port 0, and hosts that start with `-` or `.` are refused.
+
+Key selection, in order:
+
+1. The repository's key: workspace storage key `git-ssh-key` under the root's scope, set in Git Accounts and Commit Author under **SSH key for this repository**.
+2. The key of a saved SSH host with the same hostname (case-insensitive) and port, using `key` auth. A host whose username matches the URL's user wins over another host on the same server.
+3. Otherwise the request fails with `SSH_KEY_REQUIRED`, and the **Choose SSH Key** dialog saves a key host for that server (label and hostname from the remote) before the request runs again.
+
+The username comes from the URL, then the matched saved host, then `git`.
+
+Prompts: a failed request stores its prompt in `Ssh.git_prompts` under the workspace root ID and returns `SSH_KEY_REQUIRED`, `HOST_KEY_UNKNOWN`, or `HOST_KEY_CHANGED`. `IosGitClient` calls `IosGitClient.sshPrompt` (set in `main.tsx`) for those codes, up to three times per request, and repeats the request with a new request ID when the handler resolves `true`. `ssh-git-prompt.tsx` reads the prompt with `ios_ssh_git_prompt`:
+
+| Prompt | Dialog | Command |
+| --- | --- | --- |
+| `keyRequired` | Choose SSH Key: key and user name | `ios_ssh_host_save`, then the request runs again |
+| `hostUnknown` | Confirm Host Key: key type and SHA256 fingerprint | `ios_ssh_git_trust` trusts only the fingerprint the request presented, then the request runs again |
+| `hostChanged` | Host Key Changed: saved and presented fingerprints | `ios_ssh_git_forget_host_key` forgets the server's keys and disconnects saved hosts on that server; the request stays failed |
+
+Host keys share `known_hosts.json` and its refusal rules with SFTP workspaces, so trusting a server in either place covers both. Each Git network operation opens its own SSH connection and disconnects when libgit2 drops the stream. Private keys load from the Keychain only when a remote needs one and stay out of progress and error text; `safe_output` still redacts HTTPS tokens in the same output.
+
 ## Build notes
 
 - `russh = "=0.64.1"` and `ssh-key = "=0.7.0-rc.11"` are pinned together because russh requires that exact `ssh-key` release. Upgrade both in one change.
@@ -88,14 +115,15 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 
 ## Testing
 
-- Unit tests: `cargo test --locked` in `apps/ios/src-tauri` (keys, hosts, known hosts) and `cargo test --locked -p tauri-plugin-oxbit-files` in the same folder (request validation and metadata filtering).
+- Unit tests: `cargo test --locked` in `apps/ios/src-tauri` (keys, hosts, known hosts, SSH URL parsing and command quoting in `git_core/ssh_transport_tests.rs`, key selection in `ssh/git.rs`) and `cargo test --locked -p tauri-plugin-oxbit-files` in the same folder (request validation and metadata filtering).
 - Keychain: `bun run ios:check` compiles `SshKeyStore.swift` with `Tests/SshKeys/main.swift` and runs save, read, list, update, delete, and password save/read/forget against the macOS login keychain, under per-run service names that it deletes afterwards. Its first Keychain call is a write; when that returns `errSecInteractionNotAllowed` (-25308), as in a `Background` launchd session with a locked login keychain (`launchctl managername`), it prints `SshKeyStore tests skipped: the login keychain is locked in this session` and exits 0. Any other failure fails the check. An unsigned binary on macOS uses the file-based keychain, which rejects `kSecReturnData` with `kSecMatchLimitAll` (`errSecParam`), so `keys()` lists accounts and reads each item. The macOS run does not exercise the data-protection keychain or `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` as iOS applies them.
-- Live tests: `bun run ios:ssh-live` builds `scripts/remote/sshd.Dockerfile`, starts a container with a key port and a password port, and runs the ignored `ssh::live_tests` test. It covers key auth with a passphrase-protected key, first-use trust, SFTP list/read/write/conflict/mkdir/rename/delete, upload and download with progress and cancel, password auth, reconnect after `docker restart`, and refusal after the container's host keys are regenerated. The script removes the container afterwards.
-- UI: `bunx playwright test -c tests/ios/playwright.config.ts ssh.spec.ts` with the in-memory SSH bridge in `tests/ios/ssh-bridge.ts`. `OXBIT_SSH_SCREENSHOTS` sets the screenshot folder (default `evidence/ios-ssh`).
+- Live tests: `bun run ios:ssh-live` builds `scripts/remote/sshd.Dockerfile`, starts a container with a key port and a password port, and runs the ignored `ssh::live_` tests one at a time. `ssh::live_git_tests` runs first and covers the key prompt without a saved host, the first-use host key prompt, clone over `ssh://`, push, fetch, pull, a server error from a missing repository, and refusal when the saved host key differs. `ssh::live_tests` covers key auth with a passphrase-protected key, first-use trust, SFTP list/read/write/conflict/mkdir/rename/delete, upload and download with progress and cancel, password auth, reconnect after `docker restart`, and refusal after the container's host keys are regenerated. The script removes the container afterwards.
+- UI: `bunx playwright test -c tests/ios/playwright.config.ts ssh.spec.ts` with the in-memory SSH bridge in `tests/ios/ssh-bridge.ts`. Its `clone` seed makes `git.clone` return the SSH prompt errors in order. `OXBIT_SSH_SCREENSHOTS` sets the screenshot folder (default `evidence/ios-ssh`).
 
 ## Not implemented
 
-- Git over SSH remotes, a terminal, and the remote runtime over SSH.
+- A terminal and the remote runtime over SSH.
+- scp-style remotes on a port other than 22 (use `ssh://host:port/path`), password authentication for Git remotes, and `ssh+git://` or `git+ssh://` URLs.
 - Keyboard-interactive authentication, SSH agents, certificates, and jump hosts.
 - Port forwarding and exec channels in the UI.
 - Change notifications for SSH workspaces. The explorer refreshes after Oxbit's own file operations and uploads.
@@ -111,4 +139,7 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 - UIDocumentPickerViewController: https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller
 - init(forOpeningContentTypes:asCopy:): https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller/init(forOpeningContentTypes:asCopy:)
 - SSH transport and host keys: https://www.rfc-editor.org/rfc/rfc4253
+- git2 custom transports: https://docs.rs/git2/0.21.0/git2/transport/index.html
+- Git pack protocol over SSH: https://git-scm.com/docs/pack-protocol
+- Git URL forms: https://git-scm.com/docs/git-clone
 - SFTP version 3 draft: https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02

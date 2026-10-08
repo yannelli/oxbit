@@ -10,7 +10,7 @@ When a device repository is open, **This Repository** chooses the account for th
 
 Open a repository folder from Files or choose **Clone Repository…** on the workspace screen. Clone writes into the Oxbit Documents folder and opens the repository. Cloned folders appear in recents and reopen after relaunch. Source Control uses libgit2 on the device for changes, staging, commits, history, branches, remotes, stashes, and conflict recovery. Connected computer workspaces use the runtime’s Git installation and credential helpers.
 
-HTTPS remotes support public repositories. Private GitHub repositories use a GitHub account’s personal access token; pushing requires repository Contents read and write access. Private Gitea repositories use a Gitea account’s token; the token needs the `read:user` scope, and pushing needs `write:repository`. For a remote, Git uses the repository’s chosen account when its host matches the remote, then the default account for the remote’s host. Without either, the operation fails with “Add an account for host in Git Accounts and Commit Author from the Source Control toolbar”. Clone uses the default account for the server; make an account the default before cloning its private repositories. File remotes stay inside the selected workspace. SSH authentication and pull requests are outside this interface. Native commits do not run Git hooks. Configure a repository’s Git author in its config or save an author through **Git Accounts and Commit Author**.
+HTTPS remotes support public repositories. Private GitHub repositories use a GitHub account’s personal access token; pushing requires repository Contents read and write access. Private Gitea repositories use a Gitea account’s token; the token needs the `read:user` scope, and pushing needs `write:repository`. For a remote, Git uses the repository’s chosen account when its host matches the remote, then the default account for the remote’s host. Without either, the operation fails with “Add an account for host in Git Accounts and Commit Author from the Source Control toolbar”. Clone uses the default account for the server; make an account the default before cloning its private repositories. File remotes stay inside the selected workspace. `ssh://` and scp-style remotes (`git@github.com:owner/repo.git`) use SSH keys from SSH Hosts and Keys; see [Git over SSH](ios-ssh.md#git-over-ssh). Pull requests are outside this interface. Native commits do not run Git hooks. Configure a repository’s Git author in its config or save an author through **Git Accounts and Commit Author**.
 
 ## Credentials
 
@@ -24,17 +24,21 @@ Public `git_credentials` calls accept `get`, `save` (`name`, `email`), `addGitHu
 
 The repository choice is stored in app storage under the workspace root’s scope (`workspaces/<root id>/ui.json`, key `git-account`), next to the workspace’s other state. The root ID hashes the canonical folder path. Keeping the choice outside the repository stops repository content, such as a `.git/config` from a shared folder, from selecting an account, and keeps device-local account IDs out of synced repositories. `ios_git_request` reads the key before each operation. A choice whose account was removed, or whose host differs from the remote, falls back to the host’s default.
 
+### SSH remotes
+
+For SSH remotes, **SSH key for this repository** in Git Accounts and Commit Author stores a key ID under workspace storage key `git-ssh-key`, beside `git-account`. Without it, Git uses the key of a saved SSH host for the same server, then asks with **Choose SSH Key** and saves the choice as an SSH host. Unknown server keys show **Confirm Host Key** before the request runs again; a changed key refuses the request. Accounts and tokens apply only to HTTPS remotes.
+
 ### Migration
 
 Profiles saved before multiple accounts held one GitHub `token` and `login` and one `gitea` object. The first Keychain read converts them into accounts that are the defaults for `github.com` and the Gitea host, with new UUIDs and unchanged tokens, then saves the profile without the old fields. `apps/ios/plugins/oxbit-files/ios/Sources/GitCredentialProfile.swift` holds the profile model and migration; `bun run ios:check` compiles it with `Tests/GitCredentialProfile/main.swift` and runs the tests.
 
 ## Transport
 
-`createWorkbenchSession` accepts `git: RpcClient`. Source Control uses it ahead of the runtime for `git.*` requests and Git events. Runtime filesystem comparisons keep their existing transport. Native filesystem watches refresh Source Control. `IosGitClient` scopes calls and cancellation by root ID and request UUID, waits for native completion before disposal, and filters progress to active requests.
+`createWorkbenchSession` accepts `git: RpcClient`. Source Control uses it ahead of the runtime for `git.*` requests and Git events. Runtime filesystem comparisons keep their existing transport. Native filesystem watches refresh Source Control. `IosGitClient` scopes calls and cancellation by root ID and request UUID, waits for native completion before disposal, and filters progress to active requests. For `SSH_KEY_REQUIRED`, `HOST_KEY_UNKNOWN`, and `HOST_KEY_CHANGED` it calls `IosGitClient.sshPrompt` and repeats the request when the prompt resolves `true`.
 
 ## Backend references
 
-Consult the [git2 API](https://docs.rs/git2/0.21.0/git2/) when changing operations. The enabled features are HTTPS, vendored libgit2, and vendored OpenSSL. The published [build script](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/build.rs) selects SecureTransport on Apple targets; its [Cargo manifest](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/Cargo.toml.orig) also enables OpenSSL through HTTPS. Vendoring supplies that build dependency.
+Consult the [git2 API](https://docs.rs/git2/0.21.0/git2/) when changing operations. The enabled features are HTTPS, vendored libgit2, and vendored OpenSSL. The published [build script](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/build.rs) selects SecureTransport on Apple targets; its [Cargo manifest](https://docs.rs/crate/libgit2-sys/0.18.8+1.9.7/source/Cargo.toml.orig) also enables OpenSSL through HTTPS. Vendoring supplies that build dependency. The `ssh` feature stays off; SSH remotes use the custom transport in `git_core/ssh_transport.rs` over russh.
 
 The iOS CI simulator build compiles the Swift plugin. Device Keychain behavior and live GitHub and Gitea validation remain unrun.
 
