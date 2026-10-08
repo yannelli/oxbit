@@ -52,7 +52,7 @@ try {
     "cp /test-key /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys && " +
     `echo 'root:${password}' | chpasswd && /usr/sbin/sshd -p 2222 -o PasswordAuthentication=yes -o UsePAM=no -o PermitRootLogin=yes`);
   await runAsync("cargo", ["test", "--locked", "--lib", process.argv[2] ?? "ssh::live_", "--", "--ignored", "--nocapture", "--test-threads=1",
-    ...(hasPayload ? [] : ["--skip", "live_remote_runtime"])], {
+    ...(hasPayload ? [] : ["--skip", "live_remote_runtime", "--skip", "live_runtime_wget_tasks_and_budget"])], {
     cwd: crate,
     env: {
       ...process.env,

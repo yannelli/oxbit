@@ -19,9 +19,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-type Seen = Arc<Mutex<Vec<Event>>>;
+pub(super) type Seen = Arc<Mutex<Vec<Event>>>;
 
-fn payload() -> (PathBuf, String) {
+pub(super) fn payload() -> (PathBuf, String) {
     let directory = PathBuf::from(env("OXBIT_SSH_TEST_PAYLOAD_DIR"));
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(directory.join("manifest.json")).unwrap()).unwrap();
@@ -33,7 +33,7 @@ fn payload() -> (PathBuf, String) {
 }
 
 /// `url` is what the host downloads; the device side copies the local archive.
-fn source(url: String, scratch: PathBuf) -> Source {
+pub(super) fn source(url: String, scratch: PathBuf) -> Source {
     let (archive, sha256) = payload();
     let size = std::fs::metadata(&archive).unwrap().len();
     let download = Download { url, sha256, size };
@@ -55,7 +55,12 @@ fn source(url: String, scratch: PathBuf) -> Source {
     }
 }
 
-async fn start(pool: &Arc<Pool>, host_id: &str, source: Source, seen: &Seen) -> Arc<RemoteRuntime> {
+pub(super) async fn start(
+    pool: &Arc<Pool>,
+    host_id: &str,
+    source: Source,
+    seen: &Seen,
+) -> Arc<RemoteRuntime> {
     let root = "/~/project".to_string();
     let seen = seen.clone();
     let options = Options {
@@ -75,7 +80,7 @@ async fn start(pool: &Arc<Pool>, host_id: &str, source: Source, seen: &Seen) -> 
         .unwrap()
 }
 
-async fn probe(runtime: &RemoteRuntime) -> String {
+pub(super) async fn probe(runtime: &RemoteRuntime) -> String {
     let (url, token) = (runtime.url(), runtime.token().to_string());
     let script =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../scripts/ios/runtime-probe.mjs");
@@ -99,7 +104,7 @@ async fn probe(runtime: &RemoteRuntime) -> String {
     String::from_utf8(output.stdout).unwrap()
 }
 
-fn progress(seen: &Seen) -> Vec<String> {
+pub(super) fn progress(seen: &Seen) -> Vec<String> {
     let events = seen.lock().unwrap();
     events
         .iter()
@@ -110,7 +115,7 @@ fn progress(seen: &Seen) -> Vec<String> {
         .collect()
 }
 
-async fn running_after(seen: &Seen, from: usize, limit: Duration) -> bool {
+pub(super) async fn running_after(seen: &Seen, from: usize, limit: Duration) -> bool {
     let deadline = Instant::now() + limit;
     while Instant::now() < deadline {
         if seen.lock().unwrap()[from..].contains(&Event::Running) {
@@ -121,7 +126,7 @@ async fn running_after(seen: &Seen, from: usize, limit: Duration) -> bool {
     false
 }
 
-fn remote_runtimes(container: &str) -> String {
+pub(super) fn remote_runtimes(container: &str) -> String {
     exec(
         container,
         // The brackets keep the pattern from matching the `sh -c` running pgrep.
@@ -129,9 +134,16 @@ fn remote_runtimes(container: &str) -> String {
     )
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[ignore = "needs the Docker sshd fixture"]
-async fn live_remote_runtime() {
+pub(super) struct Live {
+    pub container: String,
+    pub port: u16,
+    pub served: String,
+    pub pool: Arc<Pool>,
+    pub scratch: PathBuf,
+}
+
+/// Connects host "live" to the fixture with a trusted host key and removes `~/.oxbit`.
+pub(super) async fn live() -> Live {
     let container = env("OXBIT_SSH_TEST_CONTAINER");
     let port: u16 = env("OXBIT_SSH_TEST_PORT").parse().unwrap();
     let served = env("OXBIT_SSH_TEST_PAYLOAD_URL");
@@ -168,7 +180,25 @@ async fn live_remote_runtime() {
         Outcome::Connected { .. }
     ));
     exec(&container, "rm -rf /root/.oxbit");
+    Live {
+        container,
+        port,
+        served,
+        pool,
+        scratch,
+    }
+}
 
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs the Docker sshd fixture"]
+async fn live_remote_runtime() {
+    let Live {
+        container,
+        port,
+        served,
+        pool,
+        scratch,
+    } = live().await;
     let seen: Seen = Arc::default();
     let missing = source(format!("{served}/missing.tar.gz"), scratch.clone());
     let runtime = start(&pool, "live", missing, &seen).await;
