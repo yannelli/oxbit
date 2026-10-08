@@ -911,6 +911,12 @@ export function createFeature(o: FeatureOptions): Extension {
             disabled: pending || !git?.connected,
             onClick: () => run(clone),
           }),
+          o.kernel.commands.available("git.account").enabled &&
+            h(IconButton, {
+              icon: "users",
+              label: "Git Accounts and Commit Author",
+              onClick: () => report(() => o.kernel.commands.execute("git.account")),
+            }),
           h(IconButton, {
             icon: view === "list" ? "folder" : "menu",
             label:

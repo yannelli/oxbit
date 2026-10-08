@@ -143,7 +143,7 @@ pub(super) fn credentials_for(
     ) {
         (Some(login), Some(token)) => Cred::userpass_plaintext(login, token),
         _ => Err(git2::Error::from_str(&format!(
-            "Connect {provider} in Git Accounts and Commit Author"
+            "Connect {provider} in Git Accounts and Commit Author from the Source Control toolbar"
         ))),
     }
 }

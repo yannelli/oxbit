@@ -9,6 +9,7 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
   position: absolute; inset: 0; z-index: 900; overflow: auto;
   background: var(--bg, #0f1115); color: var(--fg, #e6e6e6);
 }
+.ios-shell > .modal-scrim { z-index: 950; }
 .ios-start {
   max-width: 640px; margin: 0 auto; box-sizing: border-box;
   padding: calc(16px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
