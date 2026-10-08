@@ -23,7 +23,11 @@ export {
   createVSCodeFeature,
   createVSCodeHighContrastFeature,
 } from "./vscode-packs.js";
-export { createClassicOS98Feature } from "./classicos98-pack.js";
+export {
+  createClassicOS98Feature,
+  keepClassicOS98ForSavedTheme,
+  CLASSICOS98_FEATURE_ID,
+} from "./classicos98-pack.js";
 export { classicOS98Themes } from "./bundled.js";
 export {
   classicOS98IconPack,

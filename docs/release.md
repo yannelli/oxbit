@@ -1,6 +1,6 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-05.
+Created: 2026-10-02. Last updated: 2026-10-07.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
@@ -9,7 +9,7 @@ Created: 2026-10-02. Last updated: 2026-10-05.
 | --- | --- |
 | `remote-runtime` | SSH runtime payloads for `darwin-arm64` and `linux-x64` |
 | `macos` | Developer ID signed, notarized, and stapled app and DMG; signed updater archive; web, runtime, and extension tarballs |
-| `ios` | App Store IPA, validated and uploaded to TestFlight with tester notes and assignment to the external `Public Beta` group |
+| `ios` | App Store IPA, validated and uploaded to TestFlight with tester notes and assignment to the internal `Internal Testing` group |
 | `publish` | GitHub release with the files above, `latest.json`, and `SHA256SUMS` |
 
 A version with a hyphen (`0.3.0-alpha.5`) publishes as a pre-release. The
@@ -56,21 +56,31 @@ with `git push --follow-tags`.
 
 The tag workflow validates `docs/testflight/<full-package-version>.md` before
 building or uploading the IPA. Missing or invalid tester notes fail this preflight.
-After upload, it runs `node scripts/ios/distribute-testflight.mjs --build <number>`.
+After upload, it runs `node scripts/ios/distribute-testflight.mjs --build <number> --internal`.
 The command uses the existing App Store Connect API credentials, waits up to 30
 minutes for that exact app, numeric version, build number, and `IOS` platform to
 become `VALID`, then:
 
 1. Creates or updates the build's `en-US` "What to Test" with the version header
    and notes from the file.
-2. Enables automatic tester notifications and submits beta review when required,
-   preserving existing submissions and approvals.
-3. Assigns the build to the existing external `Public Beta` group and verifies
-   the saved notes, group membership, and notification setting.
+2. Enables automatic tester notifications.
+3. Assigns the build to the internal `Internal Testing` group and verifies the
+   saved notes, group membership, and notification setting.
 
-Apple controls beta review approval. The workflow finishes after submission and
-verification; it does not wait for review. Re-running distribution for the same
-build reuses its existing metadata and review state.
+Internal testers need no beta review. External testers receive a build only after
+it is checked on a device and promoted. Promote the same build to the external
+`Public Beta` group from a checkout at the release tag:
+
+```sh
+export APPLE_API_KEY=<key id> APPLE_API_ISSUER=<issuer id> APPLE_API_KEY_PATH=<path to .p8>
+node scripts/ios/distribute-testflight.mjs --build <number>
+```
+
+Without `--internal`, the command also submits beta review when required,
+preserving existing submissions and approvals, then assigns `Public Beta`. Apple
+controls beta review approval; the command finishes after submission and
+verification. Re-running either mode for the same build reuses its existing
+metadata and review state.
 
 Check the current version's notes locally without contacting Apple:
 

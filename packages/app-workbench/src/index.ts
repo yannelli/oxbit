@@ -21,6 +21,7 @@ import {
   createVSCodeHighContrastFeature,
   createClassicOS98Feature,
   classicOS98IconPack,
+  keepClassicOS98ForSavedTheme,
   rainbowIconPack,
 } from "@oxbit/feature-themes";
 import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
@@ -46,7 +47,7 @@ const SEED_KEY = "oxbit.iconPack.seeded";
 /** Origin-wide, matching the icon pack store, so every project shares one answer. */
 const seedMarker = () => (typeof localStorage === "undefined" ? undefined : localStorage);
 
-/** Installs each bundled pack once. Uninstalling is remembered until its revision changes. */
+/** Installs each bundled pack once, in its default enabled state. Uninstalling is remembered until its revision changes. */
 async function seedIconPack(store: PackStore) {
   for (const pack of [classicOS98IconPack, rainbowIconPack]) {
     try {
@@ -55,7 +56,10 @@ async function seedIconPack(store: PackStore) {
       const key = pack.id === classicOS98IconPack.id ? SEED_KEY : `${SEED_KEY}.${pack.id}`;
       if (marker?.getItem(key) === pack.revision) continue;
       const installed = (await store.read()).find(item => item.id === pack.id);
-      if (installed?.revision !== pack.revision) await store.put(pack);
+      if (installed?.revision !== pack.revision) {
+        await store.put(pack);
+        if (!installed && !pack.enabled) await store.enable(pack.id, false);
+      }
       marker?.setItem(key, pack.revision);
     } catch {
       // Icon packs stay optional; the workbench keeps its own glyphs.
@@ -199,6 +203,7 @@ export async function createWorkbenchSession({
       bundleInspector,
     ];
     for (const feature of features) kernel.extensions.register(feature);
+    await keepClassicOS98ForSavedTheme(persistence, kernel.configuration.get<string>("workbench.colorTheme"));
     const disabled =
       (await persistence.get<string[]>("extension-disabled")) || [];
     const enabled = (await persistence.get<string[]>("extension-enabled")) || [];

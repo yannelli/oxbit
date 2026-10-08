@@ -7,13 +7,16 @@ import { distributeTestFlight, loadTestNotes } from "../scripts/ios/distribute-t
 
 function fixture() {
   const state = {
-    processing: ["VALID"], external: "READY_FOR_BETA_SUBMISSION", expired: false,
-    groups: [{ id: "public", attributes: { name: "Public Beta", isInternalGroup: false } }],
+    processing: ["VALID"], external: "READY_FOR_BETA_SUBMISSION", internal: "READY_FOR_BETA_TESTING", expired: false,
+    groups: [
+      { id: "public", attributes: { name: "Public Beta", isInternalGroup: false } },
+      { id: "internal", attributes: { name: "Internal Testing", isInternalGroup: true } },
+    ],
     locales: [{ id: "german", attributes: { locale: "de", whatsNew: "Behalten" } }],
     members: [] as { id: string; type: string }[], reviews: [] as { attributes: { betaReviewState: string } }[],
     notify: false, clock: 0, ignoreAssignment: false, ignoreNotes: false, detailDelay: 0, reviewConflict: false,
   };
-  const details = () => ({ id: "detail", type: "buildBetaDetails", attributes: { externalBuildState: state.external, autoNotifyEnabled: state.notify } });
+  const details = () => ({ id: "detail", type: "buildBetaDetails", attributes: { externalBuildState: state.external, internalBuildState: state.internal, autoNotifyEnabled: state.notify } });
   const api = vi.fn(async (method: string, route: string, body?: any): Promise<any> => {
     const url = new URL(route, "https://api.appstoreconnect.apple.com");
     const resource = url.pathname;
@@ -62,7 +65,7 @@ function fixture() {
       if (state.reviewConflict) throw Object.assign(new Error("Existing submission"), { status: 409 });
       return { data: { id: "review" } };
     }
-    if (resource === "/v1/betaGroups/public/relationships/builds") {
+    if (/^\/v1\/betaGroups\/(public|internal)\/relationships\/builds$/.test(resource)) {
       if (method === "GET") return { data: state.members };
       if (method === "POST") {
         expect(body.data).toEqual([{ type: "builds", id: "build" }]);
@@ -159,7 +162,7 @@ describe("TestFlight external distribution", () => {
 
   it("rejects an internal group with the same name", async () => {
     const { state, options, writes } = fixture();
-    state.groups[0].attributes.isInternalGroup = true;
+    state.groups = [{ id: "public", attributes: { name: "Public Beta", isInternalGroup: true } }];
     await expect(distributeTestFlight(options)).rejects.toThrow("external Public Beta");
     expect(writes()).toEqual([]);
   });
@@ -176,6 +179,32 @@ describe("TestFlight external distribution", () => {
     const { state, options } = fixture();
     state[flag] = true;
     await expect(distributeTestFlight(options)).rejects.toThrow("failed verification");
+  });
+});
+
+describe("TestFlight internal distribution", () => {
+  it("sets notes and assigns Internal Testing without submitting beta review", async () => {
+    const { state, options, writes } = fixture();
+    const result = await distributeTestFlight({ ...options, internal: true });
+    expect(result).toEqual({ buildId: "build", groupId: "internal", internalBuildState: "READY_FOR_BETA_TESTING" });
+    expect(writes().map(([, route]) => route)).toEqual([
+      "/v1/betaBuildLocalizations", "/v1/buildBetaDetails/detail", "/v1/betaGroups/internal/relationships/builds",
+    ]);
+    expect(state.external).toBe("READY_FOR_BETA_SUBMISSION");
+  });
+
+  it("rejects an external group named Internal Testing", async () => {
+    const { state, options, writes } = fixture();
+    state.groups = [{ id: "internal", attributes: { name: "Internal Testing", isInternalGroup: false } }];
+    await expect(distributeTestFlight({ ...options, internal: true })).rejects.toThrow("internal Internal Testing");
+    expect(writes()).toEqual([]);
+  });
+
+  it("surfaces an internal build that cannot be tested", async () => {
+    const { state, options, writes } = fixture();
+    state.internal = "MISSING_EXPORT_COMPLIANCE";
+    await expect(distributeTestFlight({ ...options, internal: true })).rejects.toThrow("MISSING_EXPORT_COMPLIANCE");
+    expect(writes()).toEqual([]);
   });
 });
 

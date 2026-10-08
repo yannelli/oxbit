@@ -1,6 +1,6 @@
 # Source Control
 
-Open **Source Control** in the activity bar. Runtime workspaces use the computer’s Git installation and credential helpers, so GitHub, Gitea, and other HTTPS or SSH remotes work as they do in a terminal. Device folders on iOS use libgit2, with GitHub and Gitea credentials stored in Keychain. See [iOS source control](ios-source-control.md) for cloning and authentication.
+Open **Source Control** in the activity bar. Runtime workspaces use the computer’s Git installation and credential helpers, so GitHub, Gitea, and other HTTPS or SSH remotes work as they do in a terminal. Device folders on iOS use libgit2, with GitHub and Gitea credentials stored in Keychain; the iOS Source Control toolbar opens **Git Accounts and Commit Author**. See [iOS source control](ios-source-control.md) for cloning and authentication.
 
 ## Changes and commits
 

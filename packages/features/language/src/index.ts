@@ -39,6 +39,7 @@ export interface EditSnapshot {
 const capabilitiesByMethod = lspCapabilityKeys;
 const supportedPath = (path: string) =>
   /\.(?:[cm]?tsx?|[cm]?jsx?|json)$/.test(path);
+const fileDisabledMessage = "Language server is off for this file.";
 const abortError = () =>
   new DOMException("Language request cancelled", "AbortError");
 export const offset = textOffset;
@@ -229,6 +230,7 @@ export class LanguageService {
   private extensionCache = new Map<string, CMExtension[]>();
   private overlays = new Map<string, LanguageOverlays>();
   private managedServices = new Map<string, LanguageService>();
+  private disabledPaths = new Set<string>();
   private laravelProjects = new Map<string, boolean>();
   private laravelLookups = new Set<string>();
   private laravelGeneration = 0;
@@ -371,6 +373,7 @@ export class LanguageService {
       }));
       this.subscriptions.push(o.kernel.events.on("document.close", () => {
         for (const [key, service] of this.managedServices) if (!o.documents.get(service.providerContext!.path!)) { service.dispose(); this.managedServices.delete(key); }
+        for (const path of this.disabledPaths) if (!o.documents.get(path)) this.disabledPaths.delete(path);
         this.providersChanged();
       }).dispose);
       this.providersChanged();
@@ -479,7 +482,39 @@ export class LanguageService {
     if (action === "start") await service.start(true);
     else await service[action]();
   }
+  fileEnabled(path: string) {
+    return !(this.providerContext?.owner ?? this).disabledPaths.has(path);
+  }
+  setFileEnabled(path: string, enabled: boolean): void {
+    if (this.providerContext) return this.providerContext.owner.setFileEnabled(path, enabled);
+    if (enabled === this.fileEnabled(path)) return;
+    if (enabled) {
+      this.disabledPaths.delete(path);
+      this.extensionCache.delete(path);
+      this.providersChanged();
+      for (const service of this.servicesForPath(path)) {
+        service.extensionCache.delete(path);
+        if (service.transport instanceof RuntimeLanguageTransport) void service.refreshStatus();
+        else void (service.state === "ready" ? service.syncDocument(path) : service.start()).catch(() => {});
+      }
+      return;
+    }
+    const services = this.servicesForPath(path);
+    this.disabledPaths.add(path);
+    for (const [key, service] of this.managedServices) if (service.providerContext!.path === path) { this.managedServices.delete(key); service.dispose(); }
+    for (const service of new Set([this, ...services])) if (!service.providerContext?.path) service.detachDocument(path);
+    this.providersChanged();
+  }
+  private detachDocument(path: string) {
+    if (this.synced.has(path) && !this.shared(path) && (this.transport instanceof RuntimeLanguageTransport || synchronization(this.effective(path)).openClose))
+      this.transport.notify("textDocument/didClose", { textDocument: { uri: this.uri(path) } });
+    for (const values of [this.synced, this.syncedText, this.lspDiagnostics, this.diagnosticVersions, this.completionIncomplete, this.extensionCache]) values.delete(path);
+    for (const [controller, documentPath] of this.requestPaths) if (documentPath === path) controller.abort();
+    this.overlays.get(path)?.dispose(); this.overlays.delete(path);
+    this.refreshDiagnostics(path);
+  }
   private managedCandidates(path: string) {
+    if (!this.fileEnabled(path)) return [];
     const definition = languageForKernel(this.o.kernel, path, this.o.documents.get(path)?.text.toString().split("\n", 1)[0]);
     const settings = this.o.kernel.configuration.get<LanguageServerSettings>("languageServers", definition.id) ?? {};
     let presets = languages.find(item => item.id === definition.id)?.providers.filter(id => id !== "local") ?? [];
@@ -513,6 +548,7 @@ export class LanguageService {
   servicesForPath(path: string): LanguageService[] {
     if (this.disposed) return [];
     if (this.providerContext) return this.providerContext.owner.servicesForPath(path);
+    if (!this.fileEnabled(path)) return [];
     const providers = (this.providers?.matching("transport", path) ?? []).filter(item => typeof (item.data as LanguageTransportProvider)?.createTransport === "function");
     const contributed = providers.map(item => this.serviceForContribution(item.id));
     if (!(this.transport instanceof RuntimeLanguageTransport) || !this.o.runtime && providers.some(item => (item.data as LanguageTransportProvider).runtimeFallback === false)) return contributed.length ? contributed : this.accepts(path) ? [this] : [];
@@ -669,6 +705,7 @@ export class LanguageService {
     const session = (this.o.runtime as any)?.session;
     return (
       this.accepts(path) &&
+      this.fileEnabled(path) &&
       (this.providerContext || !(this.transport instanceof RuntimeLanguageTransport) || this.managedCandidates(path).length > 0) &&
       !this.paused &&
       (!(this.transport instanceof RuntimeLanguageTransport) ||
@@ -708,6 +745,7 @@ export class LanguageService {
     const ready =
       eligible.length > 0 || selected.state === "ready" && Boolean(path && selected.canUseLsp(path));
     this.o.kernel.context.set("lsp", ready || completion || actions);
+    this.o.kernel.context.set("lsp.fileDisabled", Boolean(path && !this.fileEnabled(path)));
     for (const name of Object.values(capabilitiesByMethod))
       this.o.kernel.context.set(
         "lsp." + name,
@@ -892,7 +930,8 @@ export class LanguageService {
       this.disposed ||
       this.state !== "ready" ||
       this.shared(path) ||
-      !this.accepts(path)
+      !this.accepts(path) ||
+      !this.fileEnabled(path)
     )
       return Promise.resolve();
     const pending = this.syncQueue
@@ -903,7 +942,8 @@ export class LanguageService {
           !doc ||
           this.disposed ||
           this.state !== "ready" ||
-          this.shared(path)
+          this.shared(path) ||
+          !this.fileEnabled(path)
         )
           return;
         const generation = this.generation,
@@ -983,6 +1023,7 @@ export class LanguageService {
     const doc: DocumentHandle | undefined = params?.textDocument?.uri
       ? this.o.documents.get(this.path(params.textDocument.uri))
       : undefined;
+    if (doc && !this.fileEnabled(doc.path)) throw new Error(fileDisabledMessage);
     const version = doc?.version,
       generation = this.generation;
     const controller = new AbortController();
@@ -1022,6 +1063,7 @@ export class LanguageService {
     if (signal?.aborted) throw abortError();
     const selected = this.serviceForPath(path);
     if (selected !== this) return selected.symbols(path, signal);
+    if (!this.fileEnabled(path)) throw new Error(fileDisabledMessage);
     if (!this.accepts(path)) throw new Error("No language server is available for this file type.");
     if (this.paused) throw new Error("Language server is stopped. Start it from Language Servers.");
     if (!this.canUseLsp(path)) throw new Error("Connect and trust a runtime workspace to load symbols.");
@@ -1040,6 +1082,7 @@ export class LanguageService {
     signal?: AbortSignal,
     route = true,
   ): Promise<any> {
+    if (!this.fileEnabled(path)) throw new Error(fileDisabledMessage);
     if (route) { const selected = this.eligible(path, method)[0]; if (selected && selected !== this) return selected.at(method, path, index, extra, signal, false); }
     await this.start();
     const doc: DocumentHandle = await this.o.documents.open(path);
@@ -1060,7 +1103,7 @@ export class LanguageService {
   private async acceptDiagnostics(params: any) {
     if (this.disposed || !this.rootUri) return;
     const path = this.path(params.uri);
-    if (!this.accepts(path)) return;
+    if (!this.accepts(path) || !this.fileEnabled(path)) return;
     if (params.version !== undefined) {
       const current = (await this.remoteVersions())[params.uri];
       if (
@@ -1399,7 +1442,7 @@ export class LanguageService {
   async beforeSave(path: string, text: string, signal: AbortSignal): Promise<string> {
     const selected = this.serviceForPath(path);
     if (selected !== this) return selected.beforeSave(path, text, signal);
-    if (this.state !== "ready" || !this.accepts(path)) return text;
+    if (this.state !== "ready" || !this.accepts(path) || !this.fileEnabled(path)) return text;
     const sync = synchronization(this.effective(path));
     await this.synchronize();
     const params = { textDocument: { uri: this.uri(path) }, reason: 1 };
@@ -1806,7 +1849,7 @@ export function createFeature(o: FeatureOptions): Extension {
         const doc = [...o.documents.documents.values() as Iterable<DocumentHandle>].find(doc => doc.id === id);
         if (!doc) return;
         const selected = language.serviceForPath(doc.path);
-        if (selected.transport instanceof RuntimeLanguageTransport || selected.state !== "ready") return;
+        if (selected.transport instanceof RuntimeLanguageTransport || selected.state !== "ready" || !language.fileEnabled(doc.path)) return;
         const save = synchronization(selected.effective(doc.path)).save;
         if (save) selected.transport.notify("textDocument/didSave", { textDocument: { uri: selected.uri(doc.path) }, ...(typeof save === "object" && save.includeText ? { text: doc.text.toString() } : {}) });
       }));
@@ -1860,6 +1903,19 @@ export function createFeature(o: FeatureOptions): Extension {
         const path = o.workbench.activePath();
         return (path ? language.serviceForPath(path) : language).stop();
       });
+      ctx.own(ctx.commands.register({
+        id: "lsp.toggleFile",
+        get title() {
+          const path = o.workbench.activePath();
+          return path && !language.fileEnabled(path) ? "Enable Language Server for This File" : "Disable Language Server for This File";
+        },
+        when: "editor",
+        run: () => {
+          const path = o.workbench.activePath();
+          if (!path) throw new Error("Open an editor first");
+          language.setFileEnabled(path, !language.fileEnabled(path));
+        },
+      }));
       command("editor.navigateBack", "Go Back", () => language.navigateHistory(-1));
       command("editor.navigateForward", "Go Forward", () => language.navigateHistory(1));
       command("editor.workspaceSymbols", "Workspace Symbols", () => { language.rememberNavigationOrigin(); o.workbench.openView("workspace-symbols", "Workspace Symbols", WorkspaceSymbols, { service: language }); });

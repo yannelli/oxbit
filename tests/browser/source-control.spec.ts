@@ -367,3 +367,35 @@ test("source control protects dirty buffers and guides merge resolution and reco
     await f.close();
   }
 });
+
+test("the accounts toolbar action appears only when git.account is registered", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  try {
+    const accounts = page
+      .locator(".scm-toolbar")
+      .getByRole("button", { name: "Git Accounts and Commit Author" });
+    await expect(
+      page.locator(".scm-toolbar").getByRole("button", { name: "Refresh" }),
+    ).toBeVisible();
+    await expect(accounts).toHaveCount(0);
+    await page.evaluate(() => {
+      const z = (window as any).__oxbit;
+      z.kernel.commands.register({
+        id: "git.account",
+        title: "Git Accounts and Commit Author",
+        run: () => {
+          z.accountsOpened = true;
+        },
+      });
+      z.workbench.touch();
+    });
+    await accounts.click();
+    await expect
+      .poll(() => page.evaluate(() => (window as any).__oxbit.accountsOpened))
+      .toBe(true);
+  } finally {
+    await f.close();
+  }
+});

@@ -2,7 +2,7 @@
 
 Use **Preferences: Import Icon Pack…** or **Extensions → Icon Packs → Manage Icon Packs**. Review the publisher, version, license, theme list, sample icons and compatibility warnings, then install. Installation does not change your selections. File/folder icons and application controls have independent selectors in Settings and the command palette.
 
-Oxbit ships **ClassicOS 98 Icons** (`oxbit.classicos98`) and **Rainbow Pride Icons** (`oxbit.rainbow-icons`), installed on first launch. They behave like imported packs in Extensions → Icon Packs. Uninstalling either is remembered for the origin, across projects and launches, until its bundled revision changes.
+Oxbit ships **ClassicOS 98 Icons** (`oxbit.classicos98`) and **Rainbow Pride Icons** (`oxbit.rainbow-icons`), installed on first launch. Rainbow Pride Icons is enabled; ClassicOS 98 Icons is installed disabled until you enable it in Extensions → Icon Packs. Upgrading keeps the enabled state of a pack that is already installed. They behave like imported packs in Extensions → Icon Packs. Uninstalling either is remembered for the origin, across projects and launches, until its bundled revision changes.
 
 **Rainbow Pride** includes bold rainbow flag stripes and Progress Pride chevrons, with readable file-type badges, covering 225 file extensions, 142 filenames, 41 folder names, and all 63 themeable application controls. File and folder artwork follows the color theme's light/dark mode. Choose it independently in the File Icon Theme and Product Icon Theme settings, or run **Use Rainbow Dark Theme and Icons** / **Use Rainbow Light Theme and Icons** to apply the matching palette and both icon selections together. Oxbit branding and explicitly preserved application glyphs retain their appearance.
 

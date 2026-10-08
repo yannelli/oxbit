@@ -20,6 +20,7 @@ export function Settings({
     [language, setLanguage] = useState(""),
     [category, setCategory] = useState("All"),
     [modified, setModified] = useState(false);
+  const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
   const settings = kernel.configuration.list();
   const languageIds = [
     ...new Set([
@@ -46,7 +47,12 @@ export function Settings({
   return (
     <div className="settings-screen">
       <div className="settings-heading">
-        <h1>{tr("Settings")}</h1>
+        <div className="settings-title-row">
+          <h1>{tr("Settings")}</h1>
+          <button className="button" onClick={() => void workbench.run("settings.keyboard")}>
+            {tr("Keyboard Shortcuts")}
+          </button>
+        </div>
         <div className="search-input">
           <Icon name="search" />
           <input
@@ -60,31 +66,30 @@ export function Settings({
           </span>
         </div>
         <div className="settings-scope">
-          <button
-            aria-pressed={scope === "user"}
-            onClick={() => setScope("user")}
-          >
-            {tr("User")}
-          </button>
-          <button
-            aria-pressed={scope === "workspace"}
-            onClick={() => setScope("workspace")}
-          >
-            {tr("Workspace")}
-          </button>
+          <div className="settings-segmented" role="group" aria-label={tr("Settings scope")}>
+            <button
+              aria-pressed={scope === "user"}
+              onClick={() => setScope("user")}
+            >
+              {tr("User")}
+            </button>
+            <button
+              aria-pressed={scope === "workspace"}
+              onClick={() => setScope("workspace")}
+            >
+              {tr("Workspace")}
+            </button>
+          </div>
           <Select label={tr("Language override")} value={language} onChange={setLanguage}
             options={[{ value: "", label: tr("All languages") }, ...languageIds.map(value => ({ value, label: value }))]} />
-          <label className="push">
+          <label className="settings-chip">
             <input
               type="checkbox"
               checked={modified}
               onChange={(e) => setModified(e.target.checked)}
-            />{" "}
+            />
             {tr("Modified")}
           </label>
-          <button onClick={() => void workbench.run("settings.keyboard")}>
-            {tr("Keyboard Shortcuts")}
-          </button>
         </div>
       </div>
       <div className="settings-body">
@@ -107,6 +112,7 @@ export function Settings({
         </nav>
         <div className="settings-list">
           {!query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
+          {!query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts and Commit Author…")}</button>}
           {selected.map((s) => (
             <SettingRow
               key={`${s.id}:${scope}:${language}`}

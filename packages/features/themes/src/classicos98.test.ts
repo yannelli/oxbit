@@ -6,6 +6,11 @@ import { productIconIds } from "../../../ui/src/product-icons.js";
 import pack from "./packs/oxbit.classicos98.json";
 import { classicOS98Themes } from "./bundled.js";
 import { classicOS98IconPack } from "./classicos98/index.js";
+import {
+  CLASSICOS98_FEATURE_ID,
+  createClassicOS98Feature,
+  keepClassicOS98ForSavedTheme,
+} from "./classicos98-pack.js";
 
 const themePack = pack as ThemePack;
 const fileTheme = classicOS98IconPack.themes[0];
@@ -103,5 +108,48 @@ describe("ClassicOS 98 icon pack", () => {
     expect(Object.keys(classicOS98IconPack.assets).sort()).toEqual(
       [...new Set(referenced)].sort(),
     );
+  });
+});
+
+describe("ClassicOS 98 defaults", () => {
+  const memory = (initial: Record<string, unknown> = {}) => {
+    const values = new Map(Object.entries(initial));
+    return {
+      values,
+      get: async <T>(key: string) => values.get(key) as T | undefined,
+      set: async (key: string, value: unknown) => void values.set(key, value),
+      delete: async (key: string) => void values.delete(key),
+    };
+  };
+
+  it("ships the extension and icon pack disabled", () => {
+    const feature = createClassicOS98Feature({ kernel: {} as never });
+    expect(feature.manifest.enabledByDefault).toBe(false);
+    expect(classicOS98IconPack.enabled).toBe(false);
+  });
+
+  it("enables the extension for a saved ClassicOS theme in every stored form", async () => {
+    const [theme] = classicOS98Themes;
+    for (const id of [theme.id, theme.title, theme.data.stableId]) {
+      const persistence = memory({ "extension-enabled": ["other"] });
+      await keepClassicOS98ForSavedTheme(persistence, id);
+      expect(persistence.values.get("extension-enabled"), id).toEqual([
+        "other",
+        CLASSICOS98_FEATURE_ID,
+      ]);
+    }
+  });
+
+  it("leaves other themes, explicit disables, and existing entries alone", async () => {
+    const other = memory();
+    await keepClassicOS98ForSavedTheme(other, "oxbit.graphite");
+    await keepClassicOS98ForSavedTheme(other, undefined);
+    expect(other.values.has("extension-enabled")).toBe(false);
+    const disabled = memory({ "extension-disabled": [CLASSICOS98_FEATURE_ID] });
+    await keepClassicOS98ForSavedTheme(disabled, classicOS98Themes[0].id);
+    expect(disabled.values.has("extension-enabled")).toBe(false);
+    const enabled = memory({ "extension-enabled": [CLASSICOS98_FEATURE_ID] });
+    await keepClassicOS98ForSavedTheme(enabled, classicOS98Themes[0].id);
+    expect(enabled.values.get("extension-enabled")).toEqual([CLASSICOS98_FEATURE_ID]);
   });
 });

@@ -375,7 +375,7 @@ fn signature<'a>(repo: &Repository, credentials: &Credentials) -> Result<Signatu
     }
     Err(Error::new(
         "IDENTITY_REQUIRED",
-        "Set your Git name and email in Source Control settings",
+        "Set your Git name and email in Git Accounts and Commit Author from the Source Control toolbar",
     ))
 }
 

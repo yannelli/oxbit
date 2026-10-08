@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createKernel } from "../../core/src/index.js";
+import { DocumentService } from "../../documents/src/index.js";
+import { BrowserFileSystem, MemoryPersistence } from "../../host-browser/src/index.js";
+import { LanguageService } from "../../features/language/src/index.js";
+import type { FeatureOptions } from "@oxbit/sdk";
 import type { IosFileSystem } from "./filesystem.js";
 const mocks = vi.hoisted(() => ({ message: vi.fn() }));
 vi.mock("./native.js", () => ({ native: { lspMessage: mocks.message } }));
@@ -91,5 +95,31 @@ describe("native iOS LSP transport", () => {
     expect(unwatch).toHaveBeenCalledOnce();
     await expect(nativeTransport.request("initialize", {})).rejects.toThrow("disposed");
     kernel.dispose();
+  });
+
+  it("does not restart language features for a file turned off for the session", async () => {
+    mocks.message.mockImplementation(async ({ method }: { method: string }) => payload(method === "initialize" ? { capabilities: { textDocumentSync: 1 } } : null));
+    const kernel = createKernel(), persistence = new MemoryPersistence(), files = new BrowserFileSystem(persistence);
+    for (const path of ["main.ts", "next.ts"]) await files.write(path, "export {};", { expectedRevision: null });
+    const documents = new DocumentService(files, persistence, kernel);
+    await documents.open("main.ts");
+    const workbench = { activePath: () => "main.ts", notify: vi.fn() } as unknown as FeatureOptions["workbench"];
+    const language = new LanguageService({ kernel, documents, filesystem: files, workbench } as unknown as FeatureOptions);
+    language.setFileEnabled("main.ts", false);
+    kernel.services.register("documents", documents);
+    kernel.services.register("language", language);
+    const filesystem = { id: "ios:workspace", root: "/workspace", watch: () => ({ dispose() {} }) } as unknown as IosFileSystem;
+    const feature = createIosLanguageFeature(filesystem);
+    kernel.extensions.register(feature);
+    await kernel.extensions.activate(feature.manifest.id);
+    kernel.events.emit("editor.active", {});
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(mocks.message).not.toHaveBeenCalled();
+    await documents.open("next.ts");
+    await vi.waitFor(() => expect(mocks.message.mock.calls.map(([message]) => message.method)).toContain("textDocument/didOpen"));
+    const opened = mocks.message.mock.calls.filter(([message]) => message.method === "textDocument/didOpen").map(([message]) => message.params.textDocument.uri);
+    expect(opened).toEqual(["file:///workspace/next.ts"]);
+    expect(language.fileEnabled("main.ts")).toBe(false);
+    language.dispose(); documents.dispose(); kernel.dispose();
   });
 });

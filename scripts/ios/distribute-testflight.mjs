@@ -28,7 +28,7 @@ async function collection(api, path) {
 }
 
 export async function distributeTestFlight({
-  api, identifier, version, buildNumber, notes,
+  api, identifier, version, buildNumber, notes, internal = false,
   sleep = setTimeout, now = Date.now, timeoutMs = 30 * 60_000, pollMs = 30_000,
   log = console.log,
 }) {
@@ -36,9 +36,10 @@ export async function distributeTestFlight({
   const apps = await collection(api, `/v1/apps?filter[bundleId]=${encodeURIComponent(identifier)}&limit=200`);
   const app = apps.find((entry) => entry.attributes.bundleId === identifier);
   if (!app) throw new Error(`App Store Connect has no app for ${identifier}`);
+  const groupName = internal ? "Internal Testing" : "Public Beta";
   const groups = (await collection(api, `/v1/apps/${app.id}/betaGroups?limit=200`))
-    .filter((group) => group.attributes.name === "Public Beta" && group.attributes.isInternalGroup === false);
-  if (groups.length !== 1) throw new Error("Expected one external Public Beta group for this app");
+    .filter((group) => group.attributes.name === groupName && group.attributes.isInternalGroup === internal);
+  if (groups.length !== 1) throw new Error(`Expected one ${internal ? "internal" : "external"} ${groupName} group for this app`);
   const group = groups[0];
   const query = new URLSearchParams({
     "filter[app]": app.id, "filter[version]": buildNumber,
@@ -49,6 +50,7 @@ export async function distributeTestFlight({
   let build;
   let details;
   const waitingStates = ["PROCESSING", "IN_EXPORT_COMPLIANCE_REVIEW"];
+  const stateKey = internal ? "internalBuildState" : "externalBuildState";
   while (now() < deadline) {
     const response = await api("GET", `/v1/builds?${query}`);
     const matches = response.data.filter((entry) => {
@@ -60,16 +62,19 @@ export async function distributeTestFlight({
     if (build?.attributes.expired) throw new Error("The uploaded TestFlight build has expired");
     const state = build?.attributes.processingState;
     details = response.included?.find((entry) => entry.type === "buildBetaDetails" && entry.id === build?.relationships?.buildBetaDetail?.data?.id);
-    if (state === "VALID" && details && !waitingStates.includes(details.attributes.externalBuildState)) break;
+    if (state === "VALID" && details && !waitingStates.includes(details.attributes[stateKey])) break;
     if (build && state !== "PROCESSING" && state !== "VALID") throw new Error(`TestFlight processing failed: ${state}`);
-    log(`Waiting for TestFlight ${version} (${buildNumber}): ${details?.attributes.externalBuildState ?? state ?? "not visible"}`);
+    log(`Waiting for TestFlight ${version} (${buildNumber}): ${details?.attributes[stateKey] ?? state ?? "not visible"}`);
     await sleep(Math.min(pollMs, Math.max(0, deadline - now())));
   }
-  if (build?.attributes.processingState !== "VALID" || !details || waitingStates.includes(details.attributes.externalBuildState))
+  if (build?.attributes.processingState !== "VALID" || !details || waitingStates.includes(details.attributes[stateKey]))
     throw new Error("Timed out waiting for TestFlight processing");
-  const externalState = details.attributes.externalBuildState;
-  if (!["READY_FOR_BETA_SUBMISSION", "WAITING_FOR_BETA_REVIEW", "IN_BETA_REVIEW", "BETA_APPROVED", "READY_FOR_BETA_TESTING", "IN_BETA_TESTING"].includes(externalState))
-    throw new Error(`Cannot distribute TestFlight build in state ${externalState}`);
+  const buildState = details.attributes[stateKey];
+  const distributable = internal
+    ? ["READY_FOR_BETA_TESTING", "IN_BETA_TESTING"]
+    : ["READY_FOR_BETA_SUBMISSION", "WAITING_FOR_BETA_REVIEW", "IN_BETA_REVIEW", "BETA_APPROVED", "READY_FOR_BETA_TESTING", "IN_BETA_TESTING"];
+  if (!distributable.includes(buildState))
+    throw new Error(`Cannot distribute TestFlight build in state ${buildState}`);
   const localizationsPath = `/v1/builds/${build.id}/betaBuildLocalizations?limit=200`;
   const localization = (await collection(api, localizationsPath)).find((entry) => entry.attributes.locale === "en-US");
   if (localization) {
@@ -87,7 +92,7 @@ export async function distributeTestFlight({
     await api("PATCH", `/v1/buildBetaDetails/${details.id}`, {
       data: { type: "buildBetaDetails", id: details.id, attributes: { autoNotifyEnabled: true } },
     });
-  if (externalState === "READY_FOR_BETA_SUBMISSION") {
+  if (!internal && buildState === "READY_FOR_BETA_SUBMISSION") {
     const reviewPath = `/v1/betaAppReviewSubmissions?filter[build]=${build.id}&limit=200`;
     const accepted = (reviews) => reviews.some((entry) => ["WAITING_FOR_REVIEW", "IN_REVIEW", "APPROVED"].includes(entry.attributes.betaReviewState));
     const reviews = await collection(api, reviewPath);
@@ -109,18 +114,18 @@ export async function distributeTestFlight({
   const membership = await collection(api, membershipPath);
   const savedDetails = (await api("GET", `/v1/builds/${build.id}/buildBetaDetail`)).data.attributes;
   if (savedNotes?.attributes.whatsNew !== notes || !membership.some((entry) => entry.id === build.id) || !savedDetails.autoNotifyEnabled)
-    throw new Error("TestFlight notes, Public Beta assignment, or automatic notification failed verification");
-  log(`TestFlight ${version} (${buildNumber}) assigned to Public Beta; external state: ${savedDetails.externalBuildState}`);
-  return { buildId: build.id, groupId: group.id, externalBuildState: savedDetails.externalBuildState };
+    throw new Error(`TestFlight notes, ${groupName} assignment, or automatic notification failed verification`);
+  log(`TestFlight ${version} (${buildNumber}) assigned to ${groupName}; ${stateKey}: ${savedDetails[stateKey]}`);
+  return { buildId: build.id, groupId: group.id, [stateKey]: savedDetails[stateKey] };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { values } = parseArgs({ options: { build: { type: "string" }, "check-notes": { type: "boolean" } } });
+  const { values } = parseArgs({ options: { build: { type: "string" }, "check-notes": { type: "boolean" }, internal: { type: "boolean" } } });
   const { version } = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   const notes = loadTestNotes(version, values.build);
   if (values["check-notes"]) console.log(notes);
   else {
     const { identifier } = JSON.parse(fs.readFileSync(path.join(root, "apps/ios/src-tauri/tauri.conf.json"), "utf8"));
-    await distributeTestFlight({ api: createAppStoreConnectApi(), identifier, version: version.split("-")[0], buildNumber: values.build, notes });
+    await distributeTestFlight({ api: createAppStoreConnectApi(), identifier, version: version.split("-")[0], buildNumber: values.build, notes, internal: values.internal });
   }
 }

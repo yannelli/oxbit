@@ -202,9 +202,10 @@ macOS and iOS builds and uploads to TestFlight. See [desktop releases](docs/desk
 for signing credentials and platform requirements.
 
 Each tag release requires tester notes in `docs/testflight/<full-version>.md`.
-The workflow fills "What to Test", assigns the external `Public Beta` group, and
-submits beta review when required. The [release guide](docs/release.md) includes
-the notes check and Apple TestFlight API references for distribution changes.
+The workflow fills "What to Test" and assigns the internal `Internal Testing` group.
+Promoting a checked build to the external `Public Beta` group, which submits beta
+review when required, is a separate command in the [release guide](docs/release.md),
+alongside the notes check and Apple TestFlight API references.
 Pushing to `main` does not release.
 
 ## License
