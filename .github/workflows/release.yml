@@ -148,7 +148,7 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: node scripts/ios/run.mjs upload apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
-      - name: Set testing notes and distribute to Public Beta
+      - name: Set testing notes and assign to Internal Testing
         if: github.ref_type == 'tag'
         timeout-minutes: 35
         env:
@@ -156,7 +156,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
           export APPLE_API_KEY_PATH="$HOME/private_keys/AuthKey_${APPLE_API_KEY}.p8"
-          node scripts/ios/distribute-testflight.mjs --build '${{ steps.version.outputs.build }}'
+          node scripts/ios/distribute-testflight.mjs --build '${{ steps.version.outputs.build }}' --internal
       - name: Collect release files
         run: |
           version=$(node -p "require('./package.json').version")
