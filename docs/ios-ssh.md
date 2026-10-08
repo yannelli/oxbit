@@ -73,7 +73,7 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 
 ## Transfers
 
-- Upload picks files with `UIDocumentPickerViewController` (`asCopy`), which copies them under the app's temporary directory. Rust accepts only paths there. Each file is written to a temporary name in the target folder and renamed into place. An existing name fails the upload with `EXISTS` before any bytes move. The temporary copies are deleted afterwards.
+- Upload and key-file import pick files with `UIDocumentPickerViewController` (`asCopy: true`). Apple's reference for that initializer says only that the picker copies the selected document; it does not name the destination. Rust (`picked_file` in `ssh/commands.rs`) accepts any regular file under the canonicalized temporary directory, with or without a `<bundle-id>-Inbox` subfolder, and canonicalizes the picked path too, so `/var/...` and `/private/var/...` spellings match. Each file is written to a temporary name in the target folder and renamed into place. An existing name fails the upload with `EXISTS` before any bytes move. The temporary copies are deleted afterwards.
 - Download picks a device folder with the existing folder picker, keeps its security scope open for the transfer, then closes and forgets the bookmark. Files and folders (up to 10,000 entries) download into a hidden staging folder inside the destination, which is renamed to the final name on success.
 - Both send 256 KiB chunks and emit `ios-ssh-transfer:<transferId>` events with `transferred`, `total`, and `file`. `ios_ssh_transfer_cancel` sets a flag that the copy loop checks between chunks; a cancelled transfer removes its temporary files and returns `CANCELLED`.
 
@@ -107,5 +107,6 @@ Error codes and messages match `fs_core` (`NOT_FOUND` with `ENOENT: no such file
 - aws-lc-rs platform support: https://aws.github.io/aws-lc-rs/platform_support.html
 - Keychain item accessibility: https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlockedthisdeviceonly
 - UIDocumentPickerViewController: https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller
+- init(forOpeningContentTypes:asCopy:): https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller/init(forOpeningContentTypes:asCopy:)
 - SSH transport and host keys: https://www.rfc-editor.org/rfc/rfc4253
 - SFTP version 3 draft: https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02

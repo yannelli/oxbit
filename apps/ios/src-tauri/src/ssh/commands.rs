@@ -12,7 +12,10 @@ use crate::{
 };
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tauri::{AppHandle, State};
 use tauri_plugin_oxbit_files::OxbitFilesExt;
 
@@ -138,7 +141,13 @@ pub async fn ios_ssh_keys_generate(app: AppHandle, name: String) -> Result<KeyIn
 
 /// Picked files are copies under the temporary directory; any other path is refused.
 pub(crate) fn picked_file(path: &str) -> Result<PathBuf> {
-    let temporary = std::env::temp_dir()
+    picked_file_in(&std::env::temp_dir(), path)
+}
+
+/// Both sides are canonicalized, so `/var/...` and `/private/var/...` spellings of the same
+/// folder match, and any subfolder (such as `<bundle-id>-Inbox`) or none is accepted.
+fn picked_file_in(root: &Path, path: &str) -> Result<PathBuf> {
+    let temporary = root
         .canonicalize()
         .map_err(|_| Error::new("IO", "The temporary directory is unavailable."))?;
     let path = PathBuf::from(path)
@@ -278,4 +287,57 @@ pub async fn ios_ssh_disconnect(state: State<'_, AppState>, host_id: String) -> 
     state.ssh.pool.disconnect(&host_id).await;
     state.ssh.close_host_roots(&host_id);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::picked_file_in;
+    use std::{fs, os::unix::fs::symlink, path::Path};
+
+    fn code(root: &Path, path: &Path) -> &'static str {
+        match picked_file_in(root, path.to_str().unwrap()) {
+            Ok(_) => "OK",
+            Err(error) if error.code == "PATH_DENIED" => "PATH_DENIED",
+            Err(error) if error.code == "NOT_FOUND" => "NOT_FOUND",
+            Err(_) => "OTHER",
+        }
+    }
+
+    /// `var` links to `private/var`, as on iOS, and each side may use either spelling.
+    #[test]
+    fn picked_files_match_through_a_symlinked_temporary_root() {
+        let base = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("oxbit-ios-picked-{}", uuid::Uuid::new_v4()));
+        let real = base.join("private/var/tmp");
+        let linked = base.join("var/tmp");
+        let inbox = real.join("com.yannelli.oxbit-Inbox");
+        fs::create_dir_all(&inbox).unwrap();
+        symlink(base.join("private/var"), base.join("var")).unwrap();
+        fs::write(inbox.join("id_ed25519"), "key").unwrap();
+        fs::write(real.join("photo.png"), "png").unwrap();
+        fs::write(base.join("outside.txt"), "no").unwrap();
+
+        let picked = linked.join("com.yannelli.oxbit-Inbox/id_ed25519");
+        assert_eq!(code(&real, &picked), "OK");
+        assert_eq!(code(&linked, &inbox.join("id_ed25519")), "OK");
+        assert_eq!(code(&linked, &picked), "OK");
+        assert_eq!(
+            picked_file_in(&real, picked.to_str().unwrap()).unwrap(),
+            inbox.join("id_ed25519")
+        );
+        assert_eq!(code(&linked, &real.join("photo.png")), "OK");
+        assert_eq!(code(&real, &linked.join("photo.png")), "OK");
+
+        assert_eq!(code(&linked, &base.join("outside.txt")), "PATH_DENIED");
+        assert_eq!(
+            code(&linked, &linked.join("../../../outside.txt")),
+            "PATH_DENIED"
+        );
+        assert_eq!(code(&real, &inbox), "PATH_DENIED");
+        assert_eq!(code(&real, &inbox.join("missing")), "NOT_FOUND");
+        assert_eq!(code(&base.join("absent"), &real.join("photo.png")), "OTHER");
+        fs::remove_dir_all(&base).unwrap();
+    }
 }
