@@ -117,6 +117,7 @@ test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/
   await page.setViewportSize({ width: 1440, height: 900 });
   await details(page);
   await page.getByRole("button", { name: "Disable", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Enable", exact: true })).toBeVisible();
   await page.reload();
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
   expect(
