@@ -2,12 +2,13 @@
 
 Created: 2026-10-08. Last updated: 2026-10-08.
 
-The iOS app opens folders on a server over SFTP and uses SSH remotes for Git in device folders. Keys, saved hosts, host-key trust, the connection pool, and transfers live in the iOS crate (`apps/ios/src-tauri/src/ssh/`). Private keys and saved passwords live in the Keychain through the `oxbit-files` plugin.
+The iOS app opens folders on a server over SFTP, starts an Oxbit runtime on a server, and uses SSH remotes for Git in device folders. Keys, saved hosts, host-key trust, the connection pool, and transfers live in the iOS crate (`apps/ios/src-tauri/src/ssh/`). Private keys and saved passwords live in the Keychain through the `oxbit-files` plugin.
 
 ## Entry points
 
 - The start screen section "On a server" has Connect with SSH…, SSH Hosts and Keys…, and recent SSH workspaces.
-- With a workspace open, the command palette has `ssh.hosts` (SSH Hosts and Keys) and `ssh.connect` (Connect with SSH…).
+- The same section has Start Oxbit on This Server… and recent remote runtime workspaces.
+- With a workspace open, the command palette has `ssh.hosts` (SSH Hosts and Keys), `ssh.connect` (Connect with SSH…), `ssh.runtime` (Start Oxbit on This Server…), and `ssh.runtime.reconnect`.
 - An SSH workspace adds `ssh.upload` (Upload Files Here…) and `ssh.download` (Download to Device…) to the palette and the explorer context menu.
 
 All four dialogs render as `.ios-shell > .modal-scrim`, above the workspace sheet.
@@ -104,6 +105,18 @@ Prompts: a failed request stores its prompt in `Ssh.git_prompts` under the works
 
 Host keys share `known_hosts.json` and its refusal rules with SFTP workspaces, so trusting a server in either place covers both. Each Git network operation opens its own SSH connection and disconnects when libgit2 drops the stream. Private keys load from the Keychain only when a remote needs one and stay out of progress and error text; `safe_output` still redacts HTTPS tokens in the same output.
 
+## Remote runtime
+
+Start Oxbit on This Server runs the desktop's headless runtime (`desktop.js`) on a saved host and connects the iOS runtime client to it, so terminals, tasks, and agents run on the server. The Rust side mirrors `apps/runtime/src/ssh.ts` and `ssh-target.ts` and lives in `apps/ios/src-tauri/src/ssh/runtime_*.rs`. The remote layout matches the desktop, so a host shared with the desktop reuses its install under `~/.oxbit/remote/runtimes/<sha256>`.
+
+- Platform: `uname -s; uname -m` maps to `linux-x64` or `darwin-arm64`. Other hosts fail with the desktop's message.
+- Payload: `runtime_install::pinned` is the one manifest lookup. It calls `remote_runtime::pinned_download`, which reads `TAURI_OXBIT_REMOTE_RUNTIME_MANIFEST` at build time. A build without a manifest reports that it has no remote runtime.
+- Install order: a `.complete` marker skips the install. Otherwise the host runs `curl -fsSL` (with a 15 s connect timeout and a 30 s stall limit) or `wget -qO-` piped into the desktop's install script, which checks the pinned SHA-256 before it writes `.complete`. If the host has neither tool or the download fails, the `oxbit-files` plugin downloads the archive with `URLSession` (`RuntimeDownloadStore.swift`, HTTPS only) and keeps it in Caches only when its size and SHA-256 match. Rust checks both again, and the archive streams into the same script over the exec channel. A unit test compares the script byte for byte with `ssh-target.ts`.
+- Launch: `bin/node desktop.js` runs with `NODE_OPTIONS`, `NODE_PATH`, and `OXBIT_LSP_COMMAND` unset. The launch frame carries `remoteRuntime: true`, the root, the workspace key, and a random token. The runtime then accepts that token as the owner, so `/api/pair` and its rate limit are not used. Stdout frames follow version 1 with a 64 KiB line cap: `ready`, `rotated`, `taskForward`, `error`, and `progress`. A heartbeat goes out every 10 s against the runtime's 75 s lease.
+- Tunnel: a listener on `127.0.0.1:0` forwards each accepted connection over a `direct-tcpip` channel to the port in the `ready` frame. `taskForward` requests get their own loopback listener per `host:port` and a `taskForwarded` reply. The WebView reaches the loopback port through `NSAllowsLocalNetworking` and the `127.0.0.0/8` exception in `apps/ios/src-tauri/Info.ios.plist`.
+- Lifecycle: closing the workspace cancels a running device download, sends `shutdown`, and closes the channel and listeners. Task listeners stay open until then, as on the desktop (`apps/runtime/src/ssh.ts`); after a task stops, their connections close without data. When the exec channel ends, or the app returns to the foreground, `ensure` reconnects the pooled SSH connection, stops a stale runtime by PID only when its command line is an Oxbit runtime, and relaunches with the same token and local port, so the runtime client's own WebSocket reconnect picks it up. Automatic attempts stop after 3 in 60 s with a message to reconnect. Reconnect (`ssh.runtime.reconnect`) and the foreground return bypass that budget and start a new one.
+- Origins: the runtime allows `tauri://localhost`. A dev build served from `http://127.0.0.1:9281` is not an allowed origin, so remote runtimes need a bundled build.
+
 ## Build notes
 
 - `russh = "=0.64.1"` and `ssh-key = "=0.7.0-rc.11"` are pinned together because russh requires that exact `ssh-key` release. Upgrade both in one change.
@@ -117,12 +130,12 @@ Host keys share `known_hosts.json` and its refusal rules with SFTP workspaces, s
 
 - Unit tests: `cargo test --locked` in `apps/ios/src-tauri` (keys, hosts, known hosts, SSH URL parsing and command quoting in `git_core/ssh_transport_tests.rs`, key selection in `ssh/git.rs`) and `cargo test --locked -p tauri-plugin-oxbit-files` in the same folder (request validation and metadata filtering).
 - Keychain: `bun run ios:check` compiles `SshKeyStore.swift` with `Tests/SshKeys/main.swift` and runs save, read, list, update, delete, and password save/read/forget against the macOS login keychain, under per-run service names that it deletes afterwards. Its first Keychain call is a write; when that returns `errSecInteractionNotAllowed` (-25308), as in a `Background` launchd session with a locked login keychain (`launchctl managername`), it prints `SshKeyStore tests skipped: the login keychain is locked in this session` and exits 0. Any other failure fails the check. An unsigned binary on macOS uses the file-based keychain, which rejects `kSecReturnData` with `kSecMatchLimitAll` (`errSecParam`), so `keys()` lists accounts and reads each item. The macOS run does not exercise the data-protection keychain or `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` as iOS applies them.
-- Live tests: `bun run ios:ssh-live` builds `scripts/remote/sshd.Dockerfile`, starts a container with a key port and a password port, and runs the ignored `ssh::live_` tests one at a time. `ssh::live_git_tests` runs first and covers the key prompt without a saved host, the first-use host key prompt, clone over `ssh://`, push, fetch, pull, a server error from a missing repository, and refusal when the saved host key differs. `ssh::live_tests` covers key auth with a passphrase-protected key, first-use trust, SFTP list/read/write/conflict/mkdir/rename/delete, upload and download with progress and cancel, password auth, reconnect after `docker restart`, and refusal after the container's host keys are regenerated. The script removes the container afterwards.
-- UI: `bunx playwright test -c tests/ios/playwright.config.ts ssh.spec.ts` with the in-memory SSH bridge in `tests/ios/ssh-bridge.ts`. Its `clone` seed makes `git.clone` return the SSH prompt errors in order. `OXBIT_SSH_SCREENSHOTS` sets the screenshot folder (default `evidence/ios-ssh`).
+- Runtime download: `bun run ios:check` compiles `RuntimeDownloadStore.swift` with `Tests/RuntimeDownload/main.swift` and downloads fixed ripgrep 14.1.1 release assets from GitHub: a download with matching size and SHA-256, a corrupt cached file replaced, refusal of `http://` and a malformed digest, size and digest mismatches that leave nothing in the cache, and cancellation. Without a network it prints `RuntimeDownload tests skipped: the network is unavailable` and exits 0.
+- Live tests: `bun run ios:ssh-live` builds `scripts/remote/sshd.Dockerfile`, starts a container with a key port and a password port, and runs the ignored `ssh::live_` tests one at a time. `ssh::live_git_tests` runs first and covers the key prompt without a saved host, the first-use host key prompt, clone over `ssh://`, push, fetch, pull, a server error from a missing repository, and refusal when the saved host key differs. `ssh::live_runtime_tests` installs the runtime through the device stream after a failed host download and through `curl` from a local HTTP server, runs `fs.read` and a terminal command through the tunnel with `scripts/ios/runtime-probe.mjs`, reuses the cache, relaunches after `kill -9`, and reconnects after `docker restart`. `ssh::live_runtime_task_tests` installs with `wget` on a host without `curl`, runs a service task and fetches it through the `taskForward` listener with `scripts/ios/runtime-task-probe.mjs`, and checks that 3 failed automatic relaunches stop and wait for Reconnect. Both need `bun run remote:prepare` first and are skipped without the payload. `ssh::live_tests` covers key auth with a passphrase-protected key, first-use trust, SFTP list/read/write/conflict/mkdir/rename/delete, upload and download with progress and cancel, password auth, reconnect after `docker restart`, and refusal after the container's host keys are regenerated. The script removes the container afterwards.
+- UI: `bunx playwright test -c tests/ios/playwright.config.ts ssh.spec.ts` with the in-memory SSH bridge in `tests/ios/ssh-bridge.ts`. Its `clone` seed makes `git.clone` return the SSH prompt errors in order. `ssh-runtime.spec.ts` covers the start dialog, progress, the recent entry, and a failed start, with the runtime WebSocket mocked by `page.routeWebSocket`. `OXBIT_SSH_SCREENSHOTS` sets the screenshot folder (default `evidence/ios-ssh`).
 
 ## Not implemented
 
-- A terminal and the remote runtime over SSH.
 - scp-style remotes on a port other than 22 (use `ssh://host:port/path`), password authentication for Git remotes, and `ssh+git://` or `git+ssh://` URLs.
 - Keyboard-interactive authentication, SSH agents, certificates, and jump hosts.
 - Port forwarding and exec channels in the UI.
@@ -142,4 +155,6 @@ Host keys share `known_hosts.json` and its refusal rules with SFTP workspaces, s
 - git2 custom transports: https://docs.rs/git2/0.21.0/git2/transport/index.html
 - Git pack protocol over SSH: https://git-scm.com/docs/pack-protocol
 - Git URL forms: https://git-scm.com/docs/git-clone
+- direct-tcpip channels: https://www.rfc-editor.org/rfc/rfc4254#section-7.2
+- NSAllowsLocalNetworking: https://developer.apple.com/documentation/bundleresources/information-property-list/nsapptransportsecurity/nsallowslocalnetworking
 - SFTP version 3 draft: https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02

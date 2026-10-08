@@ -11,8 +11,12 @@ type Prompt =
   | { kind: "unknown"; hostKey: SshHostKey }
   | { kind: "changed"; hostKey: SshHostKey; known: KnownHostKey[] };
 
-export function SshConnect({ preset, onOpen, onManage, onClose }: {
+/** `runtime` starts Oxbit on the server; `files` opens the folder over SFTP. */
+export function SshConnect({ preset, mode = "files", progress, lastFolders = {}, onOpen, onManage, onClose }: {
   preset?: SshTarget;
+  mode?: "files" | "runtime";
+  progress?: string;
+  lastFolders?: Record<string, string>;
   onOpen: (target: SshTarget & { label: string }) => Promise<string | undefined>;
   onManage: () => void;
   onClose: () => void;
@@ -20,6 +24,7 @@ export function SshConnect({ preset, onOpen, onManage, onClose }: {
   const [hosts, setHosts] = useState<SshHost[]>();
   const [hostId, setHostId] = useState(preset?.hostId ?? "");
   const [path, setPath] = useState(preset?.path ?? "~");
+  const runtime = mode === "runtime";
   const [password, setPassword] = useState("");
   const [savePassword, setSavePassword] = useState(false);
   const [needsPassword, setNeedsPassword] = useState(false);
@@ -57,13 +62,15 @@ export function SshConnect({ preset, onOpen, onManage, onClose }: {
       const initial = list.find(item => item.id === hostId) ?? list[0];
       if (!initial) return;
       setHostId(initial.id);
+      if (!preset) setPath(lastFolders[initial.id] ?? "~");
       if (autoConnect.current && initial.id === preset?.hostId && (initial.auth === "key" || initial.passwordSaved))
         return connect(initial);
     }).catch(failure => { if (active) setError(describe(failure)); }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, []);
 
-  const title = prompt?.kind === "changed" ? "Host Key Changed" : prompt ? "Confirm Host Key" : "Connect with SSH";
+  const title = prompt?.kind === "changed" ? "Host Key Changed" : prompt ? "Confirm Host Key"
+    : runtime ? "Start Oxbit on This Server" : "Connect with SSH";
   return <Dialog title={title} danger={prompt?.kind === "changed"} onClose={() => { if (!busy) onClose(); }} initialFocus={prompt ? undefined : "select"}>
     {prompt && host ? <div className="runtime-form ssh-host-key">
       {prompt.kind === "unknown" ? <>
@@ -95,12 +102,18 @@ export function SshConnect({ preset, onOpen, onManage, onClose }: {
             setError("Forgot the saved host key. Connect again to review the new fingerprint.");
           })}>Forget saved host key</button>}
       </div>
-    </div> : <form className="runtime-form" onSubmit={event => {
+    </div> : <form className="runtime-form ssh-connect" onSubmit={event => {
       event.preventDefault();
       if (host && !busy) perform(() => connect(host));
     }}>
+      {runtime && <p>Oxbit installs its runtime on the server and runs terminals, tasks, and agents there. Linux x64 and macOS Apple Silicon servers are supported.</p>}
       {hosts && !hosts.length ? <p>Add a server in SSH Hosts and Keys first.</p> : <>
-        <label>Server<select aria-label="Server" value={hostId} onChange={event => { setHostId(event.target.value); setNeedsPassword(false); setError(""); }} disabled={busy}>
+        <label>Server<select aria-label="Server" value={hostId} onChange={event => {
+          setHostId(event.target.value);
+          setPath(lastFolders[event.target.value] ?? "~");
+          setNeedsPassword(false);
+          setError("");
+        }} disabled={busy}>
           {hosts?.map(item => <option key={item.id} value={item.id}>{item.label} ({hostAddress(item)})</option>)}
         </select></label>
         <label>Remote folder<input autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Remote folder" placeholder="~ (home folder)" value={path} onChange={event => setPath(event.target.value)} disabled={busy} /></label>
@@ -111,11 +124,14 @@ export function SshConnect({ preset, onOpen, onManage, onClose }: {
           <label className="ssh-check"><input type="checkbox" checked={savePassword} onChange={event => setSavePassword(event.target.checked)} disabled={busy} />Save password in the Keychain</label>
         </>}
       </>}
+      {busy && progress && <p className="small muted" role="status">{progress}</p>}
       {error && <p className="error-text" role="alert">{error}</p>}
       <div className="dialog-actions">
         <button type="button" className="button" disabled={busy} onClick={onManage}>SSH Hosts and Keys…</button>
         <button type="button" className="button" disabled={busy} onClick={onClose}>Cancel</button>
-        <button type="submit" className="button primary" disabled={busy || !host} aria-busy={busy}>{busy && hosts ? "Connecting…" : "Connect"}</button>
+        <button type="submit" className="button primary" disabled={busy || !host} aria-busy={busy}>
+          {busy && hosts ? (runtime ? "Starting…" : "Connecting…") : runtime ? "Start" : "Connect"}
+        </button>
       </div>
     </form>}
   </Dialog>;

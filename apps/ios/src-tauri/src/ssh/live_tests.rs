@@ -44,7 +44,7 @@ pub(super) fn host_fingerprint(container: &str) -> String {
     .to_string()
 }
 
-async fn restart(container: &str, port: u16) {
+pub(super) async fn restart(container: &str, port: u16) {
     docker(&["restart", container]);
     for _ in 0..100 {
         if tokio::net::TcpStream::connect(("127.0.0.1", port))

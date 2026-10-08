@@ -25,6 +25,8 @@ export {
   type PickedFile,
   type TransferProgress,
   type TransferSummary,
+  type RemoteRuntimeStarted,
+  type RemoteRuntimeEvent,
 } from "./native.js";
 export { IosGitClient, SSH_PROMPT_CODES, type SshGitPromptHandler } from "./git.js";
 export { IosFileSystem, SshFileSystem, revisionOf } from "./filesystem.js";

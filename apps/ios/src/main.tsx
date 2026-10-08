@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
-import { IosGitClient, native, type RecentWorkspace, type SshFileSystem } from "@oxbit/host-ios";
+import { IosGitClient, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -39,8 +39,18 @@ function describe(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function sshTarget(recent?: RecentWorkspace): { preset?: SshTarget } {
-  return recent?.hostId ? { preset: { hostId: recent.hostId, path: recent.remotePath ?? "~" } } : {};
+type SshDialog = { preset?: SshTarget; mode?: "files" | "runtime" };
+
+function sshTarget(recent?: RecentWorkspace, mode?: SshDialog["mode"]): SshDialog {
+  return recent?.hostId ? { preset: { hostId: recent.hostId, path: recent.remotePath ?? "~" }, mode } : { mode };
+}
+
+/** The most recent folder per saved host, for the remote folder field. */
+function lastFolders(recents: RecentWorkspace[]) {
+  const folders: Record<string, string> = {};
+  for (const recent of recents)
+    if (recent.hostId && recent.remotePath && !(recent.hostId in folders)) folders[recent.hostId] = recent.remotePath;
+  return folders;
 }
 
 /** Uploads land in the selected folder, or beside the selected file. */
@@ -59,7 +69,8 @@ function App() {
   const [gitSettings, setGitSettings] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [sshSettings, setSshSettings] = useState(false);
-  const [sshConnect, setSshConnect] = useState<{ preset?: SshTarget }>();
+  const [sshConnect, setSshConnect] = useState<SshDialog>();
+  const [remoteProgress, setRemoteProgress] = useState<string>();
   const [transfer, setTransfer] = useState<TransferRequest>();
   const [gitPrompt, setGitPrompt] = useState<{ rootId: string; resolve: (retry: boolean) => void }>();
   const [busy, setBusy] = useState<string>();
@@ -84,8 +95,44 @@ function App() {
     return undefined;
   }), []);
 
+  const close = useCallback(async () => {
+    const previous = current.current;
+    if (!previous) return;
+    flushSync(() => {
+      setWorkspace(undefined);
+      setSheet(true);
+    });
+    await closeWorkspace(previous).catch((e) => setError(describe(e)));
+  }, []);
+
+  /** Progress while a remote runtime starts; afterwards, reconnects show as notifications. */
+  const remoteEvent = useCallback((event: RemoteRuntimeEvent) => {
+    if (opening.current) {
+      if (event.state === "progress") setRemoteProgress(event.message);
+      return;
+    }
+    const workbench = current.current?.session.workbench;
+    if (event.state === "failed") workbench?.notify(event.message, "error");
+    else if (event.state === "running") workbench?.notify("Reconnected to the remote workspace.", "info");
+    else workbench?.notify(event.message, "info");
+  }, []);
+
+  const resume = useCallback(() => {
+    const remote = current.current?.remote;
+    if (remote) void ssh.runtimeResume(remote.id).catch(() => {});
+  }, []);
+
   const open = useCallback(async (request: OpenRequest) => {
     if (opening.current) return "A workspace is already opening.";
+    const active = current.current;
+    if (request.kind === "sshRuntime" && active?.remote && active.recent.hostId === request.hostId) {
+      if (active.recent.remotePath === request.path) {
+        setSheet(false);
+        return;
+      }
+      // The new runtime cannot take the folder lock while the previous one holds it.
+      await close();
+    }
     if (request.kind === "documents" && current.current?.recent.kind === "documents" &&
       request.directory === current.current.recent.directory) {
       setSheet(false);
@@ -104,9 +151,10 @@ function App() {
     opening.current = true;
     setError(undefined);
     setBusy(request.kind === "pick" ? "Choose a folder…" : "Opening…");
+    setRemoteProgress(undefined);
     try {
       const previous = current.current;
-      const next = await openWorkspace(request);
+      const next = await openWorkspace(request.kind === "sshRuntime" ? { ...request, onEvent: remoteEvent } : request);
       flushSync(() => {
         setWorkspace(next);
         setWorkspaceKey(key => key + 1);
@@ -122,24 +170,14 @@ function App() {
       opening.current = false;
       setBusy(undefined);
     }
-  }, []);
-
-  const close = useCallback(async () => {
-    const previous = current.current;
-    if (!previous) return;
-    flushSync(() => {
-      setWorkspace(undefined);
-      setSheet(true);
-    });
-    await closeWorkspace(previous).catch((e) => setError(describe(e)));
-  }, []);
+  }, [remoteEvent, close]);
 
   useEffect(() => {
     void (async () => {
       try {
         setRecents(await loadRecents());
         const last = await lastWorkspace();
-        if (last?.kind === "ssh") setSshConnect(sshTarget(last));
+        if (last?.kind === "ssh" || last?.kind === "sshRuntime") setSshConnect(sshTarget(last, last.kind === "sshRuntime" ? "runtime" : "files"));
         else if (last) await open({ kind: "recent", recent: last });
       } catch (e) {
         setError(describe(e));
@@ -150,12 +188,14 @@ function App() {
   }, [open]);
 
   useEffect(() => {
+    // iOS suspends sockets in the background, so a remote runtime reconnects on return.
     const persist = () => {
       if (document.visibilityState === "hidden") void current.current?.session.persist();
+      else resume();
     };
     document.addEventListener("visibilitychange", persist);
     return () => document.removeEventListener("visibilitychange", persist);
-  }, []);
+  }, [resume]);
 
   useEffect(() => {
     const session = workspace?.session;
@@ -175,6 +215,8 @@ function App() {
     const sshCommands = [
       ["ssh.hosts", "SSH Hosts and Keys", () => setSshSettings(true)],
       ["ssh.connect", "Connect with SSH…", () => setSshConnect({})],
+      ["ssh.runtime", "Start Oxbit on This Server…", () => setSshConnect({ mode: "runtime" })],
+      ...workspace.remote ? [["ssh.runtime.reconnect", "Reconnect to Server", resume]] as const : [],
       ...filesystem ? [
         ["ssh.upload", "Upload Files Here…", () => setTransfer({ kind: "upload", filesystem, directory: selectedDirectory(session) })],
         ["ssh.download", "Download to Device…", () =>
@@ -190,7 +232,7 @@ function App() {
     return () => {
       for (const disposable of disposables) disposable.dispose();
     };
-  }, [workspace?.session, workspace?.recent.kind, open, close]);
+  }, [workspace?.session, workspace?.recent.kind, workspace?.remote, open, close, resume]);
 
   const start = (
     <StartScreen
@@ -207,6 +249,7 @@ function App() {
       onGitSettings={() => setGitSettings(true)}
       onClone={() => setCloning(true)}
       onSsh={recent => setSshConnect(sshTarget(recent))}
+      onSshRuntime={recent => setSshConnect(sshTarget(recent, "runtime"))}
       onSshSettings={() => setSshSettings(true)}
     />
   );
@@ -224,7 +267,8 @@ function App() {
       {gitSettings && <GitSettings repository={workspace?.git} onClose={() => setGitSettings(false)} />}
       {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
         onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}
-      {sshConnect && <SshConnect preset={sshConnect.preset} onOpen={target => open({ kind: "ssh", ...target })}
+      {sshConnect && <SshConnect preset={sshConnect.preset} mode={sshConnect.mode} progress={remoteProgress} lastFolders={lastFolders(recents)}
+        onOpen={target => open({ kind: sshConnect.mode === "runtime" ? "sshRuntime" : "ssh", ...target })}
         onManage={() => { setSshConnect(undefined); setSshSettings(true); }} onClose={() => setSshConnect(undefined)} />}
       {sshSettings && <SshSettings onClose={() => setSshSettings(false)} />}
       {transfer && <SshTransfer request={transfer} onDone={() => { if (transfer.kind === "upload") void workspace?.session.workbench.refreshFiles(); }}

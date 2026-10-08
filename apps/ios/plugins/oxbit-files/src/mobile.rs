@@ -59,6 +59,29 @@ impl<R: Runtime> OxbitFiles<R> {
             .map_err(Into::into)
     }
 
+    /// Internal only: the pinned remote runtime archive, downloaded with URLSession. `id` names
+    /// the download for `cancel_runtime_download`.
+    pub fn download_runtime(
+        &self,
+        id: &str,
+        url: &str,
+        sha256: &str,
+        size: u64,
+    ) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin(
+                "downloadRuntime",
+                serde_json::json!({ "id": id, "url": url, "sha256": sha256, "size": size }),
+            )
+            .map_err(Into::into)
+    }
+
+    pub fn cancel_runtime_download(&self, id: &str) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("cancelRuntimeDownload", serde_json::json!({ "id": id }))
+            .map_err(Into::into)
+    }
+
     pub fn pick_files(&self, multiple: bool) -> crate::Result<PickedFiles> {
         self.0
             .run_mobile_plugin("pickFiles", serde_json::json!({ "multiple": multiple }))
