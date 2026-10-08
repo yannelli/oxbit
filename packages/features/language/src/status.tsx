@@ -55,11 +55,13 @@ export function LanguageStatus({ language, o }: { language: LanguageService; o: 
       viewport?.removeEventListener("scroll", position);
     };
   }, [open]);
+  const path = o.workbench.activePath();
+  const fileOff = Boolean(path && !language.fileEnabled(path));
   const servers = language.servers;
   const running = servers.filter(s => s.state === "ready").length;
   const busy = pending.length > 0 || servers.some(s => ["installing", "starting", "restarting", "stopping"].includes(s.state));
   const failed = servers.some(s => s.state === "failed");
-  const state = busy ? "starting" : failed ? "failed" : running ? "ready" : "stopped";
+  const state = fileOff ? "off" : busy ? "starting" : failed ? "failed" : running ? "ready" : "stopped";
   const close = () => { setOpen(false); trigger.current?.focus(); };
   async function control(server: string, action: "start" | "stop" | "restart") {
     setPending(ids => [...ids, server]);
@@ -68,20 +70,22 @@ export function LanguageStatus({ language, o }: { language: LanguageService; o: 
     finally { setPending(ids => ids.filter(id => id !== server)); }
   }
   return <>
-    <button ref={trigger} className="lsp-status-trigger" aria-label={`Language Servers: ${running} running`}
-      data-tooltip={`Language Servers · ${busy ? "Working…" : `${running} running`}`}
+    <button ref={trigger} className="lsp-status-trigger" aria-label={fileOff ? "Language Servers: off for this file" : `Language Servers: ${running} running`}
+      data-tooltip={`Language Servers · ${fileOff ? "Off for this file" : busy ? "Working…" : `${running} running`}`}
       aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
       onClick={() => { if (open) close(); else { setOpen(true); void language.refreshStatus(); } }}>
       <span className="lsp-status-icon"><Icon name="languageServer" size={14} /><i className="lsp-state-dot" data-state={state} /></span>
-      <span>LSP</span><span className="lsp-running-count">{running}</span>
+      <span>LSP</span><span className="lsp-running-count">{fileOff ? "Off" : running}</span>
     </button>
     {open && <div ref={popup} id={id} popover="auto" role="dialog" aria-label="Language Servers" tabIndex={-1}
       className="lsp-status-popover" data-tooltip-root=""
       onToggle={event => { if (event.newState === "closed" && popup.current === event.currentTarget) setOpen(false); }}
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); } }}>
-      <header><div><strong>Language Servers</strong><span role="status">{running} running · {servers.length} for this document</span></div>
-        <IconButton icon="x" label="Close Language Servers" onClick={close} /></header>
-      <div className="lsp-server-list">{!servers.length && <p className="muted">No language server for the current document.</p>}{servers.map(server => {
+      <header><div><strong>Language Servers</strong><span role="status">{fileOff ? "Off for this document" : `${running} running · ${servers.length} for this document`}</span></div>
+        <IconButton icon="x" label="Close Language Servers" onClick={close} />
+        {path && <div className="lsp-file-toggle"><label htmlFor={`${id}-file`}>Language features for this file<small id={`${id}-file-note`}>Until Oxbit restarts. Settings stay unchanged.</small></label>
+          <button id={`${id}-file`} type="button" role="switch" aria-label="Language features for this file" aria-describedby={`${id}-file-note`} aria-checked={!fileOff} onClick={() => language.setFileEnabled(path, fileOff)}>{fileOff ? "Off" : "On"}</button></div>}</header>
+      <div className="lsp-server-list">{!servers.length && <p className="muted">{fileOff ? "Language server features are off for this file." : "No language server for the current document."}</p>}{servers.map(server => {
         const waiting = pending.includes(server.id) || ["installing", "starting", "restarting", "stopping"].includes(server.state);
         return <section className="lsp-server" key={server.id} aria-label={server.name} aria-busy={waiting}>
           <div className="lsp-server-heading"><Icon name="languageServer" size={18} />
