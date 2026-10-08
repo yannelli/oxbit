@@ -52,17 +52,22 @@ export function Select({
   useEffect(() => {
     const element = popup.current;
     if (!open || !element) return;
+    const viewport = window.visualViewport;
     const position = () => {
       const rect = trigger.current!.getBoundingClientRect();
-      const below = innerHeight - rect.bottom - 8;
-      const above = rect.top - 8;
+      const viewportLeft = viewport?.offsetLeft ?? 0;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportWidth = viewport?.width ?? innerWidth;
+      const viewportHeight = viewport?.height ?? innerHeight;
+      const below = viewportTop + viewportHeight - rect.bottom - 8;
+      const above = rect.top - viewportTop - 8;
       const upward = below < 180 && above > below;
       const height = Math.min(288, upward ? above : below);
-      const width = Math.min(Math.max(rect.width, 200), innerWidth - 16);
+      const width = Math.min(Math.max(rect.width, 200), viewportWidth - 16);
       Object.assign(element.style, {
         width: `${width}px`,
         maxHeight: `${Math.max(60, height)}px`,
-        left: `${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px`,
+        left: `${Math.max(viewportLeft + 8, Math.min(rect.left, viewportLeft + viewportWidth - width - 8))}px`,
         top: upward ? "auto" : `${rect.bottom + 4}px`,
         bottom: upward ? `${innerHeight - rect.top + 4}px` : "auto",
       });
@@ -71,9 +76,13 @@ export function Select({
     element.showPopover();
     const dismiss = () => setOpen(false);
     window.addEventListener("resize", dismiss);
+    viewport?.addEventListener("resize", position);
+    viewport?.addEventListener("scroll", position);
     return () => {
       element.hidePopover();
       window.removeEventListener("resize", dismiss);
+      viewport?.removeEventListener("resize", position);
+      viewport?.removeEventListener("scroll", position);
     };
   }, [open]);
   useEffect(() => {

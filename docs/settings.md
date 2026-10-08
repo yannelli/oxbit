@@ -78,7 +78,15 @@ Old browser/native preferences and the former `<project>/.oxbit/settings.json` s
 
 For isolated hosts/tests, `OXBIT_SETTINGS_FILE` overrides the user settings path and `OXBIT_PROJECTS_DIR` overrides the private project directory. The runtime constructor also accepts `settingsFile` and `projectsDir`. `settings.read` returns scoped layers and source paths; `settings.patch` accepts property changes with previous values for conflict detection. The SDK exports `mergeSettings`, `settingsLayers`, `settingsFile`, `settingsChanges`, `SettingsLayers`, and `SettingsSnapshot`.
 
+## Settings screen
+
+The header has three rows: the title with a Keyboard Shortcuts button, the search box, and the filters. The filters are a User/Workspace segmented control, the language override select, and a Modified toggle chip. All header controls share one height: 30px on desktop and tablet, 44px below 600px width. Below 600px the header scrolls with the list, and while the software keyboard is open only the search box stays in the header.
+
+The All Settings and Source Control categories show a Git Accounts… button when the `git.account` command is registered and enabled. iOS registers it; desktop and web hide the button.
+
 ## Verification
+
+`tests/browser/settings-header.spec.ts` checks header control heights at 320px, 393px and 1280px, the matching row above a 400px keyboard viewport on `webkit-phone`, and the Git Accounts visibility rule.
 
 Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery and both conflict resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Native desktop execution requires a separate check.
 

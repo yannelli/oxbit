@@ -22,7 +22,7 @@ export default defineConfig({
     // WebKit with a touch-first phone profile approximates WKWebView before device checks.
     {
       name: "webkit-phone",
-      testMatch: ["mobile.spec.ts", "language-toggle.spec.ts"],
+      testMatch: ["mobile.spec.ts", "language-toggle.spec.ts", "settings-header.spec.ts"],
       use: { ...devices["iPhone 15"], browserName: "webkit", hasTouch: true, isMobile: true, viewport: { width: 393, height: 852 } },
     },
   ],
