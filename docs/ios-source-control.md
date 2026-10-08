@@ -4,7 +4,7 @@ Created: 2026-10-02. Last updated: 2026-10-07.
 
 ## Device repositories
 
-The iOS workspace screen and `git.account` command open **Git Accounts and Commit Author**. Save an author name and email, optionally connect a GitHub personal access token, and optionally connect one Gitea server with an access token. Disconnecting either account keeps the author identity.
+Open **Git Accounts and Commit Author** from the Source Control toolbar, the workspace screen, or the `git.account` command. Save an author name and email, optionally connect a GitHub personal access token, and optionally connect one Gitea server with an access token. Disconnecting either account keeps the author identity.
 
 Open a repository folder from Files or choose **Clone Repository…** on the workspace screen. Clone writes into the Oxbit Documents folder and opens the repository. Cloned folders appear in recents and reopen after relaunch. Source Control uses libgit2 on the device for changes, staging, commits, history, branches, remotes, stashes, and conflict recovery. Connected computer workspaces use the runtime’s Git installation and credential helpers.
 

@@ -2,7 +2,7 @@
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
-[Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author** stores GitHub and Gitea tokens and the default author in Keychain.
+[Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores GitHub and Gitea tokens and the default author in Keychain.
 
 The minimum system version is iOS 26.0. The bundle identifier is `com.yannelli.oxbit`, the same App ID as the desktop app.
 
