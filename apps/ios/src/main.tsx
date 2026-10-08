@@ -3,13 +3,16 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
-import { native, type RecentWorkspace } from "@oxbit/host-ios";
+import { native, type RecentWorkspace, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
 import { RuntimeConnection } from "./runtime-connection.js";
 import { GitSettings } from "./git-settings.js";
 import { CloneRepository } from "./clone-repository.js";
+import { SshSettings } from "./ssh-settings.js";
+import { SshConnect, type SshTarget } from "./ssh-connect.js";
+import { SshTransfer, type TransferRequest } from "./ssh-transfer.js";
 import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
@@ -35,6 +38,17 @@ function describe(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function sshTarget(recent?: RecentWorkspace): { preset?: SshTarget } {
+  return recent?.hostId ? { preset: { hostId: recent.hostId, path: recent.remotePath ?? "~" } } : {};
+}
+
+/** Uploads land in the selected folder, or beside the selected file. */
+function selectedDirectory(session: Session) {
+  const path = session.workbench.state.selectedPath ?? "";
+  const entry = session.workbench.state.files.find(file => file.path === path);
+  return !path || entry?.kind === "directory" ? path : path.split("/").slice(0, -1).join("/");
+}
+
 function App() {
   const [workspace, setWorkspace] = useState<OpenWorkspace>();
   const [workspaceKey, setWorkspaceKey] = useState(0);
@@ -43,6 +57,9 @@ function App() {
   const [connection, setConnection] = useState(false);
   const [gitSettings, setGitSettings] = useState(false);
   const [cloning, setCloning] = useState(false);
+  const [sshSettings, setSshSettings] = useState(false);
+  const [sshConnect, setSshConnect] = useState<{ preset?: SshTarget }>();
+  const [transfer, setTransfer] = useState<TransferRequest>();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [restoring, setRestoring] = useState(true);
@@ -59,6 +76,11 @@ function App() {
     }
     if (request.kind === "recent" && request.recent.id === current.current?.recent.id &&
       (request.recent.kind !== "runtime" || current.current.session.runtime?.connected)) {
+      setSheet(false);
+      return;
+    }
+    if (request.kind === "ssh" && current.current?.recent.kind === "ssh" && request.hostId === current.current.recent.hostId &&
+      request.path === current.current.recent.remotePath) {
       setSheet(false);
       return;
     }
@@ -100,7 +122,8 @@ function App() {
       try {
         setRecents(await loadRecents());
         const last = await lastWorkspace();
-        if (last) await open({ kind: "recent", recent: last });
+        if (last?.kind === "ssh") setSshConnect(sshTarget(last));
+        else if (last) await open({ kind: "recent", recent: last });
       } catch (e) {
         setError(describe(e));
       } finally {
@@ -131,11 +154,26 @@ function App() {
     const disposables = registrations.map(([id, title, run]) =>
       session.kernel.commands.register({ id, title, category: "Workspace", run: () => void run() }),
     );
+    const filesystem = workspace.recent.kind === "ssh" ? session.filesystem as SshFileSystem : undefined;
+    const sshCommands = [
+      ["ssh.hosts", "SSH Hosts and Keys", () => setSshSettings(true)],
+      ["ssh.connect", "Connect with SSH…", () => setSshConnect({})],
+      ...filesystem ? [
+        ["ssh.upload", "Upload Files Here…", () => setTransfer({ kind: "upload", filesystem, directory: selectedDirectory(session) })],
+        ["ssh.download", "Download to Device…", () =>
+          setTransfer({ kind: "download", filesystem, path: session.workbench.state.selectedPath ?? "" })],
+      ] as const : [],
+    ] as const;
+    for (const [id, title, run] of sshCommands) {
+      disposables.push(session.kernel.commands.register({ id, title, category: "SSH", run }));
+      if (id === "ssh.upload" || id === "ssh.download")
+        disposables.push(session.kernel.contributions.register({ id: `ios.${id}.explorer`, kind: "menu", location: "explorer", command: id, title }));
+    }
     session.workbench.touch();
     return () => {
       for (const disposable of disposables) disposable.dispose();
     };
-  }, [workspace?.session, open, close]);
+  }, [workspace?.session, workspace?.recent.kind, open, close]);
 
   const start = (
     <StartScreen
@@ -151,6 +189,8 @@ function App() {
       onConnect={() => setConnection(true)}
       onGitSettings={() => setGitSettings(true)}
       onClone={() => setCloning(true)}
+      onSsh={recent => setSshConnect(sshTarget(recent))}
+      onSshSettings={() => setSshSettings(true)}
     />
   );
   return (
@@ -167,6 +207,11 @@ function App() {
       {gitSettings && <GitSettings onClose={() => setGitSettings(false)} />}
       {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
         onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}
+      {sshConnect && <SshConnect preset={sshConnect.preset} onOpen={target => open({ kind: "ssh", ...target })}
+        onManage={() => { setSshConnect(undefined); setSshSettings(true); }} onClose={() => setSshConnect(undefined)} />}
+      {sshSettings && <SshSettings onClose={() => setSshSettings(false)} />}
+      {transfer && <SshTransfer request={transfer} onDone={() => { if (transfer.kind === "upload") void workspace?.session.workbench.refreshFiles(); }}
+        onClose={() => setTransfer(undefined)} />}
     </Shell>
   );
 }

@@ -1,4 +1,5 @@
 import { invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { RpcError } from "@oxbit/protocol";
 import type { FileEntry } from "@oxbit/sdk";
 
@@ -161,6 +162,8 @@ export const ssh = {
   download: (id: string, transferId: string, path: string, destination: string) =>
     call<TransferSummary>("ios_ssh_download", { id, transferId, path, destination }),
   cancelTransfer: (transferId: string) => call<void>("ios_ssh_transfer_cancel", { transferId }),
+  onTransfer: (transferId: string, listener: (progress: TransferProgress) => void) =>
+    listen<TransferProgress>(`ios-ssh-transfer:${transferId}`, (event) => listener(event.payload)),
 };
 
 export const native = {

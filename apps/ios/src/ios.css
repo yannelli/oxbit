@@ -35,6 +35,22 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-open-folder { min-height: 48px; justify-content: center; }
 .ios-start .muted { margin: 0; opacity: 0.65; font-size: 13px; }
 
+.ssh-section { display: flex; flex-direction: column; gap: 10px; }
+.ssh-section + .ssh-section { border-top: 1px solid var(--bd); padding-top: 12px; }
+.ssh-settings h3, .ssh-section h3 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-2); }
+.ssh-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--bd); border-radius: 8px; }
+.ssh-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ssh-row-text small { overflow-wrap: anywhere; }
+.ssh-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ssh-row-actions > .button { min-height: 36px; }
+.ssh-fingerprint { display: block; font-size: 12px; overflow-wrap: anywhere; word-break: break-all; color: var(--fg-2); }
+.ssh-key-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.ssh-key-facts dt { color: var(--fg-3); }
+.ssh-key-facts dd { margin: 0; min-width: 0; }
+.runtime-form label.ssh-check { flex-direction: row; align-items: center; }
+.ssh-transfer progress { width: 100%; height: 8px; accent-color: var(--accent); }
+.ssh-transfer-file { margin: 0; overflow-wrap: anywhere; }
+
 @media (max-width: 599px) {
   .ios-shell > .workbench[data-mode="phone"]:not([data-keyboard="1"]) {
     --phone-bottom-inset: 4px;
