@@ -11,6 +11,8 @@ pub enum Error {
     PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
     #[error("{0}")]
     Unsupported(&'static str),
+    #[error("{0}")]
+    CommitSigning(String),
 }
 
 impl Error {
@@ -20,6 +22,7 @@ impl Error {
             #[cfg(mobile)]
             Error::PluginInvoke(_) => "NATIVE",
             Error::Unsupported(_) => "UNSUPPORTED",
+            Error::CommitSigning(_) => "COMMIT_SIGNING",
         }
     }
 }

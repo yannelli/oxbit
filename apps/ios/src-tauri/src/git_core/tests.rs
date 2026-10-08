@@ -20,6 +20,7 @@ impl Fixture {
                 name: Some("Saved User".into()),
                 email: Some("saved@example.test".into()),
                 gitea: None,
+                signer: None,
             },
         };
         fixture.run("init", json!({})).unwrap();

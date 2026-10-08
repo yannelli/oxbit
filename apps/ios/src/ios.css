@@ -34,6 +34,19 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-workspace-row .icon-button { min-width: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
 .ios-open-folder { min-height: 48px; justify-content: center; }
 .ios-start .muted { margin: 0; opacity: 0.65; font-size: 13px; }
+.commit-signing { display: flex; flex-direction: column; gap: 12px; padding: 12px 0; border-block: 1px solid var(--bd); }
+.commit-signing :is(h3, p) { margin: 0; }
+.commit-signing h3 { font-size: inherit; font-weight: 600; }
+.commit-signing dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.commit-signing dt { color: var(--fg-3); }
+.commit-signing dd { display: flex; flex-direction: column; margin: 0; overflow-wrap: anywhere; font-family: var(--font-mono); }
+.runtime-form .commit-signing-switch { flex-direction: row; align-items: center; justify-content: space-between; min-height: 44px; }
+.commit-signing-switch input { width: 24px; height: 24px; margin: 0; }
+.commit-signing-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.commit-signing-actions > p { flex-basis: 100%; }
+.commit-signing-actions > .button { flex: 1 1 140px; }
+.commit-signing .button { min-height: 44px; white-space: normal; }
+.commit-signing textarea { min-height: 112px; resize: vertical; font-family: var(--font-mono); }
 
 @media (max-width: 599px) {
   .ios-shell > .workbench[data-mode="phone"]:not([data-keyboard="1"]) {

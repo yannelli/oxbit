@@ -1,4 +1,4 @@
-export { native, toError, type NativeError, type OpenedRoot, type Folder, type WriteResult, type GitAccount, type GitCredentialRequest } from "./native.js";
+export { native, toError, type NativeError, type OpenedRoot, type Folder, type WriteResult, type GitAccount, type GitCredentialRequest, type CommitSigningKey, type CommitSigningState, type CommitSigningRequest } from "./native.js";
 export { IosGitClient } from "./git.js";
 export { IosFileSystem, revisionOf } from "./filesystem.js";
 export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";

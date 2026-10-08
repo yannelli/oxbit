@@ -33,6 +33,24 @@ export type GitCredentialRequest =
   | { operation: "save"; token?: string; name: string; email: string }
   | { operation: "connectGitea"; url: string; token: string };
 
+export interface CommitSigningKey {
+  fingerprint: string;
+  keyId: string;
+  userIds: string[];
+  /** Unix seconds. */
+  createdAt: number;
+  publicKey: string;
+}
+export interface CommitSigningState {
+  enabled: boolean;
+  key?: CommitSigningKey;
+}
+export type CommitSigningRequest =
+  | { operation: "get" | "remove" }
+  | { operation: "generate"; name: string; email: string }
+  | { operation: "import"; secretKey: string; passphrase?: string }
+  | { operation: "setEnabled"; enabled: boolean };
+
 function isNativeError(value: unknown): value is NativeError {
   return (
     typeof value === "object" &&
@@ -70,6 +88,9 @@ export const native = {
     call<{ payload: string }>("ios_lsp_message", request),
   gitCredentials: (request: GitCredentialRequest) =>
     call<GitAccount>("plugin:oxbit-files|git_credentials", { request }),
+  commitSigning: (request: CommitSigningRequest) =>
+    call<CommitSigningState>("plugin:oxbit-files|commit_signing", { request }),
+  copyText: (text: string) => call<void>("plugin:clipboard-manager|write_text", { text }),
   gitRequest: <T>(id: string, requestId: string, method: string, params: Record<string, unknown>) =>
     call<T>("ios_git_request", { id, requestId, method, params }),
   gitCancel: (id: string, requestId: string) => call<void>("ios_git_cancel", { id, requestId }),

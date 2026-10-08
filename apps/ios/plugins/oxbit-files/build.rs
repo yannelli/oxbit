@@ -6,6 +6,7 @@ const COMMANDS: &[&str] = &[
     "documents_path",
     "runtime_credentials",
     "git_credentials",
+    "commit_signing",
 ];
 
 fn main() {

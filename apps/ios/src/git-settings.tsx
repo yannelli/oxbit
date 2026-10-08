@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { native, type GitAccount } from "@oxbit/host-ios";
 import { Dialog } from "@oxbit/ui";
+import { CommitSigning } from "./commit-signing.js";
 
 export function GitSettings({ onClose }: { onClose: () => void }) {
   const [account, setAccount] = useState<GitAccount>();
@@ -47,6 +48,7 @@ export function GitSettings({ onClose }: { onClose: () => void }) {
       <p>Use this author for commits in device folders. An existing repository’s Git identity takes precedence.</p>
       <label>Author name<input required maxLength={256} autoComplete="name" aria-label="Git author name" value={name} onChange={event => setName(event.target.value)} disabled={busy} /></label>
       <label>Author email<input type="email" required maxLength={320} autoComplete="email" autoCapitalize="none" aria-label="Git author email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} /></label>
+      <CommitSigning authorName={name} authorEmail={email} />
       <p>{account?.authenticated ? `Connected to GitHub as ${account.login}.` : "Public HTTPS repositories work without a token."}</p>
       <label>GitHub personal access token<input type="password" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={4096} aria-label="GitHub personal access token" placeholder={account?.authenticated ? "Leave empty to keep the saved token" : "Optional for public repositories"} value={token} onChange={event => setToken(event.target.value)} disabled={busy} /></label>
       <p className="small muted">For private repositories, grant access to the repository. Pushing needs Contents read and write permission. The token stays in your device’s Keychain.</p>

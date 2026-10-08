@@ -45,8 +45,14 @@ pub async fn ios_git_request(
             .oxbit_files()
             .read_git_credentials()
             .map_err(|_| Error::new("AUTH", "Could not read Git credentials"))?;
-        let credentials: git_core::Credentials = serde_json::from_value(response)
+        let mut credentials: git_core::Credentials = serde_json::from_value(response)
             .map_err(|_| Error::new("AUTH", "Invalid native Git credentials"))?;
+        if git_core::creates_commit(&method) {
+            credentials.signer = app
+                .oxbit_files()
+                .commit_signer()
+                .map_err(|error| Error::new("COMMIT_SIGNING", error.to_string()))?;
+        }
         if operation.is_cancelled() {
             return Err(Error::new("CANCELLED", "Git operation cancelled"));
         }

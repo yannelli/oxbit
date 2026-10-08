@@ -42,6 +42,7 @@ impl Fixture {
                 name: Some("Oxbit Test".into()),
                 email: Some("oxbit@example.test".into()),
                 gitea: None,
+                signer: None,
             },
             cancel: AtomicBool::new(false),
             progress: RefCell::new(Vec::new()),
