@@ -4,7 +4,7 @@ Created: 2026-10-02. Last updated: 2026-10-08.
 
 | Guide | Use when |
 | --- | --- |
-| [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, and `Public Beta` promotion; secrets and renewal; Apple TestFlight API references for distribution changes. |
+| [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
 | [npm packages](npm.md) | Publishing `@oxbit/sdk` and `@oxbit/cli`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |
 | [iOS setup](ios.md) | Building the iOS app or connecting to a computer runtime. |
 | [iOS release artwork](ios-release-assets.md) | Rendering app icon exports, native App Store screenshots, promo banners, and listing drafts; includes Apple design, asset specifications, and app privacy references. |
