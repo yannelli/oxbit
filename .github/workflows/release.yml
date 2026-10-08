@@ -91,13 +91,21 @@ jobs:
           tar -czf "release-files/Oxbit_${version}_web.tar.gz" -C apps/web/dist .
           tar -czf "release-files/Oxbit_${version}_runtime.tar.gz" -C apps/runtime/dist .
           tar -czf "release-files/Oxbit_${version}_extensions.tar.gz" -C examples/bundle-inspector/dist .
+          node scripts/remote/release-manifest.mjs release-files apps/desktop/src-tauri/resources/runtime/remote
           ls -l release-files
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos
           path: release-files/
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remote-manifest
+          path: release-files/remote-runtime-manifest.json
+          if-no-files-found: error
+  # The pinned manifest records the darwin payload after the macos job signs and repacks it.
   ios:
+    needs: [remote-runtime, macos]
     runs-on: macos-26
     timeout-minutes: 90
     steps:
@@ -129,8 +137,13 @@ jobs:
       - name: Check TestFlight testing notes
         if: github.ref_type == 'tag'
         run: node scripts/ios/distribute-testflight.mjs --build '${{ steps.version.outputs.build }}' --check-notes
+      - uses: actions/download-artifact@v4
+        with:
+          name: remote-manifest
+          path: .remote-manifest
       - name: Signed App Store build
         env:
+          OXBIT_REMOTE_RUNTIME_MANIFEST: ${{ github.workspace }}/.remote-manifest/remote-runtime-manifest.json
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}

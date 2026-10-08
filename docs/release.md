@@ -1,6 +1,6 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-07.
+Created: 2026-10-02. Last updated: 2026-10-08.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
@@ -8,9 +8,11 @@ Created: 2026-10-02. Last updated: 2026-10-07.
 | Job | Output |
 | --- | --- |
 | `remote-runtime` | SSH runtime payloads for `darwin-arm64` and `linux-x64` |
-| `macos` | Developer ID signed, notarized, and stapled app and DMG; signed updater archive; web, runtime, and extension tarballs |
-| `ios` | App Store IPA, validated and uploaded to TestFlight with tester notes and assignment to the internal `Internal Testing` group |
+| `macos` | Developer ID signed, notarized, and stapled app and DMG; signed updater archive; web, runtime, and extension tarballs; the bundled SSH runtime payloads and `remote-runtime-manifest.json` |
+| `ios` | App Store IPA with the pinned `remote-runtime-manifest.json`, validated and uploaded to TestFlight with tester notes and assignment to the internal `Internal Testing` group; starts after `macos` |
 | `publish` | GitHub release with the files above, `latest.json`, and `SHA256SUMS` |
+
+The SSH runtime release assets and the iOS manifest pin are described in [Remote workspaces over SSH](remote-ssh.md#release-assets).
 
 A version with a hyphen (`0.3.0-alpha.5`) publishes as a pre-release. The
 updater reads `releases/latest/download/latest.json`, and GitHub's latest

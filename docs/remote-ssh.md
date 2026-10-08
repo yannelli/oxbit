@@ -1,5 +1,7 @@
 # Remote workspaces over SSH
 
+Created: 2026-09-08. Last updated: 2026-10-08.
+
 Choose **Connect over SSH…** in Oxbit's project bar, File menu, or command palette. Enter an SSH config alias or `user@host`, a remote folder or file such as `~/projects/app`, and an optional port. Remote projects appear in the project switcher and recent projects with an **SSH** label and restore when the app starts.
 
 Oxbit uses the system OpenSSH client and your existing `~/.ssh/config`, identity files, SSH agent, and jump-host configuration. Connect to a new host once in a terminal to verify its host key and confirm key authentication. Password prompts and host-key acceptance are not embedded in the editor. The connector requires a known host and noninteractive key authentication; it never disables host-key checking or forwards your authentication agent.
@@ -27,6 +29,17 @@ To remove cached runtime versions, close remote projects first, then remove the 
 Run `bun run remote:prepare` to build and include both payloads in `apps/desktop/src-tauri/resources/runtime/remote`. This is also part of desktop preparation. Downloads are pinned and verified using `scripts/desktop/binaries.json`. macOS development builds use Docker to compile the Linux PTY against the pinned Node 24 build image. Docker's CLI and credential helper must be on PATH. Linux x64 builders use the installed native PTY build; build with Node 24 and enabled dependency lifecycle scripts.
 
 For a native single-target artifact, set `OXBIT_REMOTE_TARGETS=darwin-arm64` or `OXBIT_REMOTE_TARGETS=linux-x64`. The desktop CI workflow builds these on their native runners, then assembles both artifacts into each desktop application using `OXBIT_REMOTE_PAYLOADS`. This avoids a Docker dependency on macOS CI runners. Missing platform payloads fail explicitly at connection time.
+
+## Release assets
+
+Each tagged release attaches the payloads the macOS app bundles, copied after `scripts/desktop/sign-resources.mjs` signs and repacks the darwin archive:
+
+- `remote-runtime-darwin-arm64.tar.gz` and `remote-runtime-linux-x64.tar.gz`
+- `remote-runtime-manifest.json`: `{"version": "<package version>", "platforms": {"<platform>": {"sha256": "<hex>", "size": <bytes>}}}`
+
+`node scripts/remote/release-manifest.mjs <output> <payload-directory>...` writes these files. Each payload directory holds `manifest.json` and `<platform>.tar.gz`, as produced by `bun run remote:prepare`. The script checks each archive against its `manifest.json` digest and requires both platforms.
+
+The iOS release build embeds the combined manifest. The `ios` job in `release.yml` waits for the `macos` job, downloads the `remote-manifest` artifact, and sets `OXBIT_REMOTE_RUNTIME_MANIFEST` to its path. `apps/ios/src-tauri/build.rs` turns that file into a constant; without the variable, local and simulator builds compile with no manifest. `remote_runtime::pinned_manifest()` and `remote_runtime::pinned_download(platform)` in `apps/ios/src-tauri/src/remote_runtime.rs` reject a manifest with unknown fields, a missing or unknown platform, a digest other than 64 lowercase hex characters, an empty payload, or a version other than the app's Cargo version. Download URLs follow `https://github.com/yannelli/oxbit/releases/download/v<version>/remote-runtime-<platform>.tar.gz`. Desktop and iOS install the same digest into `~/.oxbit/remote/runtimes/<sha256>` on a host, so they share one installed runtime.
 
 - `bun run test` includes SSH target validation, shell quoting, checksum failure, and installation tests.
 - `bun run remote:test` builds an ephemeral Linux SSH container, creates temporary keys and a private known-hosts file, removes its outbound route, and exercises cold installation, remote file editing, conflicts, search, Git, real PTYs, TypeScript completion, token rotation, cached reconnection, shutdown, and transport loss. It cleans up the container and temporary keys.
