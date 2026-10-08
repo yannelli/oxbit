@@ -714,4 +714,16 @@ test("an existing ClassicOS 98 theme selection keeps the extension enabled after
     })),
   ).toEqual({ extension: "active", enabled: ["oxbit.themes-classicos98"] });
   await expect(page.locator('[data-theme-pack="oxbit.classicos98"]').first()).toBeAttached();
+  await page.evaluate(() => (window as any).__oxbit.runCommand("theme.classicos98.apply"));
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const k = (window as any).__oxbit.kernel;
+        return {
+          pack: k.services.get("iconThemes").list().find((p: any) => p.id === "oxbit.classicos98")?.enabled,
+          icons: k.configuration.get("workbench.iconTheme"),
+        };
+      }),
+    )
+    .toEqual({ pack: true, icons: "oxbit.classicos98/files" });
 });
