@@ -44,6 +44,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::forget_folder,
             commands::documents_path,
             commands::runtime_credentials,
+            commands::runtime_discovery,
             commands::git_credentials,
             commands::ssh_keys,
             commands::pick_files,

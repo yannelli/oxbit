@@ -200,7 +200,7 @@ test("dialog icons have one tooltip and dismiss it before closing the dialog", a
   page,
 }) => {
   await ready(page);
-  await page.locator(".connection-button").click();
+  await page.evaluate(() => (window as any).__oxbit.runCommand("workspace.open"));
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await dialog

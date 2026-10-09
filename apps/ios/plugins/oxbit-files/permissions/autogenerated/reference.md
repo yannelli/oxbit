@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, and list SSH key metadata.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.
 
 #### This default permission set includes the following:
 
@@ -10,6 +10,7 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-forget-folder`
 - `allow-documents-path`
 - `allow-runtime-credentials`
+- `allow-runtime-discovery`
 - `allow-git-credentials`
 - `allow-ssh-keys`
 - `allow-pick-files`
@@ -254,6 +255,32 @@ Enables the runtime_credentials command without any pre-configured scope.
 <td>
 
 Denies the runtime_credentials command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-runtime-discovery`
+
+</td>
+<td>
+
+Enables the runtime_discovery command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-runtime-discovery`
+
+</td>
+<td>
+
+Denies the runtime_discovery command without any pre-configured scope.
 
 </td>
 </tr>

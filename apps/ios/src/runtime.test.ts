@@ -45,9 +45,22 @@ describe("iOS runtime connection", () => {
   });
 
   it("stops a failed client so background retries cannot outlive the connection attempt", async () => {
-    mocks.connect.mockRejectedValue(new Error("Cannot connect to runtime"));
-    await expect(connectRuntime("http://computer.local:9277")).rejects.toThrow("Cannot connect");
+    mocks.connect.mockRejectedValue(new Error("Pairing expired"));
+    await expect(connectRuntime("http://computer.local:9277")).rejects.toThrow("Pairing expired");
     expect(mocks.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("explains a refused connection from the native health check", async () => {
+    mocks.connect.mockRejectedValue(new Error("Cannot connect to runtime"));
+    mocks.credentials.mockImplementation(async ({ operation }) => operation === "health"
+      ? { runtime: { id: "abc12345", name: "studio", version: "0.4.2", startedAt: 1 } } : { token: "native-test-token" });
+    await expect(connectRuntime("http://computer.local:9277", undefined, "abc12345")).rejects.toThrow("studio is running but did not accept this device");
+    expect(mocks.credentials).toHaveBeenCalledWith({ operation: "get", url: "http://computer.local:9277", code: undefined, runtimeId: "abc12345" });
+    mocks.credentials.mockImplementation(async ({ operation }) => {
+      if (operation === "health") throw new Error("The runtime is unreachable: Could not connect to the server.");
+      return { token: "native-test-token" };
+    });
+    await expect(connectRuntime("http://computer.local:9277")).rejects.toThrow(/No runtime answered[^]*Could not connect to the server/);
   });
 
   it("keeps drafts scoped to the remote workspace, with a filesystem-safe identity", async () => {

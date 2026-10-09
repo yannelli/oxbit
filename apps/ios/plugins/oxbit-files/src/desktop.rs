@@ -71,6 +71,13 @@ impl<R: Runtime> OxbitFiles<R> {
         Err(UNSUPPORTED)
     }
 
+    pub fn runtime_discovery(
+        &self,
+        _request: serde_json::Value,
+    ) -> crate::Result<serde_json::Value> {
+        Err(UNSUPPORTED)
+    }
+
     pub fn pick_folder(&self) -> crate::Result<Folder> {
         Err(UNSUPPORTED)
     }

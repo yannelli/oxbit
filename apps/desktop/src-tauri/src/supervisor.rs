@@ -1,11 +1,11 @@
 use crate::environment::Environment;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     io::{BufRead, BufReader, Write},
     os::unix::process::CommandExt,
     path::Path,
-    process::{Child, ChildStdin, Command, Stdio},
+    process::{Child, ChildStderr, ChildStdin, Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc, Arc, Mutex,
@@ -26,7 +26,12 @@ pub struct Launch<'a> {
     pub rg_path: &'a str,
     pub git_path: Option<&'a str>,
     pub development: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keep_alive: Option<u64>,
 }
+
+pub const OUTPUT_SEPARATOR: &str = "\n--- runtime output ---\n";
+const OUTPUT_LIMIT: usize = 4096;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,13 +71,62 @@ fn terminate_groups(groups: &Mutex<HashSet<i32>>) {
     }
 }
 
+fn drain_output(stderr: ChildStderr, tail: Arc<Mutex<VecDeque<u8>>>) -> thread::JoinHandle<()> {
+    let tee = std::env::var_os("OXBIT_RUNTIME_STDERR").is_some();
+    thread::spawn(move || {
+        let mut stderr = stderr;
+        let mut chunk = [0u8; 4096];
+        loop {
+            let count = match std::io::Read::read(&mut stderr, &mut chunk) {
+                Ok(0) => break,
+                Ok(count) => count,
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(_) => break,
+            };
+            if tee {
+                let _ = std::io::stderr().write_all(&chunk[..count]);
+            }
+            let mut tail = tail.lock().unwrap();
+            tail.extend(&chunk[..count]);
+            let excess = tail.len().saturating_sub(OUTPUT_LIMIT);
+            tail.drain(..excess);
+        }
+    })
+}
+
+// Grandchildren outside the process group can hold the pipe open, so EOF is awaited briefly.
+fn settle_output(drain: thread::JoinHandle<()>) {
+    let deadline = Instant::now() + Duration::from_millis(200);
+    while !drain.is_finished() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(5));
+    }
+}
+
+fn output_text(tail: &Mutex<VecDeque<u8>>) -> String {
+    let bytes: Vec<u8> = tail.lock().unwrap().iter().copied().collect();
+    let text: String = String::from_utf8_lossy(&bytes)
+        .chars()
+        .filter(|c| !c.is_control() || *c == '\n' || *c == '\t')
+        .collect();
+    text.trim().to_string()
+}
+
+fn with_output(message: String, tail: &Mutex<VecDeque<u8>>) -> String {
+    let output = output_text(tail);
+    if output.is_empty() {
+        message
+    } else {
+        format!("{message}{OUTPUT_SEPARATOR}{output}")
+    }
+}
+
 impl OwnedRuntime {
     pub fn launch(
         node: &Path,
         entry: &Path,
         config: Launch<'_>,
         environment: &Environment,
-        crashed: impl Fn() + Send + Sync + 'static,
+        crashed: impl Fn(String) + Send + Sync + 'static,
         progress: impl Fn(&str),
     ) -> Result<Arc<Self>, String> {
         let timeout = if config.root.starts_with("ssh://") {
@@ -88,7 +142,7 @@ impl OwnedRuntime {
         entry: &Path,
         config: Launch<'_>,
         environment: &Environment,
-        crashed: impl Fn() + Send + Sync + 'static,
+        crashed: impl Fn(String) + Send + Sync + 'static,
         progress: impl Fn(&str),
         timeout: Duration,
     ) -> Result<Arc<Self>, String> {
@@ -103,18 +157,17 @@ impl OwnedRuntime {
             .env_remove("OXBIT_LSP_COMMAND")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            // Runtime failures reach the user as an RPC message with no stack behind it.
-            // OXBIT_RUNTIME_STDERR keeps the child's diagnostics when one needs chasing.
-            .stderr(if std::env::var_os("OXBIT_RUNTIME_STDERR").is_some() {
-                Stdio::inherit()
-            } else {
-                Stdio::null()
-            })
+            // Startup errors and crash events carry the stderr tail.
+            // OXBIT_RUNTIME_STDERR also copies the child's stderr to the parent's.
+            .stderr(Stdio::piped())
             .process_group(0)
             .spawn()
             .map_err(|_| "Bundled runtime could not be started. Reinstall Oxbit.")?;
         let mut input = child.stdin.take().ok_or("Runtime input is unavailable")?;
         let stdout = child.stdout.take().ok_or("Runtime output is unavailable")?;
+        let stderr = child.stderr.take().ok_or("Runtime output is unavailable")?;
+        let tail = Arc::new(Mutex::new(VecDeque::new()));
+        let drain = drain_output(stderr, tail.clone());
         let frame = serde_json::to_vec(&config).map_err(|_| "Invalid launch configuration")?;
         if input
             .write_all(&frame)
@@ -123,7 +176,8 @@ impl OwnedRuntime {
         {
             let _ = child.kill();
             let _ = child.wait();
-            return Err("Runtime launch channel closed".into());
+            settle_output(drain);
+            return Err(with_output("Runtime launch channel closed".into(), &tail));
         }
         let (send, receive) = mpsc::channel::<Frame>();
         thread::spawn(move || {
@@ -190,10 +244,12 @@ impl OwnedRuntime {
                 }
                 let _ = child.wait();
                 terminate_groups(&startup_groups);
-                return Err(detail.unwrap_or_else(|| {
+                settle_output(drain);
+                let message = detail.unwrap_or_else(|| {
                     "Runtime startup failed or timed out. Retry or reinstall the application."
                         .into()
-                }));
+                });
+                return Err(with_output(message, &tail));
             }
         };
         let runtime = Arc::new(Self {
@@ -235,10 +291,11 @@ impl OwnedRuntime {
                 while let Ok(frame) = receive.try_recv() {
                     runtime.observe(frame);
                 }
-                runtime.alive.store(false, Ordering::SeqCst);
                 terminate_groups(&runtime.groups);
+                settle_output(drain);
+                runtime.alive.store(false, Ordering::SeqCst);
                 if !runtime.stopped.load(Ordering::SeqCst) {
-                    crashed();
+                    crashed(output_text(&tail));
                 }
                 break;
             }
@@ -350,7 +407,7 @@ mod tests {
         }
         fn launch(
             &self,
-            crashed: impl Fn() + Send + Sync + 'static,
+            crashed: impl Fn(String) + Send + Sync + 'static,
         ) -> Result<Arc<OwnedRuntime>, String> {
             let mut env = Environment::new();
             env.insert("PATH".into(), "/usr/bin:/bin".into());
@@ -358,17 +415,7 @@ mod tests {
             OwnedRuntime::launch_with_timeout(
                 Path::new("/bin/sh"),
                 &self.directory.join("entry.sh"),
-                Launch {
-                    version: 1,
-                    r#type: "launch",
-                    root: "/tmp/workspace",
-                    data_dir: "/tmp/state",
-                    workspace_key: "project",
-                    token: "private-token",
-                    rg_path: "/bin/false",
-                    git_path: None,
-                    development: false,
-                },
+                config(None),
                 &env,
                 crashed,
                 |_| {},
@@ -380,6 +427,20 @@ mod tests {
                 .unwrap()
                 .parse()
                 .unwrap()
+        }
+    }
+    fn config(keep_alive: Option<u64>) -> Launch<'static> {
+        Launch {
+            version: 1,
+            r#type: "launch",
+            root: "/tmp/workspace",
+            data_dir: "/tmp/state",
+            workspace_key: "project",
+            token: "private-token",
+            rg_path: "/bin/false",
+            git_path: None,
+            development: false,
+            keep_alive,
         }
     }
     impl Drop for Fixture {
@@ -397,7 +458,7 @@ mod tests {
             "[ -z \"${{NODE_OPTIONS+x}}\" ] || exit 1\n{READY}\nIFS= read -r shutdown"
         ));
         let runtime = fixture
-            .launch(|| panic!("graceful stop must not report a crash"))
+            .launch(|_| panic!("graceful stop must not report a crash"))
             .unwrap();
         assert_eq!(runtime.port, 12345);
         runtime.stop();
@@ -411,7 +472,7 @@ mod tests {
              echo '{{\"version\":1,\"type\":\"process\",\"pid\":'\"$$\"',\"running\":false}}'\n\
              {READY}\nIFS= read -r shutdown"
         ));
-        let runtime = fixture.launch(|| {}).unwrap();
+        let runtime = fixture.launch(|_| {}).unwrap();
         assert_eq!(runtime.port, 12345);
         assert!(runtime.groups.lock().unwrap().is_empty());
         runtime.stop();
@@ -426,10 +487,38 @@ mod tests {
         ] {
             let fixture = Fixture::new(&body);
             let start = Instant::now();
-            assert!(fixture.launch(|| {}).is_err());
+            assert!(fixture.launch(|_| {}).is_err());
             assert!(start.elapsed() < Duration::from_secs(2));
             assert!(gone(fixture.pid()));
         }
+    }
+    #[test]
+    fn exit_before_ready_reports_runtime_output() {
+        let fixture =
+            Fixture::new("echo 'boom from runtime' >&2\nprintf '\\033[31mred\\033[0m' >&2\nexit 3");
+        let error = fixture.launch(|_| {}).err().unwrap();
+        assert!(error.starts_with("Runtime startup failed or timed out."));
+        assert!(error.ends_with(&format!("{OUTPUT_SEPARATOR}boom from runtime\n[31mred[0m")));
+    }
+    #[test]
+    fn crash_detail_carries_runtime_output() {
+        let fixture = Fixture::new(&format!("{READY}\necho 'fatal after ready' >&2\nexit 1"));
+        let (send, receive) = mpsc::channel();
+        let send = Mutex::new(send);
+        let _runtime = fixture
+            .launch(move |detail| {
+                let _ = send.lock().unwrap().send(detail);
+            })
+            .unwrap();
+        let detail = receive.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(detail, "fatal after ready");
+    }
+    #[test]
+    fn keep_alive_serializes_only_when_set() {
+        let omitted = serde_json::to_string(&config(None)).unwrap();
+        assert!(!omitted.contains("keepAlive"));
+        let zero = serde_json::to_string(&config(Some(0))).unwrap();
+        assert!(zero.contains("\"keepAlive\":0"));
     }
     #[test]
     fn abrupt_exit_reports_failure_once_and_cleans_inherited_children() {
@@ -446,7 +535,7 @@ mod tests {
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let observed = calls.clone();
         let runtime = fixture
-            .launch(move || {
+            .launch(move |_| {
                 observed.fetch_add(1, Ordering::SeqCst);
             })
             .unwrap();

@@ -1,6 +1,8 @@
 import { chmod } from "node:fs/promises";
 import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
+const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 export default defineConfig({
   plugins: [{
     name: "runtime-cli-permissions",
@@ -11,6 +13,7 @@ export default defineConfig({
           await chmod(resolve(options.dir ?? "dist", file.fileName), 0o755);
     },
   }],
+  define: { __OXBIT_VERSION__: JSON.stringify(version) },
   ssr: { noExternal: ["@oxbit/protocol", "@oxbit/sdk", "@oxbit/core", "semver"] },
   build: {
     ssr: "src/index.ts",

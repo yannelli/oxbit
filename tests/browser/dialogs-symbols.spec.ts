@@ -166,7 +166,8 @@ test("dialog keyboard actions trap focus and preserve workspace actions", async 
   await page.keyboard.press("Enter");
   expect((await chooser).isMultiple()).toBe(false);
   await dialog.getByRole("button", { name: /Connect to a runtime/ }).click();
-  await expect(dialog).toHaveAttribute("aria-label", "Runtime Connection");
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator(".runtime-page")).toBeVisible();
 });
 
 test("symbols explain when the browser workspace has no language server", async ({

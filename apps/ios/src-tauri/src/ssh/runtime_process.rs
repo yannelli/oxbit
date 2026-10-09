@@ -44,6 +44,8 @@ pub struct Options {
     pub workspace_key: String,
     pub token: String,
     pub ready_timeout: Duration,
+    /// Milliseconds the runtime keeps running after its last client; `None` uses its default.
+    pub keep_alive: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -97,8 +99,9 @@ impl Stdout {
     }
 }
 
+/// `writer` is `None` after a reattach: the runtime outlived the exec channel that launched it.
 pub struct Process {
-    pub writer: Writer,
+    pub writer: Option<Writer>,
     pub alive: Arc<AtomicBool>,
     pub tasks: Vec<JoinHandle<()>>,
 }
@@ -109,9 +112,11 @@ impl Process {
         for task in self.tasks {
             task.abort();
         }
-        tokio::spawn(async move {
-            let _ = self.writer.close().await;
-        });
+        if let Some(writer) = self.writer {
+            tokio::spawn(async move {
+                let _ = writer.close().await;
+            });
+        }
     }
 }
 

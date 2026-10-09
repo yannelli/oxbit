@@ -66,6 +66,7 @@ pub(super) async fn start(
     host_id: &str,
     source: Source,
     seen: &Seen,
+    keep_alive: Option<u64>,
 ) -> Arc<RemoteRuntime> {
     let root = "/~/project".to_string();
     let seen = seen.clone();
@@ -79,6 +80,7 @@ pub(super) async fn start(
             uuid::Uuid::new_v4().simple()
         ),
         ready_timeout: Duration::from_secs(120),
+        keep_alive,
     };
     let events = Arc::new(move |event| seen.lock().unwrap().push(event));
     RemoteRuntime::open(pool.clone(), source, events, options)
@@ -207,7 +209,7 @@ async fn live_remote_runtime() {
     } = live().await;
     let seen: Seen = Arc::default();
     let missing = source(format!("{served}/missing.tar.gz"), scratch.clone());
-    let runtime = start(&pool, "live", missing, &seen).await;
+    let runtime = start(&pool, "live", missing, &seen, None).await;
     let ready = runtime.ensure(true).await.unwrap();
     assert_eq!(ready.installed, Some(Install::DeviceStream));
     assert_eq!(ready.root, "/root/project");
@@ -232,7 +234,7 @@ async fn live_remote_runtime() {
         format!("{served}/{}.tar.gz", remote_platform()),
         scratch.clone(),
     );
-    let runtime = start(&pool, "live", hosted.clone(), &seen).await;
+    let runtime = start(&pool, "live", hosted.clone(), &seen, None).await;
     let ready = runtime.ensure(true).await.unwrap();
     assert_eq!(
         ready.installed,
@@ -243,7 +245,7 @@ async fn live_remote_runtime() {
     println!("PASS host-download install with curl");
 
     let seen: Seen = Arc::default();
-    let runtime = start(&pool, "live", hosted, &seen).await;
+    let runtime = start(&pool, "live", hosted, &seen, None).await;
     let ready = runtime.ensure(true).await.unwrap();
     assert_eq!(ready.installed, Some(Install::Cached));
     assert_eq!(progress(&seen), [STARTING]);

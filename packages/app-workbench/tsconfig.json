@@ -48,6 +48,9 @@
       "path": "../features/settings"
     },
     {
+      "path": "../features/runtime"
+    },
+    {
       "path": "../features/extensions"
     },
     {

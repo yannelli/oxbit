@@ -37,6 +37,7 @@
         "@oxbit/host-browser": "workspace:*",
         "@oxbit/host-desktop": "workspace:*",
         "@oxbit/host-runtime": "workspace:*",
+        "@oxbit/protocol": "workspace:*",
         "@oxbit/sdk": "workspace:*",
         "@oxbit/themes": "workspace:*",
         "@oxbit/ui": "workspace:*",
@@ -55,8 +56,10 @@
       "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
+        "@oxbit/feature-runtime": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
         "@oxbit/host-ios": "workspace:*",
+        "@oxbit/protocol": "workspace:*",
         "@oxbit/sdk": "workspace:*",
         "@oxbit/themes": "workspace:*",
         "@oxbit/ui": "workspace:*",
@@ -109,6 +112,7 @@
         "@oxbit/feature-git": "workspace:*",
         "@oxbit/feature-language": "workspace:*",
         "@oxbit/feature-previews": "workspace:*",
+        "@oxbit/feature-runtime": "workspace:*",
         "@oxbit/feature-search": "workspace:*",
         "@oxbit/feature-settings": "workspace:*",
         "@oxbit/feature-tasks": "workspace:*",
@@ -152,6 +156,7 @@
         "@oxbit/feature-keymaps": "workspace:*",
         "@oxbit/feature-language": "workspace:*",
         "@oxbit/feature-previews": "workspace:*",
+        "@oxbit/feature-runtime": "workspace:*",
         "@oxbit/feature-search": "workspace:*",
         "@oxbit/feature-settings": "workspace:*",
         "@oxbit/feature-tasks": "workspace:*",
@@ -346,6 +351,18 @@
         "react-dom": "19.1.0",
       },
     },
+    "packages/features/runtime": {
+      "name": "@oxbit/feature-runtime",
+      "version": "1.0.0",
+      "dependencies": {
+        "@oxbit/protocol": "workspace:*",
+        "@oxbit/sdk": "workspace:*",
+        "@oxbit/ui": "workspace:*",
+        "@oxbit/workbench": "workspace:*",
+        "react": "19.1.0",
+        "react-dom": "19.1.0",
+      },
+    },
     "packages/features/search": {
       "name": "@oxbit/feature-search",
       "version": "1.0.0",
@@ -430,9 +447,12 @@
       "version": "1.0.0",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
+        "@oxbit/feature-runtime": "workspace:*",
         "@oxbit/host-runtime": "workspace:*",
         "@oxbit/icon-themes": "workspace:*",
+        "@oxbit/protocol": "workspace:*",
         "@oxbit/sdk": "workspace:*",
+        "@oxbit/workbench": "workspace:*",
         "@tauri-apps/api": "2.11.1",
       },
     },
@@ -811,6 +831,8 @@
     "@oxbit/feature-language": ["@oxbit/feature-language@workspace:packages/features/language"],
 
     "@oxbit/feature-previews": ["@oxbit/feature-previews@workspace:packages/features/previews"],
+
+    "@oxbit/feature-runtime": ["@oxbit/feature-runtime@workspace:packages/features/runtime"],
 
     "@oxbit/feature-search": ["@oxbit/feature-search@workspace:packages/features/search"],
 

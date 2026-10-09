@@ -1,10 +1,12 @@
 import * as fs from "node:fs/promises";
-import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { setting, workspaceDataDir } from "./branding.js";
+import { localHost } from "./lan.js";
 
 export interface Daemon {
+  /** Runtime identity id; absent in records written before identities existed. */
+  id?: string;
   pid: number;
   host: string;
   port: number;
@@ -27,7 +29,7 @@ export const delay = (ms: number) =>
 export function launchUrl(daemon: Daemon, file?: string) {
   const params = new URLSearchParams({ pair: daemon.pairingCode });
   if (file) params.set("open", file);
-  return `http://${daemon.host}:${daemon.port}/#${params}`;
+  return `http://${localHost(daemon.host)}:${daemon.port}/#${params}`;
 }
 
 export function browserCommand(url: string, platform: string) {
@@ -77,7 +79,7 @@ export function running(pid: number) {
 async function serving(daemon: Daemon) {
   try {
     const response = await fetch(
-      `http://${daemon.host}:${daemon.port}/api/health`,
+      `http://${localHost(daemon.host)}:${daemon.port}/api/health`,
       { signal: AbortSignal.timeout(2000) },
     );
     return response.ok && (await response.json())?.protocol === 1;
@@ -92,22 +94,4 @@ export async function liveDaemon(dataDir: string) {
   const daemon = await readRecord(dataDir);
   if (!daemon || !running(daemon.pid)) return undefined;
   return (await serving(daemon)) ? daemon : undefined;
-}
-
-export async function available(host: string, port: number) {
-  const probe = net.createServer();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      probe.once("error", reject);
-      probe.listen(port, host, () => {
-        probe.removeListener("error", reject);
-        resolve();
-      });
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await new Promise<void>((resolve) => probe.close(() => resolve()));
-  }
 }

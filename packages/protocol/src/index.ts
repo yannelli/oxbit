@@ -3,6 +3,32 @@ export const MAX_MESSAGE_BYTES = 2 * 1024 * 1024;
 export const MAX_BUFFER_BYTES = 1024 * 1024;
 /** Base64 of one chunk plus envelope stays below MAX_BUFFER_BYTES, so fs.readBytes never trips the slow-consumer close. */
 export const READ_CHUNK_BYTES = 512 * 1024;
+/** Mirrored in the Bonjour `_oxbit._tcp` TXT record. */
+export const RUNTIME_SERVICE_TYPE = "_oxbit._tcp";
+/** Served by `/api/health`, and as `runtime` in the `/api/pair` and `auth.authenticate` results. */
+export interface RuntimeIdentity {
+  /** Persisted in the runtime data directory, so it survives restarts and port changes. */
+  id: string;
+  /** Host name of the machine serving the runtime. */
+  name: string;
+  version: string;
+  /** Epoch milliseconds when this process started listening. */
+  startedAt: number;
+}
+export function isRuntimeIdentity(value: unknown): value is RuntimeIdentity {
+  const identity = value as Partial<RuntimeIdentity> | null;
+  return typeof identity?.id === "string" && /^[A-Za-z0-9-]{8,64}$/.test(identity.id) &&
+    typeof identity.name === "string" && typeof identity.version === "string" &&
+    typeof identity.startedAt === "number";
+}
+/** Milliseconds a launched runtime keeps running after its last client and heartbeat; 0 runs until stopped. */
+export const DEFAULT_KEEP_ALIVE_MS = 75_000;
+/** Separates a startup error message from the runtime output tail appended to it. */
+export const RUNTIME_OUTPUT_SEPARATOR = "\n--- runtime output ---\n";
+export function splitRuntimeError(text: string): { message: string; detail?: string } {
+  const index = text.indexOf(RUNTIME_OUTPUT_SEPARATOR);
+  return index === -1 ? { message: text } : { message: text.slice(0, index), detail: text.slice(index + RUNTIME_OUTPUT_SEPARATOR.length) };
+}
 export type ClientMessage =
   | {
       v: 1;

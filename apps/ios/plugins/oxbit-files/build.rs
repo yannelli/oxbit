@@ -5,6 +5,7 @@ const COMMANDS: &[&str] = &[
     "forget_folder",
     "documents_path",
     "runtime_credentials",
+    "runtime_discovery",
     "git_credentials",
     "ssh_keys",
     "pick_files",

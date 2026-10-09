@@ -77,7 +77,7 @@ async fn live_runtime_wget_tasks_and_budget() {
 
     exec(&container, "mv /usr/bin/curl /usr/bin/curl.off");
     let seen: Seen = Arc::default();
-    let runtime = start(&pool, "live", hosted(), &seen).await;
+    let runtime = start(&pool, "live", hosted(), &seen, None).await;
     let ready = runtime.ensure(true).await;
     exec(&container, "mv /usr/bin/curl.off /usr/bin/curl");
     assert_eq!(
@@ -103,7 +103,7 @@ async fn live_runtime_wget_tasks_and_budget() {
     );
 
     let seen: Seen = Arc::default();
-    let runtime = start(&pool, "live", hosted(), &seen).await;
+    let runtime = start(&pool, "live", hosted(), &seen, None).await;
     runtime.ensure(true).await.unwrap();
     let pid = runtime.pid().await.unwrap();
     let mark = seen.lock().unwrap().len();

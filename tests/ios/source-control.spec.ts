@@ -3,7 +3,7 @@ import { installBridge } from "./bridge.js";
 import { installSshBridge } from "./ssh-bridge.js";
 
 const dialogs = [
-  { button: "Connect Runtime…", dialog: "Runtime Connection" },
+  { button: "Connect Runtime…", dialog: "Runtime" },
   { button: "Clone Repository…", dialog: "Clone Repository" },
   { button: "Git Accounts and Commit Author…", dialog: "Git Accounts and Commit Author" },
   { button: "Connect with SSH…", dialog: "Connect with SSH" },

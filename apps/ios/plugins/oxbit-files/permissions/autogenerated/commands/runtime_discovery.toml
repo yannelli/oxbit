@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-runtime-discovery"
+description = "Enables the runtime_discovery command without any pre-configured scope."
+commands.allow = ["runtime_discovery"]
+
+[[permission]]
+identifier = "deny-runtime-discovery"
+description = "Denies the runtime_discovery command without any pre-configured scope."
+commands.deny = ["runtime_discovery"]

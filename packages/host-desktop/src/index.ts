@@ -15,6 +15,9 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Persistence } from "@oxbit/sdk";
 import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
 import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
+import { KEEP_ALIVE_SETTING, keepAliveMs } from "@oxbit/feature-runtime";
+import { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
+export { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
 
 export interface Project {
   key: string;
@@ -65,8 +68,8 @@ export const native = {
   fileOpened: (key: string, request: string) =>
     invoke<void>("desktop_file_opened", { key, request }),
   activate: (key: string) => invoke<void>("desktop_activate", { key }),
-  connection: (key: string, restart = false) =>
-    invoke<Connection>("desktop_connection", { key, restart }),
+  connection: (key: string, restart = false, keepAlive?: number) =>
+    invoke<Connection>("desktop_connection", { key, restart, keepAlive }),
   move: (key: string) => invoke<void>("desktop_move_project", { key }),
   close: (kind: CloseRequest["reason"], key?: string) =>
     invoke<void>("desktop_request_close", { kind, key }),
@@ -167,6 +170,7 @@ export interface ProjectSession {
   error?: string;
   failed?: boolean;
   loading?: boolean;
+  connector: DesktopRuntimeConnector;
 }
 export interface WindowView {
   projects: ProjectSession[];
@@ -188,6 +192,8 @@ export class ProjectSessionManager {
     profile: { user: {}, userLanguages: {} },
     loading: true,
   };
+  /** SSH actions the window supplies to every project's Runtime page. */
+  ssh: Pick<DesktopRuntimeHost, "startSsh" | "manageSsh"> = {};
   snapshot = () => this.view;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -217,7 +223,7 @@ export class ProjectSessionManager {
       await listen("desktop-changed", () => void this.refresh()),
     );
     this.subscriptions.push(
-      await listen<{ key: string }>("desktop-runtime-failed", ({ payload }) => {
+      await listen<{ key: string; detail?: string }>("desktop-runtime-failed", ({ payload }) => {
         const entry = this.entries.get(payload.key);
         if (entry) {
           entry.failed = true;
@@ -225,6 +231,7 @@ export class ProjectSessionManager {
             entry.project.path.startsWith("ssh://")
               ? "The SSH connection closed. Your drafts are retained. Reconnect to resume editing and tools."
               : "The project runtime stopped. Your drafts are retained. Restart it to resume tools.";
+          entry.connector.failed(entry.error, payload.detail || undefined);
           entry.session?.runtime?.terminated();
           void entry.session?.persist();
           this.publish();
@@ -265,7 +272,7 @@ export class ProjectSessionManager {
       for (const project of snapshot.projects) {
         let entry = this.entries.get(project.key);
         if (!entry) {
-          entry = { project };
+          entry = { project, connector: this.connector(project.key) };
           this.entries.set(project.key, entry);
         }
         entry.project = project;
@@ -298,6 +305,15 @@ export class ProjectSessionManager {
     this.queue = next.catch(() => {});
     return next;
   }
+  private connector(key: string) {
+    return new DesktopRuntimeConnector(() => this.entries.get(key)!.project, {
+      restart: () => this.restart(key),
+      recent: () => this.view.recent,
+      open: path => native.open(path),
+      startSsh: (authority, path) => this.ssh.startSsh?.(authority, path) ?? Promise.resolve(),
+      manageSsh: () => this.ssh.manageSsh?.(),
+    });
+  }
   private async load(entry: ProjectSession, restart = false) {
     entry.loading = true;
     entry.error = undefined;
@@ -307,7 +323,8 @@ export class ProjectSessionManager {
         throw new Error(
           "This folder is unavailable. Reconnect its disk, then retry. Drafts are retained.",
         );
-      const connection = await native.connection(entry.project.key, restart);
+      entry.connector.store.progress(entry.project.path.startsWith("ssh://") ? "Connecting over SSH…" : "Starting the runtime…");
+      const connection = await native.connection(entry.project.key, restart, keepAliveMs(this.view.profile.user[KEEP_ALIVE_SETTING]));
       const runtime = new RuntimeClient(connection.url, "default", {
         token: connection.token,
         persistToken: false,
@@ -326,7 +343,9 @@ export class ProjectSessionManager {
           additionalExtensionOrigins: ["tauri://localhost"],
           active: false,
           protectUnload: false,
+          runtimeConnector: entry.connector,
         });
+        entry.connector.attach(session);
         session.workbench.set({ projectName: entry.project.name });
         for (const setting of desktopConfiguration) session.kernel.configuration.register(setting);
         const mirrorProfile = () => {
@@ -347,7 +366,8 @@ export class ProjectSessionManager {
         throw error;
       }
     } catch (error) {
-      entry.error = String(error);
+      entry.error = String(error).replace(/^Error: /, "");
+      entry.connector.failed(entry.error);
     } finally {
       entry.loading = false;
       this.publish();

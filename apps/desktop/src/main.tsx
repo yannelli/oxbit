@@ -17,7 +17,8 @@ import { ProjectMenu } from "./project-menu.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 import "./desktop.css";
-import { SshDialog } from "./ssh-dialog.js";
+import { SshDialog, sshWorkspaceUri } from "./ssh-dialog.js";
+import { splitRuntimeError } from "@oxbit/protocol";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);
@@ -94,7 +95,7 @@ function App() {
   const view = useSyncExternalStore(manager.subscribe, manager.snapshot);
   const active = manager.active;
   const [error, setError] = useState("");
-  const [panel, setPanel] = useState<"trust" | "tools" | "update" | "ssh">();
+  const [panel, setPanel] = useState<"tools" | "update" | "ssh">();
   const [tools, setTools] = useState<ToolStatus[]>([]);
   const [update, setUpdate] = useState<UpdateStatus>();
   const [busy, setBusy] = useState(false);
@@ -284,6 +285,15 @@ function App() {
     };
   }, []);
   useEffect(() => {
+    manager.ssh = {
+      manageSsh: () => setPanel("ssh"),
+      startSsh: async (authority, path) => {
+        const [, host, port] = /^(.*?)(?::(\d+))?$/.exec(authority)!;
+        await native.openRemote(sshWorkspaceUri(host, path, port));
+      },
+    };
+  }, []);
+  useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if (
         manager.isClosing ||
@@ -319,6 +329,7 @@ function App() {
     const registrations = [
       ["workspace.open", "Open Folder…", () => native.open()],
       ["workspace.connectSsh", "Connect over SSH…", () => setPanel("ssh")],
+      ["workspace.runtime", "Runtime", () => session.workbench.run("runtime.cloud")],
       [
         "workspace.switch",
         "Switch Project",
@@ -427,7 +438,7 @@ function App() {
       )}
       {active?.error && (
         <div className="desktop-alert" role="alert">
-          <span>{active.error}</span>
+          <RuntimeError text={active.error} />
           <button
             className="button"
             onClick={() => perform(manager.restart(active.project.key))}
@@ -447,7 +458,7 @@ function App() {
           <ProjectPanels key={entry.project.key} entry={entry} active={entry.project.key === active?.project.key}>
             {entry.project.key === active?.project.key && <ActiveWorkbench
               session={entry.session!}
-              onConnect={() => setPanel("trust")}
+              onConnect={() => perform(entry.session!.workbench.run("runtime.cloud"))}
               onOpenWorkspace={() => perform(native.open())}
               workspaceControl={projectMenu}
             />}
@@ -499,14 +510,6 @@ function App() {
         await native.openRemote(target);
         setPanel(undefined);
       }} />}
-      {panel === "trust" && active?.session && (
-        <div className="runtime-connect">
-          <TrustDialog
-            session={active.session}
-            close={() => setPanel(undefined)}
-          />
-        </div>
-      )}
       {panel === "tools" && (
         <Dialog title="Developer Tools" onClose={() => setPanel(undefined)}>
           <p>
@@ -665,6 +668,15 @@ function App() {
     </div>
   );
 }
+function RuntimeError({ text }: { text: string }) {
+  const { message, detail } = splitRuntimeError(text);
+  return (
+    <span>
+      {message}
+      {detail && <details><summary>Details</summary><pre>{detail}</pre></details>}
+    </span>
+  );
+}
 function ProjectPanels({ entry, active, children }: { entry: ReturnType<typeof manager.snapshot>["projects"][number]; active: boolean; children: ReactNode }) {
   const workbench = entry.session!.workbench;
   useEffect(() => {
@@ -694,41 +706,6 @@ function ActiveWorkbench({
       onOpenWorkspace={onOpenWorkspace}
       workspaceControl={workspaceControl}
     />
-  );
-}
-function TrustDialog({
-  session,
-  close,
-}: {
-  session: Session;
-  close: () => void;
-}) {
-  const [trusted, setTrusted] = useState(!!session.runtime?.session?.trusted);
-  const [error, setError] = useState("");
-  return (
-    <Dialog title="Workspace tools" onClose={close}>
-      <p>
-        Opening a folder enables editing. Trust this project to run terminals,
-        tasks, Git, language services, and runtime extensions.
-      </p>
-      <p>
-        {trusted
-          ? "This project is trusted."
-          : "This project’s tools are disabled."}
-      </p>
-      {error && <p role="alert">{error}</p>}
-      <button
-        className="button primary"
-        onClick={() =>
-          void session.runtime
-            ?.trust(!trusted)
-            .then(() => setTrusted(!trusted))
-            .catch((error) => setError(String(error)))
-        }
-      >
-        {trusted ? "Revoke Workspace Tool Trust" : "Trust Workspace Tools"}
-      </button>
-    </Dialog>
   );
 }
 async function startGhLogin(session: Session) {
