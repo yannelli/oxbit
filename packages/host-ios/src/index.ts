@@ -9,6 +9,7 @@ export {
   type GitAccount,
   type GitCredentials,
   type GitCredentialRequest,
+  type RuntimeCredentialRequest,
   GIT_ACCOUNT_KEY,
   GIT_SSH_KEY,
   type CommitSigningKey,
@@ -33,4 +34,5 @@ export { IosFileSystem, SshFileSystem, revisionOf } from "./filesystem.js";
 export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";
 export { IosIconPackStore } from "./icon-packs.js";
 export { IosLanguageTransport, createIosLanguageFeature, type IosLanguageServerKind } from "./language.js";
+export { discovery, DISCOVERY_POLL_MS, type DiscoveredRuntime } from "./discovery.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
