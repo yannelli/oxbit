@@ -9,9 +9,11 @@ var languages = [
   { id: "html", title: "HTML", extensions: ["html", "htm"], syntax: "html", providers: ["html"], badge: "<>" },
   { id: "vue", title: "Vue", extensions: ["vue"], syntax: "vue", providers: ["vue"], badge: "V" },
   { id: "astro", title: "Astro", extensions: ["astro"], syntax: "astro", providers: ["astro"], badge: "A" },
-  { id: "dockerfile", title: "Dockerfile", extensions: ["dockerfile"], filenames: ["Dockerfile"], patterns: ["Dockerfile.*"], syntax: "dockerfile", providers: ["dockerfile"], badge: "D" },
-  { id: "shellscript", title: "Bash", extensions: ["sh", "bash"], filenames: [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile"], shebangs: ["bash", "sh"], syntax: "shell", providers: ["bash"], badge: "$" },
+  { id: "dockerfile", title: "Dockerfile", extensions: ["dockerfile", "containerfile"], filenames: ["Dockerfile", "Containerfile"], patterns: ["Dockerfile.*", "Containerfile.*"], syntax: "dockerfile", providers: ["dockerfile"], badge: "D" },
+  { id: "shellscript", title: "Bash", extensions: ["sh", "bash"], filenames: [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile"], shebangs: ["bash", "sh", "dash", "ksh"], syntax: "shell", providers: ["bash"], badge: "$" },
   { id: "zsh", title: "Zsh", extensions: ["zsh"], filenames: [".zshrc", ".zshenv", ".zprofile", ".zlogin", ".zlogout"], shebangs: ["zsh"], syntax: "zsh", providers: ["local"], badge: "%" },
+  { id: "yaml", title: "YAML", extensions: ["yaml", "yml"], syntax: "yaml", providers: ["yaml"], badge: "Y" },
+  { id: "python", title: "Python", extensions: ["py", "pyi", "pyw"], shebangs: ["python", "python3"], syntax: "python", providers: ["basedpyright", "ruff"], badge: "Py" },
   { id: "json", title: "JSON", extensions: ["json"], syntax: "json", providers: ["json"], badge: "{}" },
   { id: "jsonc", title: "JSON with Comments", extensions: ["jsonc"], syntax: "jsonc", providers: ["json"], badge: "{}" },
   { id: "jsonl", title: "JSON Lines", extensions: ["jsonl", "ndjson"], syntax: "jsonl", providers: ["local"], badge: "{}" },
@@ -36,6 +38,18 @@ function matchesFilePattern(pattern, file) {
   ).join("");
   const normalized = file.replaceAll("\\", "/").replace(/^\.\//, "");
   return new RegExp(`^${source}$`).test(pattern.includes("/") ? normalized : normalized.split("/").at(-1));
+}
+function fileTypesToSelectors(fileTypes) {
+  return fileTypes.map((item) => item.trim()).filter(Boolean).map((item) => /[*?/]|^\./.test(item) ? { pattern: item } : { language: canonicalLanguageId(item) });
+}
+function selectorsToFileTypes(selectors) {
+  return selectors.flatMap((selector) => selector.pattern ?? selector.language ?? []);
+}
+function selectorsMatch(selectors, language, file) {
+  return selectors.some((selector) => (!selector.language || selector.language === "*" || canonicalLanguageId(selector.language) === canonicalLanguageId(language)) && (!selector.pattern || matchesFilePattern(selector.pattern, file)));
+}
+function validateFileTypes(value) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || !item.trim() || item.length > 1024)) throw new Error("File types must be language IDs or glob patterns");
 }
 function resolveLanguage(file, options = {}) {
   const definitions = [...options.definitions ?? [], ...languages];
@@ -646,7 +660,10 @@ var settings_schema_default = {
       default: "en",
       enum: [
         "en",
-        "de"
+        "de",
+        "es",
+        "ja",
+        "zh"
       ]
     },
     "workbench.reducedMotion": {
@@ -1286,6 +1303,7 @@ export {
   SETTINGS_SCHEMA_URI,
   canonicalLanguageId,
   effectiveCapabilities,
+  fileTypesToSelectors,
   incrementalChange,
   languageForKernel,
   languageIdForPath,
@@ -1299,6 +1317,8 @@ export {
   parseSettings,
   registrationMatches,
   resolveLanguage,
+  selectorsMatch,
+  selectorsToFileTypes,
   settingsChanges,
   settingsFile,
   settingsLayers,
@@ -1309,6 +1329,7 @@ export {
   textOffset,
   textPosition,
   validateFileAssociations,
+  validateFileTypes,
   validateJson,
   validateLanguageServers
 };
