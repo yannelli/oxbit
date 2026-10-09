@@ -115,6 +115,15 @@ describe("negotiated language protocol", () => {
     await server.watched("config.json", 2);
     expect((await server.request<any[]>("fixture/events", {})).filter(event => event.method === "workspace/didChangeWatchedFiles")).toHaveLength(1);
   });
+  it("accepts watchers outside the workspace and reports only workspace changes", async () => {
+    const server = await fixture(1);
+    const watchers = [{ globPattern: { baseUri: "file:///usr/lib/python3.14", pattern: "**" }, kind: 7 }, { globPattern: "**/*.json", kind: 7 }];
+    expect(await server.request("fixture/register", { registrations: [{ id: "watch", method: "workspace/didChangeWatchedFiles", registerOptions: { watchers } }] })).toBe(true);
+    expect(await server.request("fixture/register", { registrations: [{ id: "bad", method: "workspace/didChangeWatchedFiles", registerOptions: { watchers: [{ globPattern: 7 }] } }] })).toBe(false);
+    await server.watched("config.json", 2); await server.watched("main.ts", 2);
+    const events = (await server.request<any[]>("fixture/events", {})).filter(event => event.method === "workspace/didChangeWatchedFiles");
+    expect(events.map(event => event.params.changes[0].uri.split("/").at(-1))).toEqual(["config.json"]);
+  });
   it("sends JSON-RPC cancellation and rejects obsolete requests", async () => {
     const server = await fixture(1), controller = new AbortController();
     const pending = server.request("fixture/slow", {}, controller.signal);
