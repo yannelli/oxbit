@@ -73,6 +73,7 @@ pub(super) async fn start(
             uuid::Uuid::new_v4().simple()
         ),
         ready_timeout: Duration::from_secs(120),
+        keep_alive: None,
     };
     let events = Arc::new(move |event| seen.lock().unwrap().push(event));
     RemoteRuntime::open(pool.clone(), source, events, options)

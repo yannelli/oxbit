@@ -86,6 +86,7 @@ pub async fn ios_ssh_runtime_start(
     id: String,
     host_id: String,
     path: String,
+    keep_alive: Option<u64>,
 ) -> Result<Started> {
     if id.is_empty() || id.len() > 64 || state.ssh.runtimes.lock().unwrap().contains_key(&id) {
         return Err(Error::invalid("Invalid remote workspace ID"));
@@ -112,6 +113,7 @@ pub async fn ios_ssh_runtime_start(
         workspace_key,
         token,
         ready_timeout: READY_TIMEOUT,
+        keep_alive,
     };
     let runtime = RemoteRuntime::open(state.ssh.pool.clone(), source, events, options).await?;
     state
