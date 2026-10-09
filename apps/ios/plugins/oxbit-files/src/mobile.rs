@@ -110,6 +110,15 @@ impl<R: Runtime> OxbitFiles<R> {
             .map_err(Into::into)
     }
 
+    pub fn runtime_discovery(
+        &self,
+        request: serde_json::Value,
+    ) -> crate::Result<serde_json::Value> {
+        self.0
+            .run_mobile_plugin("runtimeDiscovery", request)
+            .map_err(Into::into)
+    }
+
     pub fn pick_folder(&self) -> crate::Result<Folder> {
         self.0
             .run_mobile_plugin("pickFolder", ())

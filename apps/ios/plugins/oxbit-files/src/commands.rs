@@ -42,6 +42,14 @@ pub(crate) async fn runtime_credentials<R: Runtime>(
 }
 
 #[command]
+pub(crate) async fn runtime_discovery<R: Runtime>(
+    app: AppHandle<R>,
+    request: serde_json::Value,
+) -> Result<serde_json::Value> {
+    app.oxbit_files().runtime_discovery(request)
+}
+
+#[command]
 pub(crate) async fn git_credentials<R: Runtime>(
     app: AppHandle<R>,
     request: serde_json::Value,
