@@ -25,6 +25,10 @@ The full [license notice](packages/features/themes/LICENSE.vscode.txt) is includ
 
 The iOS app links russh 0.64.1, russh-sftp 3.0.1, ssh-key 0.7.0-rc.11, aws-lc-rs 1.18.1, and their dependencies for SSH and SFTP. They are licensed under Apache-2.0, MIT, BSD-3-Clause, and ISC; aws-lc-sys also carries the OpenSSL and BoringSSL notices in its license file. The crate list and each crate's published license files are in [ios-ssh-crates.txt](apps/web/public/licenses/ios-ssh-crates.txt), which ships with the app.
 
+## iOS search crates
+
+The iOS app links ignore 0.4.33, grep-regex 0.1.14, grep-matcher 0.1.9, and their dependencies globset 0.4.20, bstr 1.13.1, crossbeam-deque 0.8.8, and crossbeam-epoch 0.9.21 for workspace search and quick open. They are licensed under Unlicense OR MIT, or MIT OR Apache-2.0. The crate list and each crate's published license files are in [ios-search-crates.txt](apps/web/public/licenses/ios-search-crates.txt), which ships with the app.
+
 ## Managed language servers
 
 Separately installed language servers and their pinned dependency trees are documented in [managed server notices](apps/runtime/src/managed/NOTICES.md). Original package licenses are retained in the runtime cache; Intelephense is acquired directly from upstream and is not redistributed in Oxbit's open-source server bundles.

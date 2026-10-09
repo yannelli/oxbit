@@ -6,6 +6,8 @@ mod git_operations;
 mod git_requests;
 mod icon_packs;
 pub mod remote_runtime;
+mod search;
+mod search_core;
 mod ssh;
 mod storage;
 mod watch;
@@ -89,6 +91,8 @@ pub fn run() {
             ssh::fs_commands::ios_ssh_upload,
             ssh::fs_commands::ios_ssh_download,
             ssh::fs_commands::ios_ssh_transfer_cancel,
+            search::ios_search_request,
+            search::ios_search_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Oxbit");
