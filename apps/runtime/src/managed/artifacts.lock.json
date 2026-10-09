@@ -200,6 +200,16 @@
       "entry": "ruff-x86_64-unknown-linux-gnu/ruff",
       "license": "MIT",
       "integrity": "sha256-lWf/EgHi+z2jH/BMNVh9doxm1stC36hN5HTiv+Ngtgg="
+    },
+    {
+      "id": "ruff",
+      "version": "0.16.10",
+      "platform": "linux-arm64",
+      "url": "https://github.com/astral-sh/ruff/releases/download/0.16.10/ruff-aarch64-unknown-linux-gnu.tar.gz",
+      "format": "tar",
+      "entry": "ruff-aarch64-unknown-linux-gnu/ruff",
+      "license": "MIT",
+      "integrity": "sha256-3A103oN+8Ke8xizpjEimIrB10FcWHxO5WL4pNL7NVaY="
     }
   ]
 }
