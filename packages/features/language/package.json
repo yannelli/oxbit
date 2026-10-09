@@ -6,6 +6,7 @@
   "exports": "./src/index.ts",
   "scripts": {},
   "dependencies": {
+    "@astral-sh/ruff-wasm-web": "0.16.10",
     "@codemirror/autocomplete": "^6.18.7",
     "@codemirror/commands": "6.10.4",
     "@codemirror/lang-javascript": "^6.2.4",
@@ -18,12 +19,20 @@
     "@oxbit/documents": "workspace:*",
     "@oxbit/sdk": "workspace:*",
     "@oxbit/ui": "workspace:*",
+    "@wasm-fmt/shfmt": "0.2.7",
+    "bash-language-server": "5.8.1",
+    "browser-basedpyright": "1.40.2",
+    "dockerfile-language-service": "0.16.1",
+    "dockerfile-utils": "0.16.3",
     "markdown-it": "^14.3.2",
+    "path-browserify": "1.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "vscode-json-languageservice": "5.6.1",
     "vscode-languageserver-protocol": "3.17.5",
-    "vscode-languageserver-textdocument": "1.0.12"
+    "vscode-languageserver-textdocument": "1.0.12",
+    "web-tree-sitter": "0.27.1",
+    "yaml-language-server": "1.24.0"
   },
   "license": "MIT",
   "author": {

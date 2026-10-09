@@ -2,13 +2,21 @@ import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createServer } from "./server.js";
+import { createServer, type NativeServiceFactory } from "./server.js";
+import { TypeScriptServer } from "./typescript.js";
+import { JsonServer } from "./json.js";
 import type { NativeFileHost, ServerOptions } from "./files.js";
+import { resolveRemoteReference } from "./schemas.js";
 
 const libDirectory = dirname(createRequire(import.meta.url).resolve("typescript"));
 const libraries = Object.fromEntries(readdirSync(libDirectory).filter(file => /^lib\..*\.d\.ts$/.test(file)).map(file => ["/__oxbit_typescript__/" + file, readFileSync(join(libDirectory, file), "utf8")]));
 
-function setup(kind: ServerOptions["kind"], disk: Record<string, string> = {}, root = "/workspace") {
+const factories: Partial<Record<ServerOptions["kind"], NativeServiceFactory>> = {
+  typescript: files => new TypeScriptServer(files),
+  json: async (files, host, settings) => { const service = new JsonServer(files, host); await service.changed(settings ?? {}); return service; },
+};
+
+function setup(kind: ServerOptions["kind"], disk: Record<string, string> = {}, root = "/workspace", extra: Partial<NativeFileHost> = {}) {
   const files = new Map(Object.entries(disk).map(([path, text]) => [root + "/" + path, text]));
   const host: NativeFileHost = {
     readFile: path => files.get(path), fileExists: path => files.has(path),
@@ -21,8 +29,9 @@ function setup(kind: ServerOptions["kind"], disk: Record<string, string> = {}, r
       }
       return JSON.stringify([...entries.values()]);
     },
+    ...extra,
   };
-  const server = createServer({ root, rootUri: "file://" + root, kind }, host, libraries);
+  const server = createServer({ root, rootUri: "file://" + root, kind }, host, factories[kind]!, libraries);
   const uri = (path: string) => "file://" + root.split("/").map(encodeURIComponent).join("/") + "/" + path.split("/").map(encodeURIComponent).join("/");
   const open = (path: string, text: string, languageId = kind === "typescript" ? "typescript" : "json", version = 1) => server.dispatch("textDocument/didOpen", { textDocument: { uri: uri(path), text, version, languageId } });
   return { server, uri, open, files };
@@ -102,6 +111,33 @@ describe("device-local native language servers", () => {
     const hover = await server.dispatch("textDocument/hover", { textDocument: { uri: uri("data.json") }, position: { line: 0, character: 29 } });
     expect(JSON.stringify(hover.result)).toContain("Item count");
     await server.dispatch("exit", null);
+  });
+
+  it("associates catalog schemas through the host cache and honors the download switch", async () => {
+    const catalog = { schemas: [{ url: "https://example.test/tool.json", fileMatch: ["tool.json"] }] };
+    const requests: [string, boolean][] = [];
+    const schema = (uri: string, download: boolean, completion: (text: string | null, error: string | null) => void) => {
+      requests.push([uri, download]);
+      if (uri.endsWith("catalog.json")) completion(JSON.stringify(catalog), null);
+      else if (uri === "https://example.test/tool.json") completion('{"type":"object","properties":{"port":{"type":"number"}}}', null);
+      else completion(null, "missing");
+    };
+    const { server, open } = setup("json", {}, "/workspace", { schema });
+    await server.dispatch("initialize", { initializationOptions: { settings: { schemaDownload: false } } });
+    const opened = await open("tool.json", '{"port":"wrong"}');
+    expect((opened.notifications[0].params as any).diagnostics).toContainEqual(expect.objectContaining({ message: expect.stringMatching(/number/) }));
+    expect(requests.every(([, download]) => download === false)).toBe(true);
+    await server.dispatch("workspace/didChangeConfiguration", { settings: { schemaStore: false } });
+    const plain = await server.dispatch("textDocument/didChange", { textDocument: { uri: "file:///workspace/tool.json", version: 2 }, contentChanges: [{ text: '{"port":"still"}' }] });
+    expect((plain.notifications[0].params as any).diagnostics).toEqual([]);
+    await server.dispatch("exit", null);
+  });
+
+  it("resolves remote schema references without a URL global", () => {
+    expect(resolveRemoteReference("defs.json#/a", "https://example.test/schemas/main.json")).toBe("https://example.test/schemas/defs.json#/a");
+    expect(resolveRemoteReference("../x/y.json", "https://example.test/a/b/c.json?v=1")).toBe("https://example.test/a/x/y.json");
+    expect(resolveRemoteReference("/root.json", "https://example.test/a/b.json")).toBe("https://example.test/root.json");
+    expect(resolveRemoteReference("//cdn.test/z.json", "https://example.test/a.json")).toBe("https://cdn.test/z.json");
   });
 
   it("rejects outside URIs and requests after shutdown, and clears closed diagnostics", async () => {

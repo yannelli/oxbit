@@ -55,7 +55,7 @@ pub fn ios_fs_open_root(state: State<'_, AppState>, path: String) -> Result<Open
 pub async fn ios_fs_close_root(app: AppHandle, id: String) -> Result<()> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        let _operation = state.language_servers.lock().unwrap();
+        let _operation = state.language_servers.write().unwrap();
         app.oxbit_files()
             .lsp_close_workspace(id.clone())
             .map_err(|error| Error::new("LSP", error.to_string()))?;
@@ -85,12 +85,16 @@ pub async fn ios_lsp_message(
     method: String,
     params: Value,
 ) -> Result<Value> {
-    if !matches!(kind.as_str(), "typescript" | "json") || session_id.is_empty() {
+    if !matches!(
+        kind.as_str(),
+        "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python"
+    ) || session_id.is_empty()
+    {
         return Err(Error::invalid("Invalid language server session"));
     }
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        let _operation = state.language_servers.lock().unwrap();
+        let _operation = state.language_servers.read().unwrap();
         let root = root(&state, &workspace_id)?;
         app.oxbit_files()
             .lsp_message(serde_json::json!({

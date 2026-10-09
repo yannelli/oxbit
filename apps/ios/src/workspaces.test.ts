@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   documentsPath: vi.fn(), pickFolder: vi.fn(), openFolder: vi.fn(), closeFolder: vi.fn(), forgetFolder: vi.fn(),
   storageGet: vi.fn(), storageSet: vi.fn(), credentials: vi.fn(),
   remember: vi.fn(), recents: vi.fn(), forget: vi.fn(), connect: vi.fn(), scope: vi.fn(),
-  createLanguage: vi.fn(), registerLanguage: vi.fn(), activateLanguage: vi.fn(), persistenceGet: vi.fn(),
+  createLanguage: vi.fn(), registerLanguage: vi.fn(), activateLanguage: vi.fn(), disableLanguage: vi.fn(), persistenceGet: vi.fn(),
   sshConnect: vi.fn(),
 }));
 vi.mock("@oxbit/app-workbench", () => ({
@@ -24,7 +24,8 @@ vi.mock("@oxbit/host-ios", () => ({
     constructor(readonly id: string) {}
     get = mocks.persistenceGet;
   },
-  createIosLanguageFeature: mocks.createLanguage,
+  createIosLanguageFeatures: mocks.createLanguage,
+  migrateIosLanguageState: async (persistence: { get(key: string): Promise<string[] | undefined> }) => await persistence.get("extension-disabled") ?? [],
   SESSION_SCOPE: "session",
   loadRecents: mocks.recents, rememberWorkspace: mocks.remember, forgetWorkspace: mocks.forget,
   native: {
@@ -39,7 +40,7 @@ import { closeWorkspace, forgetRecent, openWorkspace } from "./workspaces.js";
 function sessionFor(filesystem: unknown, dispose = vi.fn().mockResolvedValue(undefined)) {
   return {
     filesystem,
-    kernel: { extensions: { register: mocks.registerLanguage, activate: mocks.activateLanguage } },
+    kernel: { extensions: { register: mocks.registerLanguage, activate: mocks.activateLanguage, disable: mocks.disableLanguage } },
     persist: vi.fn().mockResolvedValue(undefined),
     dispose,
   };
@@ -50,7 +51,7 @@ beforeEach(() => {
   mocks.documentsPath.mockResolvedValue("/device/Documents");
   mocks.openFilesystem.mockResolvedValue({ id: "ios:repository", dispose: mocks.disposeFilesystem });
   mocks.createSession.mockImplementation(async ({ filesystem }) => sessionFor(filesystem));
-  mocks.createLanguage.mockReturnValue({ manifest: { id: "oxbit.ios-language" } });
+  mocks.createLanguage.mockReturnValue([{ manifest: { id: "oxbit.language-typescript" } }, { manifest: { id: "oxbit.language-python" } }]);
   mocks.activateLanguage.mockResolvedValue(undefined);
   mocks.persistenceGet.mockResolvedValue(undefined);
   mocks.disposeGit.mockResolvedValue(undefined);
@@ -70,15 +71,16 @@ describe("native Git workspaces", () => {
     expect(options.preserveFilesystem).toBe(true);
     expect(mocks.connect).not.toHaveBeenCalled();
     expect(mocks.createLanguage).toHaveBeenCalledWith(workspace.session.filesystem);
-    expect(mocks.registerLanguage).toHaveBeenCalledWith(mocks.createLanguage.mock.results[0]!.value);
-    expect(mocks.activateLanguage).toHaveBeenCalledWith("oxbit.ios-language");
+    for (const feature of mocks.createLanguage.mock.results[0]!.value) expect(mocks.registerLanguage).toHaveBeenCalledWith(feature);
+    expect(mocks.activateLanguage.mock.calls).toEqual([["oxbit.language-typescript"], ["oxbit.language-python"]]);
   });
   it("keeps native Git available when device language servers are disabled", async () => {
-    mocks.persistenceGet.mockResolvedValue(["oxbit.ios-language"]);
+    mocks.persistenceGet.mockResolvedValue(["oxbit.language-python"]);
     const workspace = await openWorkspace({ kind: "documents" });
     expect(workspace.git).toBeDefined();
-    expect(mocks.registerLanguage).toHaveBeenCalledOnce();
-    expect(mocks.activateLanguage).not.toHaveBeenCalled();
+    expect(mocks.registerLanguage).toHaveBeenCalledTimes(2);
+    expect(mocks.activateLanguage.mock.calls).toEqual([["oxbit.language-typescript"]]);
+    expect(mocks.disableLanguage.mock.calls).toEqual([["oxbit.language-python"]]);
   });
   it("opens and remembers a cloned repository under Documents", async () => {
     const workspace = await openWorkspace({ kind: "documents", directory: "projects/example" });

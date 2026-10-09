@@ -14,6 +14,9 @@ const allowPnpm = new Set([
   "tests/package-manager.test.ts",
 ]);
 
+/** Vendored SchemaStore data and its copies in the iOS bundle and app list pnpm configuration files. */
+const vendoredSchemas = /(^|\/)(language|language-servers)\/schemas\/(catalog|package)\.schema\.json$/;
+
 const skipDirs = new Set([
   ".git",
   "node_modules",
@@ -61,7 +64,7 @@ describe("package manager contract", () => {
     walk(root, files);
     const leftovers: string[] = [];
     for (const file of files) {
-      if (allowPnpm.has(file)) continue;
+      if (allowPnpm.has(file) || vendoredSchemas.test(file)) continue;
       if (!/\.(md|json|jsonc|yml|yaml|ts|mts|tsx|js|mjs|cjs|sh|html|pbxproj|toml)$/.test(file)) continue;
       const text = readFileSync(path.join(root, file), "utf8");
       if (/\bpnpm\b/.test(text)) leftovers.push(file);

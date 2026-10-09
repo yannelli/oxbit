@@ -40,8 +40,7 @@ apps/ios/src-tauri/gen/apple/DerivedData/
 apps/ios/src-tauri/gen/apple/*.xcodeproj/xcuserdata/
 apps/ios/src-tauri/gen/apple/*.xcodeproj/project.xcworkspace/xcuserdata/
 apps/ios/src-tauri/gen/apple/Externals/
-apps/ios/plugins/oxbit-files/ios/Sources/Resources/language-servers.js
-apps/ios/plugins/oxbit-files/ios/Sources/LanguageServerBundle.swift
+apps/ios/src-tauri/gen/apple/assets/
 
 # Isolated icon-theme production verification bundles
 **/dist-icon-tests/

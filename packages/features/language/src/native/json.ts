@@ -1,18 +1,22 @@
 import { getLanguageService, type Diagnostic } from "vscode-json-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import type { WorkspaceFiles } from "./files.js";
+import type { NativeFileHost, WorkspaceFiles } from "./files.js";
+import type { NativeService } from "./server.js";
+import { resolveRemoteReference, Schemas, type SchemaSettings } from "./schemas.js";
 
-export class JsonServer {
+export class JsonServer implements NativeService {
+  readonly name = "JSON / JSONC (iOS)";
+  readonly languages = ["json", "jsonc"];
+  readonly capabilities = { completionProvider: { triggerCharacters: ["\"", ":"], resolveProvider: false }, hoverProvider: true, documentSymbolProvider: true };
   private service;
-  constructor(private files: WorkspaceFiles) {
+  private schemas: Schemas;
+  constructor(private files: WorkspaceFiles, host: NativeFileHost) {
+    this.schemas = new Schemas(files, host);
     this.service = getLanguageService({
-      schemaRequestService: async uri => {
-        const text = this.files.readFile(this.files.path(uri));
-        if (text === undefined) throw new Error("JSON schema is unavailable in this workspace");
-        return text;
-      },
+      schemaRequestService: uri => this.schemas.content(uri),
       workspaceContext: { resolveRelativePath: (relative, resource) => {
         if (/^[a-z][a-z\d+.-]*:/i.test(relative)) return relative;
+        if (!resource.startsWith("file:")) return resolveRemoteReference(relative, resource);
         const path = this.files.path(resource).split("/").slice(0, -1).join("/");
         return this.files.uri(relative.startsWith("/") ? relative : path + "/" + relative);
       } },
@@ -37,6 +41,11 @@ export class JsonServer {
     if (method === "textDocument/documentSymbol") return this.service.findDocumentSymbols2(document, parsed);
     throw new Error(`Unsupported JSON language request: ${method}`);
   }
-  changed(settings?: any) { this.service.configure(settings?.json ?? {}); }
+  async changed(settings?: unknown) {
+    if (settings === undefined) return;
+    this.schemas.settings = (settings as SchemaSettings | null) ?? {};
+    const associations = await this.schemas.associations();
+    this.service.configure({ validate: true, allowComments: true, schemas: associations.map(item => ({ uri: item.url, fileMatch: item.fileMatch })) });
+  }
   dispose() { this.service.configure({ schemas: [] }); }
 }

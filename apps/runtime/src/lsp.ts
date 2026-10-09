@@ -427,6 +427,7 @@ export class LanguageServer {
       }).catch(() => null).then(result => { if (this.child === child) this.send({ jsonrpc: "2.0", method: "tsserver/response", params: Array.isArray(message.params?.[0]) ? [[id, result?.body ?? null]] : [id, result?.body ?? null] }); });
       return;
     }
+    if (message.method === "textDocument/publishDiagnostics" && this.launchSpec?.diagnostics) message.params = { ...message.params, diagnostics: this.launchSpec.diagnostics(message.params.diagnostics ?? []) };
     if (message.method === "textDocument/publishDiagnostics" && this.companion) {
       this.primaryDiagnostics.set(message.params.uri, message.params.diagnostics ?? []);
       this.emit(message.method, { ...message.params, diagnostics: [...(message.params.diagnostics ?? []), ...(this.companionDiagnostics.get(message.params.uri) ?? [])] }); return;

@@ -1,4 +1,4 @@
-import { languageForKernel } from "@oxbit/sdk";
+import { languageForKernel, selectorsMatch, type LanguageSelector } from "@oxbit/sdk";
 import type {
   CodeActionProvider,
   CompletionProvider,
@@ -75,11 +75,13 @@ export class LanguageProviders {
     return this.o.kernel.contributions
       .list(kind)
       .filter((item) => {
-        const provider = item.data as { languages?: string[] } | undefined;
+        const provider = item.data as { languages?: string[]; selectors?: LanguageSelector[] } | undefined;
         return (
-          Array.isArray(provider?.languages) &&
-          (provider.languages.includes("*") ||
-            provider.languages.includes(language)) &&
+          (Array.isArray(provider?.selectors)
+            ? selectorsMatch(provider.selectors, language, path)
+            : Array.isArray(provider?.languages) &&
+              (provider.languages.includes("*") ||
+                provider.languages.includes(language))) &&
           this.o.kernel.context.matches(item.when)
         );
       })
