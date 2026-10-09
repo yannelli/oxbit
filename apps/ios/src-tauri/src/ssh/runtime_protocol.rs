@@ -5,10 +5,11 @@ use crate::fs_core::{Error, Result};
 pub fn platform(system: &str, machine: &str) -> Result<&'static str> {
     match (system.trim(), machine.trim()) {
         ("Linux", "x86_64") => Ok("linux-x64"),
+        ("Linux", "aarch64") => Ok("linux-arm64"),
         ("Darwin", "arm64") => Ok("darwin-arm64"),
         _ => Err(Error::new(
             "REMOTE_UNSUPPORTED",
-            "Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon.",
+            "Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon.",
         )),
     }
 }

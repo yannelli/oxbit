@@ -122,6 +122,66 @@
       "integrity": "sha256-z4Ftro0baMSh9yiORiVzKj+H3w3M31oGfn4xW5ZDyII="
     },
     {
+      "id": "marksman",
+      "version": "2026-02-08",
+      "platform": "linux-arm64",
+      "url": "https://github.com/artempyanykh/marksman/releases/download/2026-02-08/marksman-linux-arm64",
+      "format": "file",
+      "entry": "marksman",
+      "license": "MIT",
+      "integrity": "sha256-244SRSf3+ASOPmyRghucUu8XPZLAHkfSIb8TN6/ZYvs="
+    },
+    {
+      "id": "taplo",
+      "version": "0.10.0",
+      "platform": "linux-arm64",
+      "url": "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-aarch64.gz",
+      "format": "gzip",
+      "entry": "taplo",
+      "license": "MIT",
+      "integrity": "sha256-AzaB0B7sg3bD/Tj6NwPHkxb14UuwE9hZlDtgoHvM3MM="
+    },
+    {
+      "id": "shellcheck",
+      "version": "0.11.0",
+      "platform": "linux-arm64",
+      "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.aarch64.tar.gz",
+      "format": "tar",
+      "entry": "shellcheck-v0.11.0/shellcheck",
+      "license": "GPL-3.0-or-later",
+      "integrity": "sha256-aKgTMZelC+uIA/jUL5kI0a8cVUDUuwX9/KjB+kfezvw="
+    },
+    {
+      "id": "jre",
+      "version": "21.0.12.1+1",
+      "platform": "linux-arm64",
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_aarch64_linux_hotspot_21.0.12.1_1.tar.gz",
+      "format": "tar",
+      "entry": "jdk-21.0.12.1+1-jre/bin/java",
+      "license": "GPL-2.0-with-classpath-exception",
+      "integrity": "sha256-FL4fNevb0fbo1X65EaP/t01tmqJVq8Xa8rEwIALPLPI="
+    },
+    {
+      "id": "lemminx",
+      "version": "0.31.2",
+      "platform": "linux-arm64",
+      "url": "https://repo.eclipse.org/content/repositories/lemminx-releases/org/eclipse/lemminx/org.eclipse.lemminx/0.31.2/org.eclipse.lemminx-0.31.2-uber.jar",
+      "format": "file",
+      "entry": "lemminx.jar",
+      "license": "EPL-2.0",
+      "integrity": "sha256-9P3hZOeFxjXl+GNh2/S5k7/ixfg/21KJHQWLffybz8g="
+    },
+    {
+      "id": "laravel",
+      "version": "0.0.31",
+      "platform": "linux-arm64",
+      "url": "https://github.com/laravel/lsp/releases/download/v0.0.31/server-v0.0.31-arm64-linux",
+      "format": "file",
+      "entry": "laravel-lsp",
+      "license": "MIT",
+      "integrity": "sha256-RfTFNT465eyrEYgqQhP88PBuNzUBx+HdsPF5toqPsnQ="
+    },
+    {
       "id": "ruff",
       "version": "0.16.10",
       "platform": "darwin-arm64",

@@ -14,12 +14,32 @@
     "src/**/*.test.ts"
   ],
   "references": [
-    { "path": "../../packages/app-workbench" },
-    { "path": "../../packages/host-ios" },
-    { "path": "../../packages/host-browser" },
-    { "path": "../../packages/workbench" },
-    { "path": "../../packages/sdk" },
-    { "path": "../../packages/ui" },
-    { "path": "../../packages/themes" }
+    {
+      "path": "../../packages/app-workbench"
+    },
+    {
+      "path": "../../packages/host-ios"
+    },
+    {
+      "path": "../../packages/host-browser"
+    },
+    {
+      "path": "../../packages/workbench"
+    },
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/ui"
+    },
+    {
+      "path": "../../packages/themes"
+    },
+    {
+      "path": "../../packages/features/runtime"
+    },
+    {
+      "path": "../../packages/protocol"
+    }
   ]
 }

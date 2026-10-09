@@ -3,7 +3,7 @@ import { translate as tr } from "@oxbit/ui";
 import { createKernel } from "@oxbit/core";
 import { DocumentService } from "@oxbit/documents";
 import { RuntimeClient } from "@oxbit/host-runtime";
-import { WorkbenchController, createWorkbenchFeature } from "@oxbit/workbench";
+import { WorkbenchController, createWorkbenchFeature, RUNTIME_CONNECTOR_SERVICE, type RuntimeConnector } from "@oxbit/workbench";
 import {
   languageForKernel,
   type FileSystem,
@@ -14,6 +14,7 @@ import {
 import { createFeature as editorFeature } from "@oxbit/feature-editor";
 import { createFeature as explorerFeature } from "@oxbit/feature-explorer";
 import { createFeature as settingsFeature } from "@oxbit/feature-settings";
+import { createFeature as runtimeFeature } from "@oxbit/feature-runtime";
 import { createFeature as extensionsFeature } from "@oxbit/feature-extensions";
 import {
   createFeature as themesFeature,
@@ -86,6 +87,7 @@ export async function createWorkbenchSession({
   preserveFilesystem = false,
   additionalExtensionOrigins,
   iconPackStore,
+  runtimeConnector,
 }: {
   filesystem: FileSystem;
   runtime?: RuntimeClient;
@@ -96,6 +98,8 @@ export async function createWorkbenchSession({
   preserveFilesystem?: boolean;
   additionalExtensionOrigins?: readonly string[];
   iconPackStore?: PackStore;
+  /** Backs the Runtime page and the one-tap cloud button. */
+  runtimeConnector?: RuntimeConnector;
 }): Promise<Session> {
   const configurationPersistence = new ScopedConfigurationPersistence(
     persistence,
@@ -153,6 +157,7 @@ export async function createWorkbenchSession({
   kernel.services.register("filesystem", filesystem);
   kernel.services.register("persistence", persistence);
   if (runtime) kernel.services.register("runtime", runtime);
+  if (runtimeConnector) kernel.services.register(RUNTIME_CONNECTOR_SERVICE, runtimeConnector);
   kernel.context.set("workspace", true);
   kernel.context.set("connected", !!runtime?.connected);
   kernel.context.set("trusted", !!runtime?.session?.trusted);
@@ -179,6 +184,7 @@ export async function createWorkbenchSession({
     });
     const features = [
       settingsFeature(options),
+      runtimeFeature(options),
       themesFeature(options),
       createVSCodeFeature(options),
       createVSCodeHighContrastFeature(options),

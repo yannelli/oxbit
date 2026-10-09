@@ -25,7 +25,7 @@ export interface LanguageServerDefinition extends LanguageServerConfiguration {
 export interface LanguageServerInstallation {
   id: string;
   version: string;
-  platform: "darwin-arm64" | "linux-x64";
+  platform: "darwin-arm64" | "linux-x64" | "linux-arm64";
   directory: string;
   integrity: string;
 }

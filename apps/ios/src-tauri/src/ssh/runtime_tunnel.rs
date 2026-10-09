@@ -70,7 +70,8 @@ async fn forward(
 }
 
 /// The desktop's readiness check: `/api/health` answers protocol 1 through the server's loopback.
-pub async fn health(pool: &Pool, host_id: &str, port: u16) -> Result<()> {
+/// Returns the runtime's `id` when it reports one.
+pub async fn health(pool: &Pool, host_id: &str, port: u16) -> Result<Option<String>> {
     let check = async {
         let connection = pool.connection(host_id).await?;
         let channel = connection
@@ -90,20 +91,14 @@ pub async fn health(pool: &Pool, host_id: &str, port: u16) -> Result<()> {
     let response = tokio::time::timeout(HEALTH_TIMEOUT, check)
         .await
         .map_err(|_| Error::new("REMOTE_RUNTIME", "The remote runtime did not answer."))??;
-    if healthy(&response) {
-        Ok(())
-    } else {
-        Err(Error::new(
-            "REMOTE_RUNTIME",
-            "Remote runtime health check failed",
-        ))
-    }
+    let body = health_body(&response)
+        .ok_or_else(|| Error::new("REMOTE_RUNTIME", "Remote runtime health check failed"))?;
+    Ok(body["id"].as_str().map(str::to_string))
 }
 
-pub fn healthy(response: &str) -> bool {
-    let Some((head, body)) = response.split_once("\r\n\r\n") else {
-        return false;
-    };
+/// The JSON body of a protocol 1 health response.
+pub fn health_body(response: &str) -> Option<serde_json::Value> {
+    let (head, body) = response.split_once("\r\n\r\n")?;
     let ok = head
         .lines()
         .next()
@@ -111,7 +106,7 @@ pub fn healthy(response: &str) -> bool {
     let body = body.trim();
     let body = body.find('{').map_or(body, |start| &body[start..]);
     let body = body.rfind('}').map_or(body, |end| &body[..=end]);
-    ok && serde_json::from_str::<serde_json::Value>(body).is_ok_and(|value| {
-        value["ok"] == serde_json::json!(true) && value["protocol"] == serde_json::json!(1)
-    })
+    let value = serde_json::from_str::<serde_json::Value>(body).ok()?;
+    (ok && value["ok"] == serde_json::json!(true) && value["protocol"] == serde_json::json!(1))
+        .then_some(value)
 }

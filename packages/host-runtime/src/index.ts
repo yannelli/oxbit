@@ -7,7 +7,8 @@ import type {
   FileChange,
   Disposable,
 } from "@oxbit/sdk";
-import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, READ_CHUNK_BYTES, operationMethods, type ServerMessage } from "@oxbit/protocol";
+import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, READ_CHUNK_BYTES, operationMethods, isRuntimeIdentity, type RuntimeIdentity, type ServerMessage } from "@oxbit/protocol";
+const TOKEN_KEY = "oxbit.runtime.token:";
 type Pending = {
   resolve: (v: any) => void;
   reject: (e: unknown) => void;
@@ -18,6 +19,8 @@ export interface RuntimeClientOptions {
   token?: string;
   /** Desktop credentials never touch WebView storage. Browser pairing keeps its default. */
   persistToken?: boolean;
+  /** Reads the token saved for this runtime id before the URL-keyed one. */
+  runtimeId?: string;
 }
 export class RuntimeClient implements RpcClient {
   private socket?: WebSocket;
@@ -32,6 +35,9 @@ export class RuntimeClient implements RpcClient {
   private recoveringOperations = false;
   private opening?: Promise<void>;
   connected = false;
+  /** When false, a dropped connection stays disconnected until connect() runs again. */
+  autoReconnect = true;
+  identity?: RuntimeIdentity;
   session?: {
     token: string;
     workspaceId: string;
@@ -48,13 +54,22 @@ export class RuntimeClient implements RpcClient {
     private readonly options: RuntimeClientOptions = {},
   ) {
     this.url = url.replace(/\/$/, "");
-    this.token = options.token ?? (options.persistToken === false ? undefined :
-      globalThis.sessionStorage?.getItem("oxbit.runtime.token:" + this.url) ?? undefined);
+    const storage = options.persistToken === false ? undefined : globalThis.sessionStorage;
+    this.token = options.token ?? (options.runtimeId ? storage?.getItem(TOKEN_KEY + "id:" + options.runtimeId) : undefined) ??
+      storage?.getItem(TOKEN_KEY + this.url) ?? undefined;
   }
   private rememberToken(token: string) {
     this.token = token;
-    if (this.options.persistToken !== false)
-      globalThis.sessionStorage?.setItem("oxbit.runtime.token:" + this.url, token);
+    this.persistToken();
+  }
+  /** Moves a URL-keyed token to the runtime id, so a new port finds it. */
+  private persistToken() {
+    const storage = this.options.persistToken === false ? undefined : globalThis.sessionStorage;
+    if (!storage || !this.token) return;
+    if (this.identity) {
+      storage.setItem(TOKEN_KEY + "id:" + this.identity.id, this.token);
+      storage.removeItem(TOKEN_KEY + this.url);
+    } else storage.setItem(TOKEN_KEY + this.url, this.token);
   }
   async pair(code: string) {
     if (code.startsWith("grant:")) {
@@ -72,6 +87,7 @@ export class RuntimeClient implements RpcClient {
     if (!r.ok)
       throw new Error(data.error?.message ?? data.error ?? "Pairing failed");
     this.session = data;
+    if (isRuntimeIdentity(data.runtime)) this.identity = data.runtime;
     this.rememberToken(data.token);
     return data;
   }
@@ -101,6 +117,10 @@ export class RuntimeClient implements RpcClient {
             clearTimeout(timer);
             this.connected = true;
             this.retries = 0;
+            if (isRuntimeIdentity(session.runtime)) {
+              this.identity = session.runtime;
+              this.persistToken();
+            }
             this.session = {
               token: this.token ?? "",
               workspaceId: String(session.workspaceId ?? this.workspaceId),
@@ -168,7 +188,7 @@ export class RuntimeClient implements RpcClient {
       ws.onclose = (event) => {
         clearTimeout(timer);
         if (this.socket !== ws) return;
-        if (event.code === 4003) this.stopped = true;
+        if (event.code === 4003 || !this.autoReconnect) this.stopped = true;
         this.connected = false;
         this.opening = undefined;
         for (const [id, p] of this.pending) {
@@ -306,6 +326,11 @@ export class RuntimeClient implements RpcClient {
         /* A subscriber must not interrupt message dispatch. */
       }
     }
+  }
+  /** Skips the backoff wait, for a return to the foreground or a user retry. */
+  reconnect() {
+    this.retries = 0;
+    return this.connected ? Promise.resolve() : this.connect();
   }
   disconnect() {
     this.stopped = true;

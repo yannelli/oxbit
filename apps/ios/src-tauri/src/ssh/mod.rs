@@ -12,6 +12,8 @@ pub mod known_hosts;
 #[cfg(test)]
 mod live_git_tests;
 #[cfg(test)]
+mod live_lease_tests;
+#[cfg(test)]
 mod live_runtime_task_tests;
 #[cfg(test)]
 mod live_runtime_tests;
@@ -24,6 +26,7 @@ mod runtime_process;
 pub mod runtime_protocol;
 #[cfg(test)]
 mod runtime_protocol_tests;
+mod runtime_reattach;
 pub mod runtime_session;
 mod runtime_tunnel;
 pub mod session;

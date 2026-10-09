@@ -1,16 +1,17 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-08.
+Created: 2026-10-02. Last updated: 2026-10-09.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
 
 | Job | Output |
 | --- | --- |
-| `remote-runtime` | SSH runtime payloads for `darwin-arm64` and `linux-x64` |
+| `remote-runtime` | SSH runtime payloads for `darwin-arm64` (`macos-26`), `linux-x64` (`ubuntu-24.04`), and `linux-arm64` (`ubuntu-24.04-arm`) |
 | `macos` | Developer ID signed, notarized, and stapled app and DMG; signed updater archive; web, runtime, and extension tarballs; the bundled SSH runtime payloads and `remote-runtime-manifest.json` |
+| `linux` | Linux x64 (`ubuntu-24.04`) and arm64 (`ubuntu-24.04-arm`) `.deb` and AppImage with the AppImage updater `.sig`, after installed-package smoke checks. The arm64 leg has `continue-on-error`, so a failed arm64 build publishes without arm64 Linux files |
 | `ios` | App Store IPA with the pinned `remote-runtime-manifest.json`, validated and uploaded to TestFlight with tester notes and assignment to the internal `Internal Testing` group; starts after `macos` |
-| `publish` | GitHub release with the files above, `latest.json`, and `SHA256SUMS` |
+| `publish` | GitHub release with the files above, `latest.json`, and `SHA256SUMS`; waits for `macos`, `ios`, and `linux` and requires the macOS, iOS, Linux x64, and three remote runtime files |
 
 The SSH runtime release assets and the iOS manifest pin are described in [Remote workspaces over SSH](remote-ssh.md#release-assets).
 
@@ -138,6 +139,10 @@ Repository variable `OXBIT_UPDATER_PUBLIC_KEY` holds the updater public key.
   secrets.
 
 ## References
+
+- [GitHub-hosted runners and image contents](https://github.com/actions/runner-images), including the [Ubuntu 24.04 Arm64 image](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Arm64-Readme.md) behind `ubuntu-24.04-arm`
+- [Tauri updater](https://v2.tauri.app/plugin/updater/) `latest.json` platform keys (`linux-x86_64`, `linux-aarch64`, `darwin-aarch64`)
+- [Node.js v24.20.0 distribution](https://nodejs.org/dist/v24.20.0/) and [node-pty](https://github.com/microsoft/node-pty) for the arm64 runtime pins and the PTY build
 
 - [Tauri iOS code signing](https://v2.tauri.app/distribute/sign/ios/)
 - [Tauri macOS signing](https://v2.tauri.app/distribute/sign/macos/)

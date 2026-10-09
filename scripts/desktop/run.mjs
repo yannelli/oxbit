@@ -9,9 +9,13 @@ if (process.platform === "darwin")
 if (!["dev", "build", "native-build", "check"].includes(mode))
   throw new Error("Choose dev, build, native-build, or check");
 if (
-  !["darwin-arm64", "linux-x64"].includes(`${process.platform}-${process.arch}`)
+  !["darwin-arm64", "linux-x64", "linux-arm64"].includes(
+    `${process.platform}-${process.arch}`,
+  )
 )
-  throw new Error("Desktop builds support macOS arm64 and Ubuntu 24.04 x64");
+  throw new Error(
+    "Desktop builds support macOS arm64 and Ubuntu 24.04 x64 or arm64",
+  );
 if (mode !== "check") {
   run(process.execPath, ["scripts/desktop/prepare.mjs"]);
   run(process.execPath, ["scripts/desktop/smoke-runtime.mjs"]);

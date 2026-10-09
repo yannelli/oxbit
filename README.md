@@ -45,13 +45,17 @@ See [npm packages](docs/npm.md).
 | `oxbit -f` | Keep the runtime attached to the terminal |
 | `oxbit --no-open` | Start without opening a browser |
 | `oxbit --port 9300` | Choose a port for a new runtime; stop an existing one first |
+| `oxbit --lan` | Serve on your network and advertise the runtime to the iOS app |
+| `oxbit --keep-alive 1h` | Stop the runtime after an hour with no connected client |
 | `oxbit --help` | Show all options |
 
-The first runtime uses port 9277. Later runtimes choose a free port and record it
-in `~/.oxbit/workspaces/<id>/daemon.json`. The printed URL includes a pairing code
-in its fragment, which the editor consumes and removes from the address bar.
-Opening `http://127.0.0.1:9277` without that fragment loads the browser sample
-workspace; use **Runtime connection** to pair it with your project.
+Each runtime binds a port the operating system assigns, unless `--port` or `PORT`
+sets one, and records it in `~/.oxbit/workspaces/<id>/daemon.json`. The printed URL
+includes a pairing code in its fragment, which the editor consumes and removes from
+the address bar. Opening the runtime URL without that fragment loads the browser
+sample workspace; the cloud button in the title bar opens the **Runtime** page,
+where you pair the runtime with its printed code. Later, one tap on the cloud button
+reconnects to the last runtime.
 
 Without a global install, run `OXBIT_WORKSPACE=/absolute/path bun run start` after
 building. See [runtime configuration](docs/runtime.md) for network hosting,
@@ -62,11 +66,11 @@ allowed origins, and storage.
 ### Desktop
 
 The Tauri desktop app bundles Node, ripgrep, the terminal addon, and managed
-language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64.
+language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64 and arm64.
 Run `bun run desktop:dev` for development or `bun run desktop:build` for local installers.
 Use `oxbit --desktop [path]` to open an installed app.
 
-**Connect over SSH…** opens a remote folder on Linux x64 or macOS Apple Silicon.
+**Connect over SSH…** opens a remote folder on Linux x64, Linux arm64, or macOS Apple Silicon.
 Oxbit installs its headless runtime through SSH; the remote host does not need
 Node or npm for the bundled runtime.
 
@@ -82,7 +86,7 @@ GitHub tokens and runtime pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
-The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, and language-server guides with official API references.
+The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, language-server, runtime discovery and keep-alive guides with official API references.
 The [iOS release artwork guide](docs/ios-release-assets.md) covers icon exports,
 App Store screenshots, and promo exports with Apple's design and size references.
 
@@ -155,7 +159,8 @@ watchers.
 | `examples/` | Extension and icon-pack examples |
 
 See [architecture](docs/architecture.md), [feature status](docs/feature-status.md),
-[dependencies](docs/dependencies.md), and [design assets](design/README.md).
+[dependencies](docs/dependencies.md), [dependency audits](docs/security.md#dependency-audit),
+and [design assets](design/README.md).
 
 ### Checks
 

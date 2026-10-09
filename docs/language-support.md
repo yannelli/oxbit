@@ -79,7 +79,9 @@ node scripts/language/build-native.mjs
 bunx wdio run tests/desktop/language.conf.mjs
 ```
 
-`.github/workflows/language-servers.yml` provides a macOS/Ubuntu server matrix, clean and cached startup, real intelligence checks and reproducible bundles.
+`.github/workflows/language-servers.yml` provides a macOS arm64, Ubuntu x64, and Ubuntu arm64 server matrix, clean and cached startup, real intelligence checks and reproducible bundles.
+
+Managed servers install on `darwin-arm64`, `linux-x64`, and `linux-arm64` (`managedPlatforms` in `apps/runtime/src/managed/install.ts`). `artifacts.lock.json` pins marksman, taplo, ShellCheck, the Temurin 21 JRE, LemMinX, and the Laravel LSP for each of them from the upstream release assets. The npm-based servers install from `npm/package-lock.json`, which has no platform-specific packages. Other platforms report `Managed language servers are unavailable on <platform>`.
 
 ## Capability matrix
 

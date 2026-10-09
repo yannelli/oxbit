@@ -78,3 +78,42 @@ describe('desktop credentials and recovery identity', () => {
     a.dispose(); b.dispose();
   });
 });
+
+describe('runtime identity', () => {
+  class IdentitySocket extends Socket {
+    send(raw: string) {
+      const message = JSON.parse(raw); this.sent.push(message);
+      if (message.method === 'auth.authenticate') queueMicrotask(() => this.receive({ v: 1, type: 'response', id: message.id, result: { workspaceId: 'default', trusted: false, owner: true, capabilities: [], runtime: { id: 'runtime-1234', name: 'studio', version: '0.4.2', startedAt: 5 } } }));
+    }
+  }
+  it('moves a URL-keyed token to the runtime id so a new port finds it', async () => {
+    const store = new Map([['oxbit.runtime.token:http://10.0.0.4:50001', 'saved-token']]);
+    vi.stubGlobal('sessionStorage', { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => store.set(key, value), removeItem: (key: string) => store.delete(key) });
+    vi.stubGlobal('WebSocket', IdentitySocket);
+    const first = new RuntimeClient('http://10.0.0.4:50001');
+    await first.connect();
+    expect(first.identity).toMatchObject({ id: 'runtime-1234', name: 'studio' });
+    expect(store.get('oxbit.runtime.token:id:runtime-1234')).toBe('saved-token');
+    expect(store.has('oxbit.runtime.token:http://10.0.0.4:50001')).toBe(false);
+    first.dispose();
+    const moved = new RuntimeClient('http://10.0.0.4:50999', 'default', { runtimeId: 'runtime-1234' });
+    await moved.connect();
+    expect(Socket.instances.at(-1)!.sent[0].params.token).toBe('saved-token');
+    moved.dispose();
+  });
+  it('stays disconnected after a drop when automatic reconnects are off', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('WebSocket', Socket);
+    const client = new RuntimeClient('http://runtime.test', 'default', { persistToken: false });
+    await client.connect();
+    client.autoReconnect = false;
+    const states: string[] = [];
+    client.subscribe('connection.change', ({ state }) => states.push(state));
+    Socket.instances[0].close();
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(states).toEqual(['disconnected']);
+    expect(Socket.instances).toHaveLength(1);
+    await client.reconnect();
+    expect(client.connected).toBe(true);
+    client.dispose();
+  });
+});

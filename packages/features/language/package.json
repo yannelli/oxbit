@@ -24,7 +24,7 @@
     "browser-basedpyright": "1.40.2",
     "dockerfile-language-service": "0.16.1",
     "dockerfile-utils": "0.16.3",
-    "markdown-it": "^10.0.0",
+    "markdown-it": "^14.3.2",
     "path-browserify": "1.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",

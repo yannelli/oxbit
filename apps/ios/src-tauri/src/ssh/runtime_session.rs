@@ -7,6 +7,7 @@ use super::{
         heartbeat, Budget, Event, Events, Options, Process, Ready, Stdout, TaskForwards, Writer,
     },
     runtime_protocol as protocol,
+    runtime_reattach::{self as reattach, Attach},
     runtime_tunnel::{health, Tunnel},
     session::Pool,
 };
@@ -30,6 +31,7 @@ struct Launch {
     process: Option<Process>,
     ready: Option<Ready>,
     pid: Option<u32>,
+    attach: Option<Attach>,
     budget: Budget,
 }
 
@@ -80,7 +82,8 @@ impl RemoteRuntime {
             ));
         }
         if let (Some(process), Some(ready)) = (&launch.process, &launch.ready) {
-            if process.alive.load(Ordering::SeqCst) {
+            // A reattached runtime has no channel to report its exit, so each call rechecks it.
+            if process.writer.is_some() && process.alive.load(Ordering::SeqCst) {
                 return Ok(ready.clone());
             }
         }
@@ -103,6 +106,10 @@ impl RemoteRuntime {
     async fn relaunch(&self, launch: &mut Launch) -> Result<Ready> {
         let options = &self.options;
         let connection = self.pool.connection(&options.host_id).await?;
+        if let Some(ready) = self.reattach(&connection.handle, launch).await {
+            return Ok(ready);
+        }
+        launch.attach = None;
         if let Some(pid) = launch.pid.take() {
             let stop = protocol::stop_stale_command(pid);
             let _ = exec(&connection.handle, &stop, None, Duration::from_secs(10)).await;
@@ -126,7 +133,12 @@ impl RemoteRuntime {
             .map_err(lost)?;
         let (reader, writer) = channel.split();
         let writer: Writer = Arc::new(writer);
-        let frame = frames::launch_frame(&options.root, &options.workspace_key, &options.token);
+        let frame = frames::launch_frame(
+            &options.root,
+            &options.workspace_key,
+            &options.token,
+            options.keep_alive,
+        );
         writer.data(frame.as_bytes()).await.map_err(lost)?;
         let mut stdout = Stdout {
             reader,
@@ -157,7 +169,9 @@ impl RemoteRuntime {
             }
         };
         launch.pid = stdout.pid();
-        health(&self.pool, &options.host_id, port).await?;
+        launch.attach = health(&self.pool, &options.host_id, port)
+            .await?
+            .map(|runtime_id| Attach { port, runtime_id });
         let alive = Arc::new(AtomicBool::new(true));
         let tasks = vec![
             tokio::spawn(heartbeat(writer.clone(), alive.clone())),
@@ -169,7 +183,7 @@ impl RemoteRuntime {
             )),
         ];
         launch.process = Some(Process {
-            writer,
+            writer: Some(writer),
             alive,
             tasks,
         });
@@ -182,6 +196,46 @@ impl RemoteRuntime {
         let _ = self.target.send(Some(("127.0.0.1".into(), port)));
         (self.events)(Event::Running);
         Ok(ready)
+    }
+
+    /// Reuses a runtime that kept running after its exec channel closed: same token and port, so
+    /// its terminals and tasks survive. Heartbeats and task port forwards need the closed channel.
+    async fn reattach(
+        &self,
+        handle: &russh::client::Handle<super::connect::Client>,
+        launch: &mut Launch,
+    ) -> Option<Ready> {
+        let (pid, attach) = reattach::candidate(launch.pid, launch.attach.as_ref())?;
+        let ready = launch.ready.clone()?;
+        let output = exec(
+            handle,
+            &reattach::alive_command(pid),
+            None,
+            Duration::from_secs(10),
+        )
+        .await
+        .ok()?;
+        let ps_args = String::from_utf8_lossy(&output.stdout);
+        if !reattach::ours(&ps_args) {
+            return None;
+        }
+        let id = health(&self.pool, &self.options.host_id, attach.port)
+            .await
+            .ok()?;
+        if !reattach::can_reattach(&ps_args, &attach, id.as_deref()) {
+            return None;
+        }
+        launch.process = Some(Process {
+            writer: None,
+            alive: Arc::new(AtomicBool::new(true)),
+            tasks: Vec::new(),
+        });
+        let _ = self.target.send(Some(("127.0.0.1".into(), attach.port)));
+        (self.events)(Event::Progress {
+            message: reattach::REATTACHED.into(),
+        });
+        (self.events)(Event::Running);
+        Some(ready)
     }
 
     fn observe(&self, frame: Frame, writer: &Writer) {
@@ -234,19 +288,34 @@ impl RemoteRuntime {
         })
     }
 
-    /// Asks the runtime to shut down, then closes its channel and every loopback listener.
+    /// Asks the runtime to shut down, then closes its channel and every loopback listener. Without
+    /// a live channel the runtime would wait out its keep-alive lease, so it is stopped by PID.
     pub async fn stop(&self) {
         self.stopped.store(true, Ordering::SeqCst);
         let _ = self.target.send(None);
         self.forwards.clear().await;
-        let process = self.launch.lock().await.process.take();
+        let (process, pid) = {
+            let mut launch = self.launch.lock().await;
+            (launch.process.take(), launch.pid.take())
+        };
+        let mut shut_down = false;
         if let Some(process) = process {
-            let _ = process.writer.data(frames::SHUTDOWN_FRAME.as_bytes()).await;
+            if let (Some(writer), true) = (&process.writer, process.alive.load(Ordering::SeqCst)) {
+                shut_down = writer.data(frames::SHUTDOWN_FRAME.as_bytes()).await.is_ok();
+            }
             let deadline = Instant::now() + Duration::from_millis(4500);
-            while process.alive.load(Ordering::SeqCst) && Instant::now() < deadline {
+            while shut_down && process.alive.load(Ordering::SeqCst) && Instant::now() < deadline {
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }
             process.close();
+        }
+        if let (false, Some(pid)) = (shut_down, pid) {
+            let stop = async {
+                let connection = self.pool.connection(&self.options.host_id).await?;
+                let command = protocol::stop_stale_command(pid);
+                exec(&connection.handle, &command, None, Duration::from_secs(10)).await
+            };
+            let _ = tokio::time::timeout(Duration::from_secs(15), stop).await;
         }
     }
 

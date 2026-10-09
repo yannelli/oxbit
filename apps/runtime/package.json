@@ -5,7 +5,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "dev": "node ../../scripts/repair-pty.mjs && tsx watch src/index.ts --foreground",
+    "dev": "node ../../scripts/repair-pty.mjs && tsx watch src/index.ts --foreground --port 9277",
     "start": "node ../../scripts/repair-pty.mjs && node dist/index.js --foreground --no-open",
     "build": "node ../../scripts/repair-pty.mjs && vite build",
     "build:desktop": "vite build --config vite.desktop.config.ts"
@@ -19,7 +19,7 @@
     "jsonc-parser": "^3.3.1",
     "ignore": "7.0.5",
     "node-pty": "^1.1.0",
-    "tar": "7.5.9",
+    "tar": "7.5.22",
     "typescript": "^5.9.3",
     "typescript-language-server": "^5.0.0",
     "vscode-jsonrpc": "^8.2.1",

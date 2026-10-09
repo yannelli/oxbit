@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.3.1</string>
+	<string>0.4.1</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>0.4.1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -83,7 +83,7 @@
 		</dict>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connect to the Oxbit runtime on your computer to open projects and use terminals, Git, and language tools.</string>
+	<string>Find Oxbit runtimes on your local network and connect to the one on your computer to open projects and use terminals, Git, and language tools.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -137,5 +137,9 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_oxbit._tcp</string>
+	</array>
 </dict>
 </plist>

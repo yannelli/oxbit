@@ -1122,7 +1122,7 @@ export class LanguageService {
         return;
       this.diagnosticVersions.set(path, params.version);
     }
-    if (this.disposed) return;
+    if (this.disposed || !this.fileEnabled(path)) return;
     this.lspDiagnostics.set(path, params.diagnostics ?? []);
     this.refreshDiagnostics(path);
     if (this.providerContext) this.providerContext.owner.providersChanged();
