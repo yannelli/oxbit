@@ -20,9 +20,34 @@ Device folders get language servers without a computer connection. Each server i
 - Dockerfile: diagnostics from dockerfile-utils, completion, hover, document symbols, signature help, and formatting. Image tag completion makes no network requests.
 - Bash and sh: syntax errors from the tree-sitter parse, completion (symbols, keywords, builtins), hover, definitions, references, highlights, and document symbols across open documents and up to 500 workspace `.sh`/`.bash`/`.zsh` files scanned once at start. shfmt formats with the bash dialect. ShellCheck is GPL-3.0 and is not included.
 - Zsh: the same features with the bash grammar. Syntax errors are not reported, because the bash grammar rejects valid zsh such as `${(f)x}` and `{ cmd }`. shfmt formats with its zsh dialect.
-- Python: Ruff diagnostics (default rules E, F, W; `line-length`, `select`, `ignore`, and `extend-select` from `.ruff.toml`, `ruff.toml`, or `[tool.ruff]` in `pyproject.toml` at the workspace root) and Ruff formatting. basedpyright adds type diagnostics, completion, hover, definitions, and signature help with `typeCheckingMode: "standard"`. basedpyright starts on the first opened Python file from a snapshot of the workspace's `.py`/`.pyi` files (8 MB cap). It runs in child JavaScriptCore contexts on the session's virtual machine; diagnostics wait up to 15 s for its first result, then fall back to Ruff alone. An undefined name is reported by both Ruff (F821) and basedpyright.
+- Python: Ruff diagnostics (default rules E, F, W; `line-length`, `select`, `ignore`, and `extend-select` from `.ruff.toml`, `ruff.toml`, or `[tool.ruff]` in `pyproject.toml` at the workspace root) and Ruff formatting. basedpyright adds type diagnostics, completion, hover, definitions, and signature help with `typeCheckingMode: "standard"`. basedpyright starts on the first opened Python file from a snapshot of the workspace's `.py`/`.pyi` files (8 MB cap). It runs in child JavaScriptCore contexts on the session's virtual machine; diagnostics wait up to 15 s for its first result, then fall back to Ruff alone. Each problem is reported once; see [Python: Ruff and basedpyright](#python-ruff-and-basedpyright).
 
 WebAssembly modules load synchronously (`initSync`, `Language.loadSync`): on a dispatch queue, promises from `WebAssembly.instantiate` did not resolve.
+
+## Python: Ruff and basedpyright
+
+Ruff keeps every check both servers make, including syntax errors, because its parser also reports errors basedpyright misses (an invalid f-string conversion) and reports one error where basedpyright reports several. Ruff's fixes (remove an unused import) stay available. While Ruff runs, basedpyright sets these rules to `none` and drops its diagnostics without a rule code, which are parser and binder errors:
+
+| Problem | Ruff (kept) | basedpyright (off) |
+| --- | --- | --- |
+| Undefined name | F821, F405 | `reportUndefinedVariable` |
+| Local used before assignment, deleted name | F821, F823 | `reportUnboundVariable` |
+| Undefined name in `__all__` | F822 | `reportUnsupportedDunderAll` |
+| Unused import | F401 | `reportUnusedImport` |
+| Unused local variable | F841 | `reportUnusedVariable` |
+| Redefined function, class, or import | F811 | `reportRedeclaration` |
+| Invalid escape sequence | W605 | `reportInvalidStringEscapeSequence` |
+| `assert` on a tuple | F631 | `reportAssertAlwaysTrue` |
+| Wildcard import | F403 | `reportWildcardImportFromLibrary` |
+| Syntax errors, duplicate parameters, `return`/`yield`/`await`/`break`/`continue` outside their block, two starred targets, `except` order | `invalid-syntax`, F622, F701, F702, F704, F706, F707 | Diagnostics without a rule code |
+
+basedpyright keeps type checks, possibly-unbound names (`reportPossiblyUnbound`), attribute and call errors, and hints for unused parameters and unreachable code.
+
+- iOS: `packages/features/language/src/native/python.ts` (`ruffOwnedPyrightRules`). Ruff always runs in the Python bundle; if basedpyright does not start, Ruff's diagnostics are unchanged.
+- Desktop: `apps/runtime/src/managed/catalog.ts` (`deferToRuff`). The runtime applies it when the Ruff server is enabled and its file types match the file; with Ruff disabled, basedpyright reports everything. Overrides in `languageServers.basedpyright.settings.basedpyright.analysis.diagnosticSeverityOverrides` take precedence.
+- Ruff's own rule selection (`select`, `ignore`) applies. A project that turns off F rules also turns off undefined-name checks while both servers run.
+- basedpyright's `No binding for nonlocal` error has no rule code, and Ruff's default rules do not report it, so it is dropped while Ruff runs.
+- A duplicate keyword argument in a call is still reported twice: Ruff `invalid-syntax` and basedpyright `reportCallIssue`, which also covers other call errors.
 
 ## Settings
 

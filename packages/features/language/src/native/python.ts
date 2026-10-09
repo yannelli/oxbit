@@ -12,6 +12,12 @@ export type PythonHost = NativeFileHost & { worker?(source: string, name: string
 
 interface RuffSettings { "line-length"?: number; lint: { select?: string[]; ignore?: string[]; "extend-select"?: string[] } }
 const defaultSelect = ["E", "F", "W"];
+/** basedpyright rules that repeat a Ruff check. Ruff keeps these and syntax errors; see docs/ios-language-servers.md. */
+export const ruffOwnedPyrightRules = [
+  "reportUndefinedVariable", "reportUnboundVariable", "reportUnsupportedDunderAll", "reportUnusedImport", "reportUnusedVariable",
+  "reportRedeclaration", "reportInvalidStringEscapeSequence", "reportAssertAlwaysTrue", "reportWildcardImportFromLibrary",
+];
+const pyrightSettings = { analysis: { typeCheckingMode: "standard", diagnosticSeverityOverrides: Object.fromEntries(ruffOwnedPyrightRules.map(rule => [rule, "none"])) } };
 
 /** Reads `line-length` and lint `select`/`ignore`/`extend-select` from `.ruff.toml`, `ruff.toml`, or `[tool.ruff]` in pyproject.toml. */
 export function ruffSettings(files: WorkspaceFiles): RuffSettings {
@@ -169,7 +175,7 @@ class Pyright {
       this.published.set(message.params.uri, { version: message.params.version, diagnostics: message.params.diagnostics });
       for (const waiter of [...this.waiters]) waiter();
     } else if (message.id !== undefined) {
-      const result = message.method === "workspace/configuration" ? message.params.items.map((item: any) => item.section === "basedpyright" ? { analysis: { typeCheckingMode: "standard" } } : null) : null;
+      const result = message.method === "workspace/configuration" ? message.params.items.map((item: any) => item.section === "basedpyright" ? pyrightSettings : null) : null;
       this.send({ jsonrpc: "2.0", id: message.id, result });
     }
   }
@@ -198,7 +204,7 @@ class Pyright {
       }
     });
   }
-  /** Waits for diagnostics of the current version; after the limit it returns the last published set. */
+  /** Waits for diagnostics of the current version; after the limit it returns the last published set. Parser errors have no rule code and are left to Ruff. */
   async diagnostics(path: string) {
     const version = this.files.documents.get(path)?.version ?? 0, uri = this.files.uri(path);
     const current = () => { const item = this.published.get(uri); return item && (item.version ?? version) >= version ? item : undefined; };
@@ -211,7 +217,7 @@ class Pyright {
       this.waiters.add(check);
     });
     if (current()) this.warm = true;
-    return (current() ?? this.published.get(uri))?.diagnostics.map(item => ({ ...item, source: "basedpyright" })) ?? [];
+    return (current() ?? this.published.get(uri))?.diagnostics.filter(item => item.code !== undefined).map(item => ({ ...item, source: "basedpyright" })) ?? [];
   }
   /** Waits for startup, bounded below the host's 30 s request limit. */
   async request(method: string, params: any) {

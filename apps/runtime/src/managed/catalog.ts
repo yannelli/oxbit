@@ -39,6 +39,22 @@ export interface LaunchSpec {
   version?: string;
   companion?: LaunchSpec;
   dependencyRoots?: string[];
+  diagnostics?: (diagnostics: any[]) => any[];
+}
+/** basedpyright rules that repeat a Ruff check. Ruff keeps these and syntax errors; see docs/ios-language-servers.md. */
+export const ruffOwnedPyrightRules = [
+  "reportUndefinedVariable", "reportUnboundVariable", "reportUnsupportedDunderAll", "reportUnusedImport", "reportUnusedVariable",
+  "reportRedeclaration", "reportInvalidStringEscapeSequence", "reportAssertAlwaysTrue", "reportWildcardImportFromLibrary",
+];
+/** Turns off basedpyright's Ruff-overlapping rules and drops its parser errors, which have no rule code. User overrides win. */
+export function deferToRuff(spec: LaunchSpec): LaunchSpec {
+  const analysis = spec.settings?.basedpyright?.analysis ?? {};
+  const diagnosticSeverityOverrides = { ...Object.fromEntries(ruffOwnedPyrightRules.map(rule => [rule, "none"])), ...analysis.diagnosticSeverityOverrides };
+  return {
+    ...spec,
+    settings: { ...spec.settings, basedpyright: { ...spec.settings?.basedpyright, analysis: { ...analysis, diagnosticSeverityOverrides } } },
+    diagnostics: diagnostics => diagnostics.filter(item => item.code !== undefined),
+  };
 }
 const npmPresets: Record<string, [string, string, string[]?]> = {
   typescript: ["typescript-language-server", "lib/cli.mjs", ["typescript"]],

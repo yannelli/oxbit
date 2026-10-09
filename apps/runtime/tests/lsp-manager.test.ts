@@ -4,7 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { WorkspaceFiles } from "../src/filesystem.js";
 import { LanguageServerManager, yamlSchemaSettings } from "../src/lsp-manager.js";
-import { resolveLaunch, serverCatalog } from "../src/managed/catalog.js";
+import { deferToRuff, resolveLaunch, serverCatalog } from "../src/managed/catalog.js";
 import { fingerprint, lockedPackages, ManagedInstaller, managedPlatforms, verifyIntegrity } from "../src/managed/install.js";
 import nativeLock from "../src/managed/artifacts.lock.json" with { type: "json" };
 import { createHash } from "node:crypto";
@@ -212,6 +212,17 @@ describe("YAML and Python presets", () => {
     expect(spec.version).toBe("basedpyright@locked");
     expect(spec.settings).toEqual({ basedpyright: { analysis: { typeCheckingMode: "standard", diagnosticMode: "openFilesOnly" } } });
     expect(spec.dependencyRoots).toEqual([await fs.realpath(path.join(modules, "basedpyright/dist/typeshed-fallback"))]);
+  });
+  it("hands overlapping Python checks and syntax errors to Ruff", async () => {
+    const { root, installer } = await fakeInstaller();
+    const launched = await resolveLaunch("basedpyright", root, installer);
+    const spec = deferToRuff({ ...launched, settings: { basedpyright: { analysis: { ...launched.settings!.basedpyright.analysis, diagnosticSeverityOverrides: { reportUnusedImport: "warning" } } } } });
+    expect(spec.settings!.basedpyright.analysis).toMatchObject({ typeCheckingMode: "standard", diagnosticSeverityOverrides: { reportUndefinedVariable: "none", reportUnusedVariable: "none", reportUnusedImport: "warning" } });
+    expect(spec.diagnostics!([{ code: "reportAttributeAccessIssue", message: "missing" }, { message: "Expected expression" }])).toEqual([{ code: "reportAttributeAccessIssue", message: "missing" }]);
+    const { manager } = await setup();
+    const withRuff = await manager.attach("main.py", "one", {}, {}, "basedpyright");
+    const alone = await manager.attach("main.py", "one", { ruff: { enabled: false } }, {}, "basedpyright");
+    expect(alone.instanceId).not.toBe(withRuff.instanceId);
   });
   it("launches the pinned Ruff binary as a language server", async () => {
     const { root, installer } = await fakeInstaller();

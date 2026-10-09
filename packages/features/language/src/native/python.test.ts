@@ -87,7 +87,11 @@ describe("Python native language server (basedpyright)", () => {
     expect((initialized.result as any).capabilities).toMatchObject({ hoverProvider: true, definitionProvider: true, documentFormattingProvider: true });
     const diagnostics = await open("main.py", source + "undefined_name\n");
     expect(diagnostics).toContainEqual(expect.objectContaining({ source: "basedpyright", code: "reportAttributeAccessIssue", range: { start: { line: 11, character: 13 }, end: { line: 11, character: 20 } } }));
-    expect(diagnostics).toContainEqual(expect.objectContaining({ source: "Ruff", code: "F821" }));
+    expect(diagnostics.filter(item => /undefined_name/.test(item.message))).toEqual([expect.objectContaining({ source: "Ruff", code: "F821" })]);
+    const overlaps = await open("overlaps.py", 'import os\n\ndef f():\n    unused = 1\n    print(later)\n    later = 2\n\ns = "\\d"\nassert (s, "m")\n__all__ = ["missing"]\nreturn 1\n');
+    expect(overlaps.filter(item => item.source === "basedpyright")).toEqual([]);
+    expect(overlaps.map(item => item.code)).toEqual(expect.arrayContaining(["F401", "F841", "F821", "W605", "F631", "F822", "F706"]));
+    expect((await open("broken.py", "def f(:\n")).every(item => item.source === "Ruff" && item.code === "invalid-syntax")).toBe(true);
     expect(diagnostics.filter(item => item.source === "basedpyright").map(item => item.code)).not.toContain("reportUnannotatedClassAttribute");
     const at = (method: string, line: number, character: number) => server.dispatch(method, { textDocument: { uri: uri("main.py") }, position: { line, character } });
     const completion = await at("textDocument/completion", 8, 31);
