@@ -18,7 +18,9 @@
     "@oxbit/themes": "workspace:*",
     "@tauri-apps/api": "2.11.1",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "@oxbit/feature-runtime": "workspace:*",
+    "@oxbit/protocol": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.11.4"

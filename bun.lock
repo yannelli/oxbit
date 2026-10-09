@@ -56,8 +56,10 @@
       "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
+        "@oxbit/feature-runtime": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
         "@oxbit/host-ios": "workspace:*",
+        "@oxbit/protocol": "workspace:*",
         "@oxbit/sdk": "workspace:*",
         "@oxbit/themes": "workspace:*",
         "@oxbit/ui": "workspace:*",
