@@ -114,7 +114,8 @@ describe("managed installation locks", () => {
       const source = path.join(root, `${name}-source`), file = path.join(root, `${name}.tgz`);
       await fs.mkdir(path.join(source, "package"), { recursive: true });
       await build(path.join(source, "package"));
-      await createTar({ gzip: true, cwd: source, file, portable: true }, ["package"]);
+      // tar 7.5.22's async pack can write a hardlink entry after it ends ("write after end"), uncaught.
+      createTar({ gzip: true, cwd: source, file, portable: true, sync: true }, ["package"]);
       return fs.readFile(file);
     }
     const valid = await archive("valid", async directory => {

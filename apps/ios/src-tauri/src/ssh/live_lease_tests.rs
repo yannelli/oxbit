@@ -67,7 +67,10 @@ async fn live_remote_runtime_lease() {
         scratch,
         ..
     } = live().await;
-    let hosted = source(format!("{served}/{}.tar.gz", remote_platform()), scratch.clone());
+    let hosted = source(
+        format!("{served}/{}.tar.gz", remote_platform()),
+        scratch.clone(),
+    );
 
     let seen: Seen = Arc::default();
     let runtime = start(&pool, "live", hosted.clone(), &seen, Some(0)).await;
