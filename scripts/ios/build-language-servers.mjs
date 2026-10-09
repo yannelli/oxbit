@@ -34,12 +34,14 @@ const packageAliases = {
 await rm(output, { recursive: true, force: true });
 await mkdir(join(output, "schemas"), { recursive: true });
 const sizes = {};
+/** Package directories bundled per kind, for the license notices. */
+const bundled = {};
 for (const kind of kinds) {
   const entry = join(language, `src/native/entries/${kind}.ts`);
   if (!existsSync(entry)) continue;
   const outfile = join(output, `${kind}.js`);
-  await build({
-    absWorkingDir: root, entryPoints: [entry], outfile,
+  const result = await build({
+    absWorkingDir: root, metafile: true, entryPoints: [entry], outfile,
     bundle: true, format: "iife", globalName: "OxbitLsp", target: "es2022", platform: "browser", minify: true,
     mainFields: ["browser", "module", "main"], conditions: ["browser"], legalComments: "none",
     supported: { "template-literal": false },
@@ -65,9 +67,12 @@ for (const kind of kinds) {
       },
     }],
   });
+  bundled[kind] = [...new Set([...Object.keys(result.metafile.inputs).map(file => join(root, file)), ...(assets[kind] ?? [])]
+    .map(file => /^(.*\/node_modules\/(?:@[^/]+\/)?[^/]+)\//.exec(file)?.[1]).filter(Boolean))].sort();
   for (const asset of assets[kind] ?? []) await copyFile(asset, join(output, asset.split("/").at(-1)));
   sizes[kind] = (await stat(outfile)).size + (await Promise.all((assets[kind] ?? []).map(asset => stat(asset)))).reduce((total, item) => total + item.size, 0);
 }
 const schemas = join(language, "schemas");
 for (const file of await readdir(schemas)) await copyFile(join(schemas, file), join(output, "schemas", file));
 if (process.env.OXBIT_LANGUAGE_SIZES) console.log(JSON.stringify(sizes));
+export { bundled };

@@ -117,6 +117,7 @@ if (mode === "upload") {
 }
 if (mode === "check") {
   run("bun", ["run", "--filter", "@oxbit/ios", "build"]);
+  run("node", ["scripts/ios/language-server-notices.mjs", "--check"]);
   const nativeTests = mkdtempSync(join(tmpdir(), "oxbit-ios-language-"));
   try {
     const binary = join(nativeTests, "language-server-files");
