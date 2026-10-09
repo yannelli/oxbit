@@ -38,6 +38,7 @@ final class LanguageServerRuntime {
   private(set) var server: JSValue!
   private let queue: DispatchQueue
   private var timers: [Int: JSValue] = [:]
+  private var workers: [JSContext] = []
   private var nextTimer = 1
   private(set) var disposed = false
 
@@ -68,10 +69,13 @@ final class LanguageServerRuntime {
     let clearTimer: @convention(block) (Int) -> Void = { [weak self] id in self?.timers.removeValue(forKey: id) }
     let now: @convention(block) () -> Double = { ProcessInfo.processInfo.systemUptime * 1000 }
     let write: @convention(block) (String, String) -> Void = { level, message in log?(level, message) }
-    context.setObject(setTimer, forKeyedSubscript: "__oxbitSetTimer" as NSString)
-    context.setObject(clearTimer, forKeyedSubscript: "__oxbitClearTimer" as NSString)
-    context.setObject(now, forKeyedSubscript: "__oxbitNow" as NSString)
-    context.setObject(write, forKeyedSubscript: "__oxbitLog" as NSString)
+    let install = { (target: JSContext) in
+      target.setObject(setTimer, forKeyedSubscript: "__oxbitSetTimer" as NSString)
+      target.setObject(clearTimer, forKeyedSubscript: "__oxbitClearTimer" as NSString)
+      target.setObject(now, forKeyedSubscript: "__oxbitNow" as NSString)
+      target.setObject(write, forKeyedSubscript: "__oxbitLog" as NSString)
+    }
+    install(context)
     context.evaluateScript(script, withSourceURL: directory.appendingPathComponent("\(kind).js"))
     if let exception = context.exception {
       context.exception = nil
@@ -98,7 +102,23 @@ final class LanguageServerRuntime {
         }
       }
     }
+    /// Evaluates `source`, then a bundled script, in a child context on the same VM so objects pass between them directly.
+    let worker: @convention(block) (String, String) -> JSValue = { [weak self] source, name in
+      let caller = JSContext.current()
+      guard let self, !self.disposed, name.range(of: "^[A-Za-z0-9._-]+\\.js$", options: .regularExpression) != nil, !name.hasPrefix("."),
+        let script = try? String(contentsOf: directory.appendingPathComponent(name), encoding: .utf8),
+        let child = JSContext(virtualMachine: self.context.virtualMachine)
+      else { return JSValue(nullIn: caller) }
+      child.name = "Oxbit \(kind) worker"
+      child.exceptionHandler = { _, exception in log?("error", exception?.toString() ?? "Language worker failed") }
+      install(child)
+      child.evaluateScript(source)
+      child.evaluateScript(script, withSourceURL: directory.appendingPathComponent(name))
+      self.workers.append(child)
+      return child.globalObject
+    }
     host.setObject(resource, forKeyedSubscript: "resource" as NSString)
+    host.setObject(worker, forKeyedSubscript: "worker" as NSString)
     host.setObject(schema, forKeyedSubscript: "schema" as NSString)
     let server = library.invokeMethod("createServer", withArguments: [
       ["root": files.root.path, "rootUri": files.root.absoluteString, "kind": kind], host as Any,
@@ -127,6 +147,7 @@ final class LanguageServerRuntime {
   func dispose() {
     disposed = true
     timers.removeAll()
+    workers.removeAll()
     context.exceptionHandler = nil
     context.exception = nil
   }

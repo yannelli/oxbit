@@ -18,7 +18,7 @@ let samples = [
   Sample(kind: "yaml", path: ".github/workflows/ci.yml", language: "yaml", text: "on: push\njobs:\n  build:\n    runs-on: 5\n", completion: nil),
   Sample(kind: "dockerfile", path: "Dockerfile", language: "dockerfile", text: "FROM alpine\nEXPOSE abc\nRU", completion: (2, 2, "RUN")),
   Sample(kind: "shell", path: "run.sh", language: "shellscript", text: "#!/bin/bash\ngreet() { echo hi; }\nif then\ngre", completion: (3, 3, "greet")),
-  Sample(kind: "shell", path: ".zshrc", language: "zsh", text: "setopt autocd\nalias ll='ls -l'\nfunction greet { echo hi }\nfi\ngre", completion: (4, 3, "greet")),
+  Sample(kind: "shell", path: ".zshrc", language: "zsh", text: "setopt autocd\nalias ll='ls -l'\nfunction greet { echo hi; }\nprint -l ${(f)ll}\ngre", completion: (4, 3, "greet")),
   Sample(kind: "python", path: "main.py", language: "python", text: "import os\nvalue = 1\nvalue = undefined_name\n", completion: nil),
 ]
 

@@ -21,11 +21,15 @@ const kinds = ["typescript", "json", "yaml", "dockerfile", "shell", "python"];
 /** Bundled binary assets per kind, served to JavaScript through the host `resource` callback. */
 const assets = {
   shell: [packageFile("bash-language-server", "tree-sitter-bash.wasm"), packageFile("web-tree-sitter", "web-tree-sitter.wasm"), packageFile("@wasm-fmt/shfmt", "shfmt.wasm")],
-  python: [packageFile("@astral-sh/ruff-wasm-web", "ruff_wasm_bg.wasm")],
+  python: [packageFile("@astral-sh/ruff-wasm-web", "ruff_wasm_bg.wasm"), join(dirname(resolve("browser-basedpyright/package.json")), "dist/pyright.worker.js")],
 };
 /** Node built-ins that servers import but do not need on device resolve to browser modules or empty stubs. */
 const browserModules = { path: resolve("path-browserify") };
 const stubs = new Set(["fs", "fs/promises", "child_process", "os", "https", "http", "net", "url", "util", "crypto", "stream", "events", "worker_threads", "perf_hooks", "readline", "zlib", "tty", "assert", "inspector", "buffer", "module", "vm"]);
+/** Package imports replaced per kind: a string aliases to another package, `null` resolves to an empty stub. */
+const packageAliases = {
+  shell: { "vscode-languageserver/node": "vscode-languageserver", "fast-glob": null },
+};
 
 await rm(output, { recursive: true, force: true });
 await mkdir(join(output, "schemas"), { recursive: true });
@@ -45,6 +49,11 @@ for (const kind of kinds) {
       setup(builder) {
         builder.onResolve({ filter: /^oxbit:typescript-libraries$/ }, () => ({ path: "libraries", namespace: "oxbit-lsp" }));
         builder.onLoad({ filter: /.*/, namespace: "oxbit-lsp" }, () => ({ contents: JSON.stringify(libraries), loader: "json" }));
+        for (const [specifier, target] of Object.entries(packageAliases[kind] ?? {})) {
+          builder.onResolve({ filter: new RegExp(`^${specifier.replace(/[.\/-]/g, "\\$&")}$`) }, async args => target === null
+            ? { path: specifier, namespace: "oxbit-stub" }
+            : { path: (await builder.resolve(target, { kind: args.kind, resolveDir: args.resolveDir })).path });
+        }
         builder.onResolve({ filter: /^(node:)?[a-z_/]+$/ }, args => {
           const name = args.path.replace(/^node:/, "");
           if (!builtinModules.includes(name)) return undefined;
