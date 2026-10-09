@@ -79,8 +79,8 @@ export function RuntimePage({ connector, settings, onClose }: {
           )}
           <div className="toolbar">
             {connected ? <>
-              {connector.disconnect && <button className="button" disabled={!!busy} onClick={() => perform("disconnect", connector.disconnect!)}>{tr("Disconnect")}</button>}
-              {connector.restart && <button className="button" disabled={!!busy} aria-busy={busy === "restart"} onClick={() => perform("restart", connector.restart!)}>
+              {connector.disconnect && <button className="button" disabled={!!busy} onClick={() => perform("disconnect", () => connector.disconnect!())}>{tr("Disconnect")}</button>}
+              {connector.restart && <button className="button" disabled={!!busy} aria-busy={busy === "restart"} onClick={() => perform("restart", () => connector.restart!())}>
                 {busy === "restart" ? tr("Restarting…") : tr("Restart")}</button>}
             </> : quick ? (
               <button className="button primary" disabled={!!busy || status.state === "connecting"} aria-busy={busy === "quick" || status.state === "connecting"}
@@ -90,7 +90,7 @@ export function RuntimePage({ connector, settings, onClose }: {
             ) : connector.pair && (
               <button className="button primary" onClick={() => pairWith(pairUrl)}>{tr("Pair a runtime")}</button>
             )}
-            {!connected && connector.restart && status.kind && <button className="button" disabled={!!busy} onClick={() => perform("restart", connector.restart!)}>{tr("Restart")}</button>}
+            {!connected && connector.restart && status.kind && <button className="button" disabled={!!busy} onClick={() => perform("restart", () => connector.restart!())}>{tr("Restart")}</button>}
           </div>
         </div>
       </header>
@@ -106,7 +106,7 @@ export function RuntimePage({ connector, settings, onClose }: {
         </section>
       )}
       <div className="runtime-sections">
-        {connected && connector.trust && <TrustCard status={status} busy={busy} perform={perform} trust={connector.trust} />}
+        {connected && connector.trust && <TrustCard status={status} busy={busy} perform={perform} trust={value => connector.trust!(value)} />}
         {settings && <KeepAliveSettings settings={settings} />}
         <SavedRuntimes connector={connector} current={connected ? status.targetKey : undefined} busy={busy} perform={perform} />
         {connector.discover && <DiscoveredRuntimes connector={connector} busy={busy} perform={perform} onPair={pairWith} />}

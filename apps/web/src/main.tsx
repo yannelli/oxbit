@@ -104,6 +104,7 @@ function App() {
       ...s,
       ready: true,
       connectRuntime,
+      runtimeConnector: connector,
       useBrowserWorkspace,
       openFile: (path: string, options?: any) =>
         s.workbench.openFile(path, options),

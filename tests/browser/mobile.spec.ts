@@ -220,19 +220,19 @@ test("palette search and close remain reachable as the software keyboard moves",
   await insideViewport(page.getByRole("dialog", { name: "Quick Open" }));
 });
 
-test("connection and workspace dialogs stay usable on a narrow phone with a keyboard", async ({ page }, info) => {
+test("the Runtime page and workspace dialog stay usable on a narrow phone with a keyboard", async ({ page }, info) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await ready(page);
   await page.getByRole("button", { name: "Runtime connection", exact: true }).first().tap();
+  const view = page.locator(".runtime-page");
+  await expect(view).toBeVisible();
+  await page.screenshot({ path: "/tmp/oxbit-p1/web-phone-runtime.png", animations: "disabled" });
   await keyboardViewport(page, 280, 80);
-  const dialog = page.getByRole("dialog", { name: "Runtime Connection" });
-  await insideViewport(dialog);
-  const connect = dialog.getByRole("button", { name: "Pair and connect", exact: true });
+  const connect = view.getByRole("button", { name: "Pair and connect", exact: true });
   await connect.scrollIntoViewIfNeeded();
   await insideViewport(connect);
-  await insideViewport(dialog.getByRole("button", { name: "Close dialog" }));
   await page.screenshot({ path: info.outputPath("connection-keyboard.png"), animations: "disabled" });
-  await dialog.getByRole("button", { name: "Close dialog" }).tap();
+  await keyboardViewport(page, 568);
   await page.locator(".workspace-title").tap();
   await insideViewport(page.getByRole("dialog", { name: "Open Workspace" }));
   const closeWorkspace = page.getByRole("dialog").getByRole("button", { name: "Close Workspace", exact: true });
@@ -249,10 +249,13 @@ test("restricted workspaces expose trust, show progress, and retain trust after 
   await expect(entry).toContainText("Trust workspace tools");
   await insideViewport(entry);
   await entry.tap();
-  const dialog = page.getByRole("dialog", { name: "Runtime Connection" });
-  const trust = dialog.getByRole("button", { name: "Trust workspace tools", exact: true });
+  const view = page.locator(".runtime-page");
+  const trust = view.getByRole("switch", { name: /Restricted|Trusted/ });
+  await expect(trust).not.toBeChecked();
+  await trust.scrollIntoViewIfNeeded();
   await insideViewport(trust);
   await page.screenshot({ path: info.outputPath("workspace-trust.png"), animations: "disabled" });
+  await page.screenshot({ path: "/tmp/oxbit-p1/web-phone-runtime-connected.png", animations: "disabled" });
   // Delay the real RPC so pending feedback and duplicate-tap protection are observable.
   await page.evaluate(() => {
     const runtime = (window as any).__oxbit.runtime;
@@ -263,17 +266,17 @@ test("restricted workspaces expose trust, show progress, and retain trust after 
     };
   });
   await trust.tap();
-  await expect(dialog.getByRole("button", { name: "Working…" })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "Revoke workspace trust" })).toBeVisible();
+  await expect(trust).toBeDisabled();
+  await expect(trust).toBeChecked();
+  await expect(trust).toBeEnabled();
   await expect(entry).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__oxbit.kernel.context.get("trusted"))).toBe(true);
   await page.reload();
   await page.waitForFunction(() => (window as any).__oxbit?.runtime?.connected);
   await expect(entry).toHaveCount(0);
   await page.getByRole("button", { name: "Runtime connection", exact: true }).first().tap();
-  await page.getByRole("button", { name: "Revoke workspace trust" }).tap();
-  await expect(dialog.getByRole("button", { name: "Trust workspace tools", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Close dialog" }).tap();
+  await trust.tap();
+  await expect(trust).not.toBeChecked();
   await expect(entry).toBeVisible();
 });
 
