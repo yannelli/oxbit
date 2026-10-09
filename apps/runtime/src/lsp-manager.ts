@@ -27,6 +27,10 @@ function merge(a: any, b: any): any {
   if (!a || !b || Array.isArray(a) || Array.isArray(b) || typeof a !== "object" || typeof b !== "object") return b ?? a;
   return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map(key => [key, merge(a[key], b[key])]));
 }
+export function yamlSchemaSettings(settings: Record<string, any>, options: { catalog: boolean; download: boolean }) {
+  const yaml = settings.yaml ?? {};
+  return { ...settings, yaml: { ...yaml, schemaStore: { ...yaml.schemaStore, enable: options.catalog && options.download && yaml.schemaStore?.enable !== false } } };
+}
 export class LanguageServerManager {
   private instances = new Map<string, Instance>();
   private canonicalDocuments = new Map<string, string>();
@@ -111,6 +115,10 @@ export class LanguageServerManager {
             spec.initializationOptions = { ...spec.initializationOptions, handledSchemaProtocols: [] };
             spec.schemaContent = uri => this.schemas.content(uri, options.download && spec.settings?.json?.schemaDownload?.enable !== false);
           }
+          if (definition.id === "yaml") {
+            const options = this.project ? (await this.project.reload()).schemas : { catalog: true, download: true };
+            spec.settings = yamlSchemaSettings(spec.settings ?? {}, options);
+          }
           return spec;
         },
       });
@@ -161,7 +169,7 @@ export class LanguageServerManager {
     await Promise.all([this.defaultServer.watched(relative, type), ...[...this.instances.values()].map(instance => instance.server.watched(relative, type))]);
   }
   async refreshSchemas() {
-    await Promise.allSettled([...this.instances.values()].filter(instance => instance.definition.id === "json" && instance.server.status().state === "ready").map(instance => this.restart(instance.id)));
+    await Promise.allSettled([...this.instances.values()].filter(instance => ["json", "yaml"].includes(instance.definition.id) && instance.server.status().state === "ready").map(instance => this.restart(instance.id)));
   }
   authorizeExternal(uri: string, id?: string) { return this.get(id).external.authorize(uri); }
   readExternal(handle: string, id?: string) { return this.get(id).external.read(handle); }

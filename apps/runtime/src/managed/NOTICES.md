@@ -19,6 +19,9 @@ Managed servers are separately installed dependencies. Their versions, upstream 
 | Intelephense | Upstream proprietary LICENSE.txt | https://github.com/bmewburn/intelephense-docs |
 | LemMinX | EPL-2.0 | https://github.com/eclipse-lemminx/lemminx |
 | Eclipse Temurin JRE | GPL-2.0 with Classpath exception and bundled third-party notices | https://github.com/adoptium/temurin21-binaries/releases/tag/jdk-21.0.12.1%2B1 |
+| YAML Language Server | MIT | https://github.com/redhat-developer/yaml-language-server/tree/1.24.0 |
+| basedpyright | MIT; bundles MIT-licensed Pyright and Apache-2.0 typeshed stubs | https://github.com/DetachHead/basedpyright/tree/v1.40.2 |
+| Ruff | MIT; standalone binary includes the third-party notices in licenses/ruff.txt | https://github.com/astral-sh/ruff/tree/0.16.10 |
 | SchemaStore Cargo schema | Apache-2.0 | See schemas/sources.json for the exact revision |
 
 License texts for directly distributed native servers are in `licenses/`. ShellCheck's corresponding source is available at the versioned upstream link above. Temurin contains its license/legal notices in the managed JRE tree; its corresponding source is linked from the pinned release. Oxbit's local Cargo configuration schema is MIT-licensed and intentionally permits additional configuration keys.
