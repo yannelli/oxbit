@@ -94,8 +94,8 @@ export const iosLanguageServers: readonly IosLanguageServer[] = [
   { id: "yaml", kind: "yaml", name: "YAML", description: "yaml-language-server on the device: validation against SchemaStore schemas such as GitHub workflows and Compose files.", fileTypes: ["yaml"], schemas: "yaml" },
   { id: "dockerfile", kind: "dockerfile", name: "Dockerfile", description: "Dockerfile diagnostics, completion, hover, and formatting.", fileTypes: ["dockerfile"] },
   { id: "shell", kind: "shell", name: "Bash / sh", description: "bash-language-server analysis with tree-sitter and shfmt formatting.", fileTypes: ["shellscript"] },
-  { id: "zsh", kind: "shell", name: "Zsh", description: "Zsh files parsed with the bash grammar: symbols, completion, and syntax errors.", fileTypes: ["zsh"] },
-  { id: "python", kind: "python", name: "Python", description: "Ruff diagnostics and formatting on the device.", fileTypes: ["python"] },
+  { id: "zsh", kind: "shell", name: "Zsh", description: "Zsh files parsed with the bash grammar: symbols, completion, and formatting.", fileTypes: ["zsh"] },
+  { id: "python", kind: "python", name: "Python", description: "Ruff diagnostics and formatting with basedpyright type checking on the device.", fileTypes: ["python"] },
 ];
 
 export const iosLanguageExtensionId = (server: Pick<IosLanguageServer, "id">) => `oxbit.language-${server.id}`;
