@@ -1,6 +1,6 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-08.
+Created: 2026-10-02. Last updated: 2026-10-09.
 
 | Guide | Use when |
 | --- | --- |
@@ -14,3 +14,4 @@ Created: 2026-10-02. Last updated: 2026-10-08.
 | [iOS SSH and SFTP workspaces](ios-ssh.md) | Changing SSH keys, saved hosts, known-hosts trust, the russh session pool, the SFTP FileSystem, transfers, Git over SSH remotes, or the remote runtime started from iOS; includes russh/aws-lc build notes and russh, Keychain, SFTP, git2 transport, and pack protocol references. |
 | [iOS source control integration](ios-source-control.md) | On-device repositories, GitHub and Gitea credentials, OpenPGP commit signing, SSH remote key choice, native transport, and official API references |
 | [Source Control](source-control.md) | Git workflows in runtime workspaces |
+| [Dependency audit](security.md#dependency-audit) | Running `bun audit`, the managed language-server `npm audit`, and the Cargo OSV query; fixed versions and accepted advisories with reachability; OSV batch API reference. |

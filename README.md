@@ -155,7 +155,8 @@ watchers.
 | `examples/` | Extension and icon-pack examples |
 
 See [architecture](docs/architecture.md), [feature status](docs/feature-status.md),
-[dependencies](docs/dependencies.md), and [design assets](design/README.md).
+[dependencies](docs/dependencies.md), [dependency audits](docs/security.md#dependency-audit),
+and [design assets](design/README.md).
 
 ### Checks
 
