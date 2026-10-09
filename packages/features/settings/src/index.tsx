@@ -53,9 +53,9 @@ export function Settings({
       <div className="settings-heading">
         <div className="settings-title-row">
           <h1>{owner ? tr("{0} Settings", { "0": owner.manifest.name }) : tr("Settings")}</h1>
-          <button className="button" onClick={() => void workbench.run("settings.keyboard")}>
+          {!owner && <button className="button" onClick={() => void workbench.run("settings.keyboard")}>
             {tr("Keyboard Shortcuts")}
-          </button>
+          </button>}
         </div>
         <div className="search-input">
           <Icon name="search" />
