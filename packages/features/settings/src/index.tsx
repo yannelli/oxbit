@@ -10,9 +10,12 @@ import { activeKeymap, commandBinding, normalizeShortcut } from "@oxbit/workbenc
 export function Settings({
   kernel,
   workbench,
+  extension,
 }: {
   kernel: Kernel;
   workbench: WorkbenchController;
+  /** Shows only the settings this extension declares, including while it is disabled. */
+  extension?: string;
 }) {
   useSyncExternalStore(workbench.subscribe, workbench.snapshot);
   const [query, setQuery] = useState(""),
@@ -21,7 +24,8 @@ export function Settings({
     [category, setCategory] = useState("All"),
     [modified, setModified] = useState(false);
   const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
-  const settings = kernel.configuration.list();
+  const owner = extension ? kernel.extensions.list().find(record => record.manifest.id === extension) : undefined;
+  const settings = owner ? owner.manifest.configuration ?? [] : kernel.configuration.list();
   const languageIds = [
     ...new Set([
       ...languages.map(item => item.id),
@@ -48,7 +52,7 @@ export function Settings({
     <div className="settings-screen">
       <div className="settings-heading">
         <div className="settings-title-row">
-          <h1>{tr("Settings")}</h1>
+          <h1>{owner ? tr("{0} Settings", { "0": owner.manifest.name }) : tr("Settings")}</h1>
           <button className="button" onClick={() => void workbench.run("settings.keyboard")}>
             {tr("Keyboard Shortcuts")}
           </button>
@@ -111,8 +115,9 @@ export function Settings({
           ))}
         </nav>
         <div className="settings-list">
-          {!query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
-          {!query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts and Commit Author…")}</button>}
+          {owner && !settings.length && <p className="muted">{tr("This extension has no settings.")}</p>}
+          {!owner && !query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
+          {!owner && !query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts and Commit Author…")}</button>}
           {selected.map((s) => (
             <SettingRow
               key={`${s.id}:${scope}:${language}`}
@@ -179,6 +184,8 @@ function SettingRow({
           />
           {tr(s.title)}
         </label>
+      ) : s.type === "array" && s.items === "string" && Array.isArray(value) ? (
+        <StringList label={tr(s.title)} value={value.map(String)} invalid={!!error} onChange={set} />
       ) : s.type === "object" || s.type === "array" ? (
         <textarea aria-label={tr(s.title)} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} onChange={event => {
           setDraft(event.target.value);
@@ -220,6 +227,26 @@ function SettingRow({
         </p>
       )}
     </section>
+  );
+}
+function StringList({ label, value, invalid, onChange }: { label: string; value: string[]; invalid: boolean; onChange(value: string[]): void }) {
+  const [rows, setRows] = useState(value);
+  const clean = (items: string[]) => items.map(item => item.trim()).filter(Boolean);
+  useEffect(() => {
+    if (JSON.stringify(clean(rows)) !== JSON.stringify(value)) setRows(value);
+  }, [JSON.stringify(value)]);
+  const update = (next: string[]) => { setRows(next); onChange(clean(next)); };
+  return (
+    <div className="setting-list" role="group" aria-label={label}>
+      {rows.map((item, index) => (
+        <div className="setting-list-row" key={index}>
+          <input aria-label={tr("{0}, item {1}", { "0": label, "1": String(index + 1) })} aria-invalid={invalid} value={item} spellCheck={false}
+            onChange={event => update(rows.map((row, at) => at === index ? event.target.value : row))} />
+          <IconButton icon="trash" label={tr("Remove {0}", { "0": item || tr("empty item") })} onClick={() => update(rows.filter((_, at) => at !== index))} />
+        </div>
+      ))}
+      <button className="button" onClick={() => setRows([...rows, ""])}><Icon name="plus" />{tr("Add Item")}</button>
+    </div>
   );
 }
 export function KeyboardShortcuts({
@@ -459,11 +486,12 @@ export function createFeature({
           title: "Open Settings",
           category: "Preferences",
           shortcut: "Ctrl+,",
-          run: () =>
-            workbench.openView("settings", "Settings", Settings, {
-              kernel,
-              workbench,
-            }),
+          run: (args) => {
+            const extension = (args as { extension?: unknown } | undefined)?.extension;
+            const record = typeof extension === "string" ? kernel.extensions.list().find(item => item.manifest.id === extension) : undefined;
+            if (record) return workbench.openView(`settings:${record.manifest.id}`, `${record.manifest.name} Settings`, Settings, { kernel, workbench, extension: record.manifest.id });
+            return workbench.openView("settings", "Settings", Settings, { kernel, workbench });
+          },
         }),
       );
       ctx.own(

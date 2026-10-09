@@ -46,6 +46,8 @@ export interface Setting {
   min?: number;
   max?: number;
   category?: string;
+  /** Element type of an `array` setting; string arrays get a list editor. */
+  items?: "string";
 }
 export type ContributionKind =
   | "activityView"

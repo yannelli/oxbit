@@ -7,7 +7,8 @@ import {
   IosIconPackStore,
   IosPersistence,
   SshFileSystem,
-  createIosLanguageFeature,
+  createIosLanguageFeatures,
+  migrateIosLanguageState,
   SESSION_SCOPE,
   forgetWorkspace,
   loadRecents,
@@ -88,10 +89,12 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   let session: Session | undefined;
   try {
     session = await createWorkbenchSession({ filesystem, git, persistence, protectUnload: false, preserveFilesystem: true, iconPackStore });
-    const languageFeature = createIosLanguageFeature(filesystem);
-    session.kernel.extensions.register(languageFeature);
-    if (!(await persistence.get<string[]>("extension-disabled"))?.includes(languageFeature.manifest.id))
-      await session.kernel.extensions.activate(languageFeature.manifest.id);
+    const disabled = await migrateIosLanguageState(persistence);
+    for (const languageFeature of createIosLanguageFeatures(filesystem)) {
+      session.kernel.extensions.register(languageFeature);
+      if (disabled.includes(languageFeature.manifest.id)) await session.kernel.extensions.disable(languageFeature.manifest.id);
+      else await session.kernel.extensions.activate(languageFeature.manifest.id);
+    }
     const remembered = { ...recent, lastOpened: Date.now() };
     await rememberWorkspace(recent);
     await native.storageSet(SESSION_SCOPE, LAST_KEY, remembered.id);
