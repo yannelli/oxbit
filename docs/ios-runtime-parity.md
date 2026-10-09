@@ -2,7 +2,7 @@
 
 Created: 2026-10-09. Last updated: 2026-10-09.
 
-This page compares the computer runtime (`apps/runtime`) with device folders on iOS and records how each runtime feature reaches iOS. A connected runtime (local network or [SSH](ios-ssh.md)) gives iOS every runtime feature; the table covers folders on the device, where no runtime runs.
+This page compares the computer runtime (`apps/runtime`) with device folders on iOS and records how each runtime feature reaches iOS. A connected runtime gives iOS every runtime feature; the table covers folders on the device, where no runtime runs. The Runtime page connects to an `oxbit --lan` runtime found over Bonjour, a runtime entered by address, or a runtime iOS starts over [SSH](ios-ssh.md) ([iOS setup](ios.md)).
 
 ## Feature table
 
@@ -23,7 +23,8 @@ This page compares the computer runtime (`apps/runtime`) with device folders on 
 | Collaboration | `collaboration.ts` hosts Yjs rooms and writes shared files | Through a connected runtime | The device would have to host rooms for other clients | Later; needs a reachable host |
 | Previews | HTML preview in the web view (`packages/features/previews`) | HTML/CSS preview works on device folders ([iOS](ios.md)) | Dev-server previews need a server process | Shipped (HTML/CSS); dev servers not possible on device |
 | Runtime extensions | `extensions.ts` imports ESM modules into Node | Browser-environment extensions and icon packs | Runtime extensions are downloaded executable code | Not possible: App Store guideline 2.5.2 |
-| Runtime over SSH | `ssh.ts`, `ssh-workspace.ts` | iOS starts and tunnels a runtime over SSH | Done | Shipped ([iOS SSH](ios-ssh.md)) |
+| Runtime over SSH | `ssh.ts`, `ssh-workspace.ts`; payloads for `darwin-arm64`, `linux-x64`, `linux-arm64` | iOS starts and tunnels a runtime over SSH; the `runtime.keepAlive` lease keeps it running while iOS suspends the app, and the app reattaches to the same process | Done | Shipped ([iOS SSH](ios-ssh.md), [remote runtimes](remote-ssh.md)) |
+| Runtime discovery | `oxbit --lan` advertises `_oxbit._tcp` over Bonjour ([runtime](runtime.md)) | Runtime page lists found runtimes through `NWBrowser` in `oxbit-files` | Done | Shipped ([iOS setup](ios.md)) |
 
 ## Search parity rules
 
