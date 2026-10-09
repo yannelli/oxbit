@@ -13,16 +13,17 @@ fn frame(value: Value) -> Vec<u8> {
 #[test]
 fn maps_uname_to_the_desktop_platform_names() {
     assert_eq!(platform("Linux", "x86_64").unwrap(), "linux-x64");
+    assert_eq!(platform("Linux", "aarch64").unwrap(), "linux-arm64");
     assert_eq!(platform("Darwin\n", "arm64\n").unwrap(), "darwin-arm64");
     for (system, machine) in [
-        ("Linux", "aarch64"),
+        ("Linux", "armv7l"),
         ("Darwin", "x86_64"),
         ("FreeBSD", "amd64"),
     ] {
         let error = platform(system, machine).unwrap_err();
         assert_eq!(
             error.message,
-            "Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon."
+            "Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon."
         );
     }
     assert_eq!(
@@ -32,6 +33,10 @@ fn maps_uname_to_the_desktop_platform_names() {
     assert_eq!(
         parse_probe("Darwin\narm64\nwget\n").unwrap(),
         ("darwin-arm64", Some(Downloader::Wget))
+    );
+    assert_eq!(
+        parse_probe("Linux\naarch64\ncurl\n").unwrap(),
+        ("linux-arm64", Some(Downloader::Curl))
     );
     assert_eq!(
         parse_probe("Linux\nx86_64\nnone\n").unwrap(),

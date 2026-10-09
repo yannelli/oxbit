@@ -29,8 +29,12 @@ for (const suffix of [
   ".app.tar.gz",
   ".app.tar.gz.sig",
   "_ios.ipa",
+  "_amd64.deb",
+  "_amd64.AppImage",
+  "_amd64.AppImage.sig",
   "remote-runtime-darwin-arm64.tar.gz",
   "remote-runtime-linux-x64.tar.gz",
+  "remote-runtime-linux-arm64.tar.gz",
   "remote-runtime-manifest.json",
 ])
   if (!files.some((file) => file.endsWith(suffix)))

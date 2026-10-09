@@ -55,12 +55,22 @@ async function unpack(binary) {
   return dir;
 }
 const manifest = { version: 1, platforms: {} };
-const targets = process.env.OXBIT_REMOTE_TARGETS?.split(",") ?? [
-  "darwin-arm64",
-  "linux-x64",
-];
+const supported = ["darwin-arm64", "linux-x64", "linux-arm64"];
+// Per-platform manifests of node:24.20.0-bookworm (index sha256:be23f54a…). Docker's classic
+// image store keeps one platform per index digest, so building both Linux targets needs these.
+const dockerBuilds = {
+  "linux-x64": {
+    platform: "linux/amd64",
+    image: "node:24.20.0-bookworm@sha256:9137a20e25879e0b557227b57e3ee4e9af4bde29eb3db66134cd1723e84f830b",
+  },
+  "linux-arm64": {
+    platform: "linux/arm64",
+    image: "node:24.20.0-bookworm@sha256:78b162211207872503ea9245188122b815150b9b4380e47a7c4a447332c01660",
+  },
+};
+const targets = process.env.OXBIT_REMOTE_TARGETS?.split(",") ?? supported;
 for (const platform of targets) {
-  if (!["darwin-arm64", "linux-x64"].includes(platform))
+  if (!supported.includes(platform))
     throw new Error(`Unsupported remote target: ${platform}`);
   if (process.env.OXBIT_REMOTE_PAYLOADS) {
     const supplied = path.join(
@@ -101,8 +111,8 @@ for (const platform of targets) {
         await fs.rm(tool, { recursive: true, force: true });
       }
     }
-    // The npm package includes macOS prebuilds; Linux is built for Node 24 in a
-    // Linux build environment. Nothing is compiled or downloaded on the SSH host.
+    // The npm package includes macOS prebuilds; Linux is built for Node 24 on a
+    // Linux host of the target architecture. Nothing is compiled on the SSH host.
     const pty = path.join(stage, "node_modules/node-pty");
     const original = path.join(
       root,
@@ -119,7 +129,7 @@ for (const platform of targets) {
         path.join(pty, "prebuilds", platform, "spawn-helper"),
         0o755,
       );
-    } else if (process.platform === "linux" && process.arch === "x64") {
+    } else if (`${process.platform}-${process.arch}` === platform) {
       await fs.cp(
         path.join(root, "apps/runtime/node_modules/node-pty/build"),
         path.join(pty, "build"),
@@ -130,19 +140,19 @@ for (const platform of targets) {
         "run",
         "--rm",
         "--platform",
-        "linux/amd64",
+        dockerBuilds[platform].platform,
         "-v",
         `${stage}:/runtime`,
         "-w",
         "/runtime/node_modules/node-pty",
-        `node:${pins.nodeVersion}-bookworm@sha256:be23f54a88d34e8824c741b19b91064094f92c1c97b194144bfc8b50d67258e2`,
+        dockerBuilds[platform].image,
         "node",
         "/usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
         "rebuild",
         "--nodedir=/usr/local",
       ]);
     }
-    if (platform === "linux-x64") {
+    if (platform.startsWith("linux")) {
       const addon = await fs.readFile(path.join(pty, "build/Release/pty.node"));
       await fs.rm(path.join(pty, "build"), { recursive: true, force: true });
       await fs.mkdir(path.join(pty, "build/Release"), { recursive: true });

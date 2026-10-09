@@ -6,14 +6,15 @@ import { execFileSync } from "node:child_process";
 const pins = JSON.parse(
   await fs.readFile(new URL("./binaries.json", import.meta.url), "utf8"),
 );
-if (process.platform !== "linux" || process.arch !== "x64")
-  throw new Error("Linux bundle helpers require x64 Linux");
+const tools = pins.linuxBundleTools[process.arch];
+if (process.platform !== "linux" || !tools)
+  throw new Error("Linux bundle helpers require x64 or arm64 Linux");
 const cache = path.join(
   process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
   "tauri",
 );
 await fs.mkdir(cache, { recursive: true });
-for (const tool of pins.linuxBundleTools) {
+for (const tool of tools) {
   const file = path.join(cache, tool.file);
   try {
     await fs.access(file);
@@ -47,7 +48,7 @@ const inventoryFile = new URL(
   import.meta.url,
 );
 const inventory = JSON.parse(await fs.readFile(inventoryFile, "utf8"));
-inventory.bundleTools = pins.linuxBundleTools;
+inventory.bundleTools = tools;
 await fs.writeFile(inventoryFile, JSON.stringify(inventory, null, 2) + "\n");
 console.log(
   "Verified all Linux bundle helper checksums before Tauri packaging",

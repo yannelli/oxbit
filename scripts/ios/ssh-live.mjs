@@ -26,13 +26,18 @@ const freePort = () => new Promise((resolve, reject) => {
   }).on("error", reject);
 });
 
+// OXBIT_SSH_TEST_PLATFORM=linux/arm64 runs the fixture and payload for arm64 servers.
+const dockerPlatform = process.env.OXBIT_SSH_TEST_PLATFORM ?? "linux/amd64";
+const remotePlatform = { "linux/amd64": "linux-x64", "linux/arm64": "linux-arm64" }[dockerPlatform];
+if (!remotePlatform) throw new Error(`Unsupported OXBIT_SSH_TEST_PLATFORM: ${dockerPlatform}`);
 // The remote runtime test needs `bun run remote:prepare`; the host downloads from this server.
 const payload = join(root, "apps/desktop/src-tauri/resources/runtime/remote");
-const hasPayload = existsSync(join(payload, "linux-x64.tar.gz"));
+const archive = `${remotePlatform}.tar.gz`;
+const hasPayload = existsSync(join(payload, archive));
 const files = createHttpServer((request, response) => {
-  if (request.url !== "/linux-x64.tar.gz") return response.writeHead(404).end();
+  if (request.url !== `/${archive}`) return response.writeHead(404).end();
   response.writeHead(200, { "content-type": "application/gzip" });
-  createReadStream(join(payload, "linux-x64.tar.gz")).pipe(response);
+  createReadStream(join(payload, archive)).pipe(response);
 });
 await new Promise((resolve) => files.listen(0, "127.0.0.1", resolve));
 if (!hasPayload) console.log("live_remote_runtime skipped: run `bun run remote:prepare` first");
@@ -42,10 +47,10 @@ const name = `oxbit-ios-ssh-${randomBytes(4).toString("hex")}`;
 const passphrase = randomBytes(12).toString("hex");
 const password = randomBytes(12).toString("hex");
 try {
-  run("docker", ["build", "--platform", "linux/amd64", "-f", "scripts/remote/sshd.Dockerfile", "-t", "oxbit-ssh-test:local", "scripts/remote"], { cwd: root });
+  run("docker", ["build", "--platform", dockerPlatform, "-f", "scripts/remote/sshd.Dockerfile", "-t", "oxbit-ssh-test:local", "scripts/remote"], { cwd: root });
   run("ssh-keygen", ["-q", "-t", "ed25519", "-N", passphrase, "-C", "oxbit-live", "-f", join(temp, "identity")]);
   const [port, passwordPort] = [await freePort(), await freePort()];
-  docker("run", "-d", "--name", name, "--platform", "linux/amd64",
+  docker("run", "-d", "--name", name, "--platform", dockerPlatform,
     ...(process.platform === "linux" ? ["--add-host", "host.docker.internal:host-gateway"] : []), "-p", `127.0.0.1:${port}:22`, "-p", `127.0.0.1:${passwordPort}:2222`,
     "-v", `${join(temp, "identity.pub")}:/test-key:ro`, "oxbit-ssh-test:local");
   docker("exec", name, "sh", "-c",
@@ -63,6 +68,7 @@ try {
       OXBIT_SSH_TEST_PASSPHRASE: passphrase,
       OXBIT_SSH_TEST_PASSWORD: password,
       OXBIT_SSH_TEST_PAYLOAD_DIR: payload,
+      OXBIT_SSH_TEST_REMOTE_PLATFORM: remotePlatform,
       OXBIT_SSH_TEST_PAYLOAD_URL: `http://host.docker.internal:${files.address().port}`,
     },
   });

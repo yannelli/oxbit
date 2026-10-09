@@ -230,14 +230,15 @@ export async function connectSsh(options: SshOptions) {
     const lines = platform.split(/\r?\n/);
     const pair = lines.slice(-2).join("/");
     const name = (
-      { "Linux/x86_64": "linux-x64", "Darwin/arm64": "darwin-arm64" } as Record<
-        string,
-        string
-      >
+      {
+        "Linux/x86_64": "linux-x64",
+        "Linux/aarch64": "linux-arm64",
+        "Darwin/arm64": "darwin-arm64",
+      } as Record<string, string>
     )[pair];
     if (!name)
       throw new Error(
-        "Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon.",
+        "Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon.",
       );
     const manifest = JSON.parse(
       await fs.readFile(
