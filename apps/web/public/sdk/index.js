@@ -205,6 +205,25 @@ var settings_schema_default = {
         "emacs"
       ]
     },
+    "runtime.keepAlive": {
+      title: "Keep Runtime Alive",
+      description: "How long a runtime Oxbit started keeps running after the last client disconnects or its connection heartbeats stop. Terminals and tasks continue while it runs.",
+      type: "string",
+      default: "75s",
+      enum: [
+        "75s",
+        "15m",
+        "1h",
+        "8h",
+        "untilStopped"
+      ]
+    },
+    "runtime.autoReconnect": {
+      title: "Reconnect Automatically",
+      description: "Reconnect to the runtime after the connection drops, including when the iOS app returns to the foreground.",
+      type: "boolean",
+      default: true
+    },
     "workbench.tooltipDelay": {
       title: "Tooltip Delay",
       description: "Delay in milliseconds before showing a tooltip on hover. Keyboard focus shows tooltips immediately.",
@@ -829,6 +848,12 @@ var settings_schema_default = {
         },
         "workbench.keymap": {
           $ref: "#/properties/workbench.keymap"
+        },
+        "runtime.keepAlive": {
+          $ref: "#/properties/runtime.keepAlive"
+        },
+        "runtime.autoReconnect": {
+          $ref: "#/properties/runtime.autoReconnect"
         },
         "workbench.tooltipDelay": {
           $ref: "#/properties/workbench.tooltipDelay"
