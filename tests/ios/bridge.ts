@@ -53,6 +53,9 @@ export async function installBridge(page: Page, { repository = false, accounts =
     };
     let opened = 0;
     const files = ["example.ts", "settings.jsonc"];
+    const contents = (id: string, path: string) =>
+      path === "settings.jsonc" ? '// Keep comments\n{"enabled":true}' : 'const workspace = "' + id + '";\n';
+    const searches: { method: string; params: Record<string, unknown> }[] = [];
     const status = {
       repository: true, head: "0123456789abcdef", branch: "main", upstream: "origin/main", branches: ["main"],
       refs: [], changes: [], remotes: [{ name: "origin", url: "https://github.com/example/oxbit.git" }], ahead: 0, behind: 0,
@@ -120,9 +123,34 @@ export async function installBridge(page: Page, { repository = false, accounts =
         if (command === "ios_fs_read") {
           if (!roots.has(args.id)) throw { code: "ROOT_CLOSED", message: "Workspace root is not open" };
           if (!files.includes(args.path)) throw { code: "NOT_FOUND", message: "File not found" };
-          const text = args.path === "settings.jsonc" ? '// Keep comments\n{"enabled":true}' : 'const workspace = "' + args.id + '";\n';
-          return new TextEncoder().encode(text).buffer;
+          return new TextEncoder().encode(contents(args.id, args.path)).buffer;
         }
+        if (command === "ios_search_request") {
+          if (!roots.has(args.id)) throw { code: "ROOT_CLOSED", message: "Workspace root is not open" };
+          searches.push({ method: args.method, params: args.params });
+          const query = String(args.params.query).toLowerCase();
+          if (args.method === "files")
+            return files.filter(path => {
+              let at = 0;
+              return [...query].every(char => (at = path.toLowerCase().indexOf(char, at) + 1) > 0);
+            });
+          const matches = [];
+          for (const path of files) {
+            const text = contents(args.id, path);
+            const bytes = new TextEncoder().encode(text);
+            const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+            const revision = [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("");
+            let offset = 0;
+            for (const [index, line] of text.split("\n").entries()) {
+              const column = line.toLowerCase().indexOf(query);
+              if (query && column >= 0)
+                matches.push({ path, line: index + 1, column: column + 1, from: offset + column, to: offset + column + query.length, text: line, revision });
+              offset += line.length + 1;
+            }
+          }
+          return { matches, truncated: false };
+        }
+        if (command === "ios_search_cancel") return;
         if (command === "ios_lsp_message") {
           if (args.method !== "exit" && !roots.has(args.workspaceId)) throw { code: "ROOT_CLOSED", message: "Workspace root is not open" };
           return { payload: JSON.stringify({ result: args.method === "initialize" ? { capabilities: { textDocumentSync: 1 } } : null, notifications: [] }) };
@@ -142,7 +170,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, copied, storage, get opened() { return opened; }, get signing() { return signing; } },
+      __iosTest: { closed, copied, storage, searches, get opened() { return opened; }, get signing() { return signing; } },
     });
   }, { repository, accounts });
 }
