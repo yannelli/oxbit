@@ -141,7 +141,7 @@ code, pre, kbd { font-family: var(--mono); }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 20px 60px -30px rgba(139, 213, 202, 0.3);
 }
 .cmd-prompt { color: var(--mint); font-family: var(--mono); }
-.cmd code { color: var(--text); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.cmd code { flex: 1; min-width: 0; text-align: left; color: var(--text); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .cmd code::-webkit-scrollbar { display: none; }
 .copy {
   flex: none; display: grid; place-items: center; width: 34px; height: 34px;

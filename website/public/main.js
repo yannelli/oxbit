@@ -60,7 +60,10 @@
   const labels = { mac: 'Download for macOS', linux: 'Download for Linux', ios: 'Get it on TestFlight' };
   if (primary && platform) {
     primary.textContent = labels[platform];
-    if (platform === 'ios') primary.href = 'https://testflight.apple.com/join/P2WqdUYS';
+    if (platform === 'ios') {
+      primary.href = 'https://testflight.apple.com/join/P2WqdUYS';
+      document.querySelector('[data-testflight-link]')?.remove();
+    }
   }
 
   // Release file names carry the version, so links resolve against the latest release.
