@@ -45,13 +45,17 @@ See [npm packages](docs/npm.md).
 | `oxbit -f` | Keep the runtime attached to the terminal |
 | `oxbit --no-open` | Start without opening a browser |
 | `oxbit --port 9300` | Choose a port for a new runtime; stop an existing one first |
+| `oxbit --lan` | Serve on your network and advertise the runtime to the iOS app |
+| `oxbit --keep-alive 1h` | Stop the runtime after an hour with no connected client |
 | `oxbit --help` | Show all options |
 
-The first runtime uses port 9277. Later runtimes choose a free port and record it
-in `~/.oxbit/workspaces/<id>/daemon.json`. The printed URL includes a pairing code
-in its fragment, which the editor consumes and removes from the address bar.
-Opening `http://127.0.0.1:9277` without that fragment loads the browser sample
-workspace; use **Runtime connection** to pair it with your project.
+Each runtime binds a port the operating system assigns, unless `--port` or `PORT`
+sets one, and records it in `~/.oxbit/workspaces/<id>/daemon.json`. The printed URL
+includes a pairing code in its fragment, which the editor consumes and removes from
+the address bar. Opening the runtime URL without that fragment loads the browser
+sample workspace; the cloud button in the title bar opens the **Runtime** page,
+where you pair the runtime with its printed code. Later, one tap on the cloud button
+reconnects to the last runtime.
 
 Without a global install, run `OXBIT_WORKSPACE=/absolute/path bun run start` after
 building. See [runtime configuration](docs/runtime.md) for network hosting,
@@ -82,7 +86,7 @@ GitHub tokens and runtime pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
-The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, and language-server guides with official API references.
+The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, language-server, runtime discovery and keep-alive guides with official API references.
 The [iOS release artwork guide](docs/ios-release-assets.md) covers icon exports,
 App Store screenshots, and promo exports with Apple's design and size references.
 

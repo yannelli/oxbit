@@ -1,6 +1,6 @@
 # Remote workspaces over SSH
 
-Created: 2026-09-08. Last updated: 2026-10-08.
+Created: 2026-09-08. Last updated: 2026-10-09.
 
 Choose **Connect over SSH…** in Oxbit's project bar, File menu, or command palette. Enter an SSH config alias or `user@host`, a remote folder or file such as `~/projects/app`, and an optional port. Remote projects appear in the project switcher and recent projects with an **SSH** label and restore when the app starts.
 

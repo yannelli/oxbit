@@ -166,5 +166,4 @@ upload or distribute a build.
 
 ## Not implemented
 
-- SSH tunnel to a remote runtime: a Rust port of the local half of `apps/runtime/src/ssh.ts`. The `russh` session pool from [SSH and SFTP workspaces](ios-ssh.md) can carry its exec and direct-tcpip channels.
 - Touch drag and drop for editor tabs and explorer rows.
