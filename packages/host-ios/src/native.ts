@@ -269,3 +269,10 @@ export const native = {
   closeFolder: (id: string) => call<void>("plugin:oxbit-files|close_folder", { id }),
   forgetFolder: (id: string) => call<void>("plugin:oxbit-files|forget_folder", { id }),
 };
+
+/** Workspace search on device roots; `method` is `search` for content or `files` for quick open. */
+export const search = {
+  request: <T>(id: string, requestId: string, method: "search" | "files", params: Record<string, unknown>) =>
+    call<T>("ios_search_request", { id, requestId, method, params }),
+  cancel: (id: string, requestId: string) => call<void>("ios_search_cancel", { id, requestId }),
+};

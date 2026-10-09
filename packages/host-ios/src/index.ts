@@ -36,3 +36,4 @@ export { IosIconPackStore } from "./icon-packs.js";
 export { IosLanguageTransport, createIosLanguageFeature, type IosLanguageServerKind } from "./language.js";
 export { discovery, DISCOVERY_POLL_MS, type DiscoveredRuntime } from "./discovery.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
+export { searchRoot, findRootFiles } from "./search.js";

@@ -30,6 +30,10 @@ russh-sftp = "=3.0.1"
 ssh-key = { version = "=0.7.0-rc.11", features = ["ed25519", "rsa", "encryption", "getrandom"] }
 getrandom = { version = "0.4", features = ["sys_rng"] }
 tokio = { version = "1.53.1", features = ["sync", "io-util", "fs", "time", "net"] }
+# Workspace search mirrors the runtime's ripgrep call; see docs/ios-runtime-parity.md.
+ignore = "=0.4.33"
+grep-regex = "=0.1.14"
+grep-matcher = "=0.1.9"
 
 [dev-dependencies]
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }

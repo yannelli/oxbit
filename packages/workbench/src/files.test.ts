@@ -45,6 +45,17 @@ describe("explicit workspace traversal", () => {
     ).rejects.toThrow();
     expect(list).toHaveBeenCalledTimes(1);
   });
+  it("uses the filesystem's native file finder when it has one", async () => {
+    const { filesystem, list } = fixture();
+    const findFiles = vi.fn(async () => ["closed/needle.ts"]);
+    const signal = new AbortController().signal;
+    const native = Object.assign(filesystem, { findFiles });
+    expect(await findWorkspaceFiles(native, "  NDL ", signal)).toEqual([
+      "closed/needle.ts",
+    ]);
+    expect(findFiles).toHaveBeenCalledWith("ndl", signal);
+    expect(list).not.toHaveBeenCalled();
+  });
   it("exports entries in collapsed folders and empty directories", async () => {
     const { filesystem } = fixture();
     const entries = [];

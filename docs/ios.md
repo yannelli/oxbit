@@ -62,7 +62,7 @@ Apps built with the iOS 27 SDK must adopt the UIScene life cycle or they fail to
 
 The start screen lists the Oxbit folder on the device, remembered Files app folders, and **Open Folder…**. Choosing a folder stores a security-scoped bookmark under Application Support; relaunching reopens it without the picker, and a folder that no longer resolves shows an error. Files in iCloud Drive that are not downloaded read as unavailable.
 
-Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search runs on the device through the worker search path. Formatting uses the bundled Prettier and TypeScript formatter workers.
+Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search and quick open on device folders run in the Rust host with ripgrep's `ignore` and `grep-regex` crates; SFTP folders use the worker search path. See [Runtime features on iOS](ios-runtime-parity.md). Formatting uses the bundled Prettier and TypeScript formatter workers.
 
 TypeScript, JavaScript, TSX, JSX, JSON, and JSONC language servers run on the device through JavaScriptCore. Open a supported file to start its server; the LSP status control supports stopping and restarting it. See [device language servers](ios-language-servers.md) for supported operations, build assets, and native API references.
 

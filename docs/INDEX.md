@@ -13,6 +13,7 @@ Created: 2026-10-02. Last updated: 2026-10-09.
 | [Withdrawn v0.3.1 audit](release-audit-0.3.1.md) | Comparing alpha.5 with the withdrawn release, confirmed corrections, and unresolved CI failures. |
 | [iOS language servers](ios-language-servers.md) | Changing device-local LSPs, JavaScriptCore, or the native filesystem bridge; includes Apple and Tauri API references. |
 | [iOS SSH and SFTP workspaces](ios-ssh.md) | Changing SSH keys, saved hosts, known-hosts trust, the russh session pool, the SFTP FileSystem, transfers, Git over SSH remotes, or the remote runtime started from iOS; includes russh/aws-lc build notes and russh, Keychain, SFTP, git2 transport, and pack protocol references. |
+| [Runtime features on iOS](ios-runtime-parity.md) | Porting a runtime feature to iOS device folders; the runtime-to-iOS feature table, native search and quick-open parity rules, terminal options, and `ignore`/`grep-regex` crate references. |
 | [iOS source control integration](ios-source-control.md) | On-device repositories, GitHub and Gitea credentials, OpenPGP commit signing, SSH remote key choice, native transport, and official API references |
 | [Source Control](source-control.md) | Git workflows in runtime workspaces |
 | [Dependency audit](security.md#dependency-audit) | Running `bun audit`, the managed language-server `npm audit`, and the Cargo OSV query; fixed versions and accepted advisories with reachability; OSV batch API reference. |
