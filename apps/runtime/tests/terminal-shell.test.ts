@@ -110,7 +110,7 @@ for (const shell of ["/bin/zsh", "/bin/bash"]) {
             processes = new Processes(workspace, (event) => {
               if (event.event === "terminal.data") output += event.params.data;
             });
-            const session = processes.create("owner", "connection", 90, 25);
+            const session = await processes.create("owner", "connection", 90, 25);
             // The marker is assembled by printf, so input echo cannot satisfy the assertion.
             const version = shell.endsWith("zsh") ? "$ZSH_VERSION" : "$BASH_VERSION";
             processes.input(session.id, "owner", [
