@@ -1,4 +1,5 @@
 import type { PanelLayout, PanelTarget } from "./panels.js";
+import type { LanguageSelector } from "./language-servers.js";
 export * from "./panels.js";
 import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
@@ -121,6 +122,8 @@ export interface ProviderDocument {
 }
 export interface LanguageTransportProvider {
   languages: string[];
+  /** Replaces `languages` for matching when present; patterns use `matchesFilePattern`. */
+  selectors?: LanguageSelector[];
   runtimeFallback?: boolean;
   createTransport(context: {
     workspaceId: string;

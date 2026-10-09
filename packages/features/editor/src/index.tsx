@@ -9,6 +9,8 @@ import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import { yaml } from "@codemirror/legacy-modes/mode/yaml";
+import { python } from "@codemirror/legacy-modes/mode/python";
 import { localSyntax, astroSyntax } from "./local-syntax.js";
 import { translate as tr, getPhrases } from "@oxbit/ui";
 import { useEffect, useRef, useState } from "react";
@@ -202,6 +204,8 @@ export function languageFor(path: string, kernel?: Kernel, firstLine?: string): 
     case "shellscript": return StreamLanguage.define(shell);
     case "toml": return StreamLanguage.define(toml);
     case "dockerfile": return StreamLanguage.define(dockerFile);
+    case "yaml": return StreamLanguage.define(yaml);
+    case "python": return StreamLanguage.define(python);
     case "zsh": case "ini": case "dotenv": case "csv": case "log": return StreamLanguage.define(localSyntax(id));
     default: return [];
   }
@@ -217,7 +221,7 @@ function documentSyntax(path: string, kernel: Kernel, text: string): CMExtension
   if (id === "xml") return StreamLanguage.define(streamXml);
   if (["html", "vue", "php", "blade"].includes(id)) return StreamLanguage.define(streamHtml);
   if (id === "mdx") return languageFor(path, kernel, firstLine);
-  return ["jsonc", "jsonl", "shellscript", "toml", "dockerfile", "zsh", "ini", "dotenv", "csv", "log", "astro"].includes(id) ? languageFor(path, kernel, firstLine) : [];
+  return ["jsonc", "jsonl", "shellscript", "toml", "dockerfile", "yaml", "python", "zsh", "ini", "dotenv", "csv", "log", "astro"].includes(id) ? languageFor(path, kernel, firstLine) : [];
 }
 
 function configured(

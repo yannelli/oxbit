@@ -120,6 +120,22 @@ describe("contributed language providers", () => {
     await language.control("ios.typescript", "start");
     expect(local.result.notify).toHaveBeenCalledWith("textDocument/didOpen", expect.objectContaining({ textDocument: expect.objectContaining({ languageId: "typescript" }) }));
   });
+  it("matches transports by glob selectors in addition to language IDs", async () => {
+    const { options, kernel, filesystem } = await setup();
+    for (const path of ["config/app.conf", "notes.conf", "main.ts"]) await filesystem.write(path, "x", { expectedRevision: null });
+    const local = transport();
+    kernel.contributions.register({ id: "conf.server", kind: "transport", title: "Conf", data: { languages: [], selectors: [{ pattern: "config/*.conf" }, { language: "foo" }], runtimeFallback: false, createTransport: () => local.result } });
+    const language = new LanguageService(options);
+    cleanup.push(() => language.dispose());
+    const ids = (path: string) => language.servicesForPath(path).filter(service => service.transport === local.result).length;
+    expect(ids("config/app.conf")).toBe(1);
+    expect(ids("main.foo")).toBe(1);
+    expect(ids("notes.conf")).toBe(0);
+    expect(ids("main.ts")).toBe(0);
+    await options.documents.open("config/app.conf");
+    await language.control("conf.server", "start");
+    expect(local.result.notify).toHaveBeenCalledWith("textDocument/didOpen", expect.objectContaining({ textDocument: expect.objectContaining({ uri: expect.stringContaining("config/app.conf") }) }));
+  });
   it("invalidates contributed completion items after edits or provider replacement", async () => {
     const { options, kernel, document } = await setup();
     const provider = { languages: ["foo"], provideCompletions: () => [{ label: "hello" }] };

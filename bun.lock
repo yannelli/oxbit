@@ -31,7 +31,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -52,7 +52,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -71,7 +71,7 @@
     },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/core": "workspace:*",
         "@oxbit/protocol": "workspace:*",
