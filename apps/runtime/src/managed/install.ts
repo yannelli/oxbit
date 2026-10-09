@@ -7,7 +7,8 @@ import { x as untar } from "tar";
 import npmLock from "./npm/package-lock.json" with { type: "json" };
 import nativeLock from "./artifacts.lock.json" with { type: "json" };
 
-export type ManagedPlatform = "darwin-arm64" | "linux-x64";
+export const managedPlatforms = ["darwin-arm64", "linux-x64", "linux-arm64"] as const;
+export type ManagedPlatform = (typeof managedPlatforms)[number];
 type Package = { version?: string; resolved?: string; integrity?: string; dependencies?: Record<string, string>; optionalDependencies?: Record<string, string> };
 const packages = npmLock.packages as Record<string, Package>;
 export function fingerprint(value: unknown): string {
@@ -85,7 +86,7 @@ export class ManagedInstaller {
     } finally { await fs.rm(archive, { force: true }); }
   }
   private async install(id: string, digest: string, build: (stage: string) => Promise<void>, signal?: AbortSignal) {
-    if (!["darwin-arm64", "linux-x64"].includes(this.platform)) throw new Error(`Managed language servers are unavailable on ${this.platform}`);
+    if (!(managedPlatforms as readonly string[]).includes(this.platform)) throw new Error(`Managed language servers are unavailable on ${this.platform}`);
     const base = path.join(this.cache, `${id}-${this.platform}`), target = path.join(base, digest);
     const complete = async () => { try { return (await fs.readFile(path.join(target, ".complete"), "utf8")) === digest; } catch { return false; } };
     if (await complete()) return target;

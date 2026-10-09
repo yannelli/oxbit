@@ -508,7 +508,7 @@ test("rendered Markdown, popovers and keyboard focus use the selected theme", as
 
 test("bundled creative themes and Rainbow icons switch, pair and persist", async ({
   page,
-}) => {
+}, testInfo) => {
   await ready(page);
   await page.evaluate(async () => {
     const z = (window as any).__oxbit;
@@ -554,7 +554,7 @@ test("bundled creative themes and Rainbow icons switch, pair and persist", async
       "A workbench for everyone.",
     );
     await page.screenshot({
-      path: "/private/tmp/oxbit-creative-" + id + ".png",
+      path: testInfo.outputPath(`oxbit-creative-${id}.png`),
     });
   }
   await page.evaluate(() =>
@@ -589,7 +589,7 @@ test("bundled creative themes and Rainbow icons switch, pair and persist", async
     );
   expect(broken).not.toContain(true);
   await page.screenshot({
-    path: "/private/tmp/oxbit-creative-rainbow-icons-dark.png",
+    path: testInfo.outputPath("oxbit-creative-rainbow-icons-dark.png"),
   });
   await page.evaluate(() => (window as any).__oxbit.runCommand("theme.toggle"));
   expect(await selected(page)).toBe("oxbit.creative/rainbow-light");
@@ -598,7 +598,7 @@ test("bundled creative themes and Rainbow icons switch, pair and persist", async
     "light",
   );
   await page.screenshot({
-    path: "/private/tmp/oxbit-creative-rainbow-icons-light.png",
+    path: testInfo.outputPath("oxbit-creative-rainbow-icons-light.png"),
   });
   await page.reload();
   await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
