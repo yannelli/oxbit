@@ -26,7 +26,8 @@ await walk(directory);
 const platforms = {};
 for (const [platform, suffix, required] of [
   ["darwin-aarch64", ".app.tar.gz", true],
-  ["linux-x86_64", ".AppImage", false],
+  ["linux-x86_64", "_amd64.AppImage", true],
+  ["linux-aarch64", "_aarch64.AppImage", false],
 ]) {
   const file = all.find((file) => file.endsWith(suffix));
   if (!file && !required) continue;
