@@ -35,6 +35,16 @@ test("Connect Runtime opens the Runtime page with network runtimes and pairs one
   await expect(sheet).toHaveCount(0);
 });
 
+test("the Runtime page explains how to allow Local Network access when iOS denies it", async ({ page }) => {
+  await installBridge(page, { localNetworkDenied: true });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Connect Runtime…" }).click();
+  const network = page.locator(".ios-runtime-sheet").getByRole("region", { name: "On this network" });
+  await expect(network.getByRole("status")).toContainText("Turn on Local Network for Oxbit in Settings");
+  await expect(network).not.toContainText("Looking for runtimes");
+  await page.screenshot({ path: "/tmp/oxbit-lan/ios-harness-local-network-denied.png", fullPage: true });
+});
+
 test("keep-alive chosen on the start screen reaches the workspace settings", async ({ page }) => {
   await installBridge(page);
   await page.goto("/");

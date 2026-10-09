@@ -833,6 +833,7 @@
   "In use": "En uso",
   "On this network": "En esta red",
   "Pair": "Vincular",
+  "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.": "Oxbit no puede buscar en esta red. Activa Red local para Oxbit en Ajustes > Privacidad y seguridad > Red local.",
   "Looking for runtimes on this network…": "Buscando runtimes en esta red…",
   "Run oxbit --lan on your computer to list it here.": "Ejecuta oxbit --lan en tu ordenador para que aparezca aquí.",
   "SSH servers": "Servidores SSH",

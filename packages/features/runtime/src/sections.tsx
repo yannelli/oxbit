@@ -77,7 +77,11 @@ export function SavedRuntimes({ connector, current, busy, perform }: { connector
 
 export function DiscoveredRuntimes({ connector, busy, perform, onPair }: { connector: RuntimeConnector; busy?: string; perform: Perform; onPair: (url: string) => void }) {
   const [found, setFound] = useState<DiscoveredRuntime[]>([]);
-  useEffect(() => connector.discover?.(setFound), [connector]);
+  const [denied, setDenied] = useState(false);
+  useEffect(() => connector.discover?.((runtimes, localNetworkDenied) => {
+    setFound(runtimes);
+    setDenied(!!localNetworkDenied);
+  }), [connector]);
   return (
     <Card title={tr("On this network")} icon="share">
       {found.length ? (
@@ -98,6 +102,8 @@ export function DiscoveredRuntimes({ connector, busy, perform, onPair }: { conne
             );
           })}
         </ul>
+      ) : denied ? (
+        <p className="runtime-hint runtime-denied" role="status">{tr("Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.")}</p>
       ) : (
         <p className="runtime-hint runtime-searching"><span className="runtime-spinner" aria-hidden="true" />{tr("Looking for runtimes on this network…")}</p>
       )}

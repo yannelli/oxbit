@@ -833,6 +833,7 @@
   "In use": "使用中",
   "On this network": "このネットワーク上",
   "Pair": "ペアリング",
+  "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.": "Oxbit はこのネットワークを検索できません。設定 > プライバシーとセキュリティ > ローカルネットワーク で Oxbit をオンにしてください。",
   "Looking for runtimes on this network…": "このネットワーク上のランタイムを検索中…",
   "Run oxbit --lan on your computer to list it here.": "コンピュータで oxbit --lan を実行すると、ここに表示されます。",
   "SSH servers": "SSH サーバー",

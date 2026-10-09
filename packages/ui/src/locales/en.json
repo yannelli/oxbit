@@ -833,6 +833,7 @@
   "In use": "In use",
   "On this network": "On this network",
   "Pair": "Pair",
+  "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.": "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.",
   "Looking for runtimes on this network…": "Looking for runtimes on this network…",
   "Run oxbit --lan on your computer to list it here.": "Run oxbit --lan on your computer to list it here.",
   "SSH servers": "SSH servers",

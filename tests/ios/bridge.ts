@@ -5,9 +5,9 @@ export interface BridgeAccount { id: string; provider: "github" | "gitea"; host:
 
 /** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
 /** An added token names its login; the token `rejected` fails validation. */
-/** `runtimes` are Bonjour results; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], stored = {} as Record<string, unknown> } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, stored }) => {
+/** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown> } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -90,7 +90,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
         if (command === "plugin:oxbit-files|close_folder") return;
         if (command === "plugin:oxbit-files|git_credentials") return gitCredentials(args.request);
         if (command === "plugin:oxbit-files|runtime_credentials") return runtimeCredentials(args.request);
-        if (command === "plugin:oxbit-files|runtime_discovery") return { runtimes: args.request.operation === "stop" ? [] : runtimes };
+        if (command === "plugin:oxbit-files|runtime_discovery") return { runtimes: args.request.operation === "stop" ? [] : runtimes, localNetworkDenied };
         if (command === "plugin:oxbit-files|commit_signing") {
           const request = args.request;
           if (request.operation === "generate") signing = {
@@ -158,5 +158,5 @@ export async function installBridge(page: Page, { repository = false, accounts =
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
       __iosTest: { closed, copied, storage, runtimeRequests, get opened() { return opened; }, get signing() { return signing; } },
     });
-  }, { repository, accounts, runtimes, stored });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored });
 }

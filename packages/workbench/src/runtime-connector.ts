@@ -75,7 +75,8 @@ export interface RuntimeConnector {
   disconnect?(): Promise<void>;
   restart?(): Promise<void>;
   trust?(trusted: boolean): Promise<void>;
-  discover?(listener: (runtimes: DiscoveredRuntime[]) => void): () => void;
+  /** `localNetworkDenied` reports that the OS blocks local network browsing for the app. */
+  discover?(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied?: boolean) => void): () => void;
   sshHosts?(): Promise<SshHostSummary[]>;
   startSsh?(hostId: string, path: string): Promise<void>;
   manageSsh?(): void;

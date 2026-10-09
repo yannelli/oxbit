@@ -805,6 +805,7 @@
   "In use": "Aktiv",
   "On this network": "In diesem Netzwerk",
   "Pair": "Koppeln",
+  "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.": "Oxbit kann dieses Netzwerk nicht durchsuchen. Aktivieren Sie „Lokales Netzwerk“ für Oxbit unter Einstellungen > Datenschutz & Sicherheit > Lokales Netzwerk.",
   "Looking for runtimes on this network…": "Runtimes in diesem Netzwerk werden gesucht…",
   "Run oxbit --lan on your computer to list it here.": "Führen Sie oxbit --lan auf Ihrem Computer aus, damit er hier erscheint.",
   "SSH servers": "SSH-Server",

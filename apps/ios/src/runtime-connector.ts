@@ -128,10 +128,10 @@ export class IosRuntimeConnector implements RuntimeConnector {
     session.kernel.context.set("trusted", !!session.runtime.session?.trusted);
     session.workbench.touch();
   }
-  discover(listener: (runtimes: DiscoveredRuntime[]) => void) {
-    return discovery.watch(runtimes => listener(runtimes.map(runtime => ({
+  discover(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied?: boolean) => void) {
+    return discovery.watch((runtimes, localNetworkDenied) => listener(runtimes.map(runtime => ({
       ...runtime, paired: this.saved.some(recent => recent.runtimeId === runtime.runtimeId),
-    }))));
+    })), localNetworkDenied));
   }
   async sshHosts(): Promise<SshHostSummary[]> {
     const hosts = await ssh.hosts();

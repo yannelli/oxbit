@@ -8,16 +8,20 @@ private struct RuntimeDiscoveryArgs: Decodable {
 
 private struct RuntimeDiscoveryList: Encodable {
   let runtimes: [DiscoveredRuntime]
+  let localNetworkDenied: Bool
 }
 
 /// Browses `_oxbit._tcp` in `local.` and resolves each service to an address the WebView can open.
 /// The WebView polls `list`; browsing ends on `stop` or after two minutes without `start` or `list`.
 final class RuntimeDiscovery {
   private static let idle: TimeInterval = 120
+  private static let policyDenied = DNSServiceErrorType(kDNSServiceErr_PolicyDenied)
   private static let resolveTimeout: TimeInterval = 5
   private let queue = DispatchQueue(label: "com.yannelli.oxbit.runtime-discovery")
   private var browser: NWBrowser?
   private var wanted = false
+  /// The browser waits with PolicyDenied while Local Network access is off, and turns ready when it is allowed.
+  private var localNetworkDenied = false
   private var idleTimer: DispatchWorkItem?
   private var services: [NWEndpoint: [String: String]] = [:]
   private var resolved: [NWEndpoint: DiscoveredRuntime] = [:]
@@ -45,7 +49,8 @@ final class RuntimeDiscovery {
         invoke.reject("Unknown runtime discovery operation.", code: "RUNTIME_DISCOVERY")
         return
       }
-      invoke.resolve(RuntimeDiscoveryList(runtimes: DiscoveredRuntime.unique(Array(self.resolved.values))))
+      invoke.resolve(RuntimeDiscoveryList(
+        runtimes: DiscoveredRuntime.unique(Array(self.resolved.values)), localNetworkDenied: self.localNetworkDenied))
     }
   }
 
@@ -57,8 +62,17 @@ final class RuntimeDiscovery {
     guard browser == nil else { return }
     let browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_oxbit._tcp", domain: nil), using: NWParameters())
     browser.stateUpdateHandler = { [weak self, weak browser] state in
-      guard case .failed = state, let self, let browser, self.browser === browser else { return }
-      self.cancel()
+      guard let self, let browser, self.browser === browser else { return }
+      switch state {
+      case .failed:
+        self.cancel()
+      case .waiting(.dns(Self.policyDenied)):
+        self.localNetworkDenied = true
+      case .ready:
+        self.localNetworkDenied = false
+      default:
+        break
+      }
     }
     browser.browseResultsChangedHandler = { [weak self] results, _ in self?.update(results) }
     self.browser = browser
@@ -70,6 +84,7 @@ final class RuntimeDiscovery {
     idleTimer = nil
     browser?.cancel()
     browser = nil
+    localNetworkDenied = false
     probes.values.forEach { $0.cancel() }
     probes.removeAll()
     services.removeAll()

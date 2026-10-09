@@ -833,6 +833,7 @@
   "In use": "使用中",
   "On this network": "此网络中",
   "Pair": "配对",
+  "Oxbit can't search this network. Turn on Local Network for Oxbit in Settings > Privacy & Security > Local Network.": "Oxbit 无法搜索此网络。请在“设置”>“隐私与安全性”>“本地网络”中为 Oxbit 打开本地网络。",
   "Looking for runtimes on this network…": "正在查找此网络中的运行时…",
   "Run oxbit --lan on your computer to list it here.": "在电脑上运行 oxbit --lan 即可在此列出。",
   "SSH servers": "SSH 服务器",
