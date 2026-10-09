@@ -45,6 +45,7 @@ basedpyright keeps type checks, possibly-unbound names (`reportPossiblyUnbound`)
 
 - iOS: `packages/features/language/src/native/python.ts` (`ruffOwnedPyrightRules`). Ruff always runs in the Python bundle; if basedpyright does not start, Ruff's diagnostics are unchanged.
 - Desktop: `apps/runtime/src/managed/catalog.ts` (`deferToRuff`). The runtime applies it when the Ruff server is enabled and its file types match the file; with Ruff disabled, basedpyright reports everything. Overrides in `languageServers.basedpyright.settings.basedpyright.analysis.diagnosticSeverityOverrides` take precedence.
+- Desktop basedpyright registers file watchers for the Python interpreter's library folders and exits if `client/registerCapability` fails. `apps/runtime/src/lsp.ts` accepts watchers outside the workspace and reports workspace changes only.
 - Ruff's own rule selection (`select`, `ignore`) applies. A project that turns off F rules also turns off undefined-name checks while both servers run.
 - basedpyright's `No binding for nonlocal` error has no rule code, and Ruff's default rules do not report it, so it is dropped while Ruff runs.
 - A duplicate keyword argument in a call is still reported twice: Ruff `invalid-syntax` and basedpyright `reportCallIssue`, which also covers other call errors.
