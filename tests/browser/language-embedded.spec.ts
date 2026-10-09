@@ -50,8 +50,13 @@ test("Astro auto-import completion inserts its import inside frontmatter", async
   await page.evaluate(async () => {
     const app = (window as any).__oxbit;
     await app.runtime.trust(true);
+    // The seeded workspace has a tsconfig.json that later specs rely on, so extend it.
+    const tsconfig = await app.runtime.request("fs.read", { path: "tsconfig.json" }).catch(() => null);
+    const config = tsconfig ? JSON.parse(tsconfig.text) : { include: [] };
+    config.compilerOptions = { ...config.compilerOptions, module: "ESNext", moduleResolution: "bundler", target: "ES2022" };
+    config.include = [...config.include, "embedded-helpers.ts", "*.astro"];
+    await app.runtime.request("fs.write", { path: "tsconfig.json", text: JSON.stringify(config), expectedRevision: tsconfig?.revision ?? null });
     for (const [path, text] of [
-      ["tsconfig.json", '{"compilerOptions":{"module":"ESNext","moduleResolution":"bundler","target":"ES2022"},"include":["*.ts","*.astro"]}'],
       ["embedded-helpers.ts", '/** Returns a friendly greeting. */\nexport function welcomeUser(name: string) { return "Hello " + name; }'],
       ["embedded-import.astro", '---\n// 😀 keep imports here\nwelcomeUs\n---\n<h1>Hello</h1>\n'],
     ]) await app.runtime.request("fs.write", { path, text, expectedRevision: null });

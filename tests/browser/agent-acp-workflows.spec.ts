@@ -253,7 +253,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       const z = (window as any).__oxbit;
       await z.kernel.configuration.set("workbench.colorTheme", "Graphite (dark)", "user");
       z.workbench.movePanel("agent-acp", { container: "bottom" });
-      z.workbench.set({ panelHeight: 450 });
+      z.workbench.set({ panelHeight: 480 });
     });
     await ready();
     expect((await panel.locator(".acp-header").boundingBox())!.height).toBeLessThanOrEqual(48);

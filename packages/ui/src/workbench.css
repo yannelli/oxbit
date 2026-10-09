@@ -210,7 +210,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .markdown-document>.preview-toolbar{flex:none;min-width:0;gap:8px}
 .markdown-document>.preview-toolbar>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .markdown-preview img{max-width:100%;height:auto}
-@media(max-width:650px){.html-preview-toolbar .icon-button,.html-preview-toolbar .button,.markdown-document>.preview-toolbar .button,.preview-resource-control select{min-height:44px;min-width:44px}.html-preview-toolbar{padding:2px 6px;gap:4px}}
+@media(max-width:650px){.html-preview-toolbar .icon-button,.html-preview-toolbar .button,.markdown-document>.preview-toolbar .button,.preview-resource-control select{min-height:44px;min-width:44px}.html-preview-toolbar{padding:2px 6px;gap:4px}/* WebKit keeps a native select at its own height, so draw the arrow to apply the touch size. */.preview-resource-control select{appearance:none;-webkit-appearance:none;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,var(--fg-3) 50%),linear-gradient(135deg,var(--fg-3) 50%,transparent 50%);background-position:right 15px center,right 10px center;background-size:5px 5px;background-repeat:no-repeat}}
 .markdown-preview h1,.markdown-preview h2,.markdown-preview h3{color:var(--preview-foreground)}
 .workbench .tree-row{min-height:max(var(--row),calc(var(--font-body-font-size) * var(--font-body-line-height) + 6px))}
 .theme-packs input[type=file]{max-width:100%}.theme-packs .toolbar{flex-wrap:wrap}.theme-packs .setting-row{overflow-wrap:anywhere}

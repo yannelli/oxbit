@@ -93,6 +93,8 @@ interface Operation {
   result?: unknown;
   error?: { code: string; message: string; data?: unknown };
 }
+// One LSP response can exceed MAX_BUFFER_BYTES (Astro completions are about 1.2 MB), so the backlog allows several.
+const MAX_SOCKET_BACKLOG_BYTES = 16 * MAX_BUFFER_BYTES;
 const allCapabilities: Capability[] = [
   "filesystem.read",
   "filesystem.write",
@@ -215,7 +217,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   const send = (connection: Connection, message: ServerMessage) => {
     if (connection.ws.readyState !== WebSocket.OPEN) return;
-    if (connection.ws.bufferedAmount > MAX_BUFFER_BYTES) {
+    if (connection.ws.bufferedAmount > MAX_SOCKET_BACKLOG_BYTES) {
       connection.ws.close(1013, "Slow consumer; reconnect to resynchronize");
       return;
     }
