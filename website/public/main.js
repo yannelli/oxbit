@@ -50,6 +50,61 @@
     });
   });
 
+  const ua = navigator.userAgent;
+  const platform = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios'
+    : /Macintosh|Mac OS X/.test(ua) ? 'mac'
+    : /Linux/.test(ua) && !/Android/.test(ua) ? 'linux'
+    : undefined;
+  document.querySelector(`.download[data-platform="${platform}"]`)?.classList.add('is-recommended');
+  const primary = document.querySelector('[data-primary-download]');
+  const labels = { mac: 'Download for macOS', linux: 'Download for Linux', ios: 'Get it on TestFlight' };
+  if (primary && platform) {
+    primary.textContent = labels[platform];
+    if (platform === 'ios') primary.href = 'https://testflight.apple.com/join/P2WqdUYS';
+  }
+
+  // Release file names carry the version, so links resolve against the latest release.
+  const assetPatterns = {
+    mac: /_aarch64\.dmg$/,
+    'linux-x64-appimage': /_amd64\.AppImage$/,
+    'linux-x64-deb': /_amd64\.deb$/,
+    'linux-arm64-appimage': /_aarch64\.AppImage$/,
+    'linux-arm64-deb': /_arm64\.deb$/,
+  };
+  const applyRelease = (release) => {
+    const assets = release.assets || [];
+    document.querySelectorAll('[data-asset]').forEach((link) => {
+      const asset = assets.find((item) => assetPatterns[link.dataset.asset]?.test(item.name));
+      if (asset) link.href = asset.browser_download_url;
+    });
+    const mac = assets.find((item) => assetPatterns.mac.test(item.name));
+    if (primary && platform === 'mac' && mac) primary.href = mac.browser_download_url;
+    if (release.tag_name) {
+      document.querySelectorAll('[data-release-tag]').forEach((el) => { el.textContent = release.tag_name; });
+      document.querySelectorAll('[data-release-label]').forEach((el) => { el.textContent = `Every ${release.tag_name} file, with checksums`; });
+    }
+  };
+  const releaseKey = 'oxbit-latest-release';
+  const cached = (() => {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(releaseKey));
+      return stored && Date.now() - stored.at < 10 * 60 * 1000 ? stored.release : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+  if (cached) applyRelease(cached);
+  else {
+    fetch('https://api.github.com/repos/yannelli/oxbit/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+      .then((release) => {
+        const slim = { tag_name: release.tag_name, assets: (release.assets || []).map(({ name, browser_download_url }) => ({ name, browser_download_url })) };
+        try { sessionStorage.setItem(releaseKey, JSON.stringify({ at: Date.now(), release: slim })); } catch {}
+        applyRelease(slim);
+      })
+      .catch(() => {});
+  }
+
   const tilt = document.querySelector('[data-tilt]');
   if (tilt && !reduceMotion && window.matchMedia('(pointer: fine)').matches) {
     const win = tilt.querySelector('.window');
@@ -70,14 +125,14 @@
   if (terminal) {
     const lines = [
       { text: '$ ', cls: 'p', typed: 'oxbit ~/code/orbit-dash' },
-      { text: 'Oxbit runtime 0.3.0 starting', cls: 'd' },
+      { text: 'Oxbit runtime starting', cls: 'd' },
       { text: 'workspace  orbit-dash' },
-      { text: 'runtime    http://127.0.0.1:9277/#pair=…', cls: 'u' },
+      { text: 'runtime    http://127.0.0.1:52814/#pair=…', cls: 'u' },
       { text: 'watching   1,248 files' },
       { text: 'opening the editor in your browser', cls: 'd' },
       { text: '' },
       { text: '$ ', cls: 'p', typed: 'oxbit --status' },
-      { text: 'runtime for orbit-dash is serving on port 9277', cls: 'd' },
+      { text: 'runtime for orbit-dash is serving on port 52814', cls: 'd' },
       { text: '' },
       { text: '$ ', cls: 'p', caret: true },
     ];

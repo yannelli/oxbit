@@ -46,7 +46,7 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
         </a>
-        <a class="btn btn-primary btn-sm" href="#get-started">Get started</a>
+        <a class="btn btn-primary btn-sm" href="#get-started">Download</a>
       </div>
     </div>
   </header>
@@ -57,7 +57,7 @@
       <div class="container hero-inner">
         <p class="eyebrow" data-reveal>
           <span class="dot"></span>
-          v0.3.0 alpha · MIT licensed · Open source
+          <span><span data-release-tag>v0.4.1</span> · MIT licensed · Open source</span>
         </p>
         <h1 class="hero-title" data-reveal>
           A dev environment<br />
@@ -69,17 +69,17 @@
           language services, and collaboration.
         </p>
         <div class="hero-cta" data-reveal>
+          <div class="hero-buttons">
+            <a class="btn btn-primary" href="#get-started" data-primary-download>Download Oxbit</a>
+            <a class="btn btn-ghost" href="#get-started">All platforms</a>
+            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
+          </div>
           <div class="cmd" data-copy-root>
             <span class="cmd-prompt">$</span>
-            <code data-copy-text>curl -fsSL https://oxbit.dev/install.sh | bash</code>
+            <code data-copy-text>npm install -g @oxbit/cli</code>
             <button class="copy" type="button" aria-label="Copy install command" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
-          </div>
-          <div class="hero-buttons">
-            <a class="btn btn-primary" href="#get-started">Install Oxbit</a>
-            <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases" rel="noopener">Download desktop app</a>
-            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
           </div>
         </div>
       </div>
@@ -283,30 +283,58 @@
       </div>
     </section>
 
-    <!-- GET STARTED -->
+    <!-- DOWNLOAD -->
     <section class="section" id="get-started">
       <div class="container">
-        <div class="cta-panel" data-reveal data-spot>
-          <div class="cta-copy">
-            <p class="kicker">Quick start</p>
-            <h2>Up in a minute.</h2>
-            <p class="lead">On macOS or Linux, install Node 24, Bun 1.4.2, Git, and ripgrep. Then:</p>
-            <ol class="steps">
-              <li><span>1</span>Run the install script</li>
-              <li><span>2</span>Run <code class="inline">oxbit</code> in any project</li>
-              <li><span>3</span>Select <strong>Trust workspace tools</strong> in Runtime connection</li>
-              <li><span>4</span>Open the command palette with <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></li>
-            </ol>
-          </div>
-          <div class="cta-code" data-copy-root>
-            <button class="copy" type="button" aria-label="Copy quick start" data-copy>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-            <pre><code data-copy-text>curl -fsSL https://oxbit.dev/install.sh | bash
-
-oxbit ~/code/my-project</code></pre>
-          </div>
+        <div class="section-head" data-reveal>
+          <p class="kicker">Download</p>
+          <h2>Install Oxbit.<br /><span class="muted">Pick your platform.</span></h2>
         </div>
+        <div class="downloads">
+          <article class="card download" data-reveal data-spot data-platform="mac">
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+            <h3>macOS</h3>
+            <p>Apple Silicon. Signed and notarized, with Node, ripgrep, and language servers bundled. Updates install from the app.</p>
+            <div class="download-actions">
+              <a class="btn btn-primary" href="https://github.com/yannelli/oxbit/releases/latest" data-asset="mac" rel="noopener">Download .dmg</a>
+            </div>
+          </article>
+          <article class="card download" data-reveal data-spot data-platform="linux">
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg></div>
+            <h3>Linux</h3>
+            <p>Ubuntu 24.04 or newer on x64 and arm64. AppImage updates itself; the .deb installs with apt.</p>
+            <dl class="download-builds">
+              <div><dt>x64</dt><dd><a href="https://github.com/yannelli/oxbit/releases/latest" data-asset="linux-x64-appimage" rel="noopener">AppImage</a><a href="https://github.com/yannelli/oxbit/releases/latest" data-asset="linux-x64-deb" rel="noopener">.deb</a></dd></div>
+              <div><dt>arm64</dt><dd><a href="https://github.com/yannelli/oxbit/releases/latest" data-asset="linux-arm64-appimage" rel="noopener">AppImage</a><a href="https://github.com/yannelli/oxbit/releases/latest" data-asset="linux-arm64-deb" rel="noopener">.deb</a></dd></div>
+            </dl>
+          </article>
+          <article class="card download" data-reveal data-spot data-platform="ios">
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+            <h3>iPhone &amp; iPad</h3>
+            <p>Public beta on TestFlight. Edit files on the device, or connect to a runtime on your computer or an SSH host.</p>
+            <div class="download-actions">
+              <a class="btn btn-primary" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join TestFlight</a>
+            </div>
+          </article>
+          <article class="card download download-cli" data-reveal data-spot data-platform="cli">
+            <div class="download-cli-copy">
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+            <h3>Command line</h3>
+            <p>Needs Node 24. <code class="inline">oxbit</code> serves a project and opens the editor in your browser. Git and ripgrep enable Git and search.</p>
+            </div>
+            <div class="cta-code download-code" data-copy-root>
+              <button class="copy" type="button" aria-label="Copy install command" data-copy>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <pre><code data-copy-text>npm install -g @oxbit/cli
+oxbit ~/code/my-project</code></pre>
+            </div>
+          </article>
+        </div>
+        <p class="download-note" data-reveal>
+          <span data-release-label>Every file, with checksums</span>, is on <a href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener">GitHub Releases</a>.
+          To build from source, follow the <a href="https://github.com/yannelli/oxbit#quick-start" rel="noopener">README</a>.
+        </p>
       </div>
     </section>
   </main>
