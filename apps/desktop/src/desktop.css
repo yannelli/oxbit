@@ -131,6 +131,15 @@ html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell
 }
 .desktop-alert > span {
   flex: 1;
+  min-width: 0;
+}
+.desktop-alert pre {
+  max-height: 200px;
+  overflow: auto;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: var(--font-mono-font-size);
 }
 .desktop-dirty-list {
   max-height: 200px;

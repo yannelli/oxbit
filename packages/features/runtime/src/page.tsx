@@ -87,7 +87,7 @@ export function RuntimePage({ connector, settings, onClose }: {
                 onClick={() => perform("quick", () => connector.connect(quick))}>
                 {busy === "quick" || status.state === "connecting" ? tr("Connecting…") : tr("Connect to {0}", { 0: quick.name })}
               </button>
-            ) : (
+            ) : connector.pair && (
               <button className="button primary" onClick={() => pairWith(pairUrl)}>{tr("Pair a runtime")}</button>
             )}
             {!connected && connector.restart && status.kind && <button className="button" disabled={!!busy} onClick={() => perform("restart", connector.restart!)}>{tr("Restart")}</button>}
@@ -111,7 +111,7 @@ export function RuntimePage({ connector, settings, onClose }: {
         <SavedRuntimes connector={connector} current={connected ? status.targetKey : undefined} busy={busy} perform={perform} />
         {connector.discover && <DiscoveredRuntimes connector={connector} busy={busy} perform={perform} onPair={pairWith} />}
         {connector.sshHosts && connector.startSsh && <SshServers connector={connector} busy={busy} perform={perform} />}
-        <PairCard connector={connector} url={pairUrl} setUrl={setPairUrl} codeRef={pairCode} busy={busy} perform={perform} />
+        {connector.pair && <PairCard pair={connector.pair.bind(connector)} startCommand={connector.startCommand} url={pairUrl} setUrl={setPairUrl} codeRef={pairCode} busy={busy} perform={perform} />}
       </div>
     </div>
   );
@@ -133,17 +133,17 @@ function TrustCard({ status, busy, perform, trust }: {
   );
 }
 
-function PairCard({ connector, url, setUrl, codeRef, busy, perform }: {
-  connector: RuntimeConnector; url: string; setUrl: (value: string) => void; codeRef: React.RefObject<HTMLInputElement | null>;
+function PairCard({ pair, startCommand, url, setUrl, codeRef, busy, perform }: {
+  pair: (url: string, code: string) => Promise<void>; startCommand?: string; url: string; setUrl: (value: string) => void; codeRef: React.RefObject<HTMLInputElement | null>;
   busy?: string; perform: (key: string, action: () => Promise<void>) => void;
 }) {
   const [code, setCode] = useState("");
   return (
     <Card title={tr("Pair with a runtime")} icon="plus" wide>
-      <form className="runtime-pair" onSubmit={event => { event.preventDefault(); perform("pair", async () => { await connector.pair(url.trim(), code.trim()); setCode(""); }); }}>
-        {connector.startCommand && <>
+      <form className="runtime-pair" onSubmit={event => { event.preventDefault(); perform("pair", async () => { await pair(url.trim(), code.trim()); setCode(""); }); }}>
+        {startCommand && <>
           <p className="runtime-hint">{tr("Start a runtime on your computer, then enter its address and owner pairing code.")}</p>
-          <code className="runtime-command">{connector.startCommand}</code>
+          <code className="runtime-command">{startCommand}</code>
         </>}
         <label>{tr("Runtime URL")}
           <input type="url" inputMode="url" required autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="http://192.168.1.10:51234"

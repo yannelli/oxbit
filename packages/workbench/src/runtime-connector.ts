@@ -34,7 +34,7 @@ export interface RuntimeStatus {
 /** A runtime this device knows how to reach again. */
 export interface RuntimeTarget {
   key: string;
-  kind: "url" | "ssh";
+  kind: "local" | "url" | "ssh";
   name: string;
   runtimeId?: string;
   url?: string;
@@ -69,7 +69,7 @@ export interface RuntimeConnector {
   /** The runtime this workspace already knows: an SSH host and folder, or a saved runtime. */
   quickTarget(): RuntimeTarget | undefined;
   connect(target: RuntimeTarget): Promise<void>;
-  pair(url: string, code: string): Promise<void>;
+  pair?(url: string, code: string): Promise<void>;
   recents(): Promise<RuntimeTarget[]>;
   forget?(target: RuntimeTarget): Promise<void>;
   disconnect?(): Promise<void>;
