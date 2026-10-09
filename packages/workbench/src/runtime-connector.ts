@@ -22,6 +22,8 @@ export interface RuntimeStatus {
   /** Epoch milliseconds when the runtime started listening. */
   startedAt?: number;
   runtimeId?: string;
+  /** Key of the saved RuntimeTarget this connection came from. */
+  targetKey?: string;
   workspace?: string;
   trusted?: boolean;
   owner?: boolean;

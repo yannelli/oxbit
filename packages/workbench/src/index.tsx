@@ -61,6 +61,15 @@ import {
 } from "./shortcuts.js";
 export * from "./controller.js";
 export * from "./runtime-connector.js";
+import { RUNTIME_CONNECTOR_SERVICE, type RuntimeConnector, type RuntimeStatus } from "./runtime-connector.js";
+const noConnector = () => () => {};
+const idleConnection: RuntimeStatus = { state: "disconnected" };
+const connectionLabels: Record<RuntimeStatus["state"], string> = {
+  connected: "Connected", connecting: "Connecting…", reconnecting: "Reconnecting…", failed: "Connection failed", disconnected: "Connect",
+};
+const connectionIcons: Record<RuntimeStatus["state"], string> = {
+  connected: "cloudCheck", connecting: "sync", reconnecting: "sync", failed: "cloudOff", disconnected: "cloud",
+};
 export { workspaceEntries } from "./files.js";
 export {
   normalizeShortcut,
@@ -390,6 +399,9 @@ export function Workbench({
   const [conn, setConn] = useState(
     runtime?.connected ? "Connected" : "Browser workspace",
   );
+  const connector = kernel.services.optional<RuntimeConnector>(RUNTIME_CONNECTOR_SERVICE);
+  const connection = useSyncExternalStore(connector?.subscribe ?? noConnector, connector?.status ?? (() => idleConnection));
+  const connecting = connection.state === "connecting" || connection.state === "reconnecting";
   useEffect(() => {
     const resize = () => setWidth(innerWidth);
     window.addEventListener("resize", resize);
@@ -543,17 +555,31 @@ export function Workbench({
             </button>
             <div className="title-actions">
               {onConnect && (
-                <button
-                  className={`connection-button ${runtime?.connected ? "connected" : ""}`}
-                  onClick={onConnect}
-                  aria-label={tr("Runtime connection")}
-                >
-                  <Icon
-                    name={runtime?.connected ? "cloudCheck" : "cloud"}
-                    size={14}
-                  />
-                  <span>{tr(conn)}</span>
-                </button>
+                connector ? (
+                  <button
+                    className={`connection-button ${connection.state === "connected" ? "connected" : ""}`}
+                    data-state={connection.state}
+                    onClick={onConnect}
+                    aria-label={tr("Runtime connection")}
+                    aria-busy={connecting}
+                    title={connection.progress ?? connection.error?.message}
+                  >
+                    <Icon name={connectionIcons[connection.state]} size={14} />
+                    <span>{tr(connectionLabels[connection.state])}</span>
+                  </button>
+                ) : (
+                  <button
+                    className={`connection-button ${runtime?.connected ? "connected" : ""}`}
+                    onClick={onConnect}
+                    aria-label={tr("Runtime connection")}
+                  >
+                    <Icon
+                      name={runtime?.connected ? "cloudCheck" : "cloud"}
+                      size={14}
+                    />
+                    <span>{tr(conn)}</span>
+                  </button>
+                )
               )}
               <ToolbarContributions workbench={workbench} location="titlebar" />
               {mode === "phone" && status
@@ -763,7 +789,7 @@ export function Workbench({
         )}
         {!s.focus && mode !== "phone" && (
           <footer className="statusbar">
-            {onConnect && (
+            {onConnect && !connector && (
               <button onClick={onConnect} title={tr("Runtime connection")}>
                 <Icon
                   name={runtime?.connected ? "cloudCheck" : "cloudOff"}

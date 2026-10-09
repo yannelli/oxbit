@@ -11,13 +11,12 @@ import {
 import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 import {
   Workbench,
-  WorkbenchController,
   workspaceEntries,
   themeMode,
   themeVariables,
   currentTheme,
 } from "@oxbit/workbench";
-import { Dialog, OxbitLogo } from "@oxbit/ui";
+import { OxbitLogo } from "@oxbit/ui";
 import {
   type FileSystem,
   type FileSystemProvider,
@@ -25,6 +24,7 @@ import {
 import seed from "./seed.json";
 import { WorkspaceDialog } from "./workspace-dialog";
 import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
+import { WebRuntimeConnector, describeFailure } from "./runtime-connector";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
@@ -33,6 +33,11 @@ const persistence = new IndexedDBPersistence();
 let live: Session | undefined;
 let bootQueue: Promise<void> = Promise.resolve();
 const browserFilesystem = new BrowserFileSystem(persistence, "browser");
+let installRuntimeSession: (session: Session) => void = () => {};
+const connector = new WebRuntimeConnector({
+  persistence,
+  open: async runtime => installRuntimeSession(await boot(new RuntimeFileSystem(runtime), runtime)),
+});
 // The oxbit command opens a URL carrying the owner pairing code and the file to focus. Consume them once
 // so a reload does not mint a second owner session, and so they stop trailing the address bar.
 function takeLaunchParams() {
@@ -43,8 +48,8 @@ function takeLaunchParams() {
     history.replaceState(null, "", location.pathname + location.search);
   return { pair, open };
 }
-async function openRuntime(url: string, pairingCode?: string) {
-  const existing = new RuntimeClient(url);
+async function openRuntime(url: string, pairingCode?: string, runtimeId?: string) {
+  const existing = new RuntimeClient(url, "default", { runtimeId });
   try {
     // Sessions outlive a runtime restart, so reuse one before spending the code on a duplicate grant.
     // A restricted grant already held by this tab must not shadow an owner pairing code.
@@ -80,7 +85,7 @@ function boot(
 }
 async function openSession(filesystem: FileSystem, runtime?: RuntimeClient): Promise<Session> {
   await live?.persist();
-  const next = await createWorkbenchSession({ filesystem, runtime, persistence, preserveFilesystem: filesystem === browserFilesystem });
+  const next = await createWorkbenchSession({ filesystem, runtime, persistence, preserveFilesystem: filesystem === browserFilesystem, runtimeConnector: connector });
   await live?.dispose();
   live = next;
   return next;
@@ -89,9 +94,10 @@ async function openSession(filesystem: FileSystem, runtime?: RuntimeClient): Pro
 function App() {
   const [session, setSession] = useState<Session>(),
     [error, setError] = useState(""),
-    [overlay, setOverlay] = useState<"connection" | "workspace">(),
+    [overlay, setOverlay] = useState<"workspace">(),
     [loading, setLoading] = useState(true);
   const installSession = useCallback((s: Session) => {
+    connector.attach(s);
     setSession(s);
     setLoading(false);
     (globalThis as any).__oxbit = {
@@ -118,25 +124,11 @@ function App() {
       setLoading(false);
     }
   }, [installSession]);
-  const connectRuntime = useCallback(
-    async (url: string, code: string) => {
-      setLoading(true);
-      const runtime = new RuntimeClient(url);
-      try {
-        await runtime.pair(code);
-        await runtime.connect();
-        const s = await boot(new RuntimeFileSystem(runtime), runtime);
-        await persistence.set("last-host", { url });
-        installSession(s);
-        setOverlay(undefined);
-      } catch (e) {
-        runtime.dispose();
-        setLoading(false);
-        throw e;
-      }
-    },
-    [installSession],
-  );
+  installRuntimeSession = (s: Session) => {
+    installSession(s);
+    setOverlay(undefined);
+  };
+  const connectRuntime = useCallback((url: string, code: string) => connector.pair(url, code), []);
   useEffect(() => {
     let stopped = false;
     const start = async () => {
@@ -144,18 +136,24 @@ function App() {
       let saved = await persistence.get<any>("last-host");
       let runtime: RuntimeClient | undefined;
       let pairingError = "";
+      let reconnectError = "";
       if (pairingCode || saved?.url)
         try {
           runtime = await openRuntime(
             pairingCode ? location.origin : saved.url,
             pairingCode,
+            pairingCode ? undefined : saved.runtimeId,
           );
-          if (pairingCode) {
-            saved = { url: runtime.url };
+          if (pairingCode || runtime.identity?.id !== saved?.runtimeId) {
+            saved = { url: runtime.url, runtimeId: runtime.identity?.id };
             await persistence.set("last-host", saved);
           }
         } catch (failure) {
-          if (pairingCode) pairingError = String(failure);
+          const url = pairingCode ? location.origin : saved.url;
+          const message = await describeFailure(url, failure);
+          if (pairingCode) pairingError = message;
+          else reconnectError = message;
+          connector.store.fail(message);
         }
       const directory =
         saved === "directory" ? await restoreDirectory(persistence) : undefined;
@@ -168,10 +166,13 @@ function App() {
       )
         await browserFilesystem.import(seed);
       let next = await boot(filesystem, runtime);
-      if (pairingError)
+      if (pairingError || reconnectError)
         next.workbench.notify(
-          tr("Runtime pairing failed: {0}", { 0: pairingError }),
+          pairingError
+            ? tr("Runtime pairing failed: {0}", { 0: pairingError })
+            : tr("Could not reconnect to the runtime: {0}", { 0: reconnectError }),
           "error",
+          { actions: [{ title: tr("Open Runtime"), command: "runtime.open" }] },
         );
       if (saved === "directory" && !directory)
         next.workbench.notify(
@@ -244,7 +245,7 @@ function App() {
       }),
       add("workspace.browser", "Open Browser Workspace", useBrowserWorkspace),
       add("workspace.runtime", "Connect Runtime", () =>
-        setOverlay("connection"),
+        session.workbench.run("runtime.cloud"),
       ),
       add("workspace.export", "Export Browser Workspace", async () => {
         const files = [];
@@ -305,9 +306,8 @@ function App() {
       session={session}
       overlay={overlay}
       close={() => setOverlay(undefined)}
-      connectRuntime={connectRuntime}
       useBrowserWorkspace={useBrowserWorkspace}
-      onConnect={() => setOverlay("connection")}
+      onConnect={() => void session.workbench.run("runtime.cloud")}
       onOpenWorkspace={() => setOverlay("workspace")}
       openProvider={async (id) => {
         const contribution = session.kernel.contributions
@@ -356,7 +356,6 @@ function SessionView({
   session,
   overlay,
   close,
-  connectRuntime,
   useBrowserWorkspace,
   onConnect,
   onOpenWorkspace,
@@ -365,9 +364,8 @@ function SessionView({
   importWorkspace,
 }: {
   session: Session;
-  overlay?: "connection" | "workspace";
+  overlay?: "workspace";
   close: () => void;
-  connectRuntime: (url: string, code: string) => Promise<void>;
   useBrowserWorkspace: () => Promise<void>;
   onConnect: () => void;
   onOpenWorkspace: () => void;
@@ -399,163 +397,18 @@ function SessionView({
             fontSize: "var(--font-body-font-size)",
           }}
         >
-          {overlay === "connection" ? (
-            <ConnectionDialog
-              runtime={session.runtime}
-              close={close}
-              connect={connectRuntime}
-              workbench={session.workbench}
-            />
-          ) : (
-            <WorkspaceDialog
-              session={session}
-              close={close}
-              useBrowserWorkspace={useBrowserWorkspace}
-              openDirectory={openDirectory}
-              onConnect={onConnect}
-              openProvider={openProvider}
-              importWorkspace={importWorkspace}
-            />
-          )}
+          <WorkspaceDialog
+            session={session}
+            close={close}
+            useBrowserWorkspace={useBrowserWorkspace}
+            openDirectory={openDirectory}
+            onConnect={() => { close(); void session.workbench.run("runtime.open"); }}
+            openProvider={openProvider}
+            importWorkspace={importWorkspace}
+          />
         </div>
       )}
     </>
-  );
-}
-function ConnectionDialog({
-  runtime,
-  close,
-  connect,
-  workbench,
-}: {
-  runtime?: RuntimeClient;
-  close: () => void;
-  connect: (url: string, code: string) => Promise<void>;
-  workbench: WorkbenchController;
-}) {
-  const [url, setUrl] = useState(runtime?.url || location.origin),
-    [code, setCode] = useState(""),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [trusted, setTrusted] = useState(!!runtime?.session?.trusted);
-  useEffect(() => {
-    const off = runtime?.subscribe("workspace.trust", ({ trusted }) => {
-      setTrusted(trusted === true);
-    });
-    return () => { off?.(); };
-  }, [runtime]);
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await connect(url, code);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const toggleTrust = async () => {
-    if (!runtime || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await runtime.trust(!trusted);
-      setTrusted(!!runtime.session?.trusted);
-      workbench.kernel.context.set("trusted", !!runtime.session?.trusted);
-      workbench.touch();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Dialog title={tr("Runtime Connection")} onClose={close}>
-      {runtime?.connected ? (
-        <div className="runtime-form">
-          <p>
-            {tr("Connected to")} <strong>{runtime.url}</strong>.
-          </p>
-          <p>
-            {tr("Workspace tool execution:")}{" "}
-            <strong>{trusted ? tr("Trusted") : tr("Restricted")}</strong>
-          </p>
-          <p>
-            {tr(
-              "Trust allows terminals, tasks, Git hooks and language servers to execute workspace code.",
-            )}
-          </p>
-          <button
-            className="button primary"
-            disabled={busy}
-            aria-busy={busy}
-            onClick={() => void toggleTrust()}
-          >
-            {busy
-              ? tr("Working…")
-              : trusted
-              ? tr("Revoke workspace trust")
-              : tr("Trust workspace tools")}
-          </button>
-          <button
-            className="button"
-            onClick={() => {
-              runtime.disconnect();
-              workbench.touch();
-              close();
-            }}
-          >
-            {tr("Disconnect")}
-          </button>
-          {error && (
-            <p className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
-      ) : (
-        <form className="runtime-form" onSubmit={(e) => void submit(e)}>
-          <p>
-            {tr("Start the Node runtime and enter its owner pairing code.")}
-          </p>
-          <label>
-            {tr("Runtime URL")}
-            <input
-              type="url"
-              required
-              aria-label={tr("Runtime URL")}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </label>
-          <label>
-            {tr("Pairing code")}
-            <input
-              required
-              autoComplete="off"
-              aria-label={tr("Pairing code")}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </label>
-          {error && (
-            <p className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="dialog-actions">
-            <button type="button" className="button" onClick={close}>
-              {tr("Cancel")}
-            </button>
-            <button type="submit" className="button primary" disabled={busy}>
-              {busy ? tr("Connecting…") : tr("Pair and connect")}
-            </button>
-          </div>
-        </form>
-      )}
-    </Dialog>
   );
 }
 createRoot(document.getElementById("root")!).render(<App />);
