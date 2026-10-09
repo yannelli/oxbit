@@ -2,6 +2,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { decodeText, encodeText, normalizePath } from "@oxbit/host-browser";
 import type { Disposable, Encoding, FileChange, FileEntry, FileSnapshot, FileSystem, WriteOptions } from "@oxbit/sdk";
 import { native, ssh, type OpenedRoot } from "./native.js";
+import { findRootFiles, searchRoot } from "./search.js";
 
 type RootCommands = Pick<typeof native, "list" | "read" | "write" | "mkdir" | "rename" | "delete" | "closeRoot">;
 
@@ -15,6 +16,9 @@ export class IosFileSystem implements FileSystem {
   readonly id: string;
   readonly name: string;
   readonly root: string;
+  /** Device roots only; SFTP roots keep the workbench's JS walk. */
+  readonly search?: FileSystem["search"];
+  readonly findFiles?: FileSystem["findFiles"];
   private readonly listeners = new Set<(event: FileChange) => void>();
   private readonly encodings = new Map<string, Encoding>();
   private subscription?: Promise<UnlistenFn>;
@@ -23,6 +27,10 @@ export class IosFileSystem implements FileSystem {
     this.id = opened.id;
     this.name = opened.name;
     this.root = opened.root;
+    if (commands === native) {
+      this.search = (options, signal) => searchRoot(this.id, options, signal);
+      this.findFiles = (query, signal) => findRootFiles(this.id, query, signal);
+    }
   }
   static async open(path: string): Promise<IosFileSystem> {
     return new IosFileSystem(await native.openRoot(path));

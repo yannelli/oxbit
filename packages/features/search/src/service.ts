@@ -69,6 +69,13 @@ export class SearchService {
         );
         matches = Array.isArray(result) ? result : (result.matches ?? []);
         this.truncated = result.truncated === true;
+      } else if (this.o.filesystem.search) {
+        const result = await this.o.filesystem.search(
+          { ...options },
+          cancellation,
+        );
+        matches = result.matches;
+        this.truncated = result.truncated;
       } else {
         let batch: SearchFile[] = [];
         let bytes = 0;

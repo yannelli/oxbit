@@ -367,6 +367,33 @@ export interface FileSystem {
   delete(path: string): Promise<void>;
   watch(listener: (event: FileChange) => void): Disposable;
   dispose?(): void;
+  /** Content search with the runtime `search.query` semantics. Hosts without native search omit it. */
+  search?(options: WorkspaceSearchOptions, signal?: AbortSignal): Promise<WorkspaceSearchResult>;
+  /** Quick-open file paths whose lowercase form contains `query` as a subsequence, at most 1000. */
+  findFiles?(query: string, signal?: AbortSignal): Promise<string[]>;
+}
+export interface WorkspaceSearchOptions {
+  query: string;
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  regex?: boolean;
+  /** Comma-separated globs. */
+  include?: string;
+  exclude?: string;
+}
+/** `column`, `from`, and `to` count UTF-16 code units in the decoded file text. */
+export interface WorkspaceSearchMatch {
+  path: string;
+  line: number;
+  column: number;
+  from: number;
+  to: number;
+  text: string;
+  revision: string;
+}
+export interface WorkspaceSearchResult {
+  matches: WorkspaceSearchMatch[];
+  truncated: boolean;
 }
 export interface Persistence {
   get<T>(key: string): Promise<T | undefined>;

@@ -34,3 +34,4 @@ export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";
 export { IosIconPackStore } from "./icon-packs.js";
 export { IosLanguageTransport, createIosLanguageFeature, type IosLanguageServerKind } from "./language.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
+export { searchRoot, findRootFiles } from "./search.js";
