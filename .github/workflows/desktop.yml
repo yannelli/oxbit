@@ -17,6 +17,10 @@ jobs:
             platform: darwin-arm64
           - runner: ubuntu-24.04
             platform: linux-x64
+            ssh-platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+            ssh-platform: linux/arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +42,8 @@ jobs:
           if-no-files-found: error
       - name: Real SSH acceptance on an offline host
         if: runner.os == 'Linux'
+        env:
+          OXBIT_SSH_TEST_PLATFORM: ${{ matrix.ssh-platform }}
         run: bun run remote:test
   build:
     needs: remote-runtime
@@ -51,6 +57,8 @@ jobs:
             platform: darwin-arm64
           - runner: ubuntu-24.04
             platform: linux-x64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4

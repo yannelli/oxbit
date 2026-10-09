@@ -4,7 +4,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-export const remotePlatforms = ["darwin-arm64", "linux-x64"];
+export const remotePlatforms = ["darwin-arm64", "linux-x64", "linux-arm64"];
 
 export async function buildReleaseManifest(directories, version) {
   const found = {};

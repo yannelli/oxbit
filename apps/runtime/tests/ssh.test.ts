@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import * as fs from "node:fs/promises";
 import os from "node:os";
@@ -78,6 +78,27 @@ describe("SSH workspace boundary", () => {
       )();
       expect(await fs.readdir(dir)).toEqual([]);
     } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+  it("replaces an owner with the same workspace key and refuses another key", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-ssh-takeover-"));
+    const owner = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+    try {
+      await new Promise((resolve) => owner.once("spawn", resolve));
+      await fs.mkdir(path.join(dir, "ssh-owner"));
+      await fs.writeFile(path.join(dir, "ssh-owner/pid"), String(owner.pid));
+      await fs.writeFile(path.join(dir, "ssh-owner/workspace"), "a".repeat(64));
+      await expect(acquireRemoteWorkspace(dir, "b".repeat(64))).rejects.toThrow("already open");
+      expect(owner.exitCode).toBeNull();
+      const exited = new Promise((resolve) => owner.once("exit", (_code, signal) => resolve(signal)));
+      const release = await acquireRemoteWorkspace(dir, "a".repeat(64));
+      expect(await exited).toBe("SIGTERM");
+      expect(await fs.readFile(path.join(dir, "ssh-owner/pid"), "utf8")).toBe(String(process.pid));
+      expect(await fs.readFile(path.join(dir, "ssh-owner/workspace"), "utf8")).toBe("a".repeat(64));
+      await release();
+    } finally {
+      owner.kill("SIGKILL");
       await fs.rm(dir, { recursive: true, force: true });
     }
   });

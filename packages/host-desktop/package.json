@@ -9,7 +9,10 @@
     "@oxbit/app-workbench": "workspace:*",
     "@oxbit/host-runtime": "workspace:*",
     "@tauri-apps/api": "2.11.1",
-    "@oxbit/icon-themes": "workspace:*"
+    "@oxbit/icon-themes": "workspace:*",
+    "@oxbit/feature-runtime": "workspace:*",
+    "@oxbit/protocol": "workspace:*",
+    "@oxbit/workbench": "workspace:*"
   },
   "license": "MIT"
 }

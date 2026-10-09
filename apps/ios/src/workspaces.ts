@@ -1,5 +1,6 @@
 import { createWorkbenchSession, RuntimeClient, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
 import { connectRuntime, runtimeScope } from "./runtime.js";
+import { runtimeConnector } from "./runtime-connector.js";
 import { normalizePath } from "@oxbit/host-browser";
 import {
   IosFileSystem,
@@ -32,7 +33,7 @@ export interface OpenWorkspace {
 export type OpenRequest =
   | { kind: "documents"; directory?: string }
   | { kind: "pick" }
-  | { kind: "runtime"; url: string; code?: string }
+  | { kind: "runtime"; url: string; code?: string; runtimeId?: string }
   | { kind: "ssh"; hostId: string; path: string; label: string }
   | { kind: "sshRuntime"; hostId: string; path: string; label: string; onEvent?: (event: RemoteRuntimeEvent) => void }
   | { kind: "recent"; recent: RecentWorkspace };
@@ -58,15 +59,16 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   if (request.kind === "runtime" || (request.kind === "recent" && request.recent.kind === "runtime")) {
     const url = request.kind === "runtime" ? request.url : request.recent.url;
     if (!url) throw new Error("This runtime address is missing. Connect to it again.");
-    const runtime = await connectRuntime(url, request.kind === "runtime" ? request.code : undefined);
+    const runtime = await connectRuntime(url, request.kind === "runtime" ? request.code : undefined,
+      request.kind === "runtime" ? request.runtimeId : request.recent.runtimeId);
     let session: Session | undefined;
     try {
       const scope = await runtimeScope(runtime);
       const filesystem = new RuntimeFileSystem(runtime, scope);
-      session = await createWorkbenchSession({ filesystem, runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore });
+      session = await createWorkbenchSession({ filesystem, runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore, runtimeConnector });
       const recent: RecentWorkspace = {
-        id: "runtime:" + scope.slice(4), kind: "runtime", url: runtime.url,
-        name: runtime.session?.workspaceName ?? new URL(runtime.url).hostname, lastOpened: Date.now(),
+        id: "runtime:" + scope.slice(4), kind: "runtime", url: runtime.url, runtimeId: runtime.identity?.id,
+        name: runtime.session?.workspaceName ?? runtime.identity?.name ?? new URL(runtime.url).hostname, lastOpened: Date.now(),
       };
       await rememberWorkspace(recent);
       await native.storageSet(SESSION_SCOPE, LAST_KEY, recent.id);
@@ -87,7 +89,7 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
   const git = new IosGitClient(filesystem.id);
   let session: Session | undefined;
   try {
-    session = await createWorkbenchSession({ filesystem, git, persistence, protectUnload: false, preserveFilesystem: true, iconPackStore });
+    session = await createWorkbenchSession({ filesystem, git, persistence, protectUnload: false, preserveFilesystem: true, iconPackStore, runtimeConnector });
     const languageFeature = createIosLanguageFeature(filesystem);
     session.kernel.extensions.register(languageFeature);
     if (!(await persistence.get<string[]>("extension-disabled"))?.includes(languageFeature.manifest.id))
@@ -111,7 +113,7 @@ async function openSsh(request: Extract<OpenRequest, { kind: "ssh" }>): Promise<
   let session: Session | undefined;
   try {
     session = await createWorkbenchSession({
-      filesystem, persistence: new IosPersistence(filesystem.id), protectUnload: false, preserveFilesystem: true, iconPackStore,
+      filesystem, persistence: new IosPersistence(filesystem.id), protectUnload: false, preserveFilesystem: true, iconPackStore, runtimeConnector,
     });
     const recent: RecentWorkspace = {
       id: "ssh:" + filesystem.id.slice(4), kind: "ssh", name: `${request.label}: ${filesystem.name}`,
@@ -134,12 +136,12 @@ async function openSshRuntime(request: Extract<OpenRequest, { kind: "sshRuntime"
   let runtime: RuntimeClient | undefined;
   let session: Session | undefined;
   try {
-    const started = await ssh.runtimeStart(id, request.hostId, request.path);
+    const started = await ssh.runtimeStart(id, request.hostId, request.path, runtimeConnector.keepAlive());
     runtime = new RuntimeClient(started.url, "default", { token: started.token, persistToken: false });
     await runtime.connect();
     const scope = "ios:" + started.workspaceKey;
     session = await createWorkbenchSession({
-      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore,
+      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore, runtimeConnector,
     });
     if (started.openFile) await session.workbench.openFile(started.openFile, { preview: false });
     const recent: RecentWorkspace = {
@@ -177,8 +179,8 @@ export async function forgetRecent(id: string) {
   const recent = (await loadRecents()).find(item => item.id === id);
   const next = await forgetWorkspace(id);
   if (recent?.kind === "runtime" && recent.url) {
-    if (!next.some(item => item.kind === "runtime" && item.url === recent.url))
-      await native.runtimeCredentials({ operation: "forget", url: recent.url });
+    if (!next.some(item => item.kind === "runtime" && (item.url === recent.url || (recent.runtimeId && item.runtimeId === recent.runtimeId))))
+      await native.runtimeCredentials({ operation: "forget", url: recent.url, runtimeId: recent.runtimeId });
   } else if (recent?.kind === "bookmark") await native.forgetFolder(id).catch(() => {});
   if ((await native.storageGet<string>(SESSION_SCOPE, LAST_KEY)) === id) await native.storageSet(SESSION_SCOPE, LAST_KEY, null);
   return next;

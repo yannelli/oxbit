@@ -1,3 +1,5 @@
+// Evaluated first so an unsupported Node exits before the runtime modules load.
+import "./node-version.js";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { run } from "./cli.js";

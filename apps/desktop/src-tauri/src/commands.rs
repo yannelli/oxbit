@@ -290,6 +290,7 @@ pub async fn desktop_connection(
     window: WebviewWindow,
     key: String,
     restart: Option<bool>,
+    keep_alive: Option<u64>,
 ) -> Result<Value, String> {
     let project = authorized(&app, &window, &key)?;
     tauri::async_runtime::spawn_blocking(move || {
@@ -313,8 +314,8 @@ pub async fn desktop_connection(
         let progress_app = app.clone(); let progress_key = key.clone();
         let process = OwnedRuntime::launch(&resource.join("bin/node"), &resource.join("desktop.js"), Launch {
             version: 1, r#type: "launch", root: &project.path, data_dir: &data.to_string_lossy(), workspace_key: &key, token: &token,
-            rg_path: &resource.join("bin/rg").to_string_lossy(), git_path: git.as_deref(), development: cfg!(debug_assertions) && !cfg!(feature = "custom-protocol"),
-        }, &desktop.environment, move || { let _ = event_app.emit("desktop-runtime-failed", json!({"key":event_key})); }, move |message| { let _ = progress_app.emit("desktop-remote-progress", json!({"key":progress_key,"message":message})); })?;
+            rg_path: &resource.join("bin/rg").to_string_lossy(), git_path: git.as_deref(), development: cfg!(debug_assertions) && !cfg!(feature = "custom-protocol"), keep_alive,
+        }, &desktop.environment, move |detail| { let _ = event_app.emit("desktop-runtime-failed", json!({"key":event_key,"detail":detail})); }, move |message| { let _ = progress_app.emit("desktop-remote-progress", json!({"key":progress_key,"message":message})); })?;
         // Ownership can change while the runtime starts. Never return credentials to a former owner.
         desktop.model.lock().unwrap().authorize(window.label(), &key)?;
         let result = json!({"url":format!("http://127.0.0.1:{}", process.port), "token":token, "key":key, "openFile":process.open_file});

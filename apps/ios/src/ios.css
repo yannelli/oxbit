@@ -104,3 +104,8 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
     & .activity-bar > button.active::before { display: none; }
   }
 }
+.ios-runtime-sheet > .runtime-page {
+  height: auto; min-height: 100%;
+  padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
+.ios-runtime-sheet > .runtime-page > * { margin-inline: auto; }

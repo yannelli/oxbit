@@ -11,7 +11,7 @@ await fs.mkdir(output, { recursive: true });
 const records = [];
 for (const name of (await fs.readdir(cache)).sort()) {
   // The proprietary server is always obtained directly from upstream, including in CI.
-  if (name.startsWith("intelephense") || !/(?:darwin-arm64|linux-x64)$/.test(name)) continue;
+  if (name.startsWith("intelephense") || !/(?:darwin-arm64|linux-x64|linux-arm64)$/.test(name)) continue;
   for (const digest of (await fs.readdir(path.join(cache, name))).sort()) {
     if (!/^[a-f0-9]{64}$/.test(digest)) continue;
     const directory = path.join(cache, name, digest);

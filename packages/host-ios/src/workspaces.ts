@@ -10,6 +10,8 @@ export interface RecentWorkspace {
   directory?: string;
   hostId?: string;
   remotePath?: string;
+  /** The runtime's identity `id`; one recent per runtime survives a port change. */
+  runtimeId?: string;
   lastOpened: number;
 }
 const RECENTS_KEY = "recents";
@@ -20,7 +22,9 @@ export async function loadRecents(): Promise<RecentWorkspace[]> {
   return Array.isArray(stored) ? stored : [];
 }
 export async function rememberWorkspace(entry: Omit<RecentWorkspace, "lastOpened">): Promise<RecentWorkspace[]> {
-  const next = [{ ...entry, lastOpened: Date.now() }, ...(await loadRecents()).filter((item) => item.id !== entry.id)]
+  const replaced = (item: RecentWorkspace) =>
+    item.id === entry.id || (entry.runtimeId !== undefined && item.runtimeId === entry.runtimeId);
+  const next = [{ ...entry, lastOpened: Date.now() }, ...(await loadRecents()).filter((item) => !replaced(item))]
     .sort((a, b) => b.lastOpened - a.lastOpened)
     .slice(0, RECENTS_LIMIT);
   await native.storageSet(SESSION_SCOPE, RECENTS_KEY, next);

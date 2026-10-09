@@ -69,7 +69,7 @@ The syntax fallback and static project index do not implement full MDX compilati
 
 ## Laravel and Blade
 
-The official [`laravel/lsp` 0.0.31](https://github.com/laravel/lsp/releases/tag/v0.0.31) standalone binaries are pinned with SHA-256 integrity for Apple Silicon macOS and Linux x64. The installer does not require a global Composer installation. PHP files inside an `artisan` root use Laravel alongside Intelephense; `.blade.php` files have the `blade` language ID and use Laravel with PHP/HTML syntax fallback. Plain PHP projects continue using Intelephense alone. Nested `composer.json` files do not displace the Laravel application's `artisan` root.
+The official [`laravel/lsp` 0.0.31](https://github.com/laravel/lsp/releases/tag/v0.0.31) standalone binaries are pinned with SHA-256 integrity for Apple Silicon macOS, Linux x64, and Linux arm64. The installer does not require a global Composer installation. PHP files inside an `artisan` root use Laravel alongside Intelephense; `.blade.php` files have the `blade` language ID and use Laravel with PHP/HTML syntax fallback. Plain PHP projects continue using Intelephense alone. Nested `composer.json` files do not displace the Laravel application's `artisan` root.
 
 Laravel's server inspects a running project through its PHP environment. The application's dependencies and supported PHP environment must be available. It runs only through the existing trusted-runtime LSP boundary. The upstream auto-detection can be overridden using `languageServers.laravel.initializationOptions.phpEnvironment` or `phpCommand`, for example:
 

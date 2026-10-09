@@ -1,6 +1,8 @@
 # Oxbit desktop
 
-Oxbit uses Tauri 2 and the shared React workbench. The desktop targets are **Apple Silicon macOS 26+** and **Ubuntu 24.04+ x64**. Ubuntu 24.04 is the build baseline and minimum supported Linux distribution. Windows, Intel Macs, Linux arm64, and app stores are outside this implementation.
+Created: 2026-09-07. Last updated: 2026-10-09.
+
+Oxbit uses Tauri 2 and the shared React workbench. The desktop targets are **Apple Silicon macOS 26+** and **Ubuntu 24.04+ x64 and arm64**. Ubuntu 24.04 is the build baseline and minimum supported Linux distribution. Windows, Intel Macs, and app stores are outside this implementation.
 
 The application identifier is `com.yannelli.oxbit`. The iPhone and iPad app in `apps/ios` shares it; see [iOS](ios.md). `package.json` at the repository root supplies the application and release version.
 
@@ -41,7 +43,7 @@ An outer X11 display remains available for clipboard interoperability.
 
 ## Runtime packaging
 
-`scripts/desktop/binaries.json` pins Node, ripgrep, and Linux packaging helpers with SHA-256 checksums.
+`scripts/desktop/binaries.json` pins Node, ripgrep, and Linux packaging helpers with SHA-256 checksums. `linuxBundleTools` lists the helpers per Node `process.arch` (`x64`, `arm64`), using the file names Tauri's bundler looks for (`AppRun-<arch>`, `linuxdeploy-<arch>.AppImage`, `linuxdeploy-plugin-appimage.AppImage`). The `linuxdeploy` and `linuxdeploy-plugin-appimage` downloads come from the mutable `linuxdeploy` and `continuous` release tags, so upstream rebuilds change their checksums; the pins were refreshed on 2026-10-09.
 `bundle-tools.mjs` seeds and verifies Tauri's helper cache before packaging;
 plugin scripts use immutable upstream commits. Changed upstream binary assets
 fail the checksum gate and require an explicit reviewed pin update. `desktop:prepare` stages ordinary files under `apps/desktop/src-tauri/resources/runtime`, including the production dependency tree, TypeScript, the language server, `node-pty`, spawn helpers, dependency notices, and a package inventory. There are no links into the package manager store. Downloads cache in `.desktop-cache`; both cache and generated resources are ignored by Git.
@@ -91,7 +93,7 @@ for signing configuration, local Keychain setup, final-DMG submission, and
 local build checks. `scripts/desktop/notarize.mjs` accepts
 `APPLE_KEYCHAIN_PROFILE` and explicit `--app` / `--dmg` paths for local builds.
 
-`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64 for pull requests without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) run `.github/workflows/release.yml`, which signs, notarizes, and publishes the macOS release; see [signed releases](release.md).
+`.github/workflows/desktop.yml` builds macOS arm64 and Ubuntu 24.04 x64 and arm64 (`ubuntu-24.04-arm`) for pull requests without signing secrets; macOS uses ad hoc signing. Local macOS builds also use ad hoc signing unless `APPLE_SIGNING_IDENTITY` selects a certificate. Matching version tags (`v<root package version>`) run `.github/workflows/release.yml`, which signs, notarizes, and publishes the macOS release and publishes the Linux `.deb` and updater-signed AppImage for x64 and, when its job succeeds, arm64; see [signed releases](release.md).
 
 The release workflow reads these GitHub Actions secrets:
 
@@ -110,7 +112,7 @@ Set the repository **variable** `OXBIT_UPDATER_PUBLIC_KEY` to the matching publi
 
 Nested Mach-O executables/libraries are signed first. Bundled Node receives the JIT, unsigned executable memory, and library-loading entitlements it needs. The application uses the hardened runtime without granting Node's exceptions to the main executable. Tauri signs/notarizes the app; the separate `notarize.mjs` step signs, submits, staples, validates, and assesses the final DMG. Validate the downloaded artifact on a separate Mac before publication.
 
-Signed macOS `.app.tar.gz` and Linux `.AppImage` update artifacts have separate `.sig` files. `publish-release.mjs` uploads the artifacts to a draft first, then `manifest.mjs` verifies their presence and writes the GitHub-hosted `latest.json` (Linux is included when an AppImage is present), and the script publishes the draft. It refuses to replace assets on a published release. The app checks on startup and on request; installation requires acceptance. Invalid signatures or download failures leave the installed app untouched. Restart runs the same multi-window close flow. `.deb` installations link to package downloads instead of replacing themselves with an AppImage. Unsigned development builds have no working production updater configuration.
+Signed macOS `.app.tar.gz` and Linux `.AppImage` update artifacts have separate `.sig` files. `publish-release.mjs` uploads the artifacts to a draft first, then `manifest.mjs` verifies their presence and writes the GitHub-hosted `latest.json` with `darwin-aarch64`, `linux-x86_64` (`*_amd64.AppImage`), and `linux-aarch64` (`*_aarch64.AppImage`, when present), and the script publishes the draft. It refuses to replace assets on a published release. The app checks on startup and on request; installation requires acceptance. Invalid signatures or download failures leave the installed app untouched. Restart runs the same multi-window close flow. `.deb` installations link to package downloads instead of replacing themselves with an AppImage. Unsigned development builds have no working production updater configuration.
 
 ### Local macOS builds
 
@@ -136,6 +138,6 @@ CI=1 bun run desktop:build
 
 ## Release checks
 
-Before publishing, check the installed artifacts, including a clean Ubuntu 24.04 x64 installation under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/Bun, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
+Before publishing, check the installed artifacts, including clean Ubuntu 24.04 x64 and arm64 installations under X11 and Wayland, and downloaded-DMG/Gatekeeper checks on macOS 26+. Test without system Node/Bun, missing Git/gh, existing gh authentication, read-only application resources, spaces/Unicode paths, native dialogs/clipboard, accessibility, conflicts, extensions, and collaboration. The browser collaboration regression suite does not establish native desktop sharing acceptance.
 
 Finally install a signed previous version, open multiple projects with unsaved files and active tools, and accept a signed version-to-version update. Exercise Cancel, Save All, Discard, offline checks, invalid signatures, interrupted downloads, and an unwritable installation. Verify restored drafts/layout and no replayed tools after restart. Record the platform, version, and results with the release.

@@ -101,7 +101,7 @@ export function SshDialog({
         </label>
         <p>
           Uses your SSH config and keys. Connect once in a terminal to verify a
-          new host. Supports Linux x64 and macOS Apple Silicon.
+          new host. Supports Linux x64 and arm64, and macOS Apple Silicon.
         </p>
         {error && <p role="alert">{error}</p>}
         <div className="dialog-actions">

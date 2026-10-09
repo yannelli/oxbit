@@ -11,11 +11,20 @@ fn invalid_response() -> Error {
     Error::new("REMOTE_RUNTIME", "Invalid remote runtime response")
 }
 
-pub fn launch_frame(root: &str, workspace_key: &str, token: &str) -> String {
-    let frame = json!({
+/// `keep_alive` is the lease in milliseconds after the last client; 0 runs until stopped.
+pub fn launch_frame(
+    root: &str,
+    workspace_key: &str,
+    token: &str,
+    keep_alive: Option<u64>,
+) -> String {
+    let mut frame = json!({
         "version": 1, "type": "launch", "remoteRuntime": true, "root": root,
         "workspaceKey": workspace_key, "token": token, "development": false,
     });
+    if let Some(keep_alive) = keep_alive {
+        frame["keepAlive"] = json!(keep_alive);
+    }
     frame.to_string() + "\n"
 }
 

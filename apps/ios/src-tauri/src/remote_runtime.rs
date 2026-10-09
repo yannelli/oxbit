@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 include!(concat!(env!("OUT_DIR"), "/remote_runtime_manifest.rs"));
 
-pub const PLATFORMS: [&str; 2] = ["darwin-arm64", "linux-x64"];
+pub const PLATFORMS: [&str; 3] = ["darwin-arm64", "linux-x64", "linux-arm64"];
 const RELEASE_DOWNLOADS: &str = "https://github.com/yannelli/oxbit/releases/download";
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -99,20 +99,21 @@ mod tests {
 
     const DARWIN: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const LINUX: &str = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
+    const ARM: &str = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 
     fn manifest(version: &str, platforms: &str) -> String {
         format!(r#"{{"version":"{version}","platforms":{{{platforms}}}}}"#)
     }
 
-    fn both() -> String {
+    fn all() -> String {
         format!(
-            r#""darwin-arm64":{{"sha256":"{DARWIN}","size":52000000}},"linux-x64":{{"sha256":"{LINUX}","size":48000000}}"#
+            r#""darwin-arm64":{{"sha256":"{DARWIN}","size":52000000}},"linux-x64":{{"sha256":"{LINUX}","size":48000000}},"linux-arm64":{{"sha256":"{ARM}","size":47000000}}"#
         )
     }
 
     #[test]
     fn parses_a_release_manifest_and_builds_download_urls() {
-        let parsed = parse(&manifest("0.4.0-alpha.1", &both()), "0.4.0-alpha.1").unwrap();
+        let parsed = parse(&manifest("0.4.0-alpha.1", &all()), "0.4.0-alpha.1").unwrap();
         assert_eq!(
             parsed.download("linux-x64").unwrap(),
             Download {
@@ -125,12 +126,20 @@ mod tests {
             parsed.download("darwin-arm64").unwrap().url,
             "https://github.com/yannelli/oxbit/releases/download/v0.4.0-alpha.1/remote-runtime-darwin-arm64.tar.gz"
         );
+        assert_eq!(
+            parsed.download("linux-arm64").unwrap(),
+            Download {
+                url: "https://github.com/yannelli/oxbit/releases/download/v0.4.0-alpha.1/remote-runtime-linux-arm64.tar.gz".into(),
+                sha256: ARM.into(),
+                size: 47_000_000,
+            }
+        );
         assert!(parsed.download("darwin-x64").is_err());
     }
 
     #[test]
     fn rejects_a_manifest_for_another_version() {
-        let error = parse(&manifest("0.3.3", &both()), "0.3.4").unwrap_err();
+        let error = parse(&manifest("0.3.3", &all()), "0.3.4").unwrap_err();
         assert!(error.contains("0.3.3"), "{error}");
     }
 
@@ -138,10 +147,11 @@ mod tests {
     fn rejects_missing_or_unknown_platforms() {
         let darwin_only = format!(r#""darwin-arm64":{{"sha256":"{DARWIN}","size":1}}"#);
         assert!(parse(&manifest("0.3.4", &darwin_only), "0.3.4").is_err());
-        let with_intel = format!(
-            r#"{},"darwin-x64":{{"sha256":"{DARWIN}","size":1}}"#,
-            both()
+        let without_arm = format!(
+            r#""darwin-arm64":{{"sha256":"{DARWIN}","size":1}},"linux-x64":{{"sha256":"{LINUX}","size":1}}"#
         );
+        assert!(parse(&manifest("0.3.4", &without_arm), "0.3.4").is_err());
+        let with_intel = format!(r#"{},"darwin-x64":{{"sha256":"{DARWIN}","size":1}}"#, all());
         assert!(parse(&manifest("0.3.4", &with_intel), "0.3.4").is_err());
     }
 
@@ -154,7 +164,7 @@ mod tests {
             (DARWIN, "0"),
         ] {
             let platforms = format!(
-                r#""darwin-arm64":{{"sha256":"{digest}","size":{size}}},"linux-x64":{{"sha256":"{LINUX}","size":1}}"#
+                r#""darwin-arm64":{{"sha256":"{digest}","size":{size}}},"linux-x64":{{"sha256":"{LINUX}","size":1}},"linux-arm64":{{"sha256":"{ARM}","size":1}}"#
             );
             assert!(
                 parse(&manifest("0.3.4", &platforms), "0.3.4").is_err(),
@@ -163,7 +173,7 @@ mod tests {
         }
         let extra = format!(
             r#"{{"version":"0.3.4","schema":1,"platforms":{{{}}}}}"#,
-            both()
+            all()
         );
         assert!(parse(&extra, "0.3.4").is_err());
     }

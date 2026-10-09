@@ -19,6 +19,7 @@
     "@oxbit/feature-editor": "workspace:*",
     "@oxbit/feature-explorer": "workspace:*",
     "@oxbit/feature-settings": "workspace:*",
+    "@oxbit/feature-runtime": "workspace:*",
     "@oxbit/feature-extensions": "workspace:*",
     "@oxbit/feature-themes": "workspace:*",
     "@oxbit/feature-keymaps": "workspace:*",
