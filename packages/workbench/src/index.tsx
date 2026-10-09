@@ -60,6 +60,7 @@ import {
   displayShortcut,
 } from "./shortcuts.js";
 export * from "./controller.js";
+export * from "./runtime-connector.js";
 export { workspaceEntries } from "./files.js";
 export {
   normalizeShortcut,
