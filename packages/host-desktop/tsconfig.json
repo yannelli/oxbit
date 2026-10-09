@@ -25,6 +25,15 @@
     },
     {
       "path": "../icon-themes"
+    },
+    {
+      "path": "../features/runtime"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../workbench"
     }
   ]
 }

@@ -7,7 +7,8 @@ import { IosGitClient, native, ssh, type RecentWorkspace, type RemoteRuntimeEven
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
-import { RuntimeConnection } from "./runtime-connection.js";
+import { RuntimePage } from "@oxbit/feature-runtime";
+import { runtimeConnector } from "./runtime-connector.js";
 import { GitSettings } from "./git-settings.js";
 import { CloneRepository } from "./clone-repository.js";
 import { SshSettings } from "./ssh-settings.js";
@@ -65,7 +66,7 @@ function App() {
   const [workspaceKey, setWorkspaceKey] = useState(0);
   const [recents, setRecents] = useState<RecentWorkspace[]>([]);
   const [sheet, setSheet] = useState(true);
-  const [connection, setConnection] = useState(false);
+  const [runtimePage, setRuntimePage] = useState(false);
   const [gitSettings, setGitSettings] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [sshSettings, setSshSettings] = useState(false);
@@ -102,6 +103,7 @@ function App() {
       setWorkspace(undefined);
       setSheet(true);
     });
+    runtimeConnector.attach(undefined);
     await closeWorkspace(previous).catch((e) => setError(describe(e)));
   }, []);
 
@@ -159,12 +161,16 @@ function App() {
         setWorkspace(next);
         setWorkspaceKey(key => key + 1);
         setSheet(false);
+        setRuntimePage(false);
       });
+      runtimeConnector.attach(next);
       if (previous) await closeWorkspace(previous);
       setRecents(await loadRecents());
     } catch (e) {
       const message = describe(e);
       if (!/cancelled/i.test(message)) setError(message);
+      if (request.kind === "runtime" || request.kind === "sshRuntime" || (request.kind === "recent" && request.recent.kind === "runtime"))
+        runtimeConnector.store.fail(message);
       return message;
     } finally {
       opening.current = false;
@@ -172,9 +178,19 @@ function App() {
     }
   }, [remoteEvent, close]);
 
+  useEffect(() => { runtimeConnector.setRecents(recents); }, [recents]);
+  useEffect(() => {
+    runtimeConnector.host = {
+      open, close,
+      forget: id => forgetRecent(id).then(setRecents),
+      startSsh: (hostId, path) => setSshConnect({ preset: { hostId, path }, mode: "runtime" }),
+      manageSsh: () => setSshSettings(true),
+    };
+  }, [open, close]);
   useEffect(() => {
     void (async () => {
       try {
+        await runtimeConnector.loadSettings();
         setRecents(await loadRecents());
         const last = await lastWorkspace();
         if (last?.kind === "ssh" || last?.kind === "sshRuntime") setSshConnect(sshTarget(last, last.kind === "sshRuntime" ? "runtime" : "files"));
@@ -191,7 +207,11 @@ function App() {
     // iOS suspends sockets in the background, so a remote runtime reconnects on return.
     const persist = () => {
       if (document.visibilityState === "hidden") void current.current?.session.persist();
-      else resume();
+      else {
+        resume();
+        const runtime = current.current?.session.runtime;
+        if (runtime && !current.current?.remote && !runtime.connected && runtimeConnector.autoReconnect()) runtime.reconnect();
+      }
     };
     document.addEventListener("visibilitychange", persist);
     return () => document.removeEventListener("visibilitychange", persist);
@@ -204,7 +224,7 @@ function App() {
       ["workspace.open", "Open Folder…", () => open({ kind: "pick" })],
       ["workspace.switch", "Switch Workspace…", () => setSheet(true)],
       ["workspace.close", "Close Workspace", () => close()],
-      ["workspace.runtime", "Connect Runtime", () => setConnection(true)],
+      ["workspace.runtime", "Runtime", () => session.workbench.run("runtime.cloud")],
       ["git.account", "Git Accounts and Commit Author", () => setGitSettings(true)],
       ["workspace.clone", "Clone Repository to Device", () => setCloning(true)],
     ] as const;
@@ -245,7 +265,7 @@ function App() {
       onOpenRecent={(recent) => void open({ kind: "recent", recent })}
       onForget={(recent) => void forgetRecent(recent.id).then(setRecents, (e) => setError(describe(e)))}
       onDismiss={workspace ? () => setSheet(false) : undefined}
-      onConnect={() => setConnection(true)}
+      onConnect={() => setRuntimePage(true)}
       onGitSettings={() => setGitSettings(true)}
       onClone={() => setCloning(true)}
       onSsh={recent => setSshConnect(sshTarget(recent))}
@@ -256,14 +276,13 @@ function App() {
   return (
     <Shell session={workspace?.session}>
       {workspace && (
-        <ActiveWorkbench key={workspaceKey} session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)} onConnect={() => setConnection(true)} />
+        <ActiveWorkbench key={workspaceKey} session={workspace.session} name={workspace.recent.name} onOpenWorkspace={() => setSheet(true)}
+          onConnect={() => void workspace.session.workbench.run("runtime.cloud")} />
       )}
       {(sheet || !workspace) && <div className={workspace ? "ios-sheet" : "ios-fullscreen"}>{start}</div>}
-      {connection && <RuntimeConnection session={workspace?.session} savedUrl={recents.find(recent => recent.kind === "runtime")?.url}
-        connect={async (url, code) => {
-          const error = await open({ kind: "runtime", url, code });
-          if (error) throw new Error(error);
-        }} disconnect={close} onClose={() => setConnection(false)} />}
+      {runtimePage && <div className="ios-sheet ios-runtime-sheet" role="dialog" aria-modal="true" aria-label="Runtime">
+        <RuntimePage connector={runtimeConnector} settings={runtimeConnector.settings} onClose={() => setRuntimePage(false)} />
+      </div>}
       {gitSettings && <GitSettings repository={workspace?.git} onClose={() => setGitSettings(false)} />}
       {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
         onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}

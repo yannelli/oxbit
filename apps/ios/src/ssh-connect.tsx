@@ -106,7 +106,7 @@ export function SshConnect({ preset, mode = "files", progress, lastFolders = {},
       event.preventDefault();
       if (host && !busy) perform(() => connect(host));
     }}>
-      {runtime && <p>Oxbit installs its runtime on the server and runs terminals, tasks, and agents there. Linux x64 and macOS Apple Silicon servers are supported.</p>}
+      {runtime && <p>Oxbit installs its runtime on the server and runs terminals, tasks, and agents there. Linux x64 and arm64 servers and macOS Apple Silicon servers are supported.</p>}
       {hosts && !hosts.length ? <p>Add a server in SSH Hosts and Keys first.</p> : <>
         <label>Server<select aria-label="Server" value={hostId} onChange={event => {
           setHostId(event.target.value);

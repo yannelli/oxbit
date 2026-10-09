@@ -3,7 +3,7 @@ import { trackChild, trackProcess } from "./owned-processes.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
-import * as pty from "node-pty";
+import type { IPty } from "node-pty";
 import { RpcError, MAX_BUFFER_BYTES } from "@oxbit/protocol";
 import { resolveTerminalShell } from "./terminal-shell.js";
 
@@ -21,7 +21,7 @@ type Emit = (event: ProcessEvent, owner?: string) => void;
 interface Terminal {
   id: string;
   owner: string;
-  pty: pty.IPty;
+  pty: IPty;
   seq: number;
   chunks: Chunk[];
   bytes: number;
@@ -30,6 +30,12 @@ interface Terminal {
   paused: boolean;
 }
 export { killProcess } from "./process-lifecycle.js";
+export type PtyModule = Pick<typeof import("node-pty"), "spawn">;
+let ptyModule: Promise<PtyModule> | undefined;
+const loadNodePty = () => (ptyModule ??= import("node-pty").catch((error: unknown) => {
+  ptyModule = undefined;
+  throw error;
+}));
 export async function runCommand(
   command: string,
   args: string[],
@@ -94,6 +100,7 @@ export class Processes {
   constructor(
     private root: string,
     private emit: Emit,
+    private loadPty: () => Promise<PtyModule> = loadNodePty,
   ) {}
   private terminal(id: string, owner: string) {
     const value = this.terminals.get(id);
@@ -101,7 +108,15 @@ export class Processes {
       throw new RpcError("NOT_FOUND", "Terminal session was not found");
     return value;
   }
-  create(owner: string, connection: string, cols = 100, rows = 30) {
+  private async pty() {
+    try {
+      return await this.loadPty();
+    } catch (error) {
+      throw new RpcError("TERMINAL_UNAVAILABLE", `node-pty failed to load: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  async create(owner: string, connection: string, cols = 100, rows = 30) {
+    const pty = await this.pty();
     for (const [id, terminal] of this.terminals) if (this.terminals.size >= 64 && terminal.exitCode !== undefined) this.terminals.delete(id);
     if (
       [...this.terminals.values()].filter((t) => t.exitCode === undefined)

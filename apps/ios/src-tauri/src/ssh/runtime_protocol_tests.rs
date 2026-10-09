@@ -1,5 +1,5 @@
 use super::{
-    runtime_frames::*, runtime_process::Budget, runtime_protocol::*, runtime_tunnel::healthy,
+    runtime_frames::*, runtime_process::Budget, runtime_protocol::*, runtime_tunnel::health_body,
 };
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
@@ -13,16 +13,17 @@ fn frame(value: Value) -> Vec<u8> {
 #[test]
 fn maps_uname_to_the_desktop_platform_names() {
     assert_eq!(platform("Linux", "x86_64").unwrap(), "linux-x64");
+    assert_eq!(platform("Linux", "aarch64").unwrap(), "linux-arm64");
     assert_eq!(platform("Darwin\n", "arm64\n").unwrap(), "darwin-arm64");
     for (system, machine) in [
-        ("Linux", "aarch64"),
+        ("Linux", "armv7l"),
         ("Darwin", "x86_64"),
         ("FreeBSD", "amd64"),
     ] {
         let error = platform(system, machine).unwrap_err();
         assert_eq!(
             error.message,
-            "Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon."
+            "Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon."
         );
     }
     assert_eq!(
@@ -32,6 +33,10 @@ fn maps_uname_to_the_desktop_platform_names() {
     assert_eq!(
         parse_probe("Darwin\narm64\nwget\n").unwrap(),
         ("darwin-arm64", Some(Downloader::Wget))
+    );
+    assert_eq!(
+        parse_probe("Linux\naarch64\ncurl\n").unwrap(),
+        ("linux-arm64", Some(Downloader::Curl))
     );
     assert_eq!(
         parse_probe("Linux\nx86_64\nnone\n").unwrap(),
@@ -112,13 +117,18 @@ fn maps_the_folder_field_to_a_launch_root() {
 
 #[test]
 fn writes_launch_heartbeat_and_task_frames() {
-    let launch: Value = serde_json::from_str(&launch_frame("/~/app", KEY, "token")).unwrap();
+    let launch: Value = serde_json::from_str(&launch_frame("/~/app", KEY, "token", None)).unwrap();
     assert_eq!(
         launch,
         json!({ "version": 1, "type": "launch", "remoteRuntime": true, "root": "/~/app",
             "workspaceKey": KEY, "token": "token", "development": false })
     );
-    assert!(launch_frame("/", KEY, "t").ends_with("}\n"));
+    assert!(launch_frame("/", KEY, "t", None).ends_with("}\n"));
+    for keep_alive in [0, 75000, 3_600_000] {
+        let launch: Value =
+            serde_json::from_str(&launch_frame("/", KEY, "t", Some(keep_alive))).unwrap();
+        assert_eq!(launch["keepAlive"], json!(keep_alive));
+    }
     assert_eq!(HEARTBEAT_FRAME, "{\"version\":1,\"type\":\"heartbeat\"}\n");
     let forwarded: Value = serde_json::from_str(&task_forwarded_frame("r1", Some(4100))).unwrap();
     assert_eq!(
@@ -227,6 +237,10 @@ fn splits_frames_across_reads_and_caps_a_line_at_64_kib() {
     assert!(FrameReader::default().push(&long).is_err());
 }
 
+fn healthy(response: &str) -> bool {
+    health_body(response).is_some()
+}
+
 #[test]
 fn accepts_only_a_protocol_1_health_response() {
     let ok =
@@ -240,6 +254,9 @@ fn accepts_only_a_protocol_1_health_response() {
         "HTTP/1.1 403 Forbidden\r\n\r\n{\"ok\":true,\"protocol\":1}"
     ));
     assert!(!healthy("garbage"));
+    let identified = "HTTP/1.1 200 OK\r\n\r\n{\"ok\":true,\"protocol\":1,\"id\":\"runtime-0123\"}";
+    assert_eq!(health_body(identified).unwrap()["id"], "runtime-0123");
+    assert!(health_body(ok).unwrap()["id"].is_null());
 }
 
 #[test]

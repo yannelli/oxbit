@@ -1,7 +1,7 @@
 //! Live remote runtime cases on the Docker sshd fixture: the wget install, a task service reached
 //! through `taskForward`, and the relaunch budget after repeated failures.
 use super::{
-    live_runtime_tests::{live, payload, probe, source, start, Live, Seen},
+    live_runtime_tests::{live, payload, probe, remote_platform, source, start, Live, Seen},
     live_tests::{docker, exec},
     runtime_process::Event,
     runtime_protocol::{Downloader, Install},
@@ -68,11 +68,16 @@ async fn live_runtime_wget_tasks_and_budget() {
     } = live().await;
     let (_, sha256) = payload();
     let node = format!("/root/.oxbit/remote/runtimes/{sha256}/bin/node");
-    let hosted = || source(format!("{served}/linux-x64.tar.gz"), scratch.clone());
+    let hosted = || {
+        source(
+            format!("{served}/{}.tar.gz", remote_platform()),
+            scratch.clone(),
+        )
+    };
 
     exec(&container, "mv /usr/bin/curl /usr/bin/curl.off");
     let seen: Seen = Arc::default();
-    let runtime = start(&pool, "live", hosted(), &seen).await;
+    let runtime = start(&pool, "live", hosted(), &seen, None).await;
     let ready = runtime.ensure(true).await;
     exec(&container, "mv /usr/bin/curl.off /usr/bin/curl");
     assert_eq!(
@@ -98,7 +103,7 @@ async fn live_runtime_wget_tasks_and_budget() {
     );
 
     let seen: Seen = Arc::default();
-    let runtime = start(&pool, "live", hosted(), &seen).await;
+    let runtime = start(&pool, "live", hosted(), &seen, None).await;
     runtime.ensure(true).await.unwrap();
     let pid = runtime.pid().await.unwrap();
     let mark = seen.lock().unwrap().len();

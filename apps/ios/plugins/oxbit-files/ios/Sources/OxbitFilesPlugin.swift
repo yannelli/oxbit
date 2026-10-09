@@ -23,6 +23,7 @@ enum FolderError: LocalizedError {
 /// Owns the document picker and the security-scoped URLs. Rust reads and writes the resolved paths.
 class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let runtime = RuntimeCredentials()
+  private let discovery = RuntimeDiscovery()
   private let languageServers = LanguageServers()
   private let git = GitCredentials()
   private let sshKeys = SshKeys()
@@ -43,6 +44,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func runtimeCredentials(_ invoke: Invoke) {
     runtime.handle(invoke)
+  }
+
+  @objc public func runtimeDiscovery(_ invoke: Invoke) {
+    discovery.handle(invoke)
   }
 
   @objc public func lspMessage(_ invoke: Invoke) {

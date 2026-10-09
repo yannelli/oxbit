@@ -1,6 +1,6 @@
 import { invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { RpcError } from "@oxbit/protocol";
+import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
 import type { FileEntry } from "@oxbit/sdk";
 
 export interface NativeError {
@@ -97,6 +97,13 @@ export type GitCredentialRequest =
   | { operation: "addGitHub"; token: string }
   | { operation: "addGitea"; url: string; token: string }
   | { operation: "remove" | "setDefault"; id: string };
+export interface RuntimeCredentialRequest {
+  operation: "get" | "pair" | "forget" | "health";
+  url: string;
+  /** Keys the Keychain item by runtime ID; a saved URL item moves to it on `get`. */
+  runtimeId?: string;
+  code?: string;
+}
 /** Workspace storage key holding the account ID that native Git uses for the workspace root. */
 export const GIT_ACCOUNT_KEY = "git-account";
 /** Workspace storage key holding the SSH key ID that native Git uses for SSH remotes. */
@@ -215,8 +222,9 @@ export const ssh = {
   cancelTransfer: (transferId: string) => call<void>("ios_ssh_transfer_cancel", { transferId }),
   onTransfer: (transferId: string, listener: (progress: TransferProgress) => void) =>
     listen<TransferProgress>(`ios-ssh-transfer:${transferId}`, (event) => listener(event.payload)),
-  runtimeStart: (id: string, hostId: string, path: string) =>
-    call<RemoteRuntimeStarted>("ios_ssh_runtime_start", { id, hostId, path }),
+  /** `keepAlive` is milliseconds after the last client; 0 runs until stopped; omitted uses 75000. */
+  runtimeStart: (id: string, hostId: string, path: string, keepAlive?: number) =>
+    call<RemoteRuntimeStarted>("ios_ssh_runtime_start", { id, hostId, path, keepAlive }),
   runtimeResume: (id: string) => call<RemoteRuntimeStarted>("ios_ssh_runtime_resume", { id }),
   runtimeStop: (id: string) => call<void>("ios_ssh_runtime_stop", { id }),
   onRuntime: (id: string, listener: (event: RemoteRuntimeEvent) => void) =>
@@ -234,8 +242,9 @@ export const native = {
   gitRequest: <T>(id: string, requestId: string, method: string, params: Record<string, unknown>) =>
     call<T>("ios_git_request", { id, requestId, method, params }),
   gitCancel: (id: string, requestId: string) => call<void>("ios_git_cancel", { id, requestId }),
-  runtimeCredentials: (request: { operation: "get" | "pair" | "forget"; url: string; code?: string }) =>
-    call<{ token?: string }>("plugin:oxbit-files|runtime_credentials", { request }),
+  /** `health` reads `/api/health` natively; `pair` returns the runtime identity when it reports one. */
+  runtimeCredentials: (request: RuntimeCredentialRequest) =>
+    call<{ token?: string; runtime?: RuntimeIdentity }>("plugin:oxbit-files|runtime_credentials", { request }),
   storageGet: <T>(scope: string, key: string) => call<T | null>("ios_storage_get", { scope, key }),
   storageSet: (scope: string, key: string, value: unknown) =>
     call<void>("ios_storage_set", { scope, key, value: value ?? null }),

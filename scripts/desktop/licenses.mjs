@@ -57,10 +57,7 @@ async function visit(directory) {
 }
 await visit(path.join(root, "apps/desktop"));
 const native = path.join(root, "apps/desktop/src-tauri");
-const triple =
-  process.platform === "darwin"
-    ? "aarch64-apple-darwin"
-    : "x86_64-unknown-linux-gnu";
+const triple = inventory.downloads.target;
 const metadata = JSON.parse(
   execFileSync(
     "cargo",

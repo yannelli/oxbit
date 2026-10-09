@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>NSLocalNetworkUsageDescription</key><string>Connect to the Oxbit runtime on your computer to open projects and use terminals, Git, and language tools.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>Find Oxbit runtimes on your local network and connect to the one on your computer to open projects and use terminals, Git, and language tools.</string>
+  <key>NSBonjourServices</key><array><string>_oxbit._tcp</string></array>
   <key>NSAppTransportSecurity</key><dict>
     <key>NSAllowsLocalNetworking</key><true/>
     <key>NSExceptionDomains</key><dict>

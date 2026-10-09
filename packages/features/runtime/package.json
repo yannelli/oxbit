@@ -1,0 +1,22 @@
+{
+  "name": "@oxbit/feature-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.tsx",
+  "scripts": {},
+  "dependencies": {
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/protocol": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@oxbit/ui": "workspace:*",
+    "@oxbit/workbench": "workspace:*"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}
