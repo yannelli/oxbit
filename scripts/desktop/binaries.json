@@ -23,31 +23,71 @@
       "sha256": "1c9297be4a084eea7ecaedf93eb03d058d6faae29bbc57ecdaf5063921491599"
     }
   },
-  "linuxBundleTools": [
-    {
-      "file": "AppRun-x86_64",
-      "url": "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64",
-      "sha256": "f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f"
+  "linux-arm64": {
+    "target": "aarch64-unknown-linux-gnu",
+    "node": {
+      "url": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-arm64.tar.gz",
+      "sha256": "3515603e2487879a39bc75716f1a2affd027500c64ba50e845cf72cb33219013"
     },
-    {
-      "file": "linuxdeploy-x86_64.AppImage",
-      "url": "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-x86_64.AppImage",
-      "sha256": "20eebde3c18ae2e44279bd624fc72482503aece216d5d77f10932235342f71c1"
-    },
-    {
-      "file": "linuxdeploy-plugin-gtk.sh",
-      "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/b5eb8d05b4c0ed40107fe2158c5d8527f94568ef/linuxdeploy-plugin-gtk.sh",
-      "sha256": "cb379f9b0733e9ad9f8bd78f8c2fa038aef2478523bb7d4c8e64ff6a1ea3501a"
-    },
-    {
-      "file": "linuxdeploy-plugin-gstreamer.sh",
-      "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gstreamer/2a2e67491c32995a3f279ad0ecbe77abd512b42a/linuxdeploy-plugin-gstreamer.sh",
-      "sha256": "c107b49d84edbffc6ab226ed1007e0626a4f7aa2c3a36b7782bef62351d49e94"
-    },
-    {
-      "file": "linuxdeploy-plugin-appimage.AppImage",
-      "url": "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage",
-      "sha256": "0441769ab38009504d2678c38cd7e526955388dd30a215b4a20afaa5471652f2"
+    "rg": {
+      "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-unknown-linux-gnu.tar.gz",
+      "sha256": "2b661c6ef508e902f388e9098d9c4c5aca72c87b55922d94abdba830b4dc885e"
     }
-  ]
+  },
+  "linuxBundleTools": {
+    "x64": [
+      {
+        "file": "AppRun-x86_64",
+        "url": "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64",
+        "sha256": "f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f"
+      },
+      {
+        "file": "linuxdeploy-x86_64.AppImage",
+        "url": "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-x86_64.AppImage",
+        "sha256": "e762bea85c8eb0d4b3508d46e5c1f037f717d0f9303ae3b4aafc8b04991fa1ef"
+      },
+      {
+        "file": "linuxdeploy-plugin-gtk.sh",
+        "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/b5eb8d05b4c0ed40107fe2158c5d8527f94568ef/linuxdeploy-plugin-gtk.sh",
+        "sha256": "cb379f9b0733e9ad9f8bd78f8c2fa038aef2478523bb7d4c8e64ff6a1ea3501a"
+      },
+      {
+        "file": "linuxdeploy-plugin-gstreamer.sh",
+        "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gstreamer/2a2e67491c32995a3f279ad0ecbe77abd512b42a/linuxdeploy-plugin-gstreamer.sh",
+        "sha256": "c107b49d84edbffc6ab226ed1007e0626a4f7aa2c3a36b7782bef62351d49e94"
+      },
+      {
+        "file": "linuxdeploy-plugin-appimage.AppImage",
+        "url": "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage",
+        "sha256": "49d6a17160675a6bd1781699aae6bdf7692d98552e02a3671d2183d10547842e"
+      }
+    ],
+    "arm64": [
+      {
+        "file": "AppRun-aarch64",
+        "url": "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-aarch64",
+        "sha256": "072f17c0895a85c490282fe5395c5007e5fc75da727e553b3b8fb680feb11578"
+      },
+      {
+        "file": "linuxdeploy-aarch64.AppImage",
+        "url": "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-aarch64.AppImage",
+        "sha256": "b12b5cc57bd0921e1f98d73f58aa364503bc1a27f54b7a69fd2870bce7fa2f55"
+      },
+      {
+        "file": "linuxdeploy-plugin-gtk.sh",
+        "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/b5eb8d05b4c0ed40107fe2158c5d8527f94568ef/linuxdeploy-plugin-gtk.sh",
+        "sha256": "cb379f9b0733e9ad9f8bd78f8c2fa038aef2478523bb7d4c8e64ff6a1ea3501a"
+      },
+      {
+        "file": "linuxdeploy-plugin-gstreamer.sh",
+        "url": "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gstreamer/2a2e67491c32995a3f279ad0ecbe77abd512b42a/linuxdeploy-plugin-gstreamer.sh",
+        "sha256": "c107b49d84edbffc6ab226ed1007e0626a4f7aa2c3a36b7782bef62351d49e94"
+      },
+      {
+        "file": "linuxdeploy-plugin-appimage.AppImage",
+        "url": "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-aarch64.AppImage",
+        "sha256": "518f4b49a561c157b23fd1ba4e857b8fa2271a038ac711bdedab6f018acbe7e5"
+      }
+    ]
+  }
 }

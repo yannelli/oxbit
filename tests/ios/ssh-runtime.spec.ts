@@ -92,13 +92,13 @@ test("Start Oxbit on This Server shows the desktop progress, opens the workspace
 });
 
 test("A failed start keeps the dialog open with the error and stops the runtime", async ({ page }) => {
-  await start(page, { runtimeFailure: "Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon." });
+  await start(page, { runtimeFailure: "Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon." });
   await openDialog(page);
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
   await release(page);
   const dialog = page.getByRole("dialog", { name: "Start Oxbit on This Server", exact: true });
-  await expect(dialog.getByRole("alert")).toHaveText("Remote SSH supports Linux x64 (glibc) and macOS Apple Silicon.");
+  await expect(dialog.getByRole("alert")).toHaveText("Remote SSH supports Linux x64 and arm64 (glibc) and macOS Apple Silicon.");
   await expect.poll(() => calls(page)).toContain("ios_ssh_runtime_stop");
   await shoot(page, "runtime-error");
 });

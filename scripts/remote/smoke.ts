@@ -18,6 +18,16 @@ const run = (cmd: string, args: string[]) =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 const docker = (...args: string[]) => run("docker", args);
+// OXBIT_SSH_TEST_PLATFORM=linux/arm64 checks the linux-arm64 payload on an arm64 host.
+const dockerPlatform = process.env.OXBIT_SSH_TEST_PLATFORM ?? "linux/amd64";
+const remoteName = (
+  { "linux/amd64": "Linux x64", "linux/arm64": "Linux arm64" } as Record<
+    string,
+    string
+  >
+)[dockerPlatform];
+if (!remoteName)
+  throw new Error(`Unsupported OXBIT_SSH_TEST_PLATFORM: ${dockerPlatform}`);
 const checks: string[] = [];
 let connection: Awaited<ReturnType<typeof connectSsh>> | undefined;
 let socket: any;
@@ -81,7 +91,7 @@ try {
     [
       "build",
       "--platform",
-      "linux/amd64",
+      dockerPlatform,
       "-f",
       "scripts/remote/sshd.Dockerfile",
       "-t",
@@ -105,7 +115,7 @@ try {
     "--name",
     fixture,
     "--platform",
-    "linux/amd64",
+    dockerPlatform,
     "--cap-add",
     "NET_ADMIN",
     "-p",
@@ -313,7 +323,7 @@ try {
     JSON.stringify(
       {
         result: "passed",
-        remote: "Linux x64 Debian bookworm, isolated Docker SSH server",
+        remote: `${remoteName} Debian bookworm, isolated Docker SSH server`,
         checks,
       },
       null,

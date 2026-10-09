@@ -62,11 +62,11 @@ allowed origins, and storage.
 ### Desktop
 
 The Tauri desktop app bundles Node, ripgrep, the terminal addon, and managed
-language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64.
+language services. It targets Apple Silicon with macOS 26+ and Ubuntu 24.04+ x64 and arm64.
 Run `bun run desktop:dev` for development or `bun run desktop:build` for local installers.
 Use `oxbit --desktop [path]` to open an installed app.
 
-**Connect over SSH…** opens a remote folder on Linux x64 or macOS Apple Silicon.
+**Connect over SSH…** opens a remote folder on Linux x64, Linux arm64, or macOS Apple Silicon.
 Oxbit installs its headless runtime through SSH; the remote host does not need
 Node or npm for the bundled runtime.
 

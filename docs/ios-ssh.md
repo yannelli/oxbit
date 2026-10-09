@@ -1,6 +1,6 @@
 # iOS SSH and SFTP workspaces
 
-Created: 2026-10-08. Last updated: 2026-10-08.
+Created: 2026-10-08. Last updated: 2026-10-09.
 
 The iOS app opens folders on a server over SFTP, starts an Oxbit runtime on a server, and uses SSH remotes for Git in device folders. Keys, saved hosts, host-key trust, the connection pool, and transfers live in the iOS crate (`apps/ios/src-tauri/src/ssh/`). Private keys and saved passwords live in the Keychain through the `oxbit-files` plugin.
 
@@ -109,7 +109,7 @@ Host keys share `known_hosts.json` and its refusal rules with SFTP workspaces, s
 
 Start Oxbit on This Server runs the desktop's headless runtime (`desktop.js`) on a saved host and connects the iOS runtime client to it, so terminals, tasks, and agents run on the server. The Rust side mirrors `apps/runtime/src/ssh.ts` and `ssh-target.ts` and lives in `apps/ios/src-tauri/src/ssh/runtime_*.rs`. The remote layout matches the desktop, so a host shared with the desktop reuses its install under `~/.oxbit/remote/runtimes/<sha256>`.
 
-- Platform: `uname -s; uname -m` maps to `linux-x64` or `darwin-arm64`. Other hosts fail with the desktop's message.
+- Platform: `uname -s; uname -m` maps to `linux-x64`, `linux-arm64`, or `darwin-arm64`. Other hosts fail with the desktop's message.
 - Payload: `runtime_install::pinned` is the one manifest lookup. It calls `remote_runtime::pinned_download`, which reads `TAURI_OXBIT_REMOTE_RUNTIME_MANIFEST` at build time. A build without a manifest reports that it has no remote runtime.
 - Install order: a `.complete` marker skips the install. Otherwise the host runs `curl -fsSL` (with a 15 s connect timeout and a 30 s stall limit) or `wget -qO-` piped into the desktop's install script, which checks the pinned SHA-256 before it writes `.complete`. If the host has neither tool or the download fails, the `oxbit-files` plugin downloads the archive with `URLSession` (`RuntimeDownloadStore.swift`, HTTPS only) and keeps it in Caches only when its size and SHA-256 match. Rust checks both again, and the archive streams into the same script over the exec channel. A unit test compares the script byte for byte with `ssh-target.ts`.
 - Launch: `bin/node desktop.js` runs with `NODE_OPTIONS`, `NODE_PATH`, and `OXBIT_LSP_COMMAND` unset. The launch frame carries `remoteRuntime: true`, the root, the workspace key, and a random token. The runtime then accepts that token as the owner, so `/api/pair` and its rate limit are not used. Stdout frames follow version 1 with a 64 KiB line cap: `ready`, `rotated`, `taskForward`, `error`, and `progress`. A heartbeat goes out every 10 s against the runtime's 75 s lease.
