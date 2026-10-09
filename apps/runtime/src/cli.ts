@@ -6,6 +6,8 @@ import { parseArgs } from "node:util";
 import { createRuntime } from "./runtime.js";
 import { setting } from "./branding.js";
 import { runtimeVersion } from "./version.js";
+import { lanUrl, wildcardHost } from "./lan.js";
+import { advertise, type Advertiser } from "./mdns.js";
 import {
   dataDirFor,
   delay,
@@ -34,6 +36,8 @@ already serving it, then opens the paired editor in the default browser.
 Options
   -p, --port <number>  Port to serve on (default: $PORT or a free port)
       --host <address> Address to bind (default: $HOST or ${DEFAULT_HOST})
+      --lan            Serve on every network interface, allow the iOS app and
+                       LAN origins, and advertise the runtime over Bonjour
       --desktop        Open in the installed Oxbit desktop application
       --no-open        Leave the browser closed
       --keep-alive <duration>
@@ -52,6 +56,8 @@ export interface Invocation {
   /** 0 asks the OS for a free port. */
   port: number;
   host: string;
+  /** Bind every interface and advertise over Bonjour. */
+  lan: boolean;
   open: boolean;
   foreground: boolean;
   /** Milliseconds without a connected client before the runtime stops; 0 runs until stopped. */
@@ -72,6 +78,7 @@ function tokenize(argv: string[]) {
         desktop: { type: "boolean" },
         port: { type: "string", short: "p" },
         host: { type: "string" },
+        lan: { type: "boolean" },
         "no-open": { type: "boolean" },
         "keep-alive": { type: "string" },
         foreground: { type: "boolean", short: "f" },
@@ -107,8 +114,10 @@ export function parse(
     return {
       error: `Expected at most one path, received ${positionals.length}`,
     };
-  if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host || values["keep-alive"]))
+  if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host || values["keep-alive"] || values.lan))
     return { error: "--desktop cannot be combined with browser runtime options" };
+  if (values.lan && values.host)
+    return { error: "--lan binds every interface and cannot be combined with --host" };
   const requested = text(values.port) ?? env.PORT;
   const port = requested === undefined ? 0 : Number(requested);
   if (!Number.isInteger(port) || port < 0 || port > 65535)
@@ -125,7 +134,8 @@ export function parse(
     target: positionals[0] ?? setting("WORKSPACE", env) ?? ".",
     port,
     keepAlive,
-    host: text(values.host) ?? env.HOST ?? DEFAULT_HOST,
+    host: values.lan ? "0.0.0.0" : (text(values.host) ?? env.HOST ?? DEFAULT_HOST),
+    lan: values.lan === true,
     open: values["no-open"] !== true,
     foreground: values.foreground === true,
     action: values.help
@@ -206,6 +216,11 @@ async function serveRuntime(
     webRoot: setting("WEB_ROOT", env),
     ...(invocation.keepAlive ? { idleShutdown: { afterMs: invocation.keepAlive, onIdle: () => stop() } } : {}),
   });
+  let advertiser: Advertiser | undefined;
+  if (invocation.lan) {
+    const { id, name, version } = runtime.identity;
+    advertiser = advertise({ id, name, version, port: runtime.port });
+  }
   const daemon: Daemon = {
     id: runtime.identity.id,
     pid: process.pid,
@@ -218,13 +233,14 @@ async function serveRuntime(
   await writeRecord(dataDir, daemon);
   const url = launchUrl(daemon, target.file);
   process.stdout.write(
-    `Oxbit runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nRuntime id: ${runtime.identity.id}\nOpen: ${url}\n`,
+    (invocation.lan ? networkSummary(daemon) : `Oxbit runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nRuntime id: ${runtime.identity.id}\n`) +
+      `Open: ${url}\n`,
   );
   if (invocation.open) launchBrowser(url);
   await new Promise<void>((resolve) => {
     const shutdown = () => {
-      void runtime
-        .close()
+      void Promise.resolve(advertiser?.close())
+        .then(() => runtime.close())
         .then(() => removeRecord(dataDir))
         .then(resolve, resolve);
     };
@@ -238,6 +254,10 @@ async function serveRuntime(
   return 0;
 }
 
+export function networkSummary(daemon: Daemon, address = lanUrl(daemon.port)) {
+  return `Oxbit runtime on your network: ${address ?? `http://0.0.0.0:${daemon.port} (no LAN address found)`}\nWorkspace: ${daemon.root}\nOwner pairing code: ${daemon.pairingCode}\nRuntime id: ${daemon.id}\n`;
+}
+
 async function detach(
   invocation: Invocation,
   target: Target,
@@ -246,7 +266,7 @@ async function detach(
 ) {
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 });
   const log = await fs.open(logFile(dataDir), "a", 0o600);
-  const args = [entry, "--foreground", "--no-open", "--host", invocation.host];
+  const args = [entry, "--foreground", "--no-open", ...(invocation.lan ? ["--lan"] : ["--host", invocation.host])];
   if (invocation.port) args.push("--port", String(invocation.port));
   args.push("--keep-alive", invocation.keepAlive ? String(invocation.keepAlive) : "forever");
   args.push(target.root);
@@ -360,6 +380,10 @@ export async function run(
   if (invocation.action === "status") return status(dataDir, target.root);
   if (invocation.foreground) return serve(invocation, target, dataDir, env);
   const existing = await liveDaemon(dataDir);
+  if (existing && invocation.lan && !wildcardHost(existing.host)) {
+    process.stderr.write(`A runtime already serves ${existing.root} on ${existing.host}. Run oxbit --stop, then oxbit --lan.\n`);
+    return 1;
+  }
   let daemon: Daemon;
   if (existing) daemon = existing;
   else
@@ -370,7 +394,7 @@ export async function run(
       return 1;
     }
   const url = launchUrl(daemon, target.file);
-  process.stdout.write(`${daemon.root}\n${url}\n`);
+  process.stdout.write(invocation.lan ? `${networkSummary(daemon)}Open: ${url}\n` : `${daemon.root}\n${url}\n`);
   if (invocation.open) launchBrowser(url);
   return 0;
 }

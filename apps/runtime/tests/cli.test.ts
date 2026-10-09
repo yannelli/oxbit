@@ -42,6 +42,7 @@ describe("argument parsing", () => {
       target: ".",
       port: 0,
       host: DEFAULT_HOST,
+      lan: false,
       open: true,
       foreground: false,
       keepAlive: 0,
@@ -94,6 +95,13 @@ describe("argument parsing", () => {
     expect(parse(["--keep-alive", "forever"], { ...env, OXBIT_KEEP_ALIVE: "75s" })).toMatchObject({ keepAlive: 0 });
     expect(parse(["--keep-alive", "1.5h"], env)).toHaveProperty("error");
     expect(parse(["--desktop", "--keep-alive", "1h"], env)).toHaveProperty("error");
+  });
+
+  it("binds every interface on a free port in LAN mode", () => {
+    expect(parse(["--lan"], { ...env, HOST: "10.0.0.2" })).toMatchObject({ lan: true, host: "0.0.0.0", port: 0 });
+    expect(parse(["--lan", "--port", "9400", "-f"], env)).toMatchObject({ lan: true, port: 9400, foreground: true });
+    expect(parse(["--lan", "--host", "127.0.0.1"], env)).toHaveProperty("error");
+    expect(parse(["--desktop", "--lan"], env)).toHaveProperty("error");
   });
 
   it("rejects a port that is not a whole number in range", () => {

@@ -40,6 +40,7 @@ import { AgentACP } from "./agent-acp.js";
 import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
+import { lanOrigins, wildcardHost } from "./lan.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -206,6 +207,7 @@ export async function createRuntime(options: RuntimeOptions) {
       "tauri://localhost",
       ...(options.desktop ? [] : [`http://127.0.0.1:${port}`, `http://localhost:${port}`, `http://${host}:${port}`]),
       ...(options.origins ?? []),
+      ...(wildcardHost(host) ? lanOrigins(port) : []),
     ]);
   const originAllowed = (request: IncomingMessage, required = false) => {
     const origin = request.headers.origin;

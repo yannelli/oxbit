@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { setting, workspaceDataDir } from "./branding.js";
+import { localHost } from "./lan.js";
 
 export interface Daemon {
   /** Runtime identity id; absent in records written before identities existed. */
@@ -28,7 +29,7 @@ export const delay = (ms: number) =>
 export function launchUrl(daemon: Daemon, file?: string) {
   const params = new URLSearchParams({ pair: daemon.pairingCode });
   if (file) params.set("open", file);
-  return `http://${daemon.host}:${daemon.port}/#${params}`;
+  return `http://${localHost(daemon.host)}:${daemon.port}/#${params}`;
 }
 
 export function browserCommand(url: string, platform: string) {
@@ -78,7 +79,7 @@ export function running(pid: number) {
 async function serving(daemon: Daemon) {
   try {
     const response = await fetch(
-      `http://${daemon.host}:${daemon.port}/api/health`,
+      `http://${localHost(daemon.host)}:${daemon.port}/api/health`,
       { signal: AbortSignal.timeout(2000) },
     );
     return response.ok && (await response.json())?.protocol === 1;
