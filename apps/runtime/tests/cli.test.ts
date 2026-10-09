@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { DEFAULT_HOST, parse, resolveTarget } from "../src/cli.js";
+import { DEFAULT_HOST, parse, parseDuration, resolveTarget } from "../src/cli.js";
 import {
   browserCommand,
   dataDirFor,
@@ -44,6 +44,7 @@ describe("argument parsing", () => {
       host: DEFAULT_HOST,
       open: true,
       foreground: false,
+      keepAlive: 0,
       action: "open",
     });
   });
@@ -79,6 +80,20 @@ describe("argument parsing", () => {
     expect(parse(["--status"], env)).toMatchObject({ action: "status" });
     expect(parse(["-h"], env)).toMatchObject({ action: "help" });
     expect(parse(["-v"], env)).toMatchObject({ action: "version" });
+  });
+
+  it("reads the keep-alive duration from arguments or the environment", () => {
+    expect(parseDuration("75s")).toBe(75000);
+    expect(parseDuration("15m")).toBe(900000);
+    expect(parseDuration("8h")).toBe(28800000);
+    expect(parseDuration("1500")).toBe(1500);
+    expect(parseDuration("forever")).toBe(0);
+    expect(parseDuration("soon")).toBeUndefined();
+    expect(parse(["--keep-alive", "1h"], env)).toMatchObject({ keepAlive: 3600000 });
+    expect(parse([], { ...env, OXBIT_KEEP_ALIVE: "75s" })).toMatchObject({ keepAlive: 75000 });
+    expect(parse(["--keep-alive", "forever"], { ...env, OXBIT_KEEP_ALIVE: "75s" })).toMatchObject({ keepAlive: 0 });
+    expect(parse(["--keep-alive", "1.5h"], env)).toHaveProperty("error");
+    expect(parse(["--desktop", "--keep-alive", "1h"], env)).toHaveProperty("error");
   });
 
   it("rejects a port that is not a whole number in range", () => {

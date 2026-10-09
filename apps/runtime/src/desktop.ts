@@ -9,6 +9,7 @@ import { connectSsh } from "./ssh.js";
 import { acquireRemoteWorkspace } from "./ssh-workspace.js";
 import { observeOwnedProcesses, terminateOwnedProcesses } from "./owned-processes.js";
 import { createRuntime } from "./runtime.js";
+import { DEFAULT_KEEP_ALIVE_MS } from "@oxbit/protocol";
 
 interface Launch {
   version: 1;
@@ -21,8 +22,11 @@ interface Launch {
   gitPath?: string;
   development?: boolean;
   remoteRuntime?: boolean;
+  /** Milliseconds a remote runtime outlives its last client and heartbeat; 0 runs until stopped. */
+  keepAlive?: number;
 }
-const send = (message: object) => process.stdout.write(JSON.stringify({ version: 1, ...message }) + "\n");
+let parentGone = false;
+const send = (message: object) => { if (!parentGone) process.stdout.write(JSON.stringify({ version: 1, ...message }) + "\n"); };
 console.log = console.info = console.debug = (...args: unknown[]) => console.error(...args);
 let runtime: Awaited<ReturnType<typeof createRuntime>> | undefined;
 let remote: Awaited<ReturnType<typeof connectSsh>> | undefined;
@@ -31,14 +35,27 @@ const connectionAbort = new AbortController();
 let starting = false;
 let remoteLease: ReturnType<typeof setTimeout> | undefined;
 let isRemoteRuntime = false;
+let keepAlive = DEFAULT_KEEP_ALIVE_MS;
+let lastHeartbeat = Date.now();
 const forwards = new Map<string, { resolve: (port: number) => void; reject: (error: Error) => void }>();
 const forwardTaskPort = (host: string, port: number) => new Promise<number>((resolve, reject) => {
+  if (parentGone) { reject(new Error("SSH connection is closed")); return; }
   const request = randomUUID();
   const timer = setTimeout(() => { forwards.delete(request); reject(new Error("SSH task port forwarding timed out")); }, 15000);
   forwards.set(request, { resolve: value => { clearTimeout(timer); resolve(value); }, reject: error => { clearTimeout(timer); reject(error); } });
   send({ type: "taskForward", request, host, port });
 });
-const refreshRemoteLease = () => { clearTimeout(remoteLease); remoteLease = setTimeout(() => void shutdown(1), 75000); };
+// The lease runs while no heartbeat arrives and no authenticated client is connected.
+const checkRemoteLease = () => {
+  clearTimeout(remoteLease);
+  if (!isRemoteRuntime || keepAlive === 0 || stopping) return;
+  const idleSince = runtime ? runtime.idleSince() : lastHeartbeat;
+  if (idleSince === undefined) return;
+  const remaining = Math.max(lastHeartbeat, idleSince) + keepAlive - Date.now();
+  if (remaining <= 0) void shutdown(1);
+  else remoteLease = setTimeout(checkRemoteLease, remaining);
+};
+const refreshRemoteLease = () => { lastHeartbeat = Date.now(); checkRemoteLease(); };
 let stopping = false;
 const deadline = setTimeout(() => void shutdown(1), 15000);
 async function shutdown(code = 0) {
@@ -93,7 +110,7 @@ lines.on("line", (line) => {
       clearTimeout(deadline);
       const timeout = setTimeout(() => connectionAbort.abort(), 240000);
       try {
-        remote = await connectSsh({ target: config.root, token: config.token, workspaceKey: config.workspaceKey,
+        remote = await connectSsh({ target: config.root, token: config.token, workspaceKey: config.workspaceKey, keepAlive: config.keepAlive,
           payloadDirectory: fileURLToPath(new URL("./remote/", import.meta.url)), development: config.development,
           signal: connectionAbort.signal, onFrame: send,
           onProgress: message => send({ type: "progress", message }),
@@ -105,8 +122,11 @@ lines.on("line", (line) => {
       return;
     }
     let openFile: string | undefined;
+    if (config.keepAlive !== undefined && (!Number.isSafeInteger(config.keepAlive) || config.keepAlive < 0))
+      throw new Error("Invalid keep-alive duration");
     if (config.remoteRuntime) {
       isRemoteRuntime = true;
+      keepAlive = config.keepAlive ?? DEFAULT_KEEP_ALIVE_MS;
       refreshRemoteLease();
       if (typeof config.root !== "string" || !config.root.startsWith("/")) throw new Error("Invalid remote path");
       const target = await fs.realpath(config.root.startsWith("/~/") ? path.join(os.homedir(), config.root.slice(3)) : config.root === "/~" ? os.homedir() : config.root);
@@ -124,12 +144,12 @@ lines.on("line", (line) => {
       throw new Error("Invalid launch identity");
     const root = await fs.realpath(config.root);
     if (!(await fs.stat(root)).isDirectory()) throw new Error("Workspace is not a directory");
-    if (config.remoteRuntime) releaseRemoteWorkspace = await acquireRemoteWorkspace(config.dataDir);
+    if (config.remoteRuntime) releaseRemoteWorkspace = await acquireRemoteWorkspace(config.dataDir, config.workspaceKey);
     runtime = await createRuntime({
       root, dataDir: config.dataDir, host: "127.0.0.1", port: 0,
       origins: ["tauri://localhost", ...(config.development ? ["http://localhost:9280", "http://127.0.0.1:9280"] : [])],
       desktop: config,
-      ...(config.remoteRuntime ? { forwardTaskPort } : {}),
+      ...(config.remoteRuntime ? { forwardTaskPort, idleShutdown: { afterMs: keepAlive, onIdle: checkRemoteLease } } : {}),
     });
     if (stopping) { await runtime.close(); return; }
     clearTimeout(deadline);
@@ -140,7 +160,13 @@ lines.on("line", (line) => {
     void shutdown(1);
   });
 });
-lines.on("close", () => void shutdown());
-process.stdout.on("error", () => void shutdown(1));
+// A remote runtime outlives its SSH session until the lease expires or a reconnect replaces it.
+lines.on("close", () => {
+  if (!isRemoteRuntime) { void shutdown(); return; }
+  parentGone = true;
+  checkRemoteLease();
+});
+process.stdout.on("error", () => { if (isRemoteRuntime) parentGone = true; else void shutdown(1); });
+process.on("SIGHUP", () => { if (!isRemoteRuntime) void shutdown(); });
 process.on("SIGTERM", () => void shutdown());
 process.on("SIGINT", () => void shutdown());

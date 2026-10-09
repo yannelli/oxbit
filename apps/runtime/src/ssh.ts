@@ -31,6 +31,8 @@ export interface SshOptions {
   token: string;
   payloadDirectory: string;
   development?: boolean;
+  /** Milliseconds the remote runtime keeps running without a client or heartbeat; 0 runs until stopped. */
+  keepAlive?: number;
   signal?: AbortSignal;
   sshConfig?: string;
   onProgress?: (message: string) => void;
@@ -352,6 +354,7 @@ export async function connectSsh(options: SshOptions) {
         workspaceKey: options.workspaceKey,
         token: options.token,
         development: options.development,
+        keepAlive: options.keepAlive,
       }) + "\n",
     );
     heartbeat = setInterval(

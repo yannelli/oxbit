@@ -57,6 +57,10 @@ export interface RuntimeOptions {
   forwardTaskPort?: (host: string, port: number) => Promise<number>;
   origins?: string[];
   webRoot?: string;
+  /** Calls onIdle once no authenticated WebSocket client has been connected for afterMs. */
+  idleShutdown?: { afterMs: number; onIdle: () => void };
+  /** Interval between WebSocket pings; a client that misses one pong is terminated. Defaults to 30 s. */
+  pingIntervalMs?: number;
   /** Desktop has a private parent channel and never serves frontend assets or pairs over HTTP. */
   desktop?: { token: string; workspaceKey: string; rgPath: string; gitPath?: string };
 }
@@ -76,6 +80,7 @@ interface Connection {
   pending: Map<string, AbortController>;
   watching: boolean;
   language: boolean;
+  alive: boolean;
   edits: Map<string,{resolve:(result:{applied:boolean;failureReason?:string})=>void;cleanup:()=>void}>;
 }
 interface Operation {
@@ -665,6 +670,7 @@ export async function createRuntime(options: RuntimeOptions) {
           "Open a new connection to change sessions",
         );
       connection.session = session;
+      updateIdle();
       return { ...sessionInfo(session), runtime: identity };
     }
     const workspace = params.workspaceId ?? "default";
@@ -1120,6 +1126,29 @@ export async function createRuntime(options: RuntimeOptions) {
         );
     }
   };
+  let idleSince: number | undefined, idleTimer: ReturnType<typeof setTimeout> | undefined;
+  const updateIdle = () => {
+    if ([...connections.values()].some((c) => c.session && !c.session.revoked)) {
+      idleSince = undefined;
+      clearTimeout(idleTimer);
+      return;
+    }
+    if (idleSince !== undefined || closed) return;
+    idleSince = Date.now();
+    const idle = options.idleShutdown;
+    if (idle) idleTimer = setTimeout(() => { if (!closed) idle.onIdle(); }, idle.afterMs);
+  };
+  const ping = setInterval(() => {
+    for (const connection of connections.values()) {
+      if (!connection.alive) {
+        connection.ws.terminate();
+        continue;
+      }
+      connection.alive = false;
+      connection.ws.ping();
+    }
+  }, options.pingIntervalMs ?? 30000);
+  ping.unref();
   websocket.on("connection", (ws, request) => {
     const connection: Connection = {
       id: randomUUID(),
@@ -1128,9 +1157,13 @@ export async function createRuntime(options: RuntimeOptions) {
       pending: new Map(),
       watching: false,
       language: false,
+      alive: true,
       edits: new Map(),
     };
     connections.set(connection.id, connection);
+    ws.on("pong", () => {
+      connection.alive = true;
+    });
     const authDeadline = setTimeout(() => {
       if (!connection.session) ws.close(4001, "Authenticate within 10 seconds");
     }, 10000);
@@ -1273,6 +1306,7 @@ export async function createRuntime(options: RuntimeOptions) {
       agents.disconnect(connection.id);
       lsp.detach(connection.id);
       connections.delete(connection.id);
+      updateIdle();
       for (const pending of connection.edits.values()) {pending.cleanup();pending.resolve({applied:false,failureReason:"Document client disconnected"});} connection.edits.clear();
       processes.disconnect(connection.id);
       void collaboration.leave(connection.id);
@@ -1390,6 +1424,7 @@ export async function createRuntime(options: RuntimeOptions) {
   const address = server.address();
   if (address && typeof address === "object") port = address.port;
   identity.startedAt = Date.now();
+  updateIdle();
   try {
     startWatcher(setting("WATCH_POLLING") === "1" || setting("WATCH_POLLING") === "true");
   } catch (error) {
@@ -1400,6 +1435,8 @@ export async function createRuntime(options: RuntimeOptions) {
     port,
     identity,
     pairingCode,
+    /** Epoch milliseconds since no authenticated client has been connected, or undefined while one is. */
+    idleSince: () => idleSince,
     root,
     dataDir,
     /** Resolves after the watcher's first full scan, or once watching has failed. */
@@ -1418,6 +1455,8 @@ export async function createRuntime(options: RuntimeOptions) {
     async close() {
       if (closed) return;
       closed = true;
+      clearInterval(ping);
+      clearTimeout(idleTimer);
       await watcherTransition;
       await watcher?.close();
       await fileChangeQueue;

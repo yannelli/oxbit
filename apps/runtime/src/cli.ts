@@ -36,6 +36,10 @@ Options
       --host <address> Address to bind (default: $HOST or ${DEFAULT_HOST})
       --desktop        Open in the installed Oxbit desktop application
       --no-open        Leave the browser closed
+      --keep-alive <duration>
+                       Stop after this long with no connected client: 75s, 15m,
+                       1h, 8h, forever, or milliseconds (default:
+                       $OXBIT_KEEP_ALIVE or forever)
   -f, --foreground     Serve in this terminal and stay attached
       --stop           Stop the runtime serving the workspace
       --status         Report the runtime serving the workspace
@@ -50,6 +54,8 @@ export interface Invocation {
   host: string;
   open: boolean;
   foreground: boolean;
+  /** Milliseconds without a connected client before the runtime stops; 0 runs until stopped. */
+  keepAlive: number;
   action: "open" | "stop" | "status" | "help" | "version" | "desktop";
 }
 export interface Target {
@@ -67,6 +73,7 @@ function tokenize(argv: string[]) {
         port: { type: "string", short: "p" },
         host: { type: "string" },
         "no-open": { type: "boolean" },
+        "keep-alive": { type: "string" },
         foreground: { type: "boolean", short: "f" },
         stop: { type: "boolean" },
         status: { type: "boolean" },
@@ -80,6 +87,14 @@ function tokenize(argv: string[]) {
 }
 const text = (value: unknown) =>
   typeof value === "string" ? value : undefined;
+const units: Record<string, number> = { "": 1, ms: 1, s: 1000, m: 60000, h: 3600000 };
+
+export function parseDuration(value: string) {
+  if (value.trim().toLowerCase() === "forever") return 0;
+  const match = /^(\d+)(ms|s|m|h)?$/.exec(value.trim().toLowerCase());
+  const duration = match ? Number(match[1]) * units[match[2] ?? ""]! : NaN;
+  return Number.isSafeInteger(duration) ? duration : undefined;
+}
 
 export function parse(
   argv: string[],
@@ -92,7 +107,7 @@ export function parse(
     return {
       error: `Expected at most one path, received ${positionals.length}`,
     };
-  if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host))
+  if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host || values["keep-alive"]))
     return { error: "--desktop cannot be combined with browser runtime options" };
   const requested = text(values.port) ?? env.PORT;
   const port = requested === undefined ? 0 : Number(requested);
@@ -100,9 +115,16 @@ export function parse(
     return {
       error: `Port must be a whole number between 0 and 65535, received "${requested}"`,
     };
+  const lifetime = text(values["keep-alive"]) ?? setting("KEEP_ALIVE", env);
+  const keepAlive = lifetime === undefined ? 0 : parseDuration(lifetime);
+  if (keepAlive === undefined)
+    return {
+      error: `Keep-alive must be a duration such as 75s, 15m, 1h, forever, or milliseconds, received "${lifetime}"`,
+    };
   return {
     target: positionals[0] ?? setting("WORKSPACE", env) ?? ".",
     port,
+    keepAlive,
     host: text(values.host) ?? env.HOST ?? DEFAULT_HOST,
     open: values["no-open"] !== true,
     foreground: values.foreground === true,
@@ -172,6 +194,7 @@ async function serveRuntime(
 ) {
   const host = invocation.host;
   const port = invocation.port;
+  let stop = () => {};
   const runtime = await createRuntime({
     root: target.root,
     port,
@@ -181,6 +204,7 @@ async function serveRuntime(
     pairingAttemptsPerMinute: setting("PAIRING_ATTEMPTS_PER_MINUTE", env) === undefined ? undefined : Number(setting("PAIRING_ATTEMPTS_PER_MINUTE", env)),
     origins: setting("ORIGINS", env)?.split(",").filter(Boolean),
     webRoot: setting("WEB_ROOT", env),
+    ...(invocation.keepAlive ? { idleShutdown: { afterMs: invocation.keepAlive, onIdle: () => stop() } } : {}),
   });
   const daemon: Daemon = {
     id: runtime.identity.id,
@@ -204,6 +228,10 @@ async function serveRuntime(
         .then(() => removeRecord(dataDir))
         .then(resolve, resolve);
     };
+    stop = () => {
+      process.stdout.write(`No client connected for ${invocation.keepAlive} ms; stopping\n`);
+      shutdown();
+    };
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
   });
@@ -220,12 +248,14 @@ async function detach(
   const log = await fs.open(logFile(dataDir), "a", 0o600);
   const args = [entry, "--foreground", "--no-open", "--host", invocation.host];
   if (invocation.port) args.push("--port", String(invocation.port));
+  args.push("--keep-alive", invocation.keepAlive ? String(invocation.keepAlive) : "forever");
   args.push(target.root);
   // The daemon takes its workspace and port from the arguments, so inherited settings cannot contradict them.
   const env: Environment = { ...process.env, OXBIT_DATA_DIR: dataDir };
   delete env.PORT;
   delete env.HOST;
   delete env.OXBIT_WORKSPACE;
+  delete env.OXBIT_KEEP_ALIVE;
   const child = spawn(process.execPath, args, {
     detached: true,
     stdio: ["ignore", log.fd, log.fd],
