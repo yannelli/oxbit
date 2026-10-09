@@ -280,7 +280,7 @@ function App() {
           onConnect={() => void workspace.session.workbench.run("runtime.cloud")} />
       )}
       {(sheet || !workspace) && <div className={workspace ? "ios-sheet" : "ios-fullscreen"}>{start}</div>}
-      {runtimePage && <div className="ios-sheet ios-runtime-sheet">
+      {runtimePage && <div className="ios-sheet ios-runtime-sheet" role="dialog" aria-modal="true" aria-label="Runtime">
         <RuntimePage connector={runtimeConnector} settings={runtimeConnector.settings} onClose={() => setRuntimePage(false)} />
       </div>}
       {gitSettings && <GitSettings repository={workspace?.git} onClose={() => setGitSettings(false)} />}

@@ -1,11 +1,13 @@
 import type { Page } from "@playwright/test";
 
+export interface BridgeRuntime { runtimeId: string; name: string; version?: string; host: string; port: number; url: string }
 export interface BridgeAccount { id: string; provider: "github" | "gitea"; host: string; url?: string; login: string; isDefault: boolean }
 
 /** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
 /** An added token names its login; the token `rejected` fails validation. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[] } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded }) => {
+/** `runtimes` are Bonjour results; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], stored = {} as Record<string, unknown> } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, stored }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -38,7 +40,17 @@ export async function installBridge(page: Page, { repository = false, accounts =
       }
       return credentials();
     }
-    const storage = new Map<string, unknown>();
+    const storage = new Map<string, unknown>(Object.entries(stored));
+    const runtimeRequests: Record<string, unknown>[] = [];
+    function runtimeCredentials(request: { operation: string; url: string; runtimeId?: string; code?: string }) {
+      runtimeRequests.push({ ...request });
+      if (request.operation === "health") throw { code: "RUNTIME_HEALTH", message: "The runtime is unreachable: Could not connect to the server." };
+      if (request.operation === "pair") {
+        const runtime = runtimes.find(item => item.url === request.url);
+        return { token: "paired-token", runtime: runtime && { id: runtime.runtimeId, name: runtime.name, version: runtime.version ?? "0.4.1", startedAt: 1 } };
+      }
+      return request.operation === "get" ? { token: "saved-token" } : {};
+    }
     const roots = new Set<string>();
     const packs = new Map<string, unknown>();
     const closed: { id: string; title: string | null | undefined }[] = [];
@@ -77,6 +89,8 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return { id: "second", name: "Second", path: "/device/Second", stale: false };
         if (command === "plugin:oxbit-files|close_folder") return;
         if (command === "plugin:oxbit-files|git_credentials") return gitCredentials(args.request);
+        if (command === "plugin:oxbit-files|runtime_credentials") return runtimeCredentials(args.request);
+        if (command === "plugin:oxbit-files|runtime_discovery") return { runtimes: args.request.operation === "stop" ? [] : runtimes };
         if (command === "plugin:oxbit-files|commit_signing") {
           const request = args.request;
           if (request.operation === "generate") signing = {
@@ -142,7 +156,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, copied, storage, get opened() { return opened; }, get signing() { return signing; } },
+      __iosTest: { closed, copied, storage, runtimeRequests, get opened() { return opened; }, get signing() { return signing; } },
     });
-  }, { repository, accounts });
+  }, { repository, accounts, runtimes, stored });
 }
