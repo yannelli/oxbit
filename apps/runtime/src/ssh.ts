@@ -6,6 +6,7 @@ import net from "node:net";
 import { createHash } from "node:crypto";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { pipeline } from "node:stream/promises";
+import { RUNTIME_OUTPUT_SEPARATOR } from "@oxbit/protocol";
 import {
   installScript,
   parseSshTarget,
@@ -279,14 +280,21 @@ export async function connectSsh(options: SshOptions) {
           `cd ${remote} || exit 1; unset NODE_OPTIONS NODE_PATH OXBIT_LSP_COMMAND; exec ${remote}/bin/node ${remote}/desktop.js`,
         ),
     );
-    session.stderr.resume();
+    let remoteOutput = "";
+    session.stderr.on("data", (chunk: Buffer) => {
+      remoteOutput = (remoteOutput + chunk.toString()).slice(-4096);
+    });
+    const withOutput = (message: string) => {
+      const tail = remoteOutput.replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "").trim();
+      return new Error(tail ? message + RUNTIME_OUTPUT_SEPARATOR + tail : message);
+    };
     const localPort = await freePort();
     let buffer = "";
     const ready = new Promise<RemoteFrame>((resolve, reject) => {
       const timer = setTimeout(
         () =>
           reject(
-            new Error(
+            withOutput(
               "Remote runtime startup timed out. Check the remote folder and operating system compatibility.",
             ),
           ),
@@ -295,7 +303,7 @@ export async function connectSsh(options: SshOptions) {
       const failed = () => {
         clearTimeout(timer);
         reject(
-          new Error(
+          withOutput(
             "Remote runtime stopped. Check the folder path, available disk space, and platform compatibility.",
           ),
         );
@@ -324,7 +332,7 @@ export async function connectSsh(options: SshOptions) {
             else if (frame.type === "taskForward") forwardTask(frame);
             else if (frame.type === "error") {
               clearTimeout(timer);
-              reject(new Error(frame.message ?? "Remote startup failed"));
+              reject(withOutput(frame.message ?? "Remote startup failed"));
             }
             // Remote process IDs are meaningful only on the remote machine.
           } catch {

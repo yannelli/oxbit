@@ -1280,12 +1280,17 @@ export async function createRuntime(options: RuntimeOptions) {
   });
   let watcher: ReturnType<typeof chokidar.watch> | undefined,
     watcherTransition = Promise.resolve();
-  let watcherReadyResolve: () => void,
-    watcherReadyReject: (error: unknown) => void;
-  const watcherReady = new Promise<void>((resolve, reject) => {
+  let watcherReadyResolve!: () => void;
+  const watcherReady = new Promise<void>((resolve) => {
     watcherReadyResolve = resolve;
-    watcherReadyReject = reject;
   });
+  const watchFailed = (error: NodeJS.ErrnoException) => {
+    process.stderr.write(`Oxbit file watcher failed: ${error.code ? `${error.code} ` : ""}${error.message}\n`);
+    for (const c of connections.values())
+      if (c.watching && c.session)
+        event(c, "fs.watchError", { message: error.message, code: error.code });
+    watcherReadyResolve();
+  };
   let fileChangeQueue: Promise<void> = Promise.resolve();
   const watchedChange = (kind: string, full: string) => {
     fileChangeQueue = fileChangeQueue.catch(() => {}).then(async () => {
@@ -1361,27 +1366,14 @@ export async function createRuntime(options: RuntimeOptions) {
           .then(() => {
             if (!closed) startWatcher(true);
           })
-          .catch(watcherReadyReject);
+          .catch(watchFailed);
         for (const c of connections.values())
           if (c.watching && c.session)
             event(c, "fs.watchStatus", { mode: "polling", reason: error.code });
-      } else {
-        for (const c of connections.values())
-          if (c.watching && c.session)
-            event(c, "fs.watchError", {
-              message: error.message,
-              code: error.code,
-            });
-        watcherReadyReject(error);
-      }
+      } else watchFailed(error);
     });
     current.add(root);
   };
-  startWatcher(
-    setting("WATCH_POLLING") === "1" ||
-      setting("WATCH_POLLING") === "true",
-  );
-  await watcherReady;
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, () => {
@@ -1391,12 +1383,19 @@ export async function createRuntime(options: RuntimeOptions) {
   });
   const address = server.address();
   if (address && typeof address === "object") port = address.port;
+  try {
+    startWatcher(setting("WATCH_POLLING") === "1" || setting("WATCH_POLLING") === "true");
+  } catch (error) {
+    watchFailed(error as NodeJS.ErrnoException);
+  }
   return {
     server,
     port,
     pairingCode,
     root,
     dataDir,
+    /** Resolves after the watcher's first full scan, or once watching has failed. */
+    watcherReady,
     async rotateDesktopToken(token: string) {
       if (!options.desktop || token.length < 32) throw new Error("Invalid desktop rotation");
       const previous = [...sessions.entries()].find(([, session]) => session.id === "desktop-owner");

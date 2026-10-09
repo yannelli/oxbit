@@ -141,7 +141,33 @@ export async function resolveTarget(
   return { root, file: path.relative(root, file).split(path.sep).join("/") };
 }
 
+export function serveFailure(error: unknown, host: string, port: number | undefined) {
+  const failure = error as NodeJS.ErrnoException;
+  const address = `${host}:${port ?? 0}`;
+  if (failure.code === "EADDRINUSE")
+    return `Cannot serve on ${address}: the port is in use. Stop the process holding it or choose another with --port.`;
+  if (failure.code === "EACCES" || failure.code === "EPERM")
+    return `Cannot serve on ${address}: permission denied. Choose a port above 1023 or another --host.`;
+  if (failure.code === "EADDRNOTAVAIL")
+    return `Cannot serve on ${address}: the address is not available on this machine.`;
+  return `The runtime could not start: ${failure.message ?? String(error)}`;
+}
+
 async function serve(
+  invocation: Invocation,
+  target: Target,
+  dataDir: string,
+  env: Environment,
+) {
+  try {
+    return await serveRuntime(invocation, target, dataDir, env);
+  } catch (error) {
+    process.stderr.write(serveFailure(error, invocation.host, invocation.port) + "\n");
+    return 1;
+  }
+}
+
+async function serveRuntime(
   invocation: Invocation,
   target: Target,
   dataDir: string,

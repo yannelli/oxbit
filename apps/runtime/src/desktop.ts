@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { connectSsh } from "./ssh.js";
-import { acquireRemoteWorkspace, RemoteWorkspaceBusy } from "./ssh-workspace.js";
+import { acquireRemoteWorkspace } from "./ssh-workspace.js";
 import { observeOwnedProcesses, terminateOwnedProcesses } from "./owned-processes.js";
 import { createRuntime } from "./runtime.js";
 
@@ -26,7 +26,6 @@ const send = (message: object) => process.stdout.write(JSON.stringify({ version:
 console.log = console.info = console.debug = (...args: unknown[]) => console.error(...args);
 let runtime: Awaited<ReturnType<typeof createRuntime>> | undefined;
 let remote: Awaited<ReturnType<typeof connectSsh>> | undefined;
-let connectingRemote = false;
 let releaseRemoteWorkspace: (() => Promise<void>) | undefined;
 const connectionAbort = new AbortController();
 let starting = false;
@@ -63,9 +62,13 @@ process.stdin.on("data", (chunk: Buffer) => {
   if (bytes > 65536) void shutdown(1);
   if (chunk.includes(10)) bytes = 0;
 });
+// Parse errors quote the input, and the launch frame carries the token.
+const parseFrame = (line: string): unknown => {
+  try { return JSON.parse(line); } catch { throw new Error("Invalid supervisor frame"); }
+};
 lines.on("line", (line) => {
   void (async () => {
-    const config = JSON.parse(line) as Launch | { version: 1; type: "heartbeat" } | { version: 1; type: "shutdown" } | { version: 1; type: "rotate"; token: string; request: string } | { version: 1; type: "taskForwarded"; request: string; port?: number; error?: string };
+    const config = parseFrame(line) as Launch | { version: 1; type: "heartbeat" } | { version: 1; type: "shutdown" } | { version: 1; type: "rotate"; token: string; request: string } | { version: 1; type: "taskForwarded"; request: string; port?: number; error?: string };
     if (config.version !== 1) throw new Error("Unsupported supervisor protocol");
     if (config.type === "heartbeat") { if (isRemoteRuntime) refreshRemoteLease(); return; }
     if (config.type === "taskForwarded") {
@@ -87,7 +90,6 @@ lines.on("line", (line) => {
     if (config.type !== "launch" || starting) throw new Error("Expected one launch frame");
     starting = true;
     if (typeof config.root === "string" && config.root.startsWith("ssh://") && !config.remoteRuntime) {
-      connectingRemote = true;
       clearTimeout(deadline);
       const timeout = setTimeout(() => connectionAbort.abort(), 240000);
       try {
@@ -133,8 +135,8 @@ lines.on("line", (line) => {
     clearTimeout(deadline);
     send({ type: "ready", port: runtime.port, workspaceKey: config.workspaceKey, root, openFile });
   })().catch((error: unknown) => {
-    // Never echo launch frames, environment, credentials, or arbitrary exception text.
-    send({ type: "error", code: "STARTUP_FAILED", message: connectionAbort.signal.aborted ? "SSH connection cancelled or timed out." : (connectingRemote && error instanceof Error || error instanceof RemoteWorkspaceBusy) ? error.message : "Runtime startup failed. Check the project path and packaged resources." });
+    // Launch frames, environment, and credentials stay out of this message.
+    send({ type: "error", code: "STARTUP_FAILED", message: connectionAbort.signal.aborted ? "SSH connection cancelled or timed out." : error instanceof Error ? error.message : "Runtime startup failed. Check the project path and packaged resources." });
     void shutdown(1);
   });
 });
