@@ -182,7 +182,8 @@ try {
     request("terminal.create"),
     (e: any) => e.code === "UNTRUSTED",
   );
-  await assert.rejects(connectSsh(options), /already open/);
+  const otherOwner = createHash("sha256").update(`${target}\0other`).digest("hex");
+  await assert.rejects(connectSsh({ ...options, workspaceKey: otherOwner }), /already open/);
   checks.push(
     "automatic verified installation, remote file target, authenticated tunnel, trust gate, concurrent owner rejection",
   );
