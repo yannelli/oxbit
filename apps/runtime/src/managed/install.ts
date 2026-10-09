@@ -68,21 +68,24 @@ export class ManagedInstaller {
     await fs.mkdir(directory, { recursive: true });
     const archive = directory + ".tgz";
     await fs.writeFile(archive, bytes);
+    // tar reports an exception thrown from filter as uncaught, so record the first rejection and skip entries.
+    let rejection: Error | undefined;
     try {
       await untar({ file: archive, cwd: directory, strip, strict: true, preservePaths: false,
         filter(name, candidate) {
           const entry = candidate as import("tar").ReadEntry;
           const normalized = name.split("/").slice(strip).join("/");
-          if (name.startsWith("/") || name.includes("\\") || name.split("/").includes("..")) throw new Error("Unsafe archive path");
-          if (!["File", "OldFile", "Directory", "SymbolicLink"].includes(entry.type)) throw new Error("Unsupported archive entry");
-          if (entry.type === "SymbolicLink") {
+          if (name.startsWith("/") || name.includes("\\") || name.split("/").includes("..")) rejection ??= new Error("Unsafe archive path");
+          else if (!["File", "OldFile", "Directory", "SymbolicLink"].includes(entry.type)) rejection ??= new Error("Unsupported archive entry");
+          else if (entry.type === "SymbolicLink") {
             const target = path.resolve(directory, path.dirname(normalized), entry.linkpath ?? "");
-            if (path.isAbsolute(entry.linkpath ?? "") || !target.startsWith(directory + path.sep)) throw new Error("Archive link leaves installation");
+            if (path.isAbsolute(entry.linkpath ?? "") || !target.startsWith(directory + path.sep)) rejection ??= new Error("Archive link leaves installation");
           }
-          return true;
+          return !rejection;
         },
       });
     } finally { await fs.rm(archive, { force: true }); }
+    if (rejection) throw rejection;
   }
   private async install(id: string, digest: string, build: (stage: string) => Promise<void>, signal?: AbortSignal) {
     if (!["darwin-arm64", "linux-x64"].includes(this.platform)) throw new Error(`Managed language servers are unavailable on ${this.platform}`);

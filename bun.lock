@@ -31,7 +31,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -52,7 +52,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -71,7 +71,7 @@
     },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.3.0-alpha.3",
+      "version": "0.4.1",
       "dependencies": {
         "@oxbit/core": "workspace:*",
         "@oxbit/protocol": "workspace:*",
@@ -81,7 +81,7 @@
         "ignore": "7.0.5",
         "jsonc-parser": "^3.3.1",
         "node-pty": "^1.1.0",
-        "tar": "7.5.9",
+        "tar": "7.5.22",
         "typescript": "^5.9.3",
         "typescript-language-server": "^5.0.0",
         "vscode-jsonrpc": "^8.2.1",
@@ -1844,7 +1844,7 @@
 
     "supports-color": ["supports-color@8.1.1", "", { "dependencies": { "has-flag": "4.0.0" } }, "sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q=="],
 
-    "tar": ["tar@7.5.9", "", { "dependencies": { "@isaacs/fs-minipass": "4.0.1", "chownr": "3.0.0", "minipass": "7.1.3", "minizlib": "3.1.0", "yallist": "5.0.0" } }, "sha512-BTLcK0xsDh2+PUe9F6c2TlRp4zOOBMTkoQHQIWSIzI0R7KG46uEwq4OPk2W7bZcprBMsuaeFsqwYr7pjh6CuHg=="],
+    "tar": ["tar@7.5.22", "", { "dependencies": { "@isaacs/fs-minipass": "^4.0.0", "chownr": "^3.0.0", "minipass": "^7.1.2", "minizlib": "^3.1.0", "yallist": "^5.0.0" } }, "sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA=="],
 
     "tar-fs": ["tar-fs@3.1.3", "", { "dependencies": { "pump": "3.0.4", "tar-stream": "3.2.1" }, "optionalDependencies": { "bare-fs": "4.8.1", "bare-path": "3.1.2" } }, "sha512-/hU4AXnIdZu+Gvl1pk0oI5f5HxWsCJRtY2aFaJdk9VvyL48DWU6iU5WAIPG+wIi1YvWA6eTJvIviP/tMAZZNwQ=="],
 

@@ -6,6 +6,7 @@ import { WorkspaceFiles } from "../src/filesystem.js";
 import { LanguageServerManager } from "../src/lsp-manager.js";
 import { fingerprint, lockedPackages, ManagedInstaller, verifyIntegrity } from "../src/managed/install.js";
 import { createHash } from "node:crypto";
+import { c as createTar } from "tar";
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
@@ -97,6 +98,31 @@ describe("managed installation locks", () => {
     const controller = new AbortController(); controller.abort();
     await expect(installer.native("marksman", controller.signal)).rejects.toThrow();
     await expect(new ManagedInstaller(root, "win32-x64" as any).native("marksman")).rejects.toThrow("No pinned");
+  });
+  it("extracts package archives and rejects links that leave the installation", async () => {
+    const { root } = await setup();
+    const installer = new ManagedInstaller(path.join(root, "installer")) as any;
+    async function archive(name: string, build: (directory: string) => Promise<void>) {
+      const source = path.join(root, `${name}-source`), file = path.join(root, `${name}.tgz`);
+      await fs.mkdir(path.join(source, "package"), { recursive: true });
+      await build(path.join(source, "package"));
+      await createTar({ gzip: true, cwd: source, file, portable: true }, ["package"]);
+      return fs.readFile(file);
+    }
+    const valid = await archive("valid", async directory => {
+      await fs.writeFile(path.join(directory, "server.js"), "export {};");
+      await fs.symlink("server.js", path.join(directory, "alias.js"));
+    });
+    await installer.extract(valid, path.join(root, "valid"), 1);
+    expect(await fs.readFile(path.join(root, "valid/alias.js"), "utf8")).toBe("export {};");
+    const symlink = await archive("symlink", directory => fs.symlink("../../outside", path.join(directory, "escape")));
+    await expect(installer.extract(symlink, path.join(root, "symlink"), 1)).rejects.toThrow("Archive link leaves installation");
+    const hardlink = await archive("hardlink", async directory => {
+      await fs.writeFile(path.join(directory, "server.js"), "export {};");
+      await fs.link(path.join(directory, "server.js"), path.join(directory, "linked.js"));
+    });
+    await expect(installer.extract(hardlink, path.join(root, "hardlink"), 1)).rejects.toThrow("Unsupported archive entry");
+    await expect(fs.lstat(path.join(root, "symlink/escape"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
 
