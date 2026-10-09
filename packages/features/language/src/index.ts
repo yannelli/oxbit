@@ -1742,6 +1742,7 @@ export class LanguageService {
     this.listeners.clear();
   }
 }
+export { managedServerExtensionId, managedServerIds, registerManagedServerFeatures } from "./managed-extensions.js";
 export function createFeature(o: FeatureOptions): Extension {
   let language: LanguageService;
   function Problems() {
