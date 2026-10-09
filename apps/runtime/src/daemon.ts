@@ -1,10 +1,11 @@
 import * as fs from "node:fs/promises";
-import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { setting, workspaceDataDir } from "./branding.js";
 
 export interface Daemon {
+  /** Runtime identity id; absent in records written before identities existed. */
+  id?: string;
   pid: number;
   host: string;
   port: number;
@@ -92,22 +93,4 @@ export async function liveDaemon(dataDir: string) {
   const daemon = await readRecord(dataDir);
   if (!daemon || !running(daemon.pid)) return undefined;
   return (await serving(daemon)) ? daemon : undefined;
-}
-
-export async function available(host: string, port: number) {
-  const probe = net.createServer();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      probe.once("error", reject);
-      probe.listen(port, host, () => {
-        probe.removeListener("error", reject);
-        resolve();
-      });
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await new Promise<void>((resolve) => probe.close(() => resolve()));
-  }
 }

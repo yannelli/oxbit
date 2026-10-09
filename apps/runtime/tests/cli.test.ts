@@ -40,7 +40,7 @@ describe("argument parsing", () => {
   it("defaults to the current directory, port and loopback host", () => {
     expect(parse([], env)).toEqual({
       target: ".",
-      port: undefined,
+      port: 0,
       host: DEFAULT_HOST,
       open: true,
       foreground: false,

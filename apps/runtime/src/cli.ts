@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { createRuntime } from "./runtime.js";
 import { setting } from "./branding.js";
+import { runtimeVersion } from "./version.js";
 import {
-  available,
   dataDirFor,
   delay,
   launchBrowser,
@@ -20,7 +20,6 @@ import {
   type Environment,
 } from "./daemon.js";
 
-export const DEFAULT_PORT = 9277;
 export const DEFAULT_HOST = "127.0.0.1";
 const READY_TIMEOUT = 60000;
 const STOP_TIMEOUT = 10000;
@@ -33,7 +32,7 @@ already serving it, then opens the paired editor in the default browser.
   path                 File or directory to open (default: $OXBIT_WORKSPACE or .)
 
 Options
-  -p, --port <number>  Port to serve on (default: $PORT or ${DEFAULT_PORT})
+  -p, --port <number>  Port to serve on (default: $PORT or a free port)
       --host <address> Address to bind (default: $HOST or ${DEFAULT_HOST})
       --desktop        Open in the installed Oxbit desktop application
       --no-open        Leave the browser closed
@@ -46,7 +45,8 @@ Options
 
 export interface Invocation {
   target: string;
-  port?: number;
+  /** 0 asks the OS for a free port. */
+  port: number;
   host: string;
   open: boolean;
   foreground: boolean;
@@ -95,11 +95,8 @@ export function parse(
   if (values.desktop && (values.stop || values.status || values.foreground || values["no-open"] || values.port || values.host))
     return { error: "--desktop cannot be combined with browser runtime options" };
   const requested = text(values.port) ?? env.PORT;
-  const port = requested === undefined ? undefined : Number(requested);
-  if (
-    port !== undefined &&
-    (!Number.isInteger(port) || port < 0 || port > 65535)
-  )
+  const port = requested === undefined ? 0 : Number(requested);
+  if (!Number.isInteger(port) || port < 0 || port > 65535)
     return {
       error: `Port must be a whole number between 0 and 65535, received "${requested}"`,
     };
@@ -174,10 +171,7 @@ async function serveRuntime(
   env: Environment,
 ) {
   const host = invocation.host;
-  // A defaulted port may move aside for whatever holds it; an explicit one fails loudly instead.
-  const port =
-    invocation.port ??
-    ((await available(host, DEFAULT_PORT)) ? DEFAULT_PORT : 0);
+  const port = invocation.port;
   const runtime = await createRuntime({
     root: target.root,
     port,
@@ -189,6 +183,7 @@ async function serveRuntime(
     webRoot: setting("WEB_ROOT", env),
   });
   const daemon: Daemon = {
+    id: runtime.identity.id,
     pid: process.pid,
     host,
     port: runtime.port,
@@ -199,7 +194,7 @@ async function serveRuntime(
   await writeRecord(dataDir, daemon);
   const url = launchUrl(daemon, target.file);
   process.stdout.write(
-    `Oxbit runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nOpen: ${url}\n`,
+    `Oxbit runtime: http://${host}:${runtime.port}\nWorkspace: ${runtime.root}\nOwner pairing code: ${runtime.pairingCode}\nRuntime id: ${runtime.identity.id}\nOpen: ${url}\n`,
   );
   if (invocation.open) launchBrowser(url);
   await new Promise<void>((resolve) => {
@@ -224,8 +219,7 @@ async function detach(
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 });
   const log = await fs.open(logFile(dataDir), "a", 0o600);
   const args = [entry, "--foreground", "--no-open", "--host", invocation.host];
-  if (invocation.port !== undefined)
-    args.push("--port", String(invocation.port));
+  if (invocation.port) args.push("--port", String(invocation.port));
   args.push(target.root);
   // The daemon takes its workspace and port from the arguments, so inherited settings cannot contradict them.
   const env: Environment = { ...process.env, OXBIT_DATA_DIR: dataDir };
@@ -289,18 +283,9 @@ async function status(dataDir: string, root: string) {
     return 1;
   }
   process.stdout.write(
-    `Workspace: ${daemon.root}\nRuntime: http://${daemon.host}:${daemon.port}\nProcess: ${daemon.pid}\nOpen: ${launchUrl(daemon)}\n`,
+    `Workspace: ${daemon.root}\nRuntime: http://${daemon.host}:${daemon.port}\n${daemon.id ? `Runtime id: ${daemon.id}\n` : ""}Process: ${daemon.pid}\nOpen: ${launchUrl(daemon)}\n`,
   );
   return 0;
-}
-
-async function version() {
-  try {
-    const manifest = fileURLToPath(new URL("../package.json", import.meta.url));
-    return JSON.parse(await fs.readFile(manifest, "utf8")).version;
-  } catch {
-    return "unknown";
-  }
 }
 
 export interface Context {
@@ -329,7 +314,7 @@ export async function run(
     return 0;
   }
   if (invocation.action === "version") {
-    process.stdout.write(`${await version()}\n`);
+    process.stdout.write(`${runtimeVersion()}\n`);
     return 0;
   }
   let target: Target;

@@ -21,6 +21,7 @@ import {
   MAX_BUFFER_BYTES,
   READ_CHUNK_BYTES,
   operationMethods,
+  type RuntimeIdentity,
   type ServerMessage,
 } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
@@ -38,6 +39,7 @@ import { Collaboration } from "./collaboration.js";
 import { AgentACP } from "./agent-acp.js";
 import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
+import { runtimeVersion } from "./version.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -140,10 +142,12 @@ export async function createRuntime(options: RuntimeOptions) {
     inflight = new Map<string, Promise<unknown>>(),
     connections = new Map<string, Connection>();
   let trusted = false,
-    closed = false;
+    closed = false,
+    runtimeId: string = randomUUID();
   try {
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
     trusted = state.trusted === true;
+    if (typeof state.id === "string" && /^[A-Za-z0-9-]{8,64}$/.test(state.id)) runtimeId = state.id;
     for (const session of state.sessions ?? [])
       sessions.set(session.hash, session);
     for (const operation of state.operations ?? []) {
@@ -172,6 +176,7 @@ export async function createRuntime(options: RuntimeOptions) {
   let persistence = Promise.resolve();
   const persist = () => {
     const payload = JSON.stringify({
+      id: runtimeId,
       trusted,
       sessions: [...sessions.values()],
       operations: [...operations.values()],
@@ -189,7 +194,8 @@ export async function createRuntime(options: RuntimeOptions) {
   const pairingAttemptsPerMinute = options.pairingAttemptsPerMinute ?? 10;
   if (!Number.isInteger(pairingAttemptsPerMinute) || pairingAttemptsPerMinute < 1)
     throw new Error("Pairing attempts per minute must be a positive whole number");
-  let port = options.port ?? 9277;
+  let port = options.port ?? 0;
+  const identity: RuntimeIdentity = { id: runtimeId, name: os.hostname(), version: runtimeVersion(), startedAt: Date.now() };
   const allowedOrigins = () =>
     new Set([
       "tauri://localhost",
@@ -443,7 +449,7 @@ export async function createRuntime(options: RuntimeOptions) {
       }
       const url = new URL(request.url ?? "/", `http://${host}:${port}`);
       if (url.pathname === "/api/health") {
-        httpJson(response, 200, { ok: true, protocol: 1 });
+        httpJson(response, 200, { ok: true, protocol: 1, ...identity });
         return;
       }
       if (url.pathname === "/api/pair" && request.method === "POST") {
@@ -478,7 +484,7 @@ export async function createRuntime(options: RuntimeOptions) {
           "Set-Cookie",
           `oxbit_session=${result.token}; HttpOnly; SameSite=Strict; Path=/`,
         );
-        httpJson(response, 200, result);
+        httpJson(response, 200, { ...result, runtime: identity });
         return;
       }
       if (url.pathname === "/api/grants") {
@@ -659,7 +665,7 @@ export async function createRuntime(options: RuntimeOptions) {
           "Open a new connection to change sessions",
         );
       connection.session = session;
-      return sessionInfo(session);
+      return { ...sessionInfo(session), runtime: identity };
     }
     const workspace = params.workspaceId ?? "default";
     if (workspace !== "default")
@@ -1383,6 +1389,7 @@ export async function createRuntime(options: RuntimeOptions) {
   });
   const address = server.address();
   if (address && typeof address === "object") port = address.port;
+  identity.startedAt = Date.now();
   try {
     startWatcher(setting("WATCH_POLLING") === "1" || setting("WATCH_POLLING") === "true");
   } catch (error) {
@@ -1391,6 +1398,7 @@ export async function createRuntime(options: RuntimeOptions) {
   return {
     server,
     port,
+    identity,
     pairingCode,
     root,
     dataDir,
