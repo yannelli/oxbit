@@ -82,7 +82,7 @@ GitHub tokens and runtime pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
-The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, and language-server guides with official API references.
+The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, language-server, and runtime parity guides with official API and crate references.
 The [iOS release artwork guide](docs/ios-release-assets.md) covers icon exports,
 App Store screenshots, and promo exports with Apple's design and size references.
 
