@@ -1,5 +1,8 @@
 # Oxbit for iOS and iPadOS
 
+Created: 2026-09-09
+Last updated: 2026-10-09
+
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
 [Source Control on device folders](ios-source-control.md) supports Git through libgit2. **Clone Repository…** opens a cloned repository, and **Git Accounts and Commit Author**, in the Source Control toolbar and on the workspace screen, stores the default author and any number of GitHub and Gitea accounts in Keychain. Each server has one default account, and each repository can choose its own account.
@@ -72,14 +75,32 @@ On touch devices a press held on a tab, explorer row, or panel opens the context
 Start the CLI runtime from your project folder on the computer:
 
 ```sh
-OXBIT_ORIGINS=tauri://localhost oxbit --host 0.0.0.0 --foreground --no-open
+oxbit --lan
 ```
 
-The origin setting also supports older CLI runtimes. In the iOS app, tap the connection button in the header or **Connect Runtime…** on the workspace screen. Enter the computer's network address, for example `http://192.168.1.10:9277`, and the owner pairing code printed by the runtime. Both devices need network access to that address. Allow Local Network access when iOS asks.
+`--lan` serves on every network interface, allows the iOS app's origin, and advertises the runtime over Bonjour as `_oxbit._tcp` with TXT keys `id`, `name`, `version`, and `port`. The runtime prints its owner pairing code.
+
+In the iOS app, open the Runtime page from the connection button in the header or **Connect Runtime…** on the workspace screen. Allow Local Network access when iOS asks. The page lists runtimes found on the network. Tap one and enter the pairing code once. Both devices need to be on the same network. A runtime on another network can still be entered by address, for example `http://192.168.1.10:9277`.
+
+Discovery uses `NWBrowser` in the `oxbit-files` plugin (`RuntimeDiscovery.swift`). For each service it opens a short-lived connection to read the resolved address, IPv4 first, and drops services without a TXT `id`. The WebView polls the `runtime_discovery` command every 2 seconds; browsing stops when the page closes or 2 minutes after the last poll. `Info.ios.plist` declares `_oxbit._tcp` under `NSBonjourServices`, which iOS requires before an app can browse a service type.
 
 Connecting opens the computer's workspace. Choose **Trust workspace tools** to permit code execution there. Device folders remain separate and available from the workspace screen. Saved runtime connections reconnect without reentering the pairing code; removing their last recent workspace deletes the saved credential. Disconnect closes the workspace and preserves the credential for next time.
 
-Pairing uses native URLSession, with redirects refused, and stores the token in the device Keychain. The WebView receives the token only in memory and authenticates its WebSocket using the existing runtime protocol. Plain HTTP is allowed for local and private network addresses; public endpoints should use HTTPS.
+Pairing uses native URLSession, with redirects refused, and stores the token in the device Keychain under the runtime's `id` from `/api/pair`, so a changed port or address keeps the saved credential and the recent workspace. Tokens saved by earlier versions under the runtime URL move to the `id` the first time they are read. The native `health` operation reads `/api/health`, which the WebView cannot fetch across origins, to identify a runtime before pairing. The WebView receives the token only in memory and authenticates its WebSocket using the existing runtime protocol. Plain HTTP is allowed for local and private network addresses; public endpoints should use HTTPS.
+
+### Keep SSH-started runtimes running
+
+A runtime started over [SSH](ios-ssh.md) receives a keep-alive lease in its launch frame. It keeps running after the SSH connection closes, for example while iOS suspends the app, until no WebSocket client or heartbeat has reached it for the lease. The `runtime.keepAlive` setting chooses the lease in milliseconds; 0 keeps the runtime running until it is stopped, and the default is 75000.
+
+When the app returns, Oxbit checks that the recorded process still runs the Oxbit runtime and that `/api/health` reports the same runtime `id` as at launch. If both hold, it reopens the tunnel to that runtime with the same token, and terminals and tasks continue. The workspace reports "Reconnected to the running runtime." If either check fails, Oxbit stops the old process and launches a new runtime. A reattached runtime has no launch channel, so it receives no heartbeats and cannot forward new task ports until it is relaunched. Closing the workspace stops a reattached runtime by process ID.
+
+### References
+
+- Apple, [NWBrowser](https://developer.apple.com/documentation/network/nwbrowser)
+- Apple, [NSBonjourServices](https://developer.apple.com/documentation/bundleresources/information-property-list/nsbonjourservices)
+- [RFC 6762: Multicast DNS](https://www.rfc-editor.org/rfc/rfc6762)
+- [RFC 6763: DNS-Based Service Discovery](https://www.rfc-editor.org/rfc/rfc6763)
+- Tauri v2, [Mobile plugin development](https://v2.tauri.app/develop/plugins/develop-mobile/)
 
 ## Vendored crates
 
