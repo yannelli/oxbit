@@ -271,32 +271,40 @@ fn subsequence(path: &str, term: &[char]) -> bool {
         .all(|wanted| remaining.by_ref().any(|actual| actual == *wanted))
 }
 
-/// Quick-open paths: gitignore-aware, hidden files included, `.git` and `node_modules` skipped.
+/// Quick-open paths, sorted, at most `FILE_LIMIT`: gitignore-aware, hidden files included,
+/// `.git` and `node_modules` skipped.
 pub fn find_files(root: &Root, query: &str, cancel: &AtomicBool) -> Result<Vec<String>> {
     let term: Vec<char> = query.trim().to_lowercase().chars().collect();
     if term.is_empty() {
         return Ok(Vec::new());
     }
-    let mut builder = walker(root, true);
-    builder.sort_by_file_name(|a, b| a.cmp(b));
-    let mut paths = Vec::new();
-    for entry in builder.build() {
-        if cancel.load(Ordering::Acquire) {
-            return Err(Error::new("CANCELLED", "Search cancelled"));
-        }
-        let Some(path) = entry
-            .ok()
-            .and_then(|entry| workspace_path(&root.path, &entry))
-        else {
-            continue;
-        };
-        if subsequence(&path.to_lowercase(), &term) {
-            paths.push(path);
-            if paths.len() >= FILE_LIMIT {
-                break;
+    let paths = Mutex::new(Vec::new());
+    walker(root, true).build_parallel().run(|| {
+        Box::new(|entry| {
+            if cancel.load(Ordering::Acquire) {
+                return WalkState::Quit;
             }
-        }
+            let path = entry
+                .ok()
+                .and_then(|entry| workspace_path(&root.path, &entry))
+                .filter(|path| subsequence(&path.to_lowercase(), &term));
+            if let Some(path) = path {
+                paths
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .push(path);
+            }
+            WalkState::Continue
+        })
+    });
+    if cancel.load(Ordering::Acquire) {
+        return Err(Error::new("CANCELLED", "Search cancelled"));
     }
+    let mut paths = paths
+        .into_inner()
+        .unwrap_or_else(|error| error.into_inner());
+    paths.sort_unstable();
+    paths.truncate(FILE_LIMIT);
     Ok(paths)
 }
 
