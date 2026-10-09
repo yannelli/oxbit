@@ -1,0 +1,31 @@
+{
+  "retrieved": "2026-10-09",
+  "license": "Apache-2.0 (SchemaStore); compose-spec Apache-2.0",
+  "schemas": {
+    "https://www.schemastore.org/api/json/catalog.json": {
+      "file": "catalog.schema.json",
+      "sha256": "7f3c45d798b643855852bdb9ae12572b4d25f20121bfdfad38a9d2295ae8aadb",
+      "bytes": 225594
+    },
+    "https://www.schemastore.org/package.json": {
+      "file": "package.schema.json",
+      "sha256": "def9733cbd5d135a325b96d148f5cdd797c187e9dbe8d864202765ff37184345",
+      "bytes": 47778
+    },
+    "https://www.schemastore.org/tsconfig.json": {
+      "file": "tsconfig.schema.json",
+      "sha256": "4323b790e65e979876bd48c7387a5150520e0c4cf1e36c221252a7234c2bd70a",
+      "bytes": 469366
+    },
+    "https://www.schemastore.org/github-workflow.json": {
+      "file": "github-workflow.schema.json",
+      "sha256": "d10c9f4656e1bd5bc6727e9b35080e017dc167154726fca93da33c7a6bd1c4f3",
+      "bytes": 118601
+    },
+    "https://raw.githubusercontent.com/compose-spec/compose-go/master/schema/compose-spec.json": {
+      "file": "compose-spec.schema.json",
+      "sha256": "85dec7c0fd8f4d6b439e5bdf98aabf91cbae244988ed5117f1c9fe5d347eff70",
+      "bytes": 89882
+    }
+  }
+}

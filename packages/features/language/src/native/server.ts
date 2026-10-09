@@ -1,6 +1,4 @@
 import { WorkspaceFiles, type NativeFileHost, type ServerOptions } from "./files.js";
-import { TypeScriptServer } from "./typescript.js";
-import { JsonServer } from "./json.js";
 
 export interface NativeResult {
   result?: unknown;
@@ -8,10 +6,22 @@ export interface NativeResult {
   notifications: { method: string; params: unknown }[];
 }
 
-export function createServer(options: ServerOptions, host: NativeFileHost, libraries: Record<string, string> = {}) {
+/** One language implementation behind the shared document lifecycle. */
+export interface NativeService {
+  readonly name: string;
+  readonly languages: readonly string[];
+  readonly capabilities: Record<string, unknown>;
+  diagnostics(path: string): unknown[] | Promise<unknown[]>;
+  request(method: string, params: any): unknown;
+  changed(settings?: unknown): void | Promise<void>;
+  dispose(): void;
+}
+export type NativeServiceFactory = (files: WorkspaceFiles, host: NativeFileHost, settings: unknown) => NativeService | Promise<NativeService>;
+
+export function createServer(options: ServerOptions, host: NativeFileHost, factory: NativeServiceFactory, libraries: Record<string, string> = {}) {
   const files = new WorkspaceFiles(options, host, libraries);
   let initialized = false, closed = false;
-  let service: TypeScriptServer | JsonServer | undefined;
+  let service: NativeService | undefined;
   async function dispatch(method: string, params: any): Promise<NativeResult> {
     const notifications: NativeResult["notifications"] = [];
     const publish = async () => {
@@ -25,23 +35,18 @@ export function createServer(options: ServerOptions, host: NativeFileHost, libra
       if (closed) throw new Error("Native language server has shut down");
       if (method === "initialize") {
         if (initialized) throw new Error("Native language server is already initialized");
-        service = options.kind === "typescript" ? new TypeScriptServer(files) : new JsonServer(files);
+        service = await factory(files, host, params?.initializationOptions?.settings);
         initialized = true;
         return { result: {
-          capabilities: {
-            positionEncoding: "utf-16", textDocumentSync: { openClose: true, change: 1, save: true },
-            completionProvider: { triggerCharacters: options.kind === "typescript" ? [".", "\"", "'"] : ["\"", ":"], resolveProvider: options.kind === "typescript" },
-            hoverProvider: true, documentSymbolProvider: true,
-            ...(options.kind === "typescript" ? { definitionProvider: true, typeDefinitionProvider: true, implementationProvider: true, referencesProvider: true, renameProvider: { prepareProvider: true }, signatureHelpProvider: { triggerCharacters: ["(", ","] } } : {}),
-          },
-          serverInfo: { name: options.kind === "typescript" ? "TypeScript / JavaScript (iOS)" : "JSON / JSONC (iOS)" }, rootUri: files.rootUri,
+          capabilities: { positionEncoding: "utf-16", textDocumentSync: { openClose: true, change: 1, save: true }, ...service.capabilities },
+          serverInfo: { name: service.name }, rootUri: files.rootUri,
         }, notifications };
       }
       if (!initialized || !service) throw new Error("Native language server is not initialized");
       if (method === "shutdown") { service.dispose(); service = undefined; files.documents.clear(); closed = true; return { result: null, notifications }; }
       if (method === "initialized" || method === "$/cancelRequest") return { result: null, notifications };
       if (method === "workspace/didChangeConfiguration" || method === "workspace/didChangeWatchedFiles") {
-        service.changed(params?.settings);
+        await service.changed(method === "workspace/didChangeConfiguration" ? params?.settings : undefined);
         await publish();
         return { result: null, notifications };
       }
@@ -49,10 +54,9 @@ export function createServer(options: ServerOptions, host: NativeFileHost, libra
         const path = files.path(params.textDocument.uri);
         if (method === "textDocument/didOpen") {
           const { text, version, languageId } = params.textDocument;
-          if (typeof text !== "string" || !Number.isInteger(version)) throw new Error("Invalid language document");
-          const languages = options.kind === "typescript" ? ["typescript", "typescriptreact", "javascript", "javascriptreact"] : ["json", "jsonc"];
-          if (!languages.includes(languageId)) throw new Error("Document language does not match the native server");
-          files.documents.set(path, { text, version, language: languageId });
+          if (typeof text !== "string" || !Number.isInteger(version) || typeof languageId !== "string") throw new Error("Invalid language document");
+          // Glob selectors can route other language IDs here; they use the server's primary language.
+          files.documents.set(path, { text, version, language: service.languages.includes(languageId) ? languageId : service.languages[0] });
         } else if (method === "textDocument/didChange") {
           const document = files.documents.get(path);
           if (!document) throw new Error("Language document is not open");
@@ -69,7 +73,7 @@ export function createServer(options: ServerOptions, host: NativeFileHost, libra
             if (document) files.documents.set(path, { ...document, text: params.text });
           }
         } else throw new Error(`Unsupported native language notification: ${method}`);
-        service.changed();
+        await service.changed();
         await publish();
         return { result: null, notifications };
       }

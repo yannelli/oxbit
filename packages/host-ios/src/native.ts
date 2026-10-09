@@ -224,7 +224,7 @@ export const ssh = {
 };
 
 export const native = {
-  lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json"; method: string; params: unknown }) =>
+  lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
   gitCredentials: (request: GitCredentialRequest) =>
     call<GitCredentials>("plugin:oxbit-files|git_credentials", { request }),

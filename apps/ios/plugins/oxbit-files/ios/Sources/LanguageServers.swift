@@ -19,27 +19,6 @@ private struct LanguageServerResponse: Encodable {
   let payload: String
 }
 
-@objc private protocol LanguageServerHostExports: JSExport {
-  func readFile(_ path: String) -> String?
-  func fileExists(_ path: String) -> Bool
-  func directoryExists(_ path: String) -> Bool
-  func list(_ path: String) -> String
-}
-
-private final class LanguageServerHost: NSObject, LanguageServerHostExports {
-  let files: LanguageServerFiles
-
-  init(files: LanguageServerFiles) {
-    self.files = files
-    super.init()
-  }
-
-  func readFile(_ path: String) -> String? { files.readFile(path) }
-  func fileExists(_ path: String) -> Bool { files.fileExists(path) }
-  func directoryExists(_ path: String) -> Bool { files.directoryExists(path) }
-  func list(_ path: String) -> String { files.list(path) }
-}
-
 private final class LanguageServerReply {
   private let invoke: Invoke
   private(set) var finished = false
@@ -68,18 +47,17 @@ private final class LanguageServerSession {
   let workspaceId: String
   let root: String
   let kind: String
-  let context: JSContext
-  let server: JavaScriptCore.JSValue
-  let files: LanguageServerFiles
+  let queue: DispatchQueue
+  var runtime: LanguageServerRuntime?
+  var files: LanguageServerFiles?
   var pending: [UUID: LanguageServerReply] = [:]
+  var closed = false
 
-  init(args: LanguageServerArgs, context: JSContext, server: JavaScriptCore.JSValue, files: LanguageServerFiles) {
+  init(args: LanguageServerArgs) {
     workspaceId = args.workspaceId
     root = args.root
     kind = args.kind
-    self.context = context
-    self.server = server
-    self.files = files
+    queue = DispatchQueue(label: "com.yannelli.oxbit.language-server.\(args.kind)", qos: .userInitiated)
   }
 
   func matches(_ args: LanguageServerArgs) -> Bool {
@@ -87,23 +65,46 @@ private final class LanguageServerSession {
   }
 }
 
-private func languageServerError(_ message: String) -> NSError {
-  NSError(domain: "OxbitLanguageServer", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
-}
-
+/// Sessions run on their own serial queues so a slow server does not delay other languages.
 final class LanguageServers {
   private let queue = DispatchQueue(label: "com.yannelli.oxbit.language-servers", qos: .userInitiated)
   private var sessions: [String: LanguageServerSession] = [:]
+  private lazy var schemas = SchemaCache(
+    directory: LanguageServerRuntime.schemaDirectory,
+    bundled: LanguageServerRuntime.bundleDirectory.appendingPathComponent("schemas", isDirectory: true))
 
   func handle(_ invoke: Invoke) {
     do {
       let args = try invoke.parseArgs(LanguageServerArgs.self)
-      guard !args.workspaceId.isEmpty, !args.sessionId.isEmpty,
-        ["typescript", "json"].contains(args.kind)
+      guard !args.workspaceId.isEmpty, !args.sessionId.isEmpty, LanguageServerRuntime.kinds.contains(args.kind)
       else { throw languageServerError("Invalid language server session") }
       queue.async {
-        do { try self.handle(args, invoke: invoke) }
-        catch { invoke.reject(error.localizedDescription, code: "LSP") }
+        if let session = self.sessions[args.sessionId], !session.matches(args) {
+          return invoke.reject("Language server session belongs to another workspace or server", code: "LSP")
+        }
+        if args.method == "exit" {
+          if let session = self.sessions.removeValue(forKey: args.sessionId) {
+            session.queue.async { self.close(session, message: "Language server session exited") }
+          }
+          return invoke.resolve(LanguageServerResponse(payload: "{\"notifications\":[]}"))
+        }
+        let session: LanguageServerSession
+        if let existing = self.sessions[args.sessionId] {
+          session = existing
+        } else {
+          guard args.method == "initialize" else {
+            return invoke.reject("Language server session is not initialized", code: "LSP")
+          }
+          session = LanguageServerSession(args: args)
+          self.sessions[args.sessionId] = session
+        }
+        session.queue.async {
+          do { try self.handle(args, session: session, invoke: invoke) }
+          catch {
+            invoke.reject(error.localizedDescription, code: "LSP")
+            if session.runtime == nil { self.discard(args.sessionId, session: session, message: error.localizedDescription) }
+          }
+        }
       }
     } catch {
       invoke.reject(error.localizedDescription, code: "LSP")
@@ -114,49 +115,37 @@ final class LanguageServers {
     do {
       let args = try invoke.parseArgs(LanguageServerWorkspaceArgs.self)
       queue.async {
-        let ids = self.sessions.filter { $0.value.workspaceId == args.workspaceId }.map { $0.key }
-        for id in ids {
-          if let session = self.sessions[id] {
-            self.discard(id, session: session, message: "Workspace root is not open")
-          }
+        let closing = self.sessions.filter { $0.value.workspaceId == args.workspaceId }
+        for (id, session) in closing { self.sessions.removeValue(forKey: id) }
+        let group = DispatchGroup()
+        for session in closing.values {
+          session.queue.async(group: group) { self.close(session, message: "Workspace root is not open") }
         }
-        invoke.resolve()
+        group.notify(queue: self.queue) { invoke.resolve() }
       }
     } catch {
       invoke.reject(error.localizedDescription, code: "LSP")
     }
   }
 
-  private func handle(_ args: LanguageServerArgs, invoke: Invoke) throws {
-    if let session = sessions[args.sessionId], !session.matches(args) {
-      throw languageServerError("Language server session belongs to another workspace or server")
+  private func handle(_ args: LanguageServerArgs, session: LanguageServerSession, invoke: Invoke) throws {
+    guard !session.closed else { throw languageServerError("Language server session exited") }
+    if session.runtime == nil {
+      let files = LanguageServerFiles(root: args.root)
+      guard files.directoryExists(args.root) else { throw languageServerError("Workspace root is not accessible") }
+      session.files = files
+      session.runtime = try LanguageServerRuntime(kind: args.kind, files: files, directory: LanguageServerRuntime.bundleDirectory,
+        schemas: schemas, queue: session.queue)
     }
-    if args.method == "exit" {
-      if let session = sessions[args.sessionId] {
-        discard(args.sessionId, session: session, message: "Language server session exited")
-      }
-      invoke.resolve(LanguageServerResponse(payload: "{\"notifications\":[]}"))
-      return
-    }
-    let session: LanguageServerSession
-    if let existing = sessions[args.sessionId] {
-      session = existing
-    } else {
-      guard args.method == "initialize" else {
-        throw languageServerError("Language server session is not initialized")
-      }
-      session = try createSession(args)
-      sessions[args.sessionId] = session
-    }
+    guard let runtime = session.runtime else { return }
     let id = UUID()
     let reply = LanguageServerReply(invoke)
     session.pending[id] = reply
-    session.context.exception = nil
-    session.context.exceptionHandler = { [weak self, weak session] context, exception in
+    runtime.context.exception = nil
+    runtime.context.exceptionHandler = { [weak self, weak session] context, exception in
       context?.exception = exception
       guard let self, let session else { return }
-      self.discard(args.sessionId, session: session,
-        message: exception?.toString() ?? "Language server JavaScript failed")
+      self.discard(args.sessionId, session: session, message: exception?.toString() ?? "Language server JavaScript failed")
     }
     let completion: @convention(block) (String) -> Void = { [weak self, weak session] payload in
       guard let self, let session, !reply.finished else { return }
@@ -167,51 +156,26 @@ final class LanguageServers {
         self.discard(args.sessionId, session: session, message: error.localizedDescription)
       }
     }
-    session.server.invokeMethod("handle", withArguments: [args.method, args.paramsJson, completion])
-    queue.asyncAfter(deadline: .now() + 30) { [weak self, weak session, weak reply] in
+    runtime.server.invokeMethod("handle", withArguments: [args.method, args.paramsJson, completion])
+    session.queue.asyncAfter(deadline: .now() + 30) { [weak self, weak session, weak reply] in
       guard let self, let session, let reply, !reply.finished else { return }
       self.discard(args.sessionId, session: session, message: "Language server request timed out")
     }
   }
 
-  private func createSession(_ args: LanguageServerArgs) throws -> LanguageServerSession {
-    let files = LanguageServerFiles(root: args.root)
-    guard files.directoryExists(args.root) else {
-      throw languageServerError("Workspace root is not accessible")
-    }
-    guard let context = JSContext() else {
-      throw languageServerError("Could not create the language server JavaScript context")
-    }
-    context.name = "Oxbit \(args.kind) \(args.sessionId)"
-    context.evaluateScript(LanguageServerBundle.script)
-    if let exception = context.exception {
-      let message = exception.toString() ?? "Could not load bundled language servers"
-      context.exception = nil
-      throw languageServerError(message)
-    }
-    guard let library = context.objectForKeyedSubscript("OxbitLsp"), library.isObject
-    else { throw languageServerError("Bundled language server entry point is missing") }
-    let server = library.invokeMethod("createServer", withArguments: [
-      ["root": files.root.path, "rootUri": files.root.absoluteString, "kind": args.kind],
-      LanguageServerHost(files: files)
-    ])
-    if let exception = context.exception {
-      let message = exception.toString() ?? "Could not initialize the language server"
-      context.exception = nil
-      throw languageServerError(message)
-    }
-    guard let server, server.isObject, let handle = server.forProperty("handle"), handle.isObject else {
-      throw languageServerError("Bundled language server handler is missing")
-    }
-    return LanguageServerSession(args: args, context: context, server: server, files: files)
-  }
-
-  private func discard(_ id: String, session: LanguageServerSession, message: String) {
-    session.files.close()
-    session.context.exceptionHandler = nil
-    session.context.exception = nil
+  /// Runs on the session queue.
+  private func close(_ session: LanguageServerSession, message: String) {
+    session.closed = true
+    session.runtime?.dispose()
+    session.runtime = nil
+    session.files?.close()
     for reply in session.pending.values { reply.reject(message) }
     session.pending.removeAll()
-    if sessions[id] === session { sessions.removeValue(forKey: id) }
+  }
+
+  /// Runs on the session queue.
+  private func discard(_ id: String, session: LanguageServerSession, message: String) {
+    close(session, message: message)
+    queue.async { if self.sessions[id] === session { self.sessions.removeValue(forKey: id) } }
   }
 }

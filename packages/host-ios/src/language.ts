@@ -2,7 +2,7 @@ import type { Extension, FeatureOptions, LanguageTransport } from "@oxbit/sdk";
 import { native } from "./native.js";
 import type { IosFileSystem } from "./filesystem.js";
 
-export type IosLanguageServerKind = "typescript" | "json";
+export type IosLanguageServerKind = "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python";
 interface NativeMessage {
   result?: unknown;
   error?: { code: number; message: string };
