@@ -813,6 +813,7 @@ export class WorkbenchController {
   }
   openDock(side: DockSide) {
     const { panelLayout, panelOverlay } = this.state;
+    if (!panelLayout.docks[side].root) return;
     const overlay = (globalThis.innerWidth || 1440) < 1100;
     if (!panelLayout.docks[side].visible || overlay && !(panelOverlay && panelLayout.activeDock === side)) this.toggleDock(side);
   }

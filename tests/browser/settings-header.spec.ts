@@ -25,7 +25,7 @@ for (const width of [393, 320]) {
     await page.getByRole("textbox", { name: "Search settings" }).fill("workbench.iconTheme");
     await keyboardViewport(page, 400);
     await expect(page.locator(".workbench")).toHaveAttribute("data-keyboard", "1");
-    const row = page.locator(".setting-row").filter({ hasText: "workbench.iconTheme" });
+    const row = page.locator('.setting-row[data-setting-id="workbench.iconTheme"]');
     await expect(row).toHaveCount(1);
     await expect.poll(() => row.evaluate(element => {
       const rect = element.getBoundingClientRect();
@@ -67,15 +67,14 @@ test("Git Accounts appears in Settings only while git.account is available", asy
     app.gitAccountRuns = 0;
     app.kernel.commands.register({ id: "git.account", title: "Git Accounts", run: () => { app.gitAccountRuns++; } });
   });
-  await expect(button).toBeVisible();
-  await button.click();
-  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.gitAccountRuns)).toBe(1);
   const categories = page.getByRole("navigation", { name: "Setting categories" });
   await categories.getByRole("button", { name: "Source Control", exact: true }).click();
   await expect(button).toBeVisible();
+  await button.click();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.gitAccountRuns)).toBe(1);
   const rows = page.locator(".settings-list > .setting-row");
-  await expect(rows.first()).toContainText("Source Control: Git Accounts and Commit Author");
-  await expect(rows.nth(1)).toContainText("Source Control:");
+  await expect(rows.first()).toContainText("Git Accounts and Commit Author");
+  await expect(rows.nth(1)).toHaveAttribute("data-setting-id", "scm.autoFetch");
   await categories.getByRole("button", { name: "Appearance", exact: true }).click();
   await expect(button).toHaveCount(0);
 });

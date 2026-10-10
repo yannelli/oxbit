@@ -1,12 +1,30 @@
 import { languages } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
-import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
-import type { Extension, Kernel, Setting } from "@oxbit/sdk";
+import { Fragment, useRef, useState, useSyncExternalStore } from "react";
+import type { Extension, ExtensionRecord, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
-import { Icon, IconButton, Dialog, Select, IconThemeSelect } from "@oxbit/ui";
+import { Icon, IconButton, Dialog, Select } from "@oxbit/ui";
 import { settingsConfiguration } from "./configuration.js";
 import { scopedSetting } from "./scopes.js";
+import { groupSettings, matchesQuery, splitCategory } from "./layout.js";
+import { ActionRow, ServerRow, SettingRow, type SettingAction } from "./rows.js";
+import { EditJsonDialog } from "./json-dialog.js";
+import { usePhone } from "./use-phone.js";
 import { activeKeymap, commandBinding, normalizeShortcut } from "@oxbit/workbench";
+
+const SERVER_PREFIX = "Language Servers · ";
+const SERVERS_CATEGORY = `${SERVER_PREFIX}Servers`;
+type Entry =
+  | { kind: "setting"; category?: string; setting: Setting }
+  | { kind: "action"; category: string; action: SettingAction }
+  | { kind: "server"; category: string; record: ExtensionRecord };
+
+function sectionLabel(category: string, section: string) {
+  const translated = tr(category);
+  const at = translated.indexOf(" · ");
+  return translated !== category && at >= 0 ? translated.slice(at + 3) : tr(section);
+}
+
 export function Settings({
   kernel,
   workbench,
@@ -21,10 +39,14 @@ export function Settings({
   const [query, setQuery] = useState(""),
     [scope, setScope] = useState<"user" | "workspace">("user"),
     [language, setLanguage] = useState(""),
-    [category, setCategory] = useState("All"),
-    [modified, setModified] = useState(false);
+    [page, setPage] = useState<string>(),
+    [modified, setModified] = useState(false),
+    [editing, setEditing] = useState(false);
+  const phone = usePhone();
+  const list = useRef<HTMLDivElement>(null);
   const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
-  const owner = extension ? kernel.extensions.list().find(record => record.manifest.id === extension) : undefined;
+  const records = kernel.extensions.list();
+  const owner = extension ? records.find(record => record.manifest.id === extension) : undefined;
   const settings = owner ? owner.manifest.configuration ?? [] : kernel.configuration.list();
   const languageIds = [
     ...new Set([
@@ -36,237 +58,121 @@ export function Settings({
         .filter((id): id is string => !!id),
     ]),
   ];
-  const categories = [
-    ...new Set(settings.map((s) => s.category || "Extensions")),
-  ];
+  const searching = !!query.trim() || modified;
+  const showAll = searching || !!owner;
   const actions: SettingAction[] = owner || modified ? [] : [
     { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
     ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
-  ].filter(action => (category === "All" || action.category === category) && `${action.title} ${action.description}`.toLowerCase().includes(query.toLowerCase()));
-  const placed = new Set<SettingAction>();
-  const actionsBefore = (settingCategory?: string) => actions.filter(action => !placed.has(action) && (settingCategory === undefined || action.category === settingCategory) && placed.add(action))
-    .map(action => <ActionRow key={action.command} action={action} workbench={workbench} />);
-  const selected = settings.filter(
-    (s) =>
-      (category === "All" || s.category === category) &&
-      (!modified ||
-        scopedSetting(kernel, s, scope, language || undefined).modified) &&
-      `${tr(s.title)} ${s.id} ${s.description ? tr(s.description) : undefined}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
-  );
+  ];
+  const servers = owner || modified ? [] : records
+    .filter(record => record.manifest.configuration?.some(setting => setting.category?.startsWith(SERVER_PREFIX)))
+    .filter(record => matchesQuery([record.manifest.name, record.manifest.id], query));
+  const placeFields = (category?: string) => {
+    const { page, section } = splitCategory(category);
+    return [tr(page), page, section, section && sectionLabel(category!, section)];
+  };
+  const entries: Entry[] = [
+    ...actions.filter(action => matchesQuery([action.title, action.description, ...placeFields(action.category)], query))
+      .map(action => ({ kind: "action" as const, category: action.category, action })),
+    ...servers.map(record => ({ kind: "server" as const, category: SERVERS_CATEGORY, record })),
+    ...settings
+      .filter(s => owner || searching || !s.category?.startsWith(SERVER_PREFIX))
+      .filter(s => !modified || scopedSetting(kernel, s, scope, language || undefined).modified)
+      .filter(s => matchesQuery([tr(s.title), s.id, s.description && tr(s.description), ...placeFields(s.category)], query))
+      .map(setting => ({ kind: "setting" as const, category: setting.category, setting })),
+  ];
+  const pages = groupSettings(entries);
+  const activePage = pages.find(item => item.name === page) ?? (phone ? undefined : pages[0]);
+  const shown = showAll ? pages : activePage ? [activePage] : [];
+  const count = shown.flatMap(item => item.sections).flatMap(section => section.items).filter(entry => entry.kind === "setting").length;
+  const pageList = phone && !showAll && !activePage;
+  const choosePage = (name?: string) => {
+    setPage(name);
+    list.current?.scrollTo?.({ top: 0 });
+    if (phone) list.current?.closest(".settings-screen")?.scrollIntoView({ block: "start" });
+  };
+  const reveal = (selector: string) => list.current?.querySelector(selector)?.scrollIntoView({ block: "start" });
+  const renderEntry = (entry: Entry) =>
+    entry.kind === "action" ? <ActionRow key={entry.action.command} action={entry.action} workbench={workbench} />
+      : entry.kind === "server" ? <ServerRow key={entry.record.manifest.id} record={entry.record} kernel={kernel} workbench={workbench} />
+        : <SettingRow key={`${entry.setting.id}:${scope}:${language}`} setting={entry.setting} kernel={kernel} workbench={workbench} scope={scope} language={language || undefined} />;
   return (
     <div className="settings-screen">
       <div className="settings-heading">
         <div className="settings-title-row">
           <h1>{owner ? tr("{0} Settings", { "0": owner.manifest.name }) : tr("Settings")}</h1>
-          {!owner && <button className="button" onClick={() => void workbench.run("settings.keyboard")}>
-            {tr("Keyboard Shortcuts")}
-          </button>}
-        </div>
-        <div className="search-input">
-          <Icon name="search" />
-          <input
-            aria-label={tr("Search settings")}
-            placeholder={tr("Search settings")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <span className="muted">
-            {selected.length} {tr("settings")}
-          </span>
+          <button className="button" onClick={() => setEditing(true)}>{tr("Edit as JSON")}</button>
+          <div className="settings-segmented" role="group" aria-label={tr("Settings scope")}>
+            <button aria-pressed={scope === "user"} onClick={() => setScope("user")}>{tr("User")}</button>
+            <button aria-pressed={scope === "workspace"} onClick={() => setScope("workspace")}>{tr("Workspace")}</button>
+          </div>
         </div>
         <div className="settings-scope">
-          <div className="settings-segmented" role="group" aria-label={tr("Settings scope")}>
-            <button
-              aria-pressed={scope === "user"}
-              onClick={() => setScope("user")}
-            >
-              {tr("User")}
-            </button>
-            <button
-              aria-pressed={scope === "workspace"}
-              onClick={() => setScope("workspace")}
-            >
-              {tr("Workspace")}
-            </button>
+          <div className="search-input">
+            <Icon name="search" />
+            <input aria-label={tr("Search settings")} placeholder={tr("Search settings")} value={query} onChange={(e) => setQuery(e.target.value)} />
+            {!pageList && <span className="muted">{count} {tr("settings")}</span>}
           </div>
           <Select label={tr("Language override")} value={language} onChange={setLanguage}
             options={[{ value: "", label: tr("All languages") }, ...languageIds.map(value => ({ value, label: value }))]} />
           <label className="settings-chip">
-            <input
-              type="checkbox"
-              checked={modified}
-              onChange={(e) => setModified(e.target.checked)}
-            />
+            <input type="checkbox" checked={modified} onChange={(e) => setModified(e.target.checked)} />
             {tr("Modified")}
           </label>
         </div>
       </div>
       <div className="settings-body">
-        <nav aria-label={tr("Setting categories")}>
-          <button
-            className={category === "All" ? "selected" : ""}
-            onClick={() => setCategory("All")}
-          >
-            {tr("All Settings")}
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c}
-              className={category === c ? "selected" : ""}
-              onClick={() => setCategory(c)}
-            >
-              {tr(c)}
+        {!phone && !owner && (
+          <nav aria-label={tr("Setting categories")}>
+            {pages.map(item => (
+              <Fragment key={item.name}>
+                <button className={!showAll && item === activePage ? "selected" : ""} aria-current={!showAll && item === activePage ? "page" : undefined}
+                  onClick={() => showAll ? reveal(`[data-page="${CSS.escape(item.name)}"]`) : choosePage(item.name)}>
+                  {tr(item.name)}
+                </button>
+                {!showAll && item === activePage && item.sections.filter(section => section.name).map(section => (
+                  <button key={section.category} className="settings-nav-section" onClick={() => reveal(`[data-section="${CSS.escape(section.category)}"]`)}>
+                    {sectionLabel(section.category, section.name)}
+                  </button>
+                ))}
+              </Fragment>
+            ))}
+            <button className="settings-nav-keyboard" onClick={() => void workbench.run("settings.keyboard")}>
+              <Icon name="keyboard" />{tr("Keyboard Shortcuts")}
             </button>
-          ))}
-        </nav>
-        <div className="settings-list">
+          </nav>
+        )}
+        <div className="settings-list" ref={list}>
           {owner && !settings.length && <p className="muted">{tr("This extension has no settings.")}</p>}
-          {selected.map((s) => (
-            <Fragment key={`${s.id}:${scope}:${language}`}>
-              {actionsBefore(s.category)}
-              <SettingRow
-                setting={s}
-                kernel={kernel}
-                workbench={workbench}
-                scope={scope}
-                language={language || undefined}
-              />
+          {pageList && (
+            <nav className="settings-pages" aria-label={tr("Setting categories")}>
+              {pages.map(item => (
+                <button key={item.name} onClick={() => choosePage(item.name)}><span>{tr(item.name)}</span><Icon name="chevR" /></button>
+              ))}
+              <button onClick={() => void workbench.run("settings.keyboard")}><span>{tr("Keyboard Shortcuts")}</span><Icon name="chevR" /></button>
+            </nav>
+          )}
+          {phone && !showAll && activePage && (
+            <div className="settings-page-header">
+              <IconButton className="icon-button settings-back" icon="chevR" label={tr("All settings")} onClick={() => choosePage(undefined)} />
+              <h2>{tr(activePage.name)}</h2>
+            </div>
+          )}
+          {shown.map(item => (
+            <Fragment key={item.name}>
+              {!(phone && !showAll) && !(owner && shown.length === 1) && <h2 className="settings-page-title" data-page={item.name}>{tr(item.name)}</h2>}
+              {item.sections.map(section => (
+                <Fragment key={section.category}>
+                  {section.name && !(owner && item.sections.length === 1) && <h3 className="settings-section-title" data-section={section.category}>{sectionLabel(section.category, section.name)}</h3>}
+                  {section.items.map(renderEntry)}
+                </Fragment>
+              ))}
             </Fragment>
           ))}
-          {actionsBefore()}
+          {searching && !entries.length && <p className="settings-empty muted">{tr("No matching settings")}</p>}
         </div>
       </div>
-    </div>
-  );
-}
-interface SettingAction { category: string; title: string; description: string; label: string; command: string }
-function ActionRow({ action, workbench }: { action: SettingAction; workbench: WorkbenchController }) {
-  return (
-    <section className="setting-row">
-      <div className="setting-title">
-        <span className="muted">{tr(action.category)}: </span>
-        <strong>{action.title}</strong>
-      </div>
-      <p>{action.description}</p>
-      <button className="button" onClick={() => void workbench.run(action.command)}>{action.label}</button>
-    </section>
-  );
-}
-function SettingRow({
-  setting: s,
-  kernel,
-  workbench,
-  scope,
-  language,
-}: {
-  setting: Setting;
-  kernel: Kernel;
-  workbench: WorkbenchController;
-  scope: "user" | "workspace";
-  language?: string;
-}) {
-  const { value, modified } = scopedSetting(kernel, s, scope, language);
-  const [error, setError] = useState(""),
-    [draft, setDraft] = useState(typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
-  useEffect(() => setDraft(typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)), [JSON.stringify(value)]);
-  const set = (value: unknown) => {
-    try {
-      kernel.configuration.set(s.id, value, scope, language);
-      setError("");
-      workbench.touch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
-  return (
-    <section className={`setting-row ${modified ? "modified" : ""}`}>
-      <div className="setting-title">
-        {s.category !== s.title && <span className="muted">{tr(s.category || "Extension")}: </span>}
-        <strong>{tr(s.title)}</strong>
-        <IconButton
-          icon="refresh"
-          label={tr("Reset {0}", { "0": tr(s.title) })}
-          onClick={() => {
-            kernel.configuration.reset(s.id, scope, language);
-            setError("");
-            workbench.touch();
-          }}
-        />
-      </div>
-      <p>{s.description ? tr(s.description) : undefined}</p>
-      {s.type === "boolean" ? (
-        <label>
-          <input
-            type="checkbox"
-            checked={!!value}
-            onChange={(e) => set(e.target.checked)}
-          />
-          {tr(s.title)}
-        </label>
-      ) : s.type === "array" && s.items === "string" && Array.isArray(value) ? (
-        <StringList label={tr(s.title)} value={value.map(String)} invalid={!!error} onChange={set} />
-      ) : s.type === "object" || s.type === "array" ? (
-        <textarea aria-label={tr(s.title)} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} onChange={event => {
-          setDraft(event.target.value);
-          try { set(JSON.parse(event.target.value)); } catch (error) { setError(String(error)); }
-        }} />
-      ) : s.id === "workbench.colorTheme" ? (
-        <Select label={tr(s.title)} value={String(value)} onChange={set} options={kernel.contributions.list("theme").map(item => ({value: (item.data as {stableId?:string})?.stableId ?? item.id, label: `${item.title} · ${(item.data as {packName?:string})?.packName ?? item.owner ?? item.id}`}))} />
-      ) : s.id === "workbench.iconTheme" || s.id === "workbench.productIconTheme" ? (
-        <><IconThemeSelect kernel={kernel} kind={s.id === "workbench.iconTheme" ? "fileIconTheme" : "productIconTheme"} value={String(value)} onChange={set} /><button className="button" onClick={() => void workbench.run("iconPacks.import")}>Import Icon Pack…</button></>
-      ) : s.enum ? (
-        <Select label={tr(s.title)} value={String(value)}
-          onChange={value => set(s.type === "number" ? Number(value) : value)}
-          options={s.enum.map(value => ({ value: String(value), label: typeof value === "string" ? tr(value) : String(value) }))} />
-      ) : (
-        <input
-          aria-label={tr(s.title)}
-          type={s.type === "number" ? "number" : "text"}
-          min={s.min}
-          max={s.max}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            if (s.type === "number" && !e.target.value.trim()) {
-              setError(tr("Enter a number."));
-              return;
-            }
-            set(s.type === "number" ? Number(e.target.value) : e.target.value);
-          }}
-          aria-invalid={!!error}
-        />
-      )}
-      <div className="setting-id">
-        {s.id}
-        {modified ? tr(" · Modified") : ""}
-      </div>
-      {error && (
-        <p role="alert" className="error-text">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
-function StringList({ label, value, invalid, onChange }: { label: string; value: string[]; invalid: boolean; onChange(value: string[]): void }) {
-  const [rows, setRows] = useState(value);
-  const clean = (items: string[]) => items.map(item => item.trim()).filter(Boolean);
-  useEffect(() => {
-    if (JSON.stringify(clean(rows)) !== JSON.stringify(value)) setRows(value);
-  }, [JSON.stringify(value)]);
-  const update = (next: string[]) => { setRows(next); onChange(clean(next)); };
-  return (
-    <div className="setting-list" role="group" aria-label={label}>
-      {rows.map((item, index) => (
-        <div className="setting-list-row" key={index}>
-          <input aria-label={tr("{0}, item {1}", { "0": label, "1": String(index + 1) })} aria-invalid={invalid} value={item} spellCheck={false}
-            onChange={event => update(rows.map((row, at) => at === index ? event.target.value : row))} />
-          <IconButton icon="trash" label={tr("Remove {0}", { "0": item || tr("empty item") })} onClick={() => update(rows.filter((_, at) => at !== index))} />
-        </div>
-      ))}
-      <button className="button" onClick={() => setRows([...rows, ""])}><Icon name="plus" />{tr("Add Item")}</button>
+      {editing && <EditJsonDialog kernel={kernel} workbench={workbench} scope={scope} language={language || undefined} onClose={() => setEditing(false)} />}
     </div>
   );
 }

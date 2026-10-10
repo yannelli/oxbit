@@ -37,7 +37,7 @@ function createManagedServerFeature(id: string): Extension {
       description: `Runs ${name} through the Oxbit runtime. Enable state and file types map to languageServers.${id}.enabled and languageServers.${id}.selectors.`,
       environments: ["browser", "embedded"], activation: ["*"], capabilities: ["lsp"],
       configuration: [{
-        id: setting, title: `${name}: File Types`, category: "Language Servers",
+        id: setting, title: "File Types", category: `Language Servers · ${name}`,
         description: "Language IDs (such as python) or glob patterns (such as **/*.pyx) this server handles.",
         type: "array", items: "string", default: serverFileTypes(id), validate: validateFileTypes,
       }],

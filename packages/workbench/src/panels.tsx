@@ -21,6 +21,7 @@ import type { WorkbenchController } from "./controller.js";
 import { Boundary, ToolbarContributions, viewIcon } from "./index.js";
 import { currentTheme, themeMode, themeVariables } from "./contributions.js";
 import { PanelSwitcher } from "./panel-switcher.js";
+import { coarsePointer } from "./long-press.js";
 import {
   dockSides,
   minimumPanelWidth,
@@ -389,7 +390,7 @@ function startPointerDrag(
 }
 function dragProps(id: string, context: PanelContext) {
   return {
-    draggable: !context.workbench.panelWindows.pointerDrag,
+    draggable: !context.workbench.panelWindows.pointerDrag && !coarsePointer(),
     onPointerDown(event: React.PointerEvent<HTMLElement>) {
       if (context.workbench.panelWindows.pointerDrag && event.button === 0)
         startPointerDrag(event, id, context);
