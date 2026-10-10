@@ -67,7 +67,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents | `agent-acp-start`: registry browser, registry binary install, custom agent |
 | Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent | `agent-acp-composer`: sends before connect |
 | Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` | `agent-acp-composer`: sends on Enter |
-| `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads | `agent-acp-composer`: mentions, `@Changes` |
+| `@` mentions | All | Files, workspace symbols from running language servers, selection, diagnostics and uncommitted changes; no threads | `agent-acp-composer`: mentions, `@Changes`, workspace symbol |
 | Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
 | OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Tapping an iOS notification opens the agent panel, also when the tap relaunches Oxbit. No push to a suspended iOS app | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: notification plugin; `ssh-runtime` (iOS): notification tap after relaunch |
@@ -84,6 +84,6 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 
 - Codex, GitHub Mobile, Cursor and Claude push to a suspended phone. Oxbit's iOS app
   posts notifications and updates its Live Activity only while it runs.
-- Zed mentions symbols and threads with `@`; Oxbit does not.
+- Zed mentions earlier threads with `@`; Oxbit does not.
 - Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click.
 - Dictation, iOS notification taps and the Live Activity have not run on a physical device.

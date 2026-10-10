@@ -24,7 +24,7 @@ import { agentName } from "./launch.js";
 import { AGENT_VIEW } from "./attention.js";
 import { sessionControls } from "./session-controls.js";
 import { ComposerInput, SendHint, type ComposerActions } from "./composer-input.js";
-import { searchFiles } from "./mentions.js";
+import { searchFiles, searchSymbols, type WorkspaceSymbolSource } from "./mentions.js";
 import { imageFiles } from "./images.js";
 import {
   ActivityFeed,
@@ -768,6 +768,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             for (const file of files) await agent.attachImage(file);
           })}
           findFiles={(query, signal) => searchFiles(agent.options.filesystem, query, signal)}
+          findSymbols={(query, signal) =>
+            searchSymbols(agent.options.kernel.services.optional<WorkspaceSymbolSource>("language"), query, signal)}
         />
         <div className="acp-composer-toolbar">
           <button

@@ -230,6 +230,41 @@ test("@Changes attaches staged, unstaged and untracked changes", async ({ page }
   }
 });
 
+test("@ attaches a workspace symbol's lines from a running language server", async ({ page }) => {
+  const app = await open(page);
+  try {
+    await fs.writeFile(path.join(app.root, "src/login.sym"), "header\nfunction handleLogin() {\n  return true;\n}\nfooter\n");
+    await page.evaluate(async () => {
+      const z = (window as any).__oxbit;
+      z.kernel.contributions.register({ id: "sym.language", kind: "language", title: "Symbol fixture", data: { id: "sym", extensions: [".sym"] } });
+      z.kernel.contributions.register({ id: "sym.server", kind: "transport", title: "Symbol fixture", data: { languages: ["sym"], createTransport: () => ({
+        async request(method: string) {
+          const service = z.kernel.services.get("language").serviceForPath("src/login.sym");
+          const range = { start: { line: 1, character: 0 }, end: { line: 3, character: 1 } };
+          if (method === "initialize") return { capabilities: { textDocumentSync: 1, workspaceSymbolProvider: true } };
+          if (method === "workspace/symbol") return [{ name: "handleLogin", kind: 12, location: { uri: service.uri("src/login.sym"), range } }];
+          return null;
+        }, notify() {}, onNotification() { return { dispose() {} }; }, dispose() {},
+      }) } });
+      await z.workbench.openFile("src/login.sym", { preview: false });
+      await z.kernel.services.get("language").serviceForPath("src/login.sym").start(true);
+      z.workbench.run("agentACP.open");
+    });
+    await app.input.fill("context-inspect @handleLo");
+    const option = page.getByRole("listbox", { name: "Mention files and context" }).getByRole("option", { name: /handleLogin/ });
+    await expect(option).toContainText("src/login.sym:2");
+    await option.click();
+    await expect(app.input).toHaveValue("context-inspect @handleLogin ");
+    await expect(app.panel.getByRole("group").filter({ hasText: "handleLogin src/login.sym:2-4" })).toContainText("41 characters");
+    await app.input.fill("context-inspect");
+    await app.input.press("Enter");
+    await expect(app.log).toContainText("function handleLogin() {");
+    await expect(app.log).not.toContainText("footer");
+  } finally {
+    await app.close();
+  }
+});
+
 test.describe("phone composer", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
   test("coarse pointers send with the button and stack approval actions", async ({ page }) => {

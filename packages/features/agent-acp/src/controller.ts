@@ -37,7 +37,7 @@ import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
 import { uncommittedChanges } from "./changes.js";
-import type { Mention } from "./mentions.js";
+import type { Mention, SymbolMention } from "./mentions.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
@@ -1059,10 +1059,21 @@ export class AgentController {
   }
   async attachMention(mention: Mention) {
     if (mention.kind === "changes") return this.attachChanges();
+    if (mention.kind === "symbol") return this.attachSymbol(mention);
     if (mention.kind !== "file")
       return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
     if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
     await this.attachPath(mention.path);
+  }
+  async attachSymbol({ name, path, line, endLine }: SymbolMention) {
+    const document = await this.documents.open(path);
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = document.text.toString().split("\n").slice(line - 1, endLine).join("\n");
+    if (text.length > 200000)
+      throw new Error("Select a smaller portion of this file (maximum 200,000 characters)");
+    this.context.push({ path, text, line, endLine, version: document.version, kind: "selection", label: `${name} ${path}:${line}-${endLine}` });
+    this.changed();
   }
   async attachChanges() {
     const others = this.context.filter((item) => item.kind !== "changes");

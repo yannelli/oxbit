@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FileEntry, FileSystem } from "@oxbit/sdk";
-import { insertMention, mentionQuery, rankFiles, searchFiles } from "./mentions.js";
+import { insertMention, mentionQuery, rankFiles, searchFiles, searchSymbols, type WorkspaceSymbolSource } from "./mentions.js";
 
 describe("mentions", () => {
   it("finds the @ token that ends at the caret", () => {
@@ -35,5 +35,31 @@ describe("mentions", () => {
     expect(await searchFiles(filesystem, " ", new AbortController().signal)).toEqual([]);
     const indexed = { findFiles: async () => ["a/zz-hello.ts", "hello.md"] } as unknown as FileSystem;
     expect(await searchFiles(indexed, "hello", new AbortController().signal)).toEqual(["hello.md", "a/zz-hello.ts"]);
+  });
+  it("maps workspace symbols to 1-based workspace lines and skips URIs outside the workspace", async () => {
+    const service = {
+      path(uri: string) {
+        if (!uri.startsWith("file:///workspace/")) throw new Error("Language server URI outside workspace");
+        return uri.slice("file:///workspace/".length);
+      },
+    };
+    const range = (start: number, end: number) => ({ start: { line: start, character: 0 }, end: { line: end, character: 1 } });
+    const language: WorkspaceSymbolSource = {
+      async workspaceSymbols(query) {
+        return [
+          { service, target: { uri: "file:///workspace/src/login.ts", range: range(3, 9), name: `${query}Login` } },
+          { service, target: { uri: "file:///elsewhere/lib.d.ts", range: range(0, 0), name: "handleOther" } },
+          { service, target: { uri: "file:///workspace/src/user.ts", range: range(0, 0), name: "handleUser" } },
+        ];
+      },
+    };
+    const signal = new AbortController().signal;
+    expect(await searchSymbols(language, "handle", signal)).toEqual([
+      { kind: "symbol", name: "handleLogin", path: "src/login.ts", line: 4, endLine: 10 },
+      { kind: "symbol", name: "handleUser", path: "src/user.ts", line: 1, endLine: 1 },
+    ]);
+    expect(await searchSymbols(language, "handle", signal, 1)).toHaveLength(1);
+    expect(await searchSymbols(language, "h", signal)).toEqual([]);
+    expect(await searchSymbols(undefined, "handle", signal)).toEqual([]);
   });
 });

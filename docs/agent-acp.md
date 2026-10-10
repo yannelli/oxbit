@@ -126,6 +126,9 @@ thread is opened.
   or **Changes**. A file is attached as a snapshot. **Changes** (also in **Add context**)
   attaches the staged and unstaged diff of up to 50 changed files, with untracked
   files in full, up to 200,000 characters.
+- After two characters, `@` also lists up to 10 workspace symbols from running
+  language servers that support `workspace/symbol`. A symbol is attached as the
+  lines of its range, like a selection.
 - Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.

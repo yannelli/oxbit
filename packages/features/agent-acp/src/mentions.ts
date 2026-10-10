@@ -3,7 +3,19 @@ import { workspaceEntries } from "@oxbit/workbench";
 
 export type Mention =
   | { kind: "file"; path: string }
+  | { kind: "symbol"; name: string; path: string; line: number; endLine: number }
   | { kind: "selection" | "diagnostics" | "changes" };
+
+export type SymbolMention = Extract<Mention, { kind: "symbol" }>;
+
+interface Position { line: number }
+/** The parts of the language service's `workspaceSymbols` that mentions use. */
+export interface WorkspaceSymbolSource {
+  workspaceSymbols(query: string, signal?: AbortSignal): Promise<{
+    service: { path(uri: string): string };
+    target: { uri: string; range: { start: Position; end: Position }; name?: string };
+  }[]>;
+}
 
 /** The `@query` token that ends at the caret, if any. */
 export function mentionQuery(value: string, caret: number) {
@@ -59,4 +71,23 @@ export async function searchFiles(filesystem: FileSystem, query: string, signal:
     if (matches.length >= 1000) break;
   }
   return rankFiles(matches, term);
+}
+
+/** Symbols from running language servers that support workspace symbols; lines are 1-based. */
+export async function searchSymbols(language: WorkspaceSymbolSource | undefined, query: string, signal: AbortSignal, limit = 10) {
+  const term = query.trim();
+  if (!language || term.length < 2) return [];
+  const symbols: SymbolMention[] = [];
+  for (const { service, target } of await language.workspaceSymbols(term, signal)) {
+    let path: string;
+    try {
+      path = service.path(target.uri);
+    } catch {
+      continue;
+    }
+    const line = target.range.start.line + 1;
+    symbols.push({ kind: "symbol", name: target.name || term, path, line, endLine: target.range.end.line + 1 });
+    if (symbols.length >= limit) break;
+  }
+  return symbols;
 }

@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { Icon, translate as tr } from "@oxbit/ui";
-import { insertMention, mentionQuery, type Mention } from "./mentions.js";
+import { insertMention, mentionQuery, type Mention, type SymbolMention } from "./mentions.js";
 import { imageFiles } from "./images.js";
 import { sendHint, sendsOnKey, useSendMode } from "./send-keys.js";
 import type { ConfigurationService } from "@oxbit/sdk";
@@ -30,7 +30,7 @@ function slashQuery(value: string, caret: number) {
 }
 
 export function ComposerInput({
-  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles,
+  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles, findSymbols,
 }: {
   value: string;
   commands: readonly { name: string; description: string }[];
@@ -44,6 +44,7 @@ export function ComposerInput({
   onMention: (mention: Mention) => void;
   onImages: (files: File[]) => void;
   findFiles: (query: string, signal: AbortSignal) => Promise<string[]>;
+  findSymbols: (query: string, signal: AbortSignal) => Promise<SymbolMention[]>;
 }) {
   const id = useId();
   const mode = useSendMode(configuration);
@@ -52,7 +53,7 @@ export function ComposerInput({
   const [dismissed, setDismissed] = useState(false);
   const [caret, setCaret] = useState(0);
   const [selected, setSelected] = useState(0);
-  const [found, setFound] = useState<{ query: string; paths: string[] }>({ query: "", paths: [] });
+  const [found, setFound] = useState<{ query: string; paths: string[]; symbols: SymbolMention[] }>({ query: "", paths: [], symbols: [] });
   const place = (next: string, at: number) => {
     onChange(next);
     setCaret(at);
@@ -81,8 +82,8 @@ export function ComposerInput({
       }));
   else if (mention) {
     const pick = (chosen: Mention) => {
-      if (chosen.kind === "file") {
-        const next = insertMention(value, mention.start, caret, chosen.path);
+      if (chosen.kind === "file" || chosen.kind === "symbol") {
+        const next = insertMention(value, mention.start, caret, chosen.kind === "file" ? chosen.path : chosen.name);
         place(next.value, next.caret);
       } else {
         const end = mention.start + mention.query.length + 1;
@@ -109,17 +110,26 @@ export function ComposerInput({
         label: <strong>{path.slice(path.lastIndexOf("/") + 1)}</strong>,
         detail: path,
         choose: () => pick({ kind: "file", path }),
+      })) : [])
+      .concat(found.query === mention.query ? found.symbols.map((symbol) => ({
+        key: `${symbol.path}:${symbol.line}:${symbol.name}`,
+        label: <strong><Icon name="symbol" size={14} /> {symbol.name}</strong>,
+        detail: `${symbol.path}:${symbol.line}`,
+        choose: () => pick(symbol),
       })) : []);
   }
   const mentionTerm = mention?.query;
-  const search = useRef(findFiles);
-  search.current = findFiles;
+  const search = useRef({ findFiles, findSymbols });
+  search.current = { findFiles, findSymbols };
   useEffect(() => {
     if (!mentionTerm) return;
     const abort = new AbortController();
     const timer = setTimeout(() => {
-      search.current(mentionTerm, abort.signal).then(
-        (paths) => { if (!abort.signal.aborted) setFound({ query: mentionTerm, paths }); },
+      Promise.all([
+        search.current.findFiles(mentionTerm, abort.signal),
+        search.current.findSymbols(mentionTerm, abort.signal).catch((): SymbolMention[] => []),
+      ]).then(
+        ([paths, symbols]) => { if (!abort.signal.aborted) setFound({ query: mentionTerm, paths, symbols }); },
         () => {},
       );
     }, 120);
