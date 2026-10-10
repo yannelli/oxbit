@@ -275,10 +275,18 @@ test("swiping in from a screen edge opens that side's panels", async ({ page }) 
   await expect(left).toHaveCount(0);
   await swipe({ x: 4, y: 400 }, { x: 120, y: 410 });
   await expect(left).toBeVisible();
+  await expect(left.locator("[data-panel-tab]").first()).toHaveAttribute("draggable", "false");
   await page.keyboard.press("Escape");
   await expect(left).toHaveCount(0);
   await swipe({ x: 389, y: 400 }, { x: 270, y: 405 });
+  await expect(right).toHaveCount(0);
+  await page.evaluate(() => (window as any).__oxbit.workbench.movePanel("search", { container: "right" }));
+  await page.keyboard.press("Escape");
+  await expect(right).toHaveCount(0);
+  await swipe({ x: 389, y: 400 }, { x: 270, y: 405 });
   await expect(right).toBeVisible();
+  await expect(right.getByRole("textbox", { name: "Search files" })).toBeVisible();
+  await expect(page.locator(".dock-empty")).toHaveCount(0);
   await expect(left).toHaveCount(0);
   await swipe({ x: 200, y: 400 }, { x: 320, y: 400 });
   await expect(right).toBeVisible();
