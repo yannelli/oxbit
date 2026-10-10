@@ -72,8 +72,8 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification when the app is in the background. Native macOS and iOS notifications need the Tauri notification plugin, a new dependency awaiting approval |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes |
-| Checkpoints and restore | Zed, VS Code, Cursor | Not yet; reviewed edits have per-edit undo |
-| Parallel threads in tabs | Zed, VS Code, Cursor | Not yet; Runtime sessions lists up to 3 agents per device |
+| Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged |
+| Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% |
 | Voice input | Cursor, Codex, Happy | System dictation in the composer (iOS keyboard, macOS Dictation); no in-app microphone button |
 | Live Activities | Codex, GitHub, Cursor | Blocked: iOS suspends the app's WebView in the background, and Oxbit has no push relay to update an activity |
