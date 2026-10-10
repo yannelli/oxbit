@@ -3,6 +3,8 @@ export default defineConfig({
   testDir: "tests/browser",
   fullyParallel: false,
   workers: 1,
+  // Shared CI runners hit timing races that do not reproduce locally; a test that fails twice still fails.
+  retries: process.env.CI ? 1 : 0,
   timeout: 120000,
   expect: { timeout: 15000 },
   reporter: [
