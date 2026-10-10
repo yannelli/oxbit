@@ -1,6 +1,6 @@
 # Runtime features on iOS local workspaces
 
-Created: 2026-10-09. Last updated: 2026-10-09.
+Created: 2026-10-09. Last updated: 2026-10-10.
 
 This page compares the computer runtime (`apps/runtime`) with device folders on iOS and records how each runtime feature reaches iOS. A connected runtime gives iOS every runtime feature; the table covers folders on the device, where no runtime runs. The Runtime page connects to an `oxbit --lan` runtime found over Bonjour, a runtime entered by address, or a runtime iOS starts over [SSH](ios-ssh.md) ([iOS setup](ios.md)).
 
@@ -8,14 +8,14 @@ This page compares the computer runtime (`apps/runtime`) with device folders on 
 
 | Runtime feature | Runtime implementation | iOS device folder today | Port path | Verdict |
 | --- | --- | --- | --- | --- |
-| Files: list, read, write, rename, delete | `fs.*` in `apps/runtime/src/runtime.ts`, `apps/runtime/src/filesystem.ts` | `fs_core.rs` through `ios_fs_*`; same error codes, SHA-256 revisions, 20 MiB limit | Done | Shipped before this branch |
+| Files: list, read, write, rename, delete | `fs.*` in `apps/runtime/src/runtime.ts`, `apps/runtime/src/filesystem.ts` | `fs_core.rs` through `ios_fs_*`; same error codes, SHA-256 revisions, 20 MiB limit | Done | Shipped before 0.6.0 |
 | File watching | `fs.watch` with chokidar (`runtime.ts`) | `watch.rs` polls every 2 s, up to 10,000 entries | Per-directory `DispatchSource` vnode sources or `NSFilePresenter` for coordinated Files app folders | Later |
-| Git | 37 `git.*` methods (`apps/runtime/src/git.ts`) | libgit2 in `git_core*`; all 37 methods have dispatch arms (`git.progress` is an event) | No method gaps | Shipped before this branch |
-| Content search | `search.query` runs ripgrep (`runtime.ts`) | Rust `search_core.rs` with the `ignore` walker and `grep-regex` matcher, through `FileSystem.search` | Done; rules below | Shipped in this branch |
-| Quick open | No RPC; the workbench walks `fs.list` (`packages/workbench/src/files.ts`) | Rust `find_files` through `FileSystem.findFiles`, filtered natively | Done; rules below | Shipped in this branch |
-| Language servers | `lsp-manager.ts` starts server processes | TypeScript, JavaScript, JSON, JSONC in JavaScriptCore ([iOS language servers](ios-language-servers.md)) | YAML, Dockerfile, shell, zsh, Python servers in JavaScriptCore | In progress on `p2/ios-language-extensions`. Native-binary servers (gopls, rust-analyzer) need process execution: not possible on iOS |
-| JSON and YAML schema download | `json-schemas.ts` fetches the SchemaStore catalog | Schemas from workspace files only | Shared schema cache with downloads | In progress on `p2/ios-language-extensions` |
-| Formatters | Workbench formatter workers; runtime adds tool formatters | Prettier and the TypeScript formatter run in the web view | ruff and shfmt builds that run without a process | In progress on `p2/ios-language-extensions` |
+| Git | 37 `git.*` methods (`apps/runtime/src/git.ts`) | libgit2 in `git_core*`; all 37 methods have dispatch arms (`git.progress` is an event) | No method gaps | Shipped before 0.6.0 |
+| Content search | `search.query` runs ripgrep (`runtime.ts`) | Rust `search_core.rs` with the `ignore` walker and `grep-regex` matcher, through `FileSystem.search` | Done; rules below | Shipped in 0.6.0 |
+| Quick open | No RPC; the workbench walks `fs.list` (`packages/workbench/src/files.ts`) | Rust `find_files` through `FileSystem.findFiles`, filtered natively | Done; rules below | Shipped in 0.6.0 |
+| Language servers | `lsp-manager.ts` starts server processes | TypeScript, JavaScript, JSON, JSONC, YAML, Dockerfile, Bash/sh, Zsh, and Python (Ruff and basedpyright) in JavaScriptCore; each server is an extension with an enable switch and a File Types setting ([iOS language servers](ios-language-servers.md)) | Done | Shipped in 0.6.0; Zsh syntax diagnostics in 0.6.1. Native-binary servers (gopls, rust-analyzer) need process execution: not possible on iOS |
+| JSON and YAML schema download | `json-schemas.ts` fetches the SchemaStore catalog | Workspace schemas from disk and SchemaStore schemas through the host cache (`packages/features/language/src/native/schemas.ts`) | Done | Shipped in 0.6.0 |
+| Formatters | Workbench formatter workers; runtime adds tool formatters | Prettier and the TypeScript formatter in the web view; Ruff for Python and shfmt (WebAssembly) for Bash, sh, and Zsh without a process | Done | Shipped in 0.6.0 |
 | Project intelligence | `projects.ts`: `typescript` and `ignore` npm packages over Node `fs` | None | Run the same module in the web view or the language JavaScriptCore context over `FileSystem.list`, `read`, and `findFiles`; both packages run without Node | Later |
 | Terminals | `terminal.*` with node-pty | None | See [Terminals and tasks](#terminals-and-tasks) | Later: in-process Rust shell (brush + uutils) is the chosen path; not started |
 | Tasks | `apps/runtime/src/tasks` starts processes and Git worktrees | None | Worktree operations through libgit2; task commands depend on terminals | Later, after terminals |
@@ -75,7 +75,7 @@ Measured 2026-10-09 on the "iPhone 17 Pro" simulator (iOS 27.0) on an Apple Sili
 | Quick open `scaffold` (whole tree) | 4,644; 10,558 | 244; 86, 75 | 277 both |
 | Quick open `mdart` (stops at 1000) | 513; 548 | 126; 99, 75 | 1000 both |
 
-Binary size: the release simulator executable (`Oxbit.app/Oxbit`, arm64, LTO) is 31,065,840 bytes with the Rust host from `012190d` and 32,660,672 bytes with this branch, 1,594,832 bytes (5.1%) larger. Both builds embed the same frontend.
+Binary size: the release simulator executable (`Oxbit.app/Oxbit`, arm64, LTO) is 31,065,840 bytes with the Rust host from `012190d` and 32,660,672 bytes with the native search and quick-open host that shipped in 0.6.0, 1,594,832 bytes (5.1%) larger. Both builds embed the same frontend.
 
 ## Terminals and tasks
 
