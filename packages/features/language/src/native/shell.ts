@@ -107,8 +107,8 @@ export class ShellServer implements NativeService {
 
   diagnostics(path: string) {
     const document = this.files.documents.get(path);
-    // The bash grammar rejects valid zsh syntax such as `${(f)x}` and `{ cmd }`, so zsh gets no syntax errors.
-    if (document && (document.language === "zsh" || analyzeFile(this.files.uri(path), document.text).dialect === "zsh")) return [];
+    // The bash grammar rejects valid zsh syntax such as `${(f)x}` and `{ cmd }`, so zsh uses shfmt's zsh parser instead.
+    if (document && (document.language === "zsh" || analyzeFile(this.files.uri(path), document.text).dialect === "zsh")) return zshDiagnostics(document.text);
     const root = this.analyzer.getRootNode(this.files.uri(path)) as Node | undefined;
     const diagnostics: unknown[] = [];
     const visit = (node: Node) => {
@@ -208,4 +208,21 @@ function unique(symbols: Symbol[], uri: string) {
   const seen = new Set<string>();
   return [...symbols.filter(symbol => symbol.location.uri === uri), ...symbols.filter(symbol => symbol.location.uri !== uri)]
     .filter(symbol => !seen.has(symbol.name + symbol.kind) && seen.add(symbol.name + symbol.kind));
+}
+
+// shfmt rejects valid zsh short forms such as `for x (a b) cmd`, so only unterminated constructs, which zsh also rejects, are reported.
+const zshUnterminated = /^(reached EOF without|`\w+` statement must end with|unclosed here-document)/;
+function zshDiagnostics(text: string) {
+  try {
+    format(text, "document.zsh", {});
+    return [];
+  } catch (error) {
+    const match = /:(\d+):(\d+): (.*)$/s.exec(String((error as Error)?.message ?? error));
+    if (!match || !zshUnterminated.test(match[3]!)) return [];
+    const line = Number(match[1]) - 1, lineText = text.split("\n")[line] ?? "";
+    // shfmt columns count UTF-8 bytes.
+    const character = new TextDecoder().decode(new TextEncoder().encode(lineText).slice(0, Number(match[2]) - 1)).length;
+    const width = /^\S*/.exec(lineText.slice(character))![0].length || 1;
+    return [{ range: { start: { line, character }, end: { line, character: character + width } }, severity: 1, source: "zsh", message: `Syntax error: ${match[3]}` }];
+  }
 }

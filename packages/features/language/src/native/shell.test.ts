@@ -85,4 +85,18 @@ describe("device-local shell language server", () => {
     expect(edit.newText).toBe("for line in ${(f)text}; do\n  print -r -- $line\ndone\n");
     await server.dispatch("exit", null);
   });
+
+  it("reports unterminated zsh constructs and accepts zsh short forms", async () => {
+    const { server, open } = setup();
+    await server.dispatch("initialize", {});
+    const diagnostics = async (path: string, text: string) => (await open(path, text, "zsh")).notifications.filter((item: any) => item.params.uri.endsWith("/" + path)).flatMap((item: any) => item.params.diagnostics);
+    expect(await diagnostics("short.zsh", "for x (a b) { echo $x }\nif [[ -n $x ]] { echo ok }\n{ echo hi } always { echo done }\nfoo() { print ${(j:,:)@} }\n")).toEqual([]);
+    expect(await diagnostics("open.zsh", "# 😀\nif true; then\n  echo hi\n")).toEqual([
+      { range: { start: { line: 1, character: 0 }, end: { line: 1, character: 2 } }, severity: 1, source: "zsh", message: "Syntax error: `if` statement must end with `fi`" },
+    ]);
+    expect(await diagnostics("quote.zsh", 'echo 😀 "hello\n')).toEqual([
+      { range: { start: { line: 0, character: 8 }, end: { line: 0, character: 14 } }, severity: 1, source: "zsh", message: "Syntax error: reached EOF without closing quote `\"`" },
+    ]);
+    await server.dispatch("exit", null);
+  });
 });
