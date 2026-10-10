@@ -980,5 +980,12 @@
   "Attach changes": "附加更改",
   "Uncommitted changes": "未提交的更改",
   "This workspace is not a git repository": "此工作区不是 Git 仓库",
-  "No uncommitted changes": "没有未提交的更改"
+  "No uncommitted changes": "没有未提交的更改",
+  "Agent threads": "智能体线程",
+  "New thread": "新线程",
+  "Needs input ({0})": "需要输入 ({0})",
+  "Stop {0}": "停止 {0}",
+  "Stop thread": "停止线程",
+  "Stop {0}? Its agent process ends on the runtime.": "停止 {0}?运行时上的智能体进程将结束。",
+  "Agent limit reached": "已达到智能体数量上限"
 }

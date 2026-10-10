@@ -980,5 +980,12 @@
   "Attach changes": "変更を添付",
   "Uncommitted changes": "コミットされていない変更",
   "This workspace is not a git repository": "このワークスペースは Git リポジトリではありません",
-  "No uncommitted changes": "コミットされていない変更はありません"
+  "No uncommitted changes": "コミットされていない変更はありません",
+  "Agent threads": "エージェントのスレッド",
+  "New thread": "新しいスレッド",
+  "Needs input ({0})": "入力待ち ({0})",
+  "Stop {0}": "{0} を停止",
+  "Stop thread": "スレッドを停止",
+  "Stop {0}? Its agent process ends on the runtime.": "{0} を停止しますか? ランタイム上のエージェントプロセスが終了します。",
+  "Agent limit reached": "エージェント数の上限に達しました"
 }

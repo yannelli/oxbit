@@ -674,7 +674,7 @@ export async function createRuntime(options: RuntimeOptions) {
       session = authorized(connection, required.cap, required.trust);
     if (method.startsWith("acp.")) {
       owner(connection);
-      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect", "acp.registry"].includes(method))
+      if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
     if (method.startsWith("project.")) owner(connection);
@@ -720,6 +720,9 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.cancel(session.id, requireString(params, "id"));
       case "acp.stop":
         return agents.stop(session.id, requireString(params, "id"));
+      case "acp.detach":
+        agents.detach(connection.id);
+        return {};
       case "acp.disconnect":
         agents.disconnect(session.id, connection.id);
         return {};
