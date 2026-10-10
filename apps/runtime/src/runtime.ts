@@ -778,6 +778,7 @@ export async function createRuntime(options: RuntimeOptions) {
           },
         );
         lsp.saved(requireString(params, "path"), snapshot.text);
+        settings.workspaceChanged(requireString(params, "path"));
         return snapshot;
       }
       case "fs.mkdir":
@@ -788,9 +789,12 @@ export async function createRuntime(options: RuntimeOptions) {
           requireString(params, "path"),
           requireString(params, "to"),
         );
+        settings.workspaceChanged(requireString(params, "path"));
+        settings.workspaceChanged(requireString(params, "to"));
         return { ok: true };
       case "fs.delete":
         await files.delete(requireString(params, "path"));
+        settings.workspaceChanged(requireString(params, "path"));
         return { ok: true };
       case "fs.watch":
         connection.watching = true;
