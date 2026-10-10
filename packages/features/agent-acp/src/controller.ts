@@ -35,6 +35,7 @@ import { Attention } from "./attention.js";
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
+import { uncommittedChanges } from "./changes.js";
 import type { Mention } from "./mentions.js";
 
 export type AgentRequest = {
@@ -1006,10 +1007,19 @@ export class AgentController {
     this.changed();
   }
   async attachMention(mention: Mention) {
+    if (mention.kind === "changes") return this.attachChanges();
     if (mention.kind !== "file")
       return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
     if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
     await this.attachPath(mention.path);
+  }
+  async attachChanges() {
+    const others = this.context.filter((item) => item.kind !== "changes");
+    if (others.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await uncommittedChanges((method, params) => this.request(method, params ?? {}));
+    this.context = [...others, { path: ".", text, kind: "changes", label: "Uncommitted changes" }];
+    this.changed();
   }
   attachDiagnostics() {
     const path = this.options.workbench.activePath();

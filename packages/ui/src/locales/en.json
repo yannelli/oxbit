@@ -975,5 +975,10 @@
   "Context usage": "Context usage",
   "{0}% of context used": "{0}% of context used",
   "{0}% context": "{0}% context",
-  "{0} tokens": "{0} tokens"
+  "{0} tokens": "{0} tokens",
+  "Attach uncommitted changes": "Attach uncommitted changes",
+  "Attach changes": "Attach changes",
+  "Uncommitted changes": "Uncommitted changes",
+  "This workspace is not a git repository": "This workspace is not a git repository",
+  "No uncommitted changes": "No uncommitted changes"
 }

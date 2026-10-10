@@ -92,12 +92,16 @@ export function ComposerInput({
       onMention(chosen);
     };
     const term = mention.query.toLowerCase();
-    items = ([["selection", "Selection", "focus"], ["diagnostics", "Diagnostics", "warning"]] as const)
+    items = ([
+      ["selection", "Selection", "focus", "Attach the editor selection"],
+      ["diagnostics", "Diagnostics", "warning", "Attach the active file's diagnostics"],
+      ["changes", "Changes", "git", "Attach uncommitted changes"],
+    ] as const)
       .filter(([, label]) => tr(label).toLowerCase().includes(term) || label.toLowerCase().includes(term))
-      .map(([kind, label, icon]): Item => ({
+      .map(([kind, label, icon, detail]): Item => ({
         key: kind,
         label: <strong><Icon name={icon} size={14} /> {tr(label)}</strong>,
-        detail: tr(kind === "selection" ? "Attach the editor selection" : "Attach the active file's diagnostics"),
+        detail: tr(detail),
         choose: () => pick({ kind }),
       }))
       .concat(found.query === mention.query ? found.paths.map((path) => ({

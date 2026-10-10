@@ -975,5 +975,10 @@
   "Context usage": "上下文用量",
   "{0}% of context used": "已使用 {0}% 上下文",
   "{0}% context": "上下文 {0}%",
-  "{0} tokens": "{0} 个令牌"
+  "{0} tokens": "{0} 个令牌",
+  "Attach uncommitted changes": "附加未提交的更改",
+  "Attach changes": "附加更改",
+  "Uncommitted changes": "未提交的更改",
+  "This workspace is not a git repository": "此工作区不是 Git 仓库",
+  "No uncommitted changes": "没有未提交的更改"
 }

@@ -975,5 +975,10 @@
   "Context usage": "コンテキスト使用量",
   "{0}% of context used": "コンテキストの {0}% を使用",
   "{0}% context": "コンテキスト {0}%",
-  "{0} tokens": "{0} トークン"
+  "{0} tokens": "{0} トークン",
+  "Attach uncommitted changes": "コミットされていない変更を添付",
+  "Attach changes": "変更を添付",
+  "Uncommitted changes": "コミットされていない変更",
+  "This workspace is not a git repository": "このワークスペースは Git リポジトリではありません",
+  "No uncommitted changes": "コミットされていない変更はありません"
 }

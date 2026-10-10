@@ -66,7 +66,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents |
 | Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent |
 | Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` |
-| `@` mentions | All | Workspace files only |
+| `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads |
 | Image paste and drop | All | Yes, when the agent advertises image prompts |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast |
 | OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification when the app is in the background. Native macOS and iOS notifications need the Tauri notification plugin, a new dependency awaiting approval |

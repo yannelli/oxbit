@@ -975,5 +975,10 @@
   "Context usage": "Uso del contexto",
   "{0}% of context used": "{0} % del contexto usado",
   "{0}% context": "{0} % de contexto",
-  "{0} tokens": "{0} tokens"
+  "{0} tokens": "{0} tokens",
+  "Attach uncommitted changes": "Adjuntar cambios sin confirmar",
+  "Attach changes": "Adjuntar cambios",
+  "Uncommitted changes": "Cambios sin confirmar",
+  "This workspace is not a git repository": "Este espacio de trabajo no es un repositorio git",
+  "No uncommitted changes": "No hay cambios sin confirmar"
 }

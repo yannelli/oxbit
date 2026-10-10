@@ -677,6 +677,14 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           <button
             type="button"
             className="button"
+            onClick={() => void agent.action(() => agent.attachChanges())}
+          >
+            <Icon name="git" size={14} />
+            {tr("Attach changes")}
+          </button>
+          <button
+            type="button"
+            className="button"
             onClick={() => void agent.action(() => agent.attach())}
           >
             <Icon name="files" size={14} />
@@ -699,7 +707,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 <ContextItem item={context} />
                 <IconButton
                   icon="x"
-                  label={tr("Remove attachment {0}", { 0: context.path })}
+                  label={tr("Remove attachment {0}", {
+                    0: context.kind === "changes" ? tr("Uncommitted changes") : context.path,
+                  })}
                   onClick={() => {
                     agent.context.splice(index, 1);
                     agent.changed();

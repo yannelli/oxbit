@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -37,6 +38,7 @@ async function open(page: Page, args: string[] = []) {
   const panel = page.locator(".acp-panel").first();
   return {
     panel,
+    root,
     input: panel.getByRole("textbox", { name: "Message agent" }),
     log: panel.getByRole("log"),
     ready: () => expect(panel.locator(".acp-status")).toHaveText("Ready"),
@@ -197,6 +199,32 @@ test("composer sends before connect, sends on Enter, mentions files, pastes imag
     await paste(page, PNG);
     await expect(panel.getByRole("alert")).toHaveText("This agent does not accept images");
     await expect(panel.locator(".acp-attachments .acp-image-item")).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("@Changes attaches staged, unstaged and untracked changes", async ({ page }) => {
+  const app = await open(page);
+  try {
+    const git = (...args: string[]) =>
+      execFileSync("git", ["-c", "user.name=Oxbit", "-c", "user.email=oxbit@example.com", "-c", "commit.gpgsign=false", ...args], { cwd: app.root });
+    git("init", "-q");
+    git("add", "-A");
+    git("commit", "-qm", "base");
+    await fs.writeFile(path.join(app.root, "hello.txt"), "hello from the change\n");
+    await fs.writeFile(path.join(app.root, "src/main.ts"), "export const main = 2;\n");
+    git("add", "src/main.ts");
+    await fs.writeFile(path.join(app.root, "notes.md"), "untracked note\n");
+    await app.input.fill("context-inspect @chan");
+    await page.getByRole("listbox", { name: "Mention files and context" }).getByRole("option", { name: /Changes/ }).click();
+    await expect(app.panel.getByRole("button", { name: "Remove attachment Uncommitted changes" })).toBeVisible();
+    await expect(app.input).toHaveValue("context-inspect ");
+    await app.input.press("Enter");
+    await expect(app.log).toContainText("Uncommitted changes");
+    await expect(app.log).toContainText("+hello from the change");
+    await expect(app.log).toContainText("+export const main = 2;");
+    await expect(app.log).toContainText("new file notes.md");
   } finally {
     await app.close();
   }

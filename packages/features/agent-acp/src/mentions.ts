@@ -3,7 +3,7 @@ import { workspaceEntries } from "@oxbit/workbench";
 
 export type Mention =
   | { kind: "file"; path: string }
-  | { kind: "selection" | "diagnostics" };
+  | { kind: "selection" | "diagnostics" | "changes" };
 
 /** The `@query` token that ends at the caret, if any. */
 export function mentionQuery(value: string, caret: number) {

@@ -84,7 +84,10 @@ button or sign in using the provider CLI, then retry the conversation.
   `agentACP.useModifierToSend`, Enter adds a new line and **Ctrl/Cmd+Enter** sends.
   On touch screens the Return key adds a new line and the send button sends.
   Ctrl/Cmd+Enter sends in every mode. **Escape** stops the running turn.
-- Type `@` to mention a workspace file. The file is attached as a snapshot.
+- Type `@` to mention a workspace file, the selection, the active file's diagnostics,
+  or **Changes**. A file is attached as a snapshot. **Changes** (also in **Add context**)
+  attaches the staged and unstaged diff of up to 50 changed files, with untracked
+  files in full, up to 200,000 characters.
 - Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
