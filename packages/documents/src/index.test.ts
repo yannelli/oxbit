@@ -92,6 +92,69 @@ describe("shared documents", () => {
     expect(document.state).toBe("missing");
     expect(document.text.toString()).toBe("external");
   });
+  it.each(["snapshot", "error"])("ignores an older external %s after a newer change", async (result) => {
+    const { service, filesystem } = await setup();
+    const document = await service.open("index.ts");
+    const reads: {
+      resolve(snapshot: FileSnapshot): void;
+      reject(error: Error): void;
+    }[] = [];
+    filesystem.read = () => new Promise((resolve, reject) => reads.push({ resolve, reject }));
+    const older = await filesystem.write("index.ts", "older", {
+      expectedRevision: document.savedRevision,
+    });
+    const newer = await filesystem.write("index.ts", "newer", {
+      expectedRevision: older.revision,
+    });
+    reads[1]!.resolve(newer);
+    await tick();
+    if (result === "snapshot") reads[0]!.resolve(older);
+    else reads[0]!.reject(new Error("EACCES: permission denied"));
+    await tick();
+    expect(document.text.toString()).toBe("newer");
+    expect(document.savedRevision).toBe(newer.revision);
+    expect(document.state).toBe("ready");
+    expect(document.dirty).toBe(false);
+  });
+  it("keeps a deletion newer than an outstanding external read", async () => {
+    const { service, filesystem } = await setup();
+    const document = await service.open("index.ts");
+    let resolve!: (snapshot: FileSnapshot) => void;
+    filesystem.read = () => new Promise((done) => { resolve = done; });
+    const snapshot = await filesystem.write("index.ts", "changed", {
+      expectedRevision: document.savedRevision,
+    });
+    await filesystem.delete("index.ts");
+    resolve(snapshot);
+    await tick();
+    expect(document.state).toBe("missing");
+    expect(document.text.toString()).toBe("const value = 1;\n");
+  });
+  it.each(["snapshot", "error"])("ignores an external %s for a replaced document handle", async (result) => {
+    const { service, filesystem } = await setup();
+    const document = await service.open("index.ts");
+    const read = filesystem.read.bind(filesystem);
+    let resolve!: (snapshot: FileSnapshot) => void;
+    let reject!: (error: Error) => void;
+    filesystem.read = () => new Promise((done, fail) => { resolve = done; reject = fail; });
+    const older = await filesystem.write("index.ts", "older", {
+      expectedRevision: document.savedRevision,
+    });
+    service.discard("index.ts");
+    const newer = await filesystem.write("index.ts", "newer", {
+      expectedRevision: older.revision,
+    });
+    filesystem.read = read;
+    const replacement = await service.open("index.ts");
+    if (result === "snapshot") resolve(older);
+    else reject(new Error("EACCES: permission denied"));
+    await tick();
+    expect(replacement).not.toBe(document);
+    expect(replacement.text.toString()).toBe("newer");
+    expect(replacement.savedRevision).toBe(newer.revision);
+    expect(replacement.state).toBe("ready");
+    expect(replacement.dirty).toBe(false);
+  });
   it("rejects stale multi-file edits before changing any text", async () => {
     const { service, filesystem } = await setup();
     await filesystem.write("second.ts", "second", { expectedRevision: null });
@@ -265,6 +328,28 @@ describe("shared documents", () => {
       expectedRevision: null,
     });
     expect((await service.open("src/closed.ts")).id).not.toBe(closedId);
+  });
+  it.each([
+    { source: "index.ts", destination: "target.ts", draftPath: "target.ts" },
+    { source: "index.ts", destination: "target", draftPath: "target/nested.ts" },
+  ])("preserves a missing draft at $draftPath when a rename targets $destination", async ({ source, destination, draftPath }) => {
+    const { service, filesystem, persistence } = await setup();
+    const document = await service.open(source);
+    await filesystem.write(draftPath, "saved target", { expectedRevision: null });
+    const draft = await service.open(draftPath);
+    draft.replace("unsaved target");
+    await filesystem.delete(destination);
+    await expect(service.applyEdits([], [{ kind: "rename", path: source, to: destination }]))
+      .rejects.toThrow("Destination has an open document");
+    expect(service.get(source)).toBe(document);
+    expect(service.get(draftPath)).toBe(draft);
+    expect((await filesystem.read(source)).text).toBe(document.savedText);
+    await service.persist();
+    const recovered = new DocumentService(filesystem, persistence);
+    services.push(recovered);
+    await recovered.restore();
+    expect(recovered.get(draftPath)?.text.toString()).toBe("unsaved target");
+    expect(recovered.get(draftPath)?.dirty).toBe(true);
   });
   it("rejects deleting a directory with dirty descendants before changing the filesystem", async () => {
     const { service, filesystem } = await setup();

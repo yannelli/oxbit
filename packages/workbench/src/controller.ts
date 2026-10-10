@@ -133,6 +133,9 @@ export class WorkbenchController {
   private refreshGeneration = 0;
   private refreshTimer?: ReturnType<typeof setTimeout>;
   private directories = new Map<string, FileEntry[]>();
+  private fileOpenRequests = new Map<string, number>();
+  private nextFileOpenRequest = 0;
+  private editorNavigation = 0;
   constructor(
     readonly kernel: Kernel,
     readonly documents: DocumentService,
@@ -147,6 +150,12 @@ export class WorkbenchController {
   };
   snapshot = () => this.state;
   set(patch: Partial<WorkbenchState>) {
+    if (patch.activeGroup !== undefined && patch.activeGroup !== this.state.activeGroup)
+      this.editorNavigation++;
+    if (patch.groups)
+      for (const id of this.fileOpenRequests.keys())
+        if (!patch.groups.some((group) => group.id === id))
+          this.fileOpenRequests.delete(id);
     if (patch.sidebar === true || patch.panel === true) patch = { ...patch, panelOverlay: true };
     const expansionChanged =
       patch.expanded !== undefined &&
@@ -238,6 +247,8 @@ export class WorkbenchController {
       .find((group) => group.id === groupId)
       ?.tabs.find((tab) => tab.id === tabId);
     if (!tab) return;
+    this.fileOpenRequests.delete(groupId);
+    this.editorNavigation++;
     this.set({
       activeGroup: groupId,
       groups: this.state.groups.map((group) =>
@@ -561,6 +572,12 @@ export class WorkbenchController {
   async openFile(path: string, options: OpenOptions = {}) {
     this.panelWindows.focusOwner();
     const start = performance.now();
+    const gid = options.groupId || this.state.activeGroup;
+    const initialGroup = this.state.groups.find((group) => group.id === gid);
+    if (!initialGroup) throw new Error("Editor group does not exist");
+    const request = ++this.nextFileOpenRequest;
+    this.fileOpenRequests.set(gid, request);
+    const navigation = ++this.editorNavigation;
     // A binary view reads the bytes itself; decoding the file as text would fail and stall the group.
     const binary = options.text
       ? undefined
@@ -573,39 +590,42 @@ export class WorkbenchController {
         failure = error instanceof Error ? error.message : String(error);
       }
     if (this.disposed) return;
-    this.revealFile(path);
-    const gid = options.groupId || this.state.activeGroup;
-    if (!this.state.groups.some((group) => group.id === gid))
-      throw new Error("Editor group does not exist");
+    const group = this.state.groups.find((group) => group.id === gid);
+    const current =
+      this.fileOpenRequests.get(gid) === request && group?.active === initialGroup.active;
+    if (!group || (options.preview && !current)) return;
+    const focus = current && this.editorNavigation === navigation;
     const custom =
       binary ??
       (!failure && !options.text ? documentViewFor(this.kernel, path) : undefined);
-    if (custom?.component) {
-      this.openView(
-        path,
-        path.split("/").pop() || path,
-        custom.component,
-        { path },
-        { groupId: gid, path, contributionId: custom.id },
-      );
-      return;
-    }
-    const previousPreviews =
-      this.state.groups
-        .find((group) => group.id === gid)
-        ?.tabs.filter(
-          (tab) =>
-            tab.preview &&
-            tab.path &&
-            tab.path !== path &&
-            !this.documents.get(tab.path)?.dirty,
-        )
-        .map((tab) => tab.path!) || [];
+    const previousPreviews = custom?.component
+      ? []
+      : group.tabs
+          .filter(
+            (tab) =>
+              tab.preview &&
+              tab.path &&
+              tab.path !== path &&
+              !this.documents.get(tab.path)?.dirty,
+          )
+          .map((tab) => tab.path!);
     const groups = this.state.groups.map((g) => {
       if (g.id !== gid) return g;
       const exists = g.tabs.find((t) => t.path === path && !t.component);
       let tabs = g.tabs;
-      if (!exists) {
+      if (custom?.component) {
+        tabs = [
+          ...tabs.filter((tab) => tab.id !== path),
+          {
+            id: path,
+            title: path.split("/").pop() || path,
+            path,
+            component: custom.component,
+            props: { path },
+            contributionId: custom.id,
+          },
+        ];
+      } else if (!exists) {
         if (options.preview)
           tabs = tabs.filter(
             (t) =>
@@ -631,19 +651,28 @@ export class WorkbenchController {
               }
             : t,
         );
-      return { ...g, tabs, active: path };
+      return { ...g, tabs, active: current ? path : g.active };
     });
+    if (focus) this.revealFile(path);
     this.set({
       groups,
-      activeGroup: gid,
-      selectedPath: path,
       workspaceOpen: true,
-      recent: [path, ...this.state.recent.filter((p) => p !== path)].slice(
-        0,
-        40,
-      ),
-      ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false, panelOverlay: false } : {}),
+      ...(focus
+        ? {
+            activeGroup: gid,
+            selectedPath: path,
+            recent: [path, ...this.state.recent.filter((p) => p !== path)].slice(0, 40),
+            ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false, panelOverlay: false } : {}),
+          }
+        : {}),
     });
+    const committedNavigation = this.editorNavigation;
+    const stillActive = () =>
+      !this.disposed &&
+      this.fileOpenRequests.get(gid) === request &&
+      this.editorNavigation === committedNavigation &&
+      this.state.activeGroup === gid &&
+      this.state.groups.find((group) => group.id === gid)?.active === path;
     for (const preview of previousPreviews)
       if (
         !this.state.groups.some((group) =>
@@ -651,6 +680,7 @@ export class WorkbenchController {
         )
       )
         await this.documents.close(preview);
+    if (!focus || !stillActive() || custom?.component) return;
     const document = this.documents.get(path);
     if (document)
       this.kernel.events.emit("editor.active", {
@@ -659,6 +689,7 @@ export class WorkbenchController {
       });
     if (failure) return;
     requestAnimationFrame(() => {
+      if (!stillActive()) return;
       const view = this.editors.get(gid);
       if (view && (options.line !== undefined || options.from !== undefined)) {
         const line = view.state.doc.line(
@@ -706,6 +737,8 @@ export class WorkbenchController {
       );
     if (!this.state.groups.some((group) => group.id === gid))
       throw new Error("Editor group does not exist");
+    this.fileOpenRequests.delete(gid);
+    this.editorNavigation++;
     this.set({
       activeGroup: gid,
       ...((globalThis.innerWidth || 1440) < 1100 ? { sidebar: false, panelOverlay: false } : {}),
@@ -777,6 +810,11 @@ export class WorkbenchController {
     panelLayout.docks[side].visible = !panelLayout.docks[side].visible;
     panelLayout.activeDock = side;
     this.set({ panelLayout, panelOverlay: true });
+  }
+  openDock(side: DockSide) {
+    const { panelLayout, panelOverlay } = this.state;
+    const overlay = (globalThis.innerWidth || 1440) < 1100;
+    if (!panelLayout.docks[side].visible || overlay && !(panelOverlay && panelLayout.activeDock === side)) this.toggleDock(side);
   }
   getPanelLayout(): PanelLayout { return structuredClone(this.state.panelLayout); }
   movePanel(id: string, target: PanelTarget) {

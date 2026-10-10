@@ -1,10 +1,12 @@
 //! Tauri commands that start, resume, and stop an Oxbit runtime on a connected SSH host. The
 //! WebView reaches it through a loopback tunnel with the token from the launch frame.
 use super::{
+    fs_commands::absolute,
     runtime_install::{self, Fetch, Source},
     runtime_process::{Event, Options, Ready},
-    runtime_protocol::remote_root,
+    runtime_protocol::{key_root, remote_root},
     runtime_session::RemoteRuntime,
+    sftp,
 };
 use crate::{
     fs_core::{revision, Error, Result},
@@ -62,6 +64,21 @@ fn device_fetch(app: AppHandle, id: String) -> Fetch {
     })
 }
 
+/// The folder the host resolves `path` to (a file's folder), in `key_root` form. `None` leaves
+/// the launch root as the key, and the runtime reports the missing folder.
+async fn resolved_root(state: &AppState, host_id: &str, path: &str) -> Option<String> {
+    let connection = state.ssh.pool.connection(host_id).await.ok()?;
+    let requested = absolute(&connection.home, path).ok()?;
+    let canonical = connection.sftp.canonicalize(requested).await.ok()?;
+    let metadata = connection.sftp.metadata(canonical.clone()).await.ok()?;
+    let folder = if metadata.file_type().is_dir() {
+        canonical.as_str()
+    } else {
+        sftp::parent(&canonical)
+    };
+    Some(key_root(&connection.home, folder))
+}
+
 fn runtime(state: &AppState, id: &str) -> Result<Arc<RemoteRuntime>> {
     state
         .ssh
@@ -93,7 +110,10 @@ pub async fn ios_ssh_runtime_start(
     }
     state.ssh.hosts.get(&host_id)?;
     let root = remote_root(&path)?;
-    let workspace_key = revision(format!("ssh-runtime\0{host_id}\0{root}").as_bytes());
+    let key = resolved_root(&state, &host_id, &path)
+        .await
+        .unwrap_or_else(|| root.clone());
+    let workspace_key = revision(format!("ssh-runtime\0{host_id}\0{key}").as_bytes());
     let token = format!(
         "{}{}",
         uuid::Uuid::new_v4().simple(),

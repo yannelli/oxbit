@@ -9,7 +9,7 @@ import type {
   FileSnapshot,
   WriteOptions,
 } from "@oxbit/sdk";
-import { READ_CHUNK_BYTES, RpcError } from "@oxbit/protocol";
+import { MAX_FILE_BYTES, READ_CHUNK_BYTES, RpcError } from "@oxbit/protocol";
 
 export function revision(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -120,6 +120,10 @@ export class WorkspaceFiles {
     this.protectedRoots.add(root); return root;
   }
   private protected(candidate: string) { return [...this.protectedRoots].some(root => candidate === root || candidate.startsWith(root + path.sep)); }
+  private protectDescendants(candidate: string) {
+    if ([...this.protectedRoots].some(root => root.startsWith(candidate + path.sep)))
+      throw new RpcError("PATH_DENIED", "Directory contains protected files");
+  }
   inside(candidate: string): boolean {
     const rel = path.relative(this.root, candidate);
     return (
@@ -228,7 +232,7 @@ export class WorkspaceFiles {
     const stat = await fs.stat(full);
     if (!stat.isFile())
       throw new RpcError("NOT_FILE", "Path is not a regular file");
-    if (stat.size > 20 * 1024 * 1024)
+    if (stat.size > MAX_FILE_BYTES)
       throw new RpcError(
         "FILE_TOO_LARGE",
         "Files above 20 MiB must be opened outside this editor",
@@ -250,7 +254,7 @@ export class WorkspaceFiles {
     const stat = await fs.stat(full);
     if (!stat.isFile())
       throw new RpcError("NOT_FILE", "Path is not a regular file");
-    if (stat.size > 20 * 1024 * 1024)
+    if (stat.size > MAX_FILE_BYTES)
       throw new RpcError(
         "FILE_TOO_LARGE",
         "Files above 20 MiB must be opened outside this editor",
@@ -317,7 +321,7 @@ export class WorkspaceFiles {
           actualRevision: actual,
         });
       const bytes = encode(text, options.encoding, options.eol);
-      if (bytes.length > 20 * 1024 * 1024)
+      if (bytes.length > MAX_FILE_BYTES)
         throw new RpcError(
           "FILE_TOO_LARGE",
           "Files above 20 MiB are unsupported",
@@ -351,6 +355,8 @@ export class WorkspaceFiles {
     const target = await this.resolve(to, true);
     if (from === this.root || target === this.root)
       throw new RpcError("PATH_DENIED", "Cannot rename workspace root");
+    this.protectDescendants(from);
+    this.protectDescendants(target);
     try {
       await fs.lstat(target);
       throw new RpcError("EXISTS", "Destination already exists");
@@ -363,6 +369,7 @@ export class WorkspaceFiles {
     const full = await this.resolve(relative);
     if (full === this.root)
       throw new RpcError("PATH_DENIED", "Cannot delete workspace root");
+    this.protectDescendants(full);
     await fs.rm(path.resolve(this.root, relative), { recursive: true });
   }
 }

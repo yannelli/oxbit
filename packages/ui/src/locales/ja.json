@@ -919,5 +919,10 @@
   "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.": "Oxbit ランタイムで Taplo を実行します。有効状態とファイルの種類は languageServers.taplo.enabled と languageServers.taplo.selectors に対応します。",
   "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.": "Oxbit ランタイムで Laravel を実行します。有効状態とファイルの種類は languageServers.laravel.enabled と languageServers.laravel.selectors に対応します。",
   "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.": "Oxbit ランタイムで Intelephense を実行します。有効状態とファイルの種類は languageServers.intelephense.enabled と languageServers.intelephense.selectors に対応します。",
-  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Oxbit ランタイムで LemMinX を実行します。有効状態とファイルの種類は languageServers.lemminx.enabled と languageServers.lemminx.selectors に対応します。"
+  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Oxbit ランタイムで LemMinX を実行します。有効状態とファイルの種類は languageServers.lemminx.enabled と languageServers.lemminx.selectors に対応します。",
+  "Theme Packs": "テーマパック",
+  "Import and remove theme packs.": "テーマパックをインポートまたは削除します。",
+  "Git Accounts and Commit Author": "Git アカウントとコミット作成者",
+  "Sign in to Git hosts and set the name and email used for commits.": "Git ホストにサインインし、コミットに使う名前とメールアドレスを設定します。",
+  "Manage Git Accounts…": "Git アカウントを管理…"
 }

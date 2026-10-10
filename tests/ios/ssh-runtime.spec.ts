@@ -102,3 +102,117 @@ test("A failed start keeps the dialog open with the error and stops the runtime"
   await expect.poll(() => calls(page)).toContain("ios_ssh_runtime_stop");
   await shoot(page, "runtime-error");
 });
+
+const starts = (page: Page) => page.evaluate(() => (window as any).__sshMock.starts as { path: string; root: string; workspaceKey: string }[]);
+const stored = (page: Page, key: string) => page.evaluate(key => (window as any).__iosTest.storage.get(key), key);
+
+async function startProject(page: Page) {
+  await openDialog(page);
+  await page.getByRole("textbox", { name: "Remote folder" }).fill("project");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
+  await release(page);
+  await expect(page.locator(".workspace-title")).toHaveText("Build box: project");
+}
+
+test("Relaunching the app reopens the remote runtime with the same workspace key and recent", async ({ page, context }) => {
+  await start(page);
+  await startProject(page);
+  const [first] = await starts(page);
+  const recents = await stored(page, "session:recents");
+  const last = await stored(page, "session:last-workspace");
+  expect(last).toBe(`sshRuntime:${first!.workspaceKey}`);
+  await page.close();
+
+  const relaunched = await context.newPage();
+  await installBridge(relaunched, { stored: { "session:recents": recents, "session:last-workspace": last } });
+  await installSshBridge(relaunched, seed);
+  await mockRuntime(relaunched);
+  await relaunched.goto("/");
+  await expect(relaunched.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
+  await release(relaunched);
+  await expect(relaunched.locator(".workspace-title")).toHaveText("Build box: project");
+  const [again] = await starts(relaunched);
+  expect(again).toMatchObject({ path: "/home/dev/project", root: "/home/dev/project", workspaceKey: first!.workspaceKey });
+  const after = (await stored(relaunched, "session:recents")) as { id: string; kind: string }[];
+  expect(after.filter(recent => recent.kind === "sshRuntime").map(recent => recent.id)).toEqual([last]);
+});
+
+test("A dropped remote runtime offers Reconnect", async ({ page }) => {
+  await start(page);
+  await startProject(page);
+  await page.evaluate(() => (window as any).__sshMock.runtimeEvent({ state: "failed", message: "Could not connect to build.example.test:22" }));
+  await page.evaluate(() => (window as any).__sshMock.runtimeEvent({ state: "failed", message: "Oxbit stopped reconnecting to the server after repeated failures. Reconnect to retry." }));
+  const notice = page.locator(".notification.error", { hasText: "Oxbit stopped reconnecting" });
+  await expect(notice).toBeVisible();
+  expect(await page.evaluate(() => document.querySelectorAll(".notification.error").length)).toBe(1);
+  await notice.getByRole("button", { name: "Reconnect", exact: true }).click();
+  await expect.poll(() => calls(page)).toContain("ios_ssh_runtime_resume");
+  await page.evaluate(() => (window as any).__sshMock.runtimeEvent({ state: "running" }));
+  await expect(notice).toHaveCount(0);
+  await expect(page.locator(".notification", { hasText: "Reconnected to the remote workspace." })).toBeVisible();
+});
+
+test("The runtime button in an SFTP folder starts Oxbit in that folder", async ({ page }) => {
+  await installBridge(page, {
+    stored: { "session:recents": [{ id: "runtime:laptop", kind: "runtime", name: "laptop", url: "http://127.0.0.1:2", lastOpened: 1 }] },
+  });
+  await installSshBridge(page, seed);
+  await mockRuntime(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Connect with SSH…", exact: true }).click();
+  await page.getByRole("textbox", { name: "Remote folder" }).fill("project");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(page.locator(".workspace-title")).toHaveText("Build box: project");
+
+  await page.getByRole("button", { name: "Runtime connection", exact: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Start Oxbit on This Server", exact: true });
+  await expect(dialog.getByRole("textbox", { name: "Remote folder" })).toHaveValue("/home/dev/project");
+  await expect(dialog.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
+  await release(page);
+  await expect(page.locator(".workspace-title")).toHaveText("Build box: project");
+  expect((await starts(page)).map(started => started.path)).toEqual(["/home/dev/project"]);
+  expect(await page.evaluate(() => (window as any).__iosTest.runtimeRequests)).toEqual([]);
+});
+
+test("Browse Folders picks a folder, sets the home folder, and Switch Folder moves the runtime", async ({ page }) => {
+  await start(page);
+  await openDialog(page);
+  await page.getByRole("button", { name: "Browse Folders…", exact: true }).click();
+  const browser = page.getByRole("dialog", { name: "Choose a Folder", exact: true });
+  await expect(browser.getByLabel("Current folder")).toHaveText("/home/dev");
+  const folders = browser.getByRole("list", { name: "Folders" });
+  await expect(folders.getByRole("button")).toHaveText(["other", "project"]);
+  expect((await folders.getByRole("button", { name: "project" }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await browser.getByRole("button", { name: "Up", exact: true }).click();
+  await expect(browser.getByLabel("Current folder")).toHaveText("/home");
+  await folders.getByRole("button", { name: "dev" }).click();
+  await folders.getByRole("button", { name: "project" }).click();
+  await expect(browser.getByLabel("Current folder")).toHaveText("/home/dev/project");
+  await browser.getByRole("button", { name: "Set as Home Folder", exact: true }).click();
+  await expect(browser.getByRole("status")).toHaveText("/home/dev/project is the home folder for this server.");
+  expect(await stored(page, "session:ssh-home-folders")).toEqual({ "host-1": "/home/dev/project" });
+  await shoot(page, "runtime-browse");
+  await browser.getByRole("button", { name: "Use This Folder", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
+  await release(page);
+  await expect(page.locator(".workspace-title")).toHaveText("Build box: project");
+
+  await page.keyboard.press("Control+Shift+P");
+  const palette = page.getByRole("dialog", { name: "Quick Open" });
+  await palette.getByRole("combobox").fill(">Switch Folder");
+  await palette.getByRole("option", { name: /Switch Folder/ }).click();
+  await expect(browser.getByLabel("Current folder")).toHaveText("/home/dev/project");
+  await browser.getByRole("button", { name: "Up", exact: true }).click();
+  await folders.getByRole("button", { name: "other" }).click();
+  await browser.getByRole("button", { name: "Use This Folder", exact: true }).click();
+  await expect.poll(() => calls(page)).toContain("ios_ssh_runtime_stop");
+  await expect(page.getByRole("status").filter({ hasText: "Installing the remote runtime…" })).toBeVisible();
+  await release(page);
+  await expect(page.locator(".workspace-title")).toHaveText("Build box: other");
+  expect((await starts(page)).map(started => started.path)).toEqual(["/home/dev/project", "/home/dev/other"]);
+
+  await page.locator(".workspace-title").click();
+  await openDialog(page);
+  await expect(page.getByRole("textbox", { name: "Remote folder" })).toHaveValue("/home/dev/project");
+});

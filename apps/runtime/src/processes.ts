@@ -95,6 +95,8 @@ export async function runCommand(
     });
   });
 }
+// zsh 5.9 aborts with "free(): invalid next size" when its line editor redraws at 2 columns.
+const minimumColumns = 4;
 export class Processes {
   private terminals = new Map<string, Terminal>();
   constructor(
@@ -127,7 +129,7 @@ export class Processes {
       { shell, args } = resolveTerminalShell();
     const terminal = pty.spawn(shell, args, {
       name: "xterm-256color",
-      cols: this.dimension(cols, 1000),
+      cols: this.dimension(cols, 1000, minimumColumns),
       rows: this.dimension(rows, 500),
       cwd: this.root,
       env: { ...process.env, SHELL: shell, TERM: "xterm-256color" },
@@ -173,10 +175,10 @@ export class Processes {
     });
     return { id };
   }
-  private dimension(value: number, max: number) {
+  private dimension(value: number, max: number, min = 1) {
     if (!Number.isSafeInteger(value) || value < 1 || value > max)
       throw new RpcError("INVALID_PARAMS", "Invalid terminal dimensions");
-    return value;
+    return Math.max(value, min);
   }
   private flow(session: Terminal) {
     const slow =
@@ -204,7 +206,7 @@ export class Processes {
   }
   resize(id: string, owner: string, cols: number, rows: number) {
     this.terminal(id, owner).pty.resize(
-      this.dimension(cols, 1000),
+      this.dimension(cols, 1000, minimumColumns),
       this.dimension(rows, 500),
     );
   }

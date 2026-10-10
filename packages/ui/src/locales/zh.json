@@ -919,5 +919,10 @@
   "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.": "通过 Oxbit 运行时运行 Taplo。启用状态和文件类型对应 languageServers.taplo.enabled 和 languageServers.taplo.selectors。",
   "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.": "通过 Oxbit 运行时运行 Laravel。启用状态和文件类型对应 languageServers.laravel.enabled 和 languageServers.laravel.selectors。",
   "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.": "通过 Oxbit 运行时运行 Intelephense。启用状态和文件类型对应 languageServers.intelephense.enabled 和 languageServers.intelephense.selectors。",
-  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "通过 Oxbit 运行时运行 LemMinX。启用状态和文件类型对应 languageServers.lemminx.enabled 和 languageServers.lemminx.selectors。"
+  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "通过 Oxbit 运行时运行 LemMinX。启用状态和文件类型对应 languageServers.lemminx.enabled 和 languageServers.lemminx.selectors。",
+  "Theme Packs": "主题包",
+  "Import and remove theme packs.": "导入和移除主题包。",
+  "Git Accounts and Commit Author": "Git 帐户和提交作者",
+  "Sign in to Git hosts and set the name and email used for commits.": "登录 Git 托管服务，并设置提交使用的名称和电子邮件。",
+  "Manage Git Accounts…": "管理 Git 帐户…"
 }

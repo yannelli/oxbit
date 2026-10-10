@@ -164,6 +164,11 @@ See [architecture](docs/architecture.md), [feature status](docs/feature-status.m
 [dependencies](docs/dependencies.md), [dependency audits](docs/security.md#dependency-audit),
 and [design assets](design/README.md).
 
+Use the [documentation index](docs/INDEX.md) to find implementation references.
+[Editor consistency contracts](docs/editor-consistency.md) records the Zed and
+language-specification references for document lifecycle, file operations,
+navigation, replacement, and Settings changes.
+
 ### Checks
 
 ```sh

@@ -201,6 +201,7 @@ export class DocumentService {
   private readonly resourceChanges = new Set<string>();
   private readonly watching;
   private readonly pendingChanges = new Map<string, FileChange>();
+  private readonly changeVersions = new WeakMap<DocumentHandle, symbol>();
   private persistTimer?: ReturnType<typeof setTimeout>;
   private persistQueue: Promise<void> = Promise.resolve();
   private disposed = false;
@@ -522,6 +523,16 @@ export class DocumentService {
         )
           throw new Error("Rename requires a distinct destination");
         if (
+          resource.kind === "rename" &&
+          [...this.documents.values()].some(
+            (document) =>
+              !affected.includes(document) &&
+              (document.path === resource.to ||
+                document.path.startsWith(resource.to + "/")),
+          )
+        )
+          throw new Error(`Destination has an open document: ${resource.to}`);
+        if (
           resource.kind === "delete" &&
           affected.some((document) => document.dirty)
         )
@@ -706,9 +717,10 @@ export class DocumentService {
   }
   private async externalChange(event: FileChange): Promise<void> {
     const document = this.documents.get(event.path);
+    if (!document || this.disposed) return;
+    const version = Symbol();
+    this.changeVersions.set(document, version);
     if (
-      !document ||
-      this.disposed ||
       [...this.resourceChanges].some(
         (path) => event.path === path || event.path.startsWith(path + "/"),
       )
@@ -724,9 +736,13 @@ export class DocumentService {
       this.changed();
       return;
     }
+    const current = () =>
+      !this.disposed &&
+      this.documents.get(event.path) === document &&
+      this.changeVersions.get(document) === version;
     try {
       const snapshot = await this.readDisk(event.path);
-      if (this.disposed || !this.documents.has(event.path)) return;
+      if (!current()) return;
       if (snapshot.sharedUpdate)
         Y.applyUpdate(
           document.ydoc,
@@ -760,6 +776,7 @@ export class DocumentService {
         this.markSaved(event.path, snapshot);
       }
     } catch (error) {
+      if (!current()) return;
       this.setState(
         event.path,
         missing(error) ? "missing" : permission(error) ? "readonly" : "error",

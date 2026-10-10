@@ -60,7 +60,7 @@ for (const [width, height] of [[320, 852], [393, 852], [1280, 800]]) {
 
 test("Git Accounts appears in Settings only while git.account is available", async ({ page }) => {
   await openSettings(page, 1280, 800);
-  const button = page.getByRole("button", { name: "Git Accounts and Commit Author…" });
+  const button = page.getByRole("button", { name: "Manage Git Accounts…" });
   await expect(button).toHaveCount(0);
   await page.evaluate(() => {
     const app = (window as any).__oxbit;
@@ -73,6 +73,9 @@ test("Git Accounts appears in Settings only while git.account is available", asy
   const categories = page.getByRole("navigation", { name: "Setting categories" });
   await categories.getByRole("button", { name: "Source Control", exact: true }).click();
   await expect(button).toBeVisible();
+  const rows = page.locator(".settings-list > .setting-row");
+  await expect(rows.first()).toContainText("Source Control: Git Accounts and Commit Author");
+  await expect(rows.nth(1)).toContainText("Source Control:");
   await categories.getByRole("button", { name: "Appearance", exact: true }).click();
   await expect(button).toHaveCount(0);
 });

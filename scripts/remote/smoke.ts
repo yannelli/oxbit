@@ -4,7 +4,7 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes, createHash, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { connectSsh, type RemoteFrame } from "../../apps/runtime/src/ssh.js";
 const { WebSocket } = createRequire(
@@ -31,7 +31,7 @@ if (!remoteName)
 const checks: string[] = [];
 let connection: Awaited<ReturnType<typeof connectSsh>> | undefined;
 let socket: any;
-let sequence = 0;
+let operationEpoch: string | undefined;
 const events: any[] = [];
 const pending = new Map<
   string,
@@ -52,6 +52,7 @@ async function authenticate(port: number, token: string) {
   socket.on("message", (raw: Buffer) => {
     const message = JSON.parse(raw.toString());
     if (message.type === "event") events.push(message);
+    if (message.event === "operation.epoch") operationEpoch = message.params.epoch;
     const entry = pending.get(message.id);
     if (entry) {
       clearTimeout(entry.timer);
@@ -60,11 +61,14 @@ async function authenticate(port: number, token: string) {
       else entry.resolve(message.result);
     }
   });
-  return request("auth.authenticate", { token });
+  const session = await request("auth.authenticate", { token });
+  operationEpoch = session.operationEpoch;
+  return session;
 }
 function request(method: string, params: object = {}): Promise<any> {
   return new Promise((resolve, reject) => {
-    const id = `ssh-${++sequence}`;
+    const nonce = randomUUID();
+    const id = operationEpoch ? `op:${operationEpoch}:${nonce}` : nonce;
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`${method} timed out`));

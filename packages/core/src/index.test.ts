@@ -69,6 +69,29 @@ describe("kernel contracts", () => {
       "number",
     );
   });
+  it("inspects user configuration without workspace object or language overrides", () => {
+    const kernel = makeKernel();
+    kernel.configuration.register({
+      id: "example.options",
+      title: "Options",
+      type: "object",
+      default: { enabled: true },
+    });
+    kernel.configuration.set("example.options", { size: 2 }, "user");
+    kernel.configuration.set("example.options", { size: 4, workspace: true }, "workspace");
+    kernel.configuration.set("example.options", { language: "user" }, "user", "tsx");
+    kernel.configuration.set("example.options", { language: "workspace" }, "workspace", "typescriptreact");
+    expect(kernel.configuration.inspect("example.options", "typescriptreact", "user")).toEqual({
+      value: { enabled: true, size: 2, language: "user" },
+      explicit: true,
+      scope: "user",
+      language: "tsx",
+      defaultValue: { enabled: true },
+    });
+    expect(kernel.configuration.get("example.options", "typescriptreact")).toEqual({
+      enabled: true, size: 4, workspace: true, language: "workspace",
+    });
+  });
   it("rejects duplicate IDs and uses context and priority for shortcut conflicts", async () => {
     const kernel = makeKernel();
     const run = vi.fn();

@@ -139,9 +139,10 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:599px){
   .select-trigger,.select-option{min-height:40px}
   .presence-panel{padding:14px;gap:10px}
-  .terminal-tabs-toolbar{flex-wrap:wrap}
-  .terminal-tabs{flex-basis:100%}
-  .terminal-actions{margin-left:auto}
+  .terminal-tabs-toolbar{padding:4px 6px;gap:4px}
+  .terminal-tab{min-width:0;height:36px}
+  .terminal-new>span{display:none}
+  .terminal-actions>.button.terminal-new,.terminal-actions>.icon-button{width:36px;height:36px;padding:0;justify-content:center}
   .terminal-panes:has(.terminal-session+.terminal-session){flex-direction:column}
   .terminal-session+.terminal-session{border-left:0;border-top:1px solid var(--bd)}
   .scm-file{height:38px}

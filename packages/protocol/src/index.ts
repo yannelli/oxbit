@@ -1,5 +1,16 @@
 export const PROTOCOL_VERSION = 1;
 export const MAX_MESSAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_FILE_BYTES = 20 * 1024 * 1024;
+// JSON encodes one control character as six bytes; reserve the normal envelope budget too.
+export const MAX_FILE_WRITE_MESSAGE_BYTES = MAX_FILE_BYTES * 6 + MAX_MESSAGE_BYTES;
+export const MAX_COLLABORATION_UPDATE_BYTES = Math.ceil(MAX_FILE_BYTES / 3) * 4 + MAX_MESSAGE_BYTES;
+export const requestMessageLimit = (method: string) =>
+  method === "fs.write" || method === "collab.save" ? MAX_FILE_WRITE_MESSAGE_BYTES
+    : method === "collab.update" ? MAX_COLLABORATION_UPDATE_BYTES + MAX_MESSAGE_BYTES : MAX_MESSAGE_BYTES;
+export const operationId = (epoch: string, nonce: string) => `op:${epoch}:${nonce}`;
+export function operationEpoch(id: string) {
+  return /^op:([0-9a-f-]{36}):[0-9a-f-]{36}$/.exec(id)?.[1];
+}
 export const MAX_BUFFER_BYTES = 1024 * 1024;
 /** Base64 of one chunk plus envelope stays below MAX_BUFFER_BYTES, so fs.readBytes never trips the slow-consumer close. */
 export const READ_CHUNK_BYTES = 512 * 1024;
@@ -66,13 +77,16 @@ export class RpcError extends Error {
   }
 }
 export function parseClientMessage(raw: string): ClientMessage {
-  if (new TextEncoder().encode(raw).byteLength > MAX_MESSAGE_BYTES)
-    throw new RpcError("TOO_LARGE", "Message exceeds 2 MiB");
+  const bytes = new TextEncoder().encode(raw).byteLength;
+  if (bytes > MAX_FILE_WRITE_MESSAGE_BYTES)
+    throw new RpcError("TOO_LARGE", "Message exceeds the file save limit");
   let m: any;
   try { m = JSON.parse(raw); }
   catch { throw new RpcError("INVALID_MESSAGE", "Message is not valid JSON"); }
   if (!m || m.v !== 1 || !["request", "cancel", "ack"].includes(m.type))
     throw new RpcError("INVALID_MESSAGE", "Invalid protocol message");
+  if (bytes > (m.type === "request" ? requestMessageLimit(m.method) : MAX_MESSAGE_BYTES))
+    throw new RpcError("TOO_LARGE", "Message exceeds 2 MiB");
   if (m.type === "ack") {
     if (
       typeof m.stream !== "string" ||

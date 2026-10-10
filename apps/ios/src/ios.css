@@ -88,6 +88,17 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ssh-key-facts dd { margin: 0; min-width: 0; }
 .ssh-connect :is(.button, select, input:not([type="checkbox"])) { min-height: 44px; }
 .runtime-form label.ssh-check { flex-direction: row; align-items: center; }
+.ssh-browser-path { margin: 0; font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; }
+.ssh-folder-list { list-style: none; margin: 0; padding: 0; max-height: min(50vh, 360px); overflow: auto; border: 1px solid var(--bd); border-radius: 10px; }
+.ssh-folder-list:empty { display: none; }
+.ssh-folder-list li + li { border-top: 1px solid var(--bd); }
+.ssh-folder {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; box-sizing: border-box;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.ssh-folder:active { background: rgba(255, 255, 255, 0.08); }
+.ssh-folder > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ssh-browser .ssh-row-actions > .button { flex: 1 1 120px; min-height: 44px; }
 .ssh-transfer progress { width: 100%; height: 8px; accent-color: var(--accent); }
 .ssh-transfer-file { margin: 0; overflow-wrap: anywhere; }
 
