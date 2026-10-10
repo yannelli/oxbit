@@ -56,6 +56,8 @@ test("dispatched subagents share a tree, child approvals, results and historical
         z.workbench.set({ sidebarWidth: 460 });
         await z.workbench.openFile("hello.txt", { preview: false });
         z.workbench.run("agentACP.open");
+        // Settle after the panel's first commit; Chromium can drop the evaluate result during that render.
+        await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       },
       {
         executable: process.execPath,
@@ -118,7 +120,10 @@ test("dispatched subagents share a tree, child approvals, results and historical
     });
     await conversation
       .locator(".acp-header")
-      .getByRole("button", { name: "Open Agents", exact: true })
+      .getByRole("button", { name: "More agent actions", exact: true })
+      .click();
+    await conversation
+      .getByRole("menuitem", { name: "Open Agents", exact: true })
       .click();
     const agents = page.locator(".acp-agents-view");
     await expect(agents).toBeVisible();

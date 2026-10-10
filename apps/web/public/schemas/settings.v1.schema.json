@@ -11,6 +11,7 @@
     },
     "agentACP.provider": {
       "title": "Default agent",
+      "description": "A built-in agent ID, an ACP Registry agent ID, or custom.",
       "type": "string",
       "default": "codex"
     },
@@ -19,6 +20,16 @@
       "description": "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.",
       "type": "boolean",
       "default": false
+    },
+    "agentACP.notifications": {
+      "title": "Agent desktop notifications",
+      "description": "Show a system notification when the agent needs input or finishes while Oxbit is in the background.",
+      "type": "string",
+      "default": "whenHidden",
+      "enum": [
+        "whenHidden",
+        "never"
+      ]
     },
     "agentACP.codex.command": {
       "title": "Codex ACP executable",
@@ -79,6 +90,21 @@
       "title": "Amp Agent ACP arguments (JSON array)",
       "type": "string",
       "default": "[\"-y\",\"amp-acp@0.10.0\"]"
+    },
+    "agentACP.custom.name": {
+      "title": "Custom agent name",
+      "type": "string",
+      "default": ""
+    },
+    "agentACP.custom.command": {
+      "title": "Custom agent executable",
+      "type": "string",
+      "default": ""
+    },
+    "agentACP.custom.args": {
+      "title": "Custom agent arguments (JSON array)",
+      "type": "string",
+      "default": "[]"
     },
     "workbench.keymap": {
       "title": "Keymap",
@@ -722,6 +748,9 @@
         "agentACP.useModifierToSend": {
           "$ref": "#/properties/agentACP.useModifierToSend"
         },
+        "agentACP.notifications": {
+          "$ref": "#/properties/agentACP.notifications"
+        },
         "agentACP.codex.command": {
           "$ref": "#/properties/agentACP.codex.command"
         },
@@ -757,6 +786,15 @@
         },
         "agentACP.amp.args": {
           "$ref": "#/properties/agentACP.amp.args"
+        },
+        "agentACP.custom.name": {
+          "$ref": "#/properties/agentACP.custom.name"
+        },
+        "agentACP.custom.command": {
+          "$ref": "#/properties/agentACP.custom.command"
+        },
+        "agentACP.custom.args": {
+          "$ref": "#/properties/agentACP.custom.args"
         },
         "workbench.keymap": {
           "$ref": "#/properties/workbench.keymap"
