@@ -709,7 +709,7 @@ export async function createRuntime(options: RuntimeOptions) {
       case "project.relations":
         return project.relations(requireString(params, "path"));
       case "acp.start":
-        return agents.start(session.id, params as unknown as ACPLaunch, undefined, connection.id);
+        return agents.start(session.id, params as unknown as ACPLaunch, signal, connection.id);
       case "acp.list":
         return agents.list(session.id);
       case "acp.attach":
