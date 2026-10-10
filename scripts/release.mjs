@@ -212,7 +212,10 @@ async function main() {
     hasXcode &&
     spawnSync("security", ["find-identity", "-v", "-p", "codesigning"], { encoding: "utf8" })
       .stdout?.includes("Apple Distribution:");
-  const ios = wantsIos && hasXcode && iosProject && Boolean(iosIdentity);
+  // ios:build signs the app and its Live Activity extension with the CI identity and App Store profiles.
+  const iosSigning = ["IOS_CERTIFICATE", "IOS_MOBILE_PROVISION", "IOS_LIVE_ACTIVITY_PROVISION"];
+  const iosProfiles = iosSigning.every((name) => process.env[name]);
+  const ios = wantsIos && hasXcode && iosProject && Boolean(iosIdentity) && iosProfiles;
   const iosSkip = !wantsIos
     ? "disabled with --no-ios"
     : !hasXcode
@@ -221,7 +224,9 @@ async function main() {
         ? "run bun run ios:init first"
         : !iosIdentity
           ? "no Apple Distribution signing identity"
-          : undefined;
+          : !iosProfiles
+            ? `set ${iosSigning.join(", ")}`
+            : undefined;
 
   const originals = new Map();
   const updates = new Map();

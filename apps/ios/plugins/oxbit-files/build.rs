@@ -10,6 +10,9 @@ const COMMANDS: &[&str] = &[
     "ssh_keys",
     "pick_files",
     "commit_signing",
+    "start_dictation",
+    "stop_dictation",
+    "live_activity",
 ];
 
 fn main() {

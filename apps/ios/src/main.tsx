@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
-import { IosGitClient, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
+import { AGENT_ACTIVITY_SERVICE } from "@oxbit/sdk";
+import { IosGitClient, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -22,6 +23,7 @@ import "./ios.css";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);
+installSpeechRecognition();
 // Panel tabs move with pointer events on touch; floating panel windows do not exist on iOS.
 configurePanelWindows({ pointerDrag: true, detach: false, open: () => null });
 window.open = ((url?: string | URL) => {
@@ -257,6 +259,7 @@ function App() {
       if (id === "ssh.upload" || id === "ssh.download")
         disposables.push(session.kernel.contributions.register({ id: `ios.${id}.explorer`, kind: "menu", location: "explorer", command: id, title }));
     }
+    disposables.push(session.kernel.services.register(AGENT_ACTIVITY_SERVICE, { update: native.agentActivity }));
     session.workbench.touch();
     return () => {
       for (const disposable of disposables) disposable.dispose();

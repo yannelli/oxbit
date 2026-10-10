@@ -8,6 +8,37 @@ export const ACP_PROVIDERS = [
     setup:
       "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
     url: "https://github.com/agentclientprotocol/codex-acp",
+    registryId: "codex-acp",
+  },
+  {
+    id: "claude",
+    name: "Claude Agent",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/claude-agent-acp@0.89.1"],
+    setup:
+      "Uses the Claude Agent ACP adapter. Sign in through an advertised authentication method, or use your existing Claude Code credentials.",
+    url: "https://github.com/agentclientprotocol/claude-agent-acp",
+    registryId: "claude-acp",
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    command: "npx",
+    args: ["-y", "@google/gemini-cli@0.63.0", "--acp"],
+    setup:
+      "Runs Gemini CLI in ACP mode. Sign in through an advertised authentication method, or set GEMINI_API_KEY in the runtime environment.",
+    url: "https://github.com/google-gemini/gemini-cli",
+    registryId: "gemini",
+  },
+  {
+    id: "copilot",
+    name: "GitHub Copilot",
+    command: "npx",
+    args: ["-y", "@github/copilot@1.0.95", "--acp"],
+    setup:
+      "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.",
+    url: "https://github.com/github/copilot-cli",
+    registryId: "github-copilot-cli",
   },
   {
     id: "cursor",
@@ -17,6 +48,7 @@ export const ACP_PROVIDERS = [
     setup:
       "Install Cursor CLI and run agent login first. If your executable is cursor-agent, change the command below.",
     url: "https://cursor.com/docs/cli/acp",
+    registryId: "cursor",
   },
   {
     id: "amp",
@@ -26,14 +58,53 @@ export const ACP_PROVIDERS = [
     setup:
       "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
     url: "https://github.com/tao12345666333/amp-acp",
+    registryId: "amp-acp",
   },
 ] as const;
-export type ACPProviderId = (typeof ACP_PROVIDERS)[number]["id"];
+export type ACPBuiltinProviderId = (typeof ACP_PROVIDERS)[number]["id"];
+/** A built-in preset ID, an ACP Registry agent ID, or "custom". */
+export type ACPProviderId = string;
+export const ACP_CUSTOM_PROVIDER = "custom";
+export const ACP_REGISTRY_URL =
+  "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
+export const acpPreset = (id: string) =>
+  ACP_PROVIDERS.find((provider) => provider.id === id);
+/** Built-in presets replace the matching registry entries, so subagent tracking keeps its provider ID. */
+export const acpBuiltinForRegistry = (registryId: string) =>
+  ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
 export interface ACPLaunch {
   provider: ACPProviderId;
   command?: string;
   args?: string[];
+  /** Display name for a custom agent. */
+  name?: string;
+  /** The runtime resolves the command from its own copy of the ACP Registry. */
+  registry?: { id: string; version?: string };
   clientCapabilities?: { editorTools?: boolean };
+}
+export type ACPRegistryDistribution = "npx" | "uvx" | "binary";
+export interface ACPRegistryAgent {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  repository?: string;
+  website?: string;
+  license?: string;
+  distribution: ACPRegistryDistribution;
+  /** False when the runtime cannot launch this entry; `reason` says why. */
+  available: boolean;
+  reason?: string;
+  /** Binary agents only: the pinned version is extracted in the runtime data directory. */
+  installed?: boolean;
+  /** The built-in preset that replaces this entry. */
+  builtin?: ACPBuiltinProviderId;
+}
+export interface ACPRegistryListing {
+  agents: ACPRegistryAgent[];
+  fetchedAt: string;
+  /** Set when the listing comes from the cache because the registry could not be reached. */
+  error?: string;
 }
 export interface ACPOption {
   id: string;
@@ -55,6 +126,8 @@ export interface ACPConfigOption {
 export interface ACPConnection {
   id: string;
   provider: ACPProviderId;
+  /** Display name resolved by the runtime. Runtimes from 0.7.1 and earlier omit it. */
+  name?: string;
   root: string;
   sessionId?: string;
   authMethods: ACPOption[];
@@ -83,13 +156,19 @@ export interface ACPSessionInfo {
   updatedAt?: string;
 }
 export interface ACPContext {
+  /** Workspace path; for images, the pasted file name. */
   path: string;
+  /** Snapshot text; for images, a display placeholder. */
   text: string;
   label?: string;
   line?: number;
   endLine?: number;
   version?: number;
-  kind?: "file" | "selection" | "diagnostics";
+  kind?: "file" | "selection" | "diagnostics" | "changes" | "image";
+  /** Images only: png, jpeg, gif or webp. */
+  mimeType?: string;
+  /** Images only: base64 bytes. Saved transcripts omit it. */
+  data?: string;
 }
 
 export interface ACPQueuedPrompt {
@@ -178,4 +257,40 @@ export interface ACPSubagentEvent {
   activeCount: number;
   removedIds: string[];
   truncated: boolean;
+}
+/** Why a git checkpoint was not taken or cannot be compared. */
+export type ACPCheckpointUnavailable = {
+  unavailable: "not-repository" | "subdirectory" | "missing" | "timeout" | "failed";
+};
+/** `acp.checkpoint.create` result: the workspace tree, written without refs. */
+export type ACPCheckpoint = { tree: string } | ACPCheckpointUnavailable;
+/** A path that differs between the current files and a checkpoint. Restore deletes `D` paths. */
+export interface ACPCheckpointChange {
+  status: "A" | "M" | "D" | "T";
+  path: string;
+}
+/** `acp.checkpoint.diff` result. `tree` is the current workspace tree. */
+export type ACPCheckpointDiff =
+  | { tree: string; changes: ACPCheckpointChange[] }
+  | ACPCheckpointUnavailable;
+/** `acp.checkpoint.restore` result. */
+export interface ACPCheckpointRestore {
+  restored: string[];
+  deleted: string[];
+}
+
+/** Kernel service id for hosts that mirror the active agent thread outside the app. */
+export const AGENT_ACTIVITY_SERVICE = "agentActivity";
+export interface AgentActivityUpdate {
+  agent: string;
+  title: string;
+  status: "working" | "waiting" | "finished" | "failed";
+  detail: string;
+  pending: number;
+  /** Milliseconds since the epoch, set while working. */
+  startedAt?: number;
+}
+/** The iOS app backs this with a Live Activity. `null` ends it. */
+export interface AgentActivityService {
+  update(update: AgentActivityUpdate | null): Promise<unknown>;
 }

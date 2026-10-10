@@ -2,43 +2,219 @@
 
 Created: 2026-10-10. Last updated: 2026-10-10.
 
-Agent ACP is a bundled, **disabled-by-default** extension for Codex ACP,
-Cursor ACP, and Amp Agent ACP. Open **Extensions → Agent ACP → Enable**, then
-use **Agent ACP: Open Agent ACP** in the command palette or its activity icon.
+Agent ACP is a bundled, **disabled-by-default** extension that runs agents
+speaking the [Agent Client Protocol](https://agentclientprotocol.com). Open
+**Extensions → Agent ACP → Enable**, then use **Agent ACP: Open Agent ACP** in the
+command palette, its activity icon, or the **Agent** tab on a phone.
 Enabling and disabling persist across reloads, including workspaces created
 before this extension was added. Enabling alone does not launch or install an
 agent.
 
-Connect Oxbit to a runtime workspace, grant workspace tool trust, choose a
-provider, and select **Connect**. Browser and desktop use the same extension.
-Only the runtime owner can launch and control agents; shared workspace grants
-do not gain agent access. Browser-only workspaces show runtime connection guidance.
+Connect Oxbit to a runtime workspace and grant workspace tool trust. Browser,
+desktop and iOS use the same extension. Only the runtime owner can launch and
+control agents; shared workspace grants do not gain agent access. Browser-only
+workspaces show runtime connection guidance.
+
+## Starting an agent
+
+A new conversation shows an agent picker. Choose an agent and select **Start**
+(the panel's only start control until the conversation has messages),
+or type a message and send it: the panel starts the chosen agent and sends the
+message once the session is ready. The choice is saved as `agentACP.provider`.
+
+- **Built-in agents** are listed below.
+- **More agents…** browses the [ACP Registry](https://agentclientprotocol.com/get-started/registry)
+  through the runtime, with search by name, ID or description. Agents the runtime cannot
+  launch stay listed with the reason: no build for its platform, no published checksum,
+  or an archive format Oxbit cannot extract.
+- **Custom agent…** runs any ACP executable. Enter the name, executable, and
+  arguments as a shell-style line; quotes group words. They are saved as
+  `agentACP.custom.name`, `agentACP.custom.command`, and `agentACP.custom.args`.
+
+Runtimes from 0.7.1 and earlier accept only Codex, Cursor and Amp. Starting another agent on
+such a runtime shows "This runtime does not support … Update Oxbit on the runtime host."
 
 ## Providers
 
 | Provider | Default executable and arguments | Setup |
 | --- | --- | --- |
 | Codex ACP | `npx -y @agentclientprotocol/codex-acp@2.2.2` | Existing Codex credentials, or an advertised sign-in method |
+| Claude Agent | `npx -y @agentclientprotocol/claude-agent-acp@0.89.1` | Existing Claude Code sign-in |
+| Gemini CLI | `npx -y @google/gemini-cli@0.63.0 --acp` | Sign in with the Gemini CLI or set `GEMINI_API_KEY` |
+| GitHub Copilot | `npx -y @github/copilot@1.0.95 --acp` | Sign in with GitHub through the Copilot CLI |
 | Cursor ACP | `agent acp` | Install Cursor CLI and run `agent login` |
 | Amp Agent ACP | `npx -y amp-acp@0.10.0` | Install Amp CLI and run `amp login` |
 
 Codex uses the [maintained ACP adapter](https://github.com/agentclientprotocol/codex-acp),
 which bundles a compatible Codex dependency. Cursor uses its
 [native ACP interface](https://cursor.com/docs/cli/acp). Amp uses the
-[community Amp ACP adapter](https://github.com/tao12345666333/amp-acp).
+[community Amp ACP adapter](https://github.com/tao12345666333/amp-acp). The Claude,
+Gemini and Copilot versions match the ACP Registry entries fetched on 2026-10-10.
 
-**Setup** exposes the executable and a JSON array of arguments. These are also
-available in Settings under Agent ACP, together with the default provider.
-Commands launch directly without shell interpolation. For a local adapter,
-replace `npx` with its absolute executable path and set arguments to `[]`.
-If Cursor is installed as `cursor-agent`, use that executable with `["acp"]`.
+**Agent setup** in the panel's **More agent actions** menu exposes the executable
+and arguments. These are also available in Settings under Agent ACP, together with
+the default agent. Commands launch directly without shell interpolation. For a
+local adapter, replace `npx` with its absolute executable path and clear the
+arguments. If Cursor is installed as `cursor-agent`, use that executable with `acp`.
 The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
+
+### ACP Registry agents
+
+The runtime fetches the registry when **More agents…** opens, when the chosen
+agent is a registry agent, or when a registry agent starts. It caches the listing in its data directory for 5 minutes. When a
+fetch fails, the cached listing is shown with the error.
+
+- `npx` and `uvx` agents run `npx -y <package>` or `uvx <package>` with the
+  registry's arguments and environment.
+- Binary agents download once per version into `<dataDir>/acp-agents/<id>/<version>`.
+  The runtime requires the registry's SHA-256 checksum, rejects archives over
+  512 MiB, extracts `.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz` and `.zip` with the
+  system `tar` or `unzip`, and launches the command only if it resolves inside the
+  install directory.
 
 Agents inherit the runtime environment and existing CLI credentials. Supply API
 keys or `AMP_CLI_PATH` through that environment; the extension has no credential
 fields. After a session reports an authentication error, use an advertised sign-in
 button or sign in using the provider CLI, then retry the conversation.
+
+### Threads
+
+Several agents run on the runtime at once, from the same provider or different
+ones. **New thread** in **More agent actions**, or **+** in the thread strip,
+saves the conversation to History, releases the panel from its agent with
+`acp.detach`, and shows the agent picker. The released agent keeps its running
+turn. **New thread** asks you to resolve pending requests, run or remove queued
+messages, and wait for active subagents first.
+
+The thread strip at the top of the panel shows one chip per live agent when the
+runtime has two or more, or when the panel has no agent and one still runs. A
+chip shows the title, the state (**Working…**, **Needs input (n)** or **Ready**)
+and the agent name. The shown thread's chip has `aria-current`. Selecting another
+chip attaches the panel to that agent and replays its recent timeline. On phones
+the strip scrolls horizontally and its controls are 44 px tall.
+
+The runtime sends no event when its agent list changes. The panel calls
+`acp.list` every 4 seconds while it is visible or other threads run, and when it
+gains focus. The Agent button count includes pending requests from other threads.
+
+Each chip has a stop button. After confirmation it calls `acp.stop`; the runtime
+owner can stop any of its agents without attaching first. Stopping the shown
+thread works like **Disconnect**. A released thread with no work is detached, so
+at the 3-agent device limit starting another agent stops the oldest such thread. When
+every agent has work, the start fails with the runtime's message, the status
+reads **Agent limit reached**, and the strip lists the threads to stop.
+
+Runtimes from 0.7.1 and earlier lack `acp.detach` and accept `acp.stop` only for
+an attached agent. With those runtimes a released thread stays bound to the
+window until another thread opens, and a chip's stop button fails until that
+thread is opened.
+
+## Composer
+
+- **Enter** sends and **Shift+Enter** adds a new line. With
+  `agentACP.useModifierToSend`, Enter adds a new line and **Ctrl/Cmd+Enter** sends.
+  On touch screens the Return key adds a new line and the send button sends.
+  Ctrl/Cmd+Enter sends in every mode. **Escape** stops the running turn.
+- Type `@` to mention a workspace file, the selection, the active file's diagnostics,
+  or **Changes**. A file is attached as a snapshot. **Changes** (also in **Add context**)
+  attaches the staged and unstaged diff of up to 50 changed files, with untracked
+  files in full, up to 200,000 characters.
+- Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
+  the agent advertises image prompts. An image over about 165 KB is scaled down
+  and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
+- **/** opens the agent's slash commands. Messages sent during a turn are queued
+  and can be edited or removed.
+- **Dictate** (the microphone button) appends speech to the draft as you talk.
+  Select it again to finish. Editing or sending the draft stops dictation. See
+  [Dictation](#dictation).
+- Tool calls show an icon for their kind and their status. A **Working** row
+  shows the elapsed time of the current turn.
+- When the agent reports context usage, a ring below the composer shows the
+  percent of the context window in use, with token counts. It turns to the
+  warning color from 85%. Permission requests that edit
+  files show the proposed diff.
+
+## Attention and placement
+
+- On desktop the panel opens in the right dock in new layouts. On phones,
+  **Agent** has its own tab in the bottom bar.
+- The Agent button shows a count while requests in any thread wait for an answer, and a dot
+  when a turn ends while the panel is hidden. The status bar shows the agent
+  state; selecting it opens the panel.
+- When a turn ends or a request arrives while the panel is hidden, a toast
+  offers **Open Agent**. When Oxbit's window is hidden or another app has focus,
+  Oxbit also shows a system notification once permission is granted. Use
+  **Enable notifications** in **More agent actions** to grant it. Set
+  `agentACP.notifications` to `never` to turn system notifications off.
+
+### System notifications
+
+Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
+([plugin guide](https://v2.tauri.app/plugin/notification/),
+[crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)).
+
+- The desktop and iOS apps register `tauri-plugin-notification` `=2.4.0`. Versions
+  2.5.0 and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
+- The plugin's init script replaces `window.Notification` in the WebView, so the
+  panel's Web Notification calls post native notifications. The capabilities grant
+  only `notification:allow-notify`, `notification:allow-is-permission-granted`
+  and `notification:allow-request-permission`.
+- On desktop the plugin reports permission as granted (`src/desktop.rs`). On iOS
+  permission starts at "default" until **Enable notifications** asks.
+- `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
+  2026-10-10 `usernoted` logged both test notifications as delivered and presented.
+  An unbundled debug binary posts them under Terminal's name.
+- The replacement `Notification` object never fires `onclick`, so selecting a
+  native notification does not open the panel.
+- iOS suspends the app shortly after it leaves the foreground. A turn that ends
+  while the app is suspended posts no notification; that needs a push relay.
+
+### Live Activity
+
+Added 2026-10-10.
+
+- In the iOS app a connected agent thread shows a Live Activity on the Lock Screen
+  and in the Dynamic Island: **Working** with the elapsed time and the latest tool
+  call, **Needs input** with the number of waiting requests, then **Finished** or
+  **Failed**. A finished or failed activity is dismissed 15 minutes after the turn
+  ends. Disconnecting the thread, disabling Agent ACP or closing the workspace ends
+  it at once.
+- The app updates the activity itself and re-sends a working or waiting state
+  every 5 minutes while it runs. Once iOS suspends Oxbit, the activity keeps its
+  last state and shows **Open Oxbit to refresh** 15 minutes after the last update.
+  Updates while suspended need push delivery through a relay, which Oxbit does not have.
+- The `OxbitLiveActivity` widget extension (`com.yannelli.oxbit.LiveActivity`)
+  draws the activity; `docs/release.md` covers its signing profile.
+- The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in
+  `@oxbit/sdk`) on each state change. The iOS app registers it per workspace
+  (`apps/ios/src/main.tsx`); other hosts register none, so nothing is sent.
+- The widget extension `OxbitLiveActivity` (`com.yannelli.oxbit.LiveActivity`) is
+  signed with its own App Store profile; see [docs/release.md](release.md).
+
+### Dictation
+
+Checked 2026-10-10.
+
+- The composer uses the Web Speech API: `SpeechRecognition`, or
+  `webkitSpeechRecognition` when only the prefixed constructor exists
+  ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition),
+  modified 2026-08-19). It sets `continuous` and `interimResults` and uses
+  `navigator.language`. The button is hidden when the WebView has neither constructor.
+- The macOS app's WebView exposes `webkitSpeechRecognition`
+  (`tests/desktop/agent.e2e.mjs`). WebKit's recognizer uses Apple's Speech framework
+  ([WebKit bug 239816](https://bugs.webkit.org/show_bug.cgi?id=239816)), so the app
+  declares `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription` and
+  the hardened-runtime entitlement `com.apple.security.device.audio-input`. Starting
+  dictation in the macOS app needs a person to answer the permission prompts and has
+  not been run.
+- The iOS app defines `SpeechRecognition` on top of Apple's Speech framework
+  (`packages/host-ios/src/speech.ts`, `apps/ios/plugins/oxbit-files/ios/Sources/Dictation.swift`).
+  It recognizes on the device when the recognizer supports that, and declares the
+  same two usage descriptions. The Swift code compiles in the iOS cargo build;
+  permission prompts and recognition have not run on a simulator or device.
+- MDN states that Chrome sends the audio to a web service for recognition, so
+  dictation in Chrome does not work offline.
 
 ## In-app tools
 
@@ -234,6 +410,42 @@ Markdown never executes HTML or loads remote images. Relative file links open
 inside the workspace; external HTTP(S) links open only when clicked. Multimodal
 attachments and arbitrary MCP server configuration remain outside this extension.
 
+### Checkpoints
+
+When the workspace root is the root of a git work tree, each user message stores a
+checkpoint: a git tree of the workspace files taken before the prompt is sent. The
+runtime copies the real index (`git rev-parse --git-path index`, which resolves
+linked worktrees whose `.git` is a file) to a temporary file, runs `git add -A` and
+`git write-tree` against the copy, and deletes it. Ignored files are not in the
+tree. If creation fails or takes longer than 5 seconds, the message still sends
+without a checkpoint. Queued messages are captured when the runtime starts their
+turn, after the prompt reaches the agent. Outside a repository, or when the
+workspace root is a subdirectory of one, no checkpoints are taken and the action is
+hidden.
+
+**Restore checkpoint** appears on a user message whose checkpoint differs from the
+current files. Restore is refused while the agent is working or has pending
+requests, and when a file it would change has unsaved editor edits. The runtime
+computes the current tree the same way, compares it with `git diff-tree -r`, writes
+the changed paths from the checkpoint through a temporary index (`git read-tree`,
+then `git checkout-index -f`), and deletes paths that exist now and are absent from
+the checkpoint. Ignored files, the real index, `HEAD`, and refs are unchanged;
+submodule entries are skipped. A note in the conversation names the message the
+files were restored to. The agent's context is unchanged: it keeps the later turns
+and is not told about the restore.
+
+Checkpoint trees are saved on user messages in history, so restore works after a
+reload. Loading a provider session matches replayed user messages to saved ones by
+text; attaching a live session replays messages without checkpoints. Checkpoints
+write git objects and no refs. Unreferenced objects follow git's `gc.pruneExpire`
+window (two weeks by default), after which `git gc` deletes them and restore
+reports that the checkpoint is no longer available.
+
+Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
+`{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and
+the changed paths; `acp.checkpoint.restore` `{ tree, paths }` restores and refuses
+when files outside `paths` changed since the diff.
+
 ## Protocol references
 
 Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup), [session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and [content](https://agentclientprotocol.com/protocol/v1/content) contracts. The native tool server follows [MCP Streamable HTTP and stdio transport rules](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports). Adapter defaults are checked against the [Codex ACP package](https://registry.npmjs.org/@agentclientprotocol%2Fcodex-acp/2.2.2) and [Amp ACP package](https://registry.npmjs.org/amp-acp/0.10.0).
@@ -245,13 +457,20 @@ Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) docu
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):
 
 ```sh
-bunx playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts tests/browser/agent-acp-subagents.spec.ts --reporter=list
+bunx playwright test tests/browser/agent-acp*.spec.ts --reporter=list
+```
+
+macOS app checks for system notifications and speech recognition:
+
+```sh
+bun run desktop:test:build
+bunx wdio run tests/desktop/agent.conf.mjs
 ```
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,

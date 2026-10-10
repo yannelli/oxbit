@@ -1,6 +1,8 @@
 import {
-  ACP_PROVIDERS,
+  ACP_CUSTOM_PROVIDER,
+  acpPreset,
   type ACPConnection,
+  type ACPRegistryListing,
   type ACPLaunch,
   type ACPContext,
   type ACPQueuedPrompt,
@@ -19,8 +21,24 @@ import {
   type Activity,
   type Conversation,
   type Message,
+  type SavedLaunch,
 } from "./history.js";
+import {
+  agentName,
+  launchName,
+  rememberAgentName,
+  rememberRegistryName,
+  resolveLaunch,
+  runtimeSupportError,
+} from "./launch.js";
+import { Attention } from "./attention.js";
+import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js";
+import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
+import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
+import { uncommittedChanges } from "./changes.js";
+import type { Mention } from "./mentions.js";
+import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
   id: string;
@@ -59,7 +77,14 @@ export class AgentController {
     sessionId: string;
     root: string;
     provider: ACPLaunch["provider"];
+    name?: string;
+    launch?: SavedLaunch;
   };
+  private replaying = false;
+  private threadConversations = new Map<string, string>();
+  private checkpointing = false;
+  readonly attention: Attention;
+  readonly checkpoints: Checkpoints;
   readonly history: ConversationHistory;
   activity: Activity[] = [];
   subagents = new Map<string, ACPSubagent>();
@@ -84,7 +109,20 @@ export class AgentController {
   }[] = [];
   connection?: ACPConnection;
   launch: ACPLaunch = { provider: "codex" };
-  busy = false;
+  /** The launch used when Connect or the next message starts an agent. */
+  selection?: ACPLaunch;
+  registry?: ACPRegistryListing;
+  registryLoading = false;
+  private busyValue = false;
+  /** When the current turn started; the Working row reads it so remounts keep the elapsed time. */
+  turnStartedAt?: number;
+  get busy() {
+    return this.busyValue;
+  }
+  set busy(value: boolean) {
+    if (value !== this.busyValue) this.turnStartedAt = value ? Date.now() : undefined;
+    this.busyValue = value;
+  }
   connecting = false;
   cancelling = false;
   updatingSettings = false;
@@ -113,7 +151,13 @@ export class AgentController {
       ).persistence,
       `acp-history:${options.filesystem.id}`,
     );
-    void this.history.ready.then(() => this.changed());
+    this.attention = new Attention(options);
+    this.checkpoints = new Checkpoints(async (method, params) => this.request(method, params), this.changed, () => this.messages);
+    void this.history.ready.then(() => {
+      for (const entry of this.history.entries)
+        if (!acpPreset(entry.provider)) rememberAgentName(entry.provider, entry.name);
+      this.changed();
+    });
     const runtime = options.runtime;
     if (!runtime) return;
     const on = (event: string, fn: (params: any) => void) => {
@@ -133,6 +177,8 @@ export class AgentController {
         const message: Message = { id: messageId, role: "user", text, context };
         this.messages.push(message);
         this.activity.push({ kind: "message", message });
+        if (!this.replaying)
+          void this.checkpoints.create().then((tree) => { if (tree) { message.checkpoint = tree; this.changed(); } });
       }
       if (this.title === "New conversation") this.title = text.slice(0, 100);
       this.busy = true;
@@ -146,6 +192,8 @@ export class AgentController {
       this.requests = this.requests.filter(request => this.isChildRequest(request));
       this.status = error ? "Turn failed" : stopReason === "cancelled" ? "Stopped" : "Ready";
       if (error) this.error = String(error);
+      if (!this.replaying && stopReason !== "cancelled")
+        this.attention.turnEnded(this.title, !!error);
     });
     on("acp.queue", ({ queue, paused }) => {
       this.queueRevision++;
@@ -233,6 +281,7 @@ export class AgentController {
     });
     on("connection.change", ({ state }) => {
       if (state !== "connected") {
+        this.liveSessions = [];
         this.clearConnection(
           "Runtime disconnected. Open Runtime sessions after reconnecting to reattach.", true,
         );
@@ -263,6 +312,18 @@ export class AgentController {
   snapshot = () => this.revision;
   changed = () => {
     this.revision++;
+    if (!this.disposed) {
+      const pending = this.requests.length + backgroundRequests(this.liveSessions, this.connection?.id);
+      this.attention.sync(pending, () => ({
+        agent: launchName(this.launch),
+        title: this.title,
+        connected: !!this.connection,
+        busy: this.busy,
+        startedAt: this.turnStartedAt,
+        pending,
+        tool: this.latestToolTitle(),
+      }));
+    }
     for (const listener of this.listeners) listener();
     if (
       !this.disposed &&
@@ -283,7 +344,7 @@ export class AgentController {
         title: this.title,
         updatedAt: new Date().toISOString(),
         draft: this.draft,
-        context: this.context,
+        context: this.context.filter((item) => item.kind !== "image"),
         activity: this.activity,
         tools: [...this.tools],
         subagents: [...this.subagents.values()],
@@ -402,6 +463,7 @@ export class AgentController {
         return;
       }
       this.connection = connection;
+      rememberAgentName(connection.provider, connection.name ?? launch.name);
       if (restore && restore.root !== connection.root)
         throw new Error("This conversation belongs to another workspace");
       this.status = "Connected";
@@ -409,10 +471,12 @@ export class AgentController {
       else await this.newSession();
     } catch (error) {
       if (generation !== this.connectionGeneration) return;
+      const limited = !this.connection && agentLimit(error);
       this.status = this.connection
         ? "Sign in or retry starting the conversation"
-        : "Connection failed";
-      throw error;
+        : limited ? AGENT_LIMIT_STATUS : "Connection failed";
+      if (limited) void this.listLiveSessions().catch(() => {});
+      throw this.connection ? error : runtimeSupportError(error, launchName(launch));
     } finally {
       if (generation === this.connectionGeneration) {
         this.startAbort = undefined;
@@ -420,6 +484,56 @@ export class AgentController {
         this.changed();
       }
     }
+  }
+  async connectSelected() {
+    await this.connect(resolveLaunch(this.chosen, this.options.kernel.configuration));
+  }
+  /** The selection, or the persisted default agent. */
+  get chosen(): ACPLaunch {
+    return this.selection ?? {
+      provider: this.options.kernel.configuration?.get<string>("agentACP.provider") || "codex",
+    };
+  }
+  /** Label for the live connection, or for the agent Connect would start. */
+  get displayName() {
+    return this.connection
+      ? agentName(this.connection.provider, this.connection)
+      : launchName(resolveLaunch(this.chosen, this.options.kernel.configuration));
+  }
+  async select(launch: ACPLaunch) {
+    const config = this.options.kernel.configuration;
+    if (launch.provider === ACP_CUSTOM_PROVIDER) {
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "name"), launch.name ?? "", "user");
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "command"), launch.command ?? "", "user");
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "args"), JSON.stringify(launch.args ?? []), "user");
+    }
+    await config.set("agentACP.provider", launch.provider, "user");
+    this.selection = launch;
+    this.changed();
+  }
+  async loadRegistry() {
+    if (this.registryLoading) return;
+    this.registryLoading = true;
+    this.changed();
+    try {
+      const listing = await this.request<ACPRegistryListing>("acp.registry");
+      for (const agent of listing.agents) rememberRegistryName(agent.id, agent.name);
+      this.registry = listing;
+    } finally {
+      this.registryLoading = false;
+      this.changed();
+    }
+  }
+  markSeen() {
+    this.attention.seen();
+    this.changed();
+  }
+  private savedLaunch(launch: ACPLaunch): SavedLaunch | undefined {
+    if (launch.provider === ACP_CUSTOM_PROVIDER)
+      return { name: launch.name, command: launch.command, args: launch.args };
+    if (!acpPreset(launch.provider))
+      return { registry: launch.registry ?? { id: launch.provider } };
+    return undefined;
   }
   async call(method: string, params: Record<string, unknown> = {}) {
     if (!this.connection) throw new Error("Connect an agent first");
@@ -465,6 +579,8 @@ export class AgentController {
           sessionId: result.sessionId,
           root: result.root,
           provider: result.provider,
+          name: agentName(result.provider, result),
+          launch: this.savedLaunch(this.launch),
         };
         this.status = "Ready";
       }
@@ -517,15 +633,43 @@ export class AgentController {
       if (generation === this.connectionGeneration) throw error;
     }
   }
+  /** Saves the conversation and clears the panel. The agent keeps running on the runtime. */
+  async detach() {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
+    const connection = this.connection;
+    if (!connection || this.connecting || this.sessionStarting || this.updatingSettings || this.discovering)
+      return;
+    const released = this.options.runtime?.connected
+      ? this.request("acp.detach").catch(() => {})
+      : undefined;
+    if (this.activeConversation)
+      this.threadConversations.set(connection.id, this.activeConversation.id);
+    this.clearConnection("Disconnected", true);
+    await this.saveConversation();
+    this.activeConversation = undefined;
+    this.resetConversation();
+    this.changed();
+    await released;
+  }
   async listLiveSessions() {
     if (!this.options.runtime?.connected) return;
     const result = await this.request<{ sessions: ACPLiveSession[] }>("acp.list");
+    if (JSON.stringify(result.sessions) === JSON.stringify(this.liveSessions)) return;
     this.liveSessions = result.sessions;
     this.changed();
   }
   async attachLive(id: string) {
     if (this.connection?.id === id) return;
     await this.saveConversation();
+    if (this.connection && this.activeConversation)
+      this.threadConversations.set(this.connection.id, this.activeConversation.id);
     const generation = ++this.connectionGeneration;
     this.attachBuffer = [];
     try {
@@ -537,14 +681,22 @@ export class AgentController {
       this.draft = draft;
       this.context = context;
       this.connection = snapshot.connection;
-      this.launch = { provider: snapshot.connection.provider };
+      this.launch = { provider: snapshot.connection.provider, name: snapshot.connection.name };
+      rememberAgentName(snapshot.connection.provider, snapshot.connection.name);
       this.activeConversation = {
-        id: crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
+        id: this.threadConversations.get(id) ?? crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
         root: snapshot.connection.root, provider: snapshot.connection.provider,
+        name: agentName(snapshot.connection.provider, snapshot.connection),
+        launch: this.savedLaunch(this.launch),
       };
       this.replayTruncated = snapshot.truncated;
       this.status = snapshot.busy ? "Working…" : "Ready";
-      for (const event of snapshot.events) this.deliver(event.name, event.params);
+      this.replaying = true;
+      try {
+        for (const event of snapshot.events) this.deliver(event.name, event.params);
+      } finally {
+        this.replaying = false;
+      }
       this.lastSequence = Math.max(this.lastSequence, snapshot.sequence);
       this.queue = snapshot.queue;
       this.queuePaused = snapshot.queuePaused;
@@ -635,6 +787,8 @@ export class AgentController {
       sessionId: copy.sessionId,
       root: copy.root,
       provider: copy.provider,
+      name: copy.name,
+      launch: copy.launch,
     };
     this.title = copy.title;
     this.draft = copy.draft;
@@ -668,22 +822,25 @@ export class AgentController {
       this.discovering
     )
       return;
+    const sameCustom =
+      entry.provider !== ACP_CUSTOM_PROVIDER ||
+      (this.launch.command === entry.launch?.command &&
+        JSON.stringify(this.launch.args ?? []) === JSON.stringify(entry.launch?.args ?? []));
     if (
       this.connection?.provider === entry.provider &&
-      this.connection.root === entry.root
+      this.connection.root === entry.root &&
+      sameCustom
     )
       return this.restoreConversation(entry);
     await this.disconnect();
-    const preset = providerFor(entry.provider);
-    const config = this.options.kernel.configuration;
-    const command =
-      config.get<string>(`agentACP.${entry.provider}.command`) ||
-      preset.command;
-    const args = JSON.parse(
-      config.get<string>(`agentACP.${entry.provider}.args`) ||
-        JSON.stringify(preset.args),
-    );
-    await this.connect({ provider: entry.provider, command, args }, entry);
+    const saved = entry.launch;
+    const launch: ACPLaunch =
+      entry.provider === ACP_CUSTOM_PROVIDER
+        ? { provider: entry.provider, name: saved?.name ?? entry.name, command: saved?.command, args: saved?.args }
+        : acpPreset(entry.provider)
+          ? { provider: entry.provider }
+          : { provider: entry.provider, registry: saved?.registry ?? { id: entry.provider } };
+    await this.connect(resolveLaunch(launch, this.options.kernel.configuration), entry);
   }
   async restoreConversation(entry: Conversation) {
     if (this.requests.length)
@@ -738,6 +895,7 @@ export class AgentController {
     try {
       const result = await this.call(method, { sessionId: entry.sessionId });
       if (generation !== this.connectionGeneration) return;
+      if (method === "session/load") carryCheckpoints(entry.activity, this.activity);
       this.connection = result;
       this.status = "Ready";
       this.archived = false;
@@ -885,6 +1043,35 @@ export class AgentController {
     });
     this.changed();
   }
+  async attachImage(file: File) {
+    if (!this.connection) throw new Error("Connect an agent to attach images");
+    const count = () => this.context.filter((item) => item.kind === "image").length;
+    const accepted = !!this.connection.capabilities?.promptCapabilities?.image;
+    const error = imageError(file, count(), accepted);
+    if (error) throw new Error(error);
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const { mimeType, data } = await encodeImage(file);
+    if (count() >= 4 || this.context.length >= 8)
+      throw new Error("Attach up to 4 images per message");
+    this.context.push(imageContext(file.name, mimeType, data));
+    this.changed();
+  }
+  async attachMention(mention: Mention) {
+    if (mention.kind === "changes") return this.attachChanges();
+    if (mention.kind !== "file")
+      return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
+    if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
+    await this.attachPath(mention.path);
+  }
+  async attachChanges() {
+    const others = this.context.filter((item) => item.kind !== "changes");
+    if (others.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await uncommittedChanges((method, params) => this.request(method, params ?? {}));
+    this.context = [...others, { path: ".", text, kind: "changes", label: "Uncommitted changes" }];
+    this.changed();
+  }
   attachDiagnostics() {
     const path = this.options.workbench.activePath();
     if (!path) throw new Error("Open a file to attach its diagnostics");
@@ -911,6 +1098,7 @@ export class AgentController {
   }
   async send() {
     if (
+      this.checkpointing ||
       this.connecting ||
       this.updatingSettings ||
       this.discovering ||
@@ -918,11 +1106,27 @@ export class AgentController {
       !this.draft.trim()
     )
       return;
+    if (!this.connection) {
+      const draft = this.draft;
+      const context = this.context;
+      try {
+        await this.connectSelected();
+      } finally {
+        // Starting a conversation resets the composer; the pending draft belongs to it.
+        this.draft = draft;
+        this.context = context;
+        this.changed();
+      }
+      const connection = this.connection as ACPConnection | undefined;
+      if (!connection) return;
+      if (!connection.sessionId)
+        throw new Error("Sign in to the agent, then send your message");
+    }
     const prompt = this.draft.trim();
     const context = this.context.map((c) => ({ ...c }));
     const draft = this.draft;
     const contextSnapshot = JSON.stringify(this.context);
-    if (JSON.stringify({ prompt, context }).length > 1000000)
+    if (JSON.stringify({ prompt, context: withoutImageData(context) }).length > 1000000)
       throw new Error("The message and attachments are too large");
     if (!this.connection?.sessionId)
       throw new Error("Start a conversation first");
@@ -948,7 +1152,7 @@ export class AgentController {
       id: crypto.randomUUID(),
       role: "user",
       text: prompt,
-      context,
+      context: withoutImageData(context),
     };
     this.messages.push(message);
     this.activity.push({ kind: "message", message });
@@ -960,6 +1164,13 @@ export class AgentController {
     const generation = this.connectionGeneration;
     this.changed();
     try {
+      this.checkpointing = true;
+      try {
+        message.checkpoint = await this.checkpoints.create();
+      } finally {
+        this.checkpointing = false;
+      }
+      if (generation !== this.connectionGeneration) return;
       const result = await this.call("session/prompt", {
         text: prompt,
         messageId: message.id,
@@ -1242,6 +1453,7 @@ export class AgentController {
       }
       if (!this.disposed && valid() && this.connection?.id === request.id) {
         this.requests.push(request);
+        this.attention.requestArrived(this.title);
         this.changed();
       }
     } catch (error) {
@@ -1377,7 +1589,16 @@ export class AgentController {
       this.changed();
     }
   }
-
+  async restoreCheckpoint(message: Message) {
+    if (!message.checkpoint || !this.connection) return;
+    if (this.busy || this.connecting || this.requests.length || this.activeSubagentCount)
+      throw new Error("Wait for the agent to finish before restoring a checkpoint");
+    const paths = await this.checkpoints.restore(message.checkpoint, (path) => !!this.documents.get(path)?.dirty);
+    if (!paths) return;
+    this.activity.push(restoredNotice(message));
+    this.changed();
+    await this.options.workbench.refreshFiles();
+  }
   private isChildRequest(request: AgentRequest) {
     return (
       !!request.sessionId &&
@@ -1434,7 +1655,13 @@ export class AgentController {
       preview: false,
     });
   }
+  private latestToolTitle() {
+    let title: string | undefined;
+    for (const call of this.tools.values()) if (typeof call.title === "string") title = call.title;
+    return title;
+  }
   dispose() {
+    this.attention.dispose();
     void this.saveConversation();
     clearTimeout(this.historyTimer);
     this.disposed = true;
@@ -1448,5 +1675,5 @@ export class AgentController {
     this.requests = [];
   }
 }
-export const providerFor = (id: string) =>
-  ACP_PROVIDERS.find((provider) => provider.id === id) ?? ACP_PROVIDERS[0];
+/** Display data for a provider ID. Unknown IDs keep their own ID as the label. */
+export const providerFor = (id: string) => ({ id, name: agentName(id) });

@@ -50,6 +50,7 @@ export const icons: Record<string, string> = {
   pencil: "M11 2.5l2.5 2.5-8 8H3v-2.5z",
   copy: "M6 6h7v7H6z M3 10V3h7",
   bell: "M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3z M6.5 14h3",
+  mic: "M6 4a2 2 0 0 1 4 0v3.5a2 2 0 0 1-4 0z M3.5 7.5a4.5 4.5 0 0 0 9 0 M8 12v2.5",
   focus: "M2 5.5V2h3.5 M10.5 2H14v3.5 M14 10.5V14h-3.5 M5.5 14H2v-3.5",
   lock: "M4 7h8v7H4z M5.5 7V5a2.5 2.5 0 0 1 5 0v2",
   eye: "M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z M8 9.8a1.8 1.8 0 1 0 0-3.6a1.8 1.8 0 1 0 0 3.6z",

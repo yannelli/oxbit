@@ -208,6 +208,7 @@ jobs:
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+          IOS_LIVE_ACTIVITY_PROVISION: ${{ secrets.IOS_LIVE_ACTIVITY_PROVISION }}
         run: >-
           node scripts/ios/run.mjs build --config
           '{"version":"${{ steps.version.outputs.short }}","bundle":{"iOS":{"bundleVersion":"${{ steps.version.outputs.build }}"}}}'

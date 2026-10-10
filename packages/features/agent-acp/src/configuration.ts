@@ -1,4 +1,4 @@
-import { ACP_PROVIDERS, type Setting } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, type Setting } from "@oxbit/sdk";
 
 export const settingId = (provider: string, key: string) =>
   `agentACP.${provider}.${key}`;
@@ -6,10 +6,27 @@ export const agentConfiguration: Setting[] = [
   {
     id: "agentACP.provider",
     title: "Default agent",
+    description: "A built-in agent ID, an ACP Registry agent ID, or custom.",
     category: "Agent ACP",
     type: "string",
     default: "codex",
-    enum: ACP_PROVIDERS.map((p) => p.id),
+  },
+  {
+    id: "agentACP.useModifierToSend",
+    title: "Send with Ctrl/Cmd+Enter only",
+    description: "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.",
+    category: "Agent ACP",
+    type: "boolean",
+    default: false,
+  },
+  {
+    id: "agentACP.notifications",
+    title: "Agent desktop notifications",
+    description: "Show a system notification when the agent needs input or finishes while Oxbit is in the background.",
+    category: "Agent ACP",
+    type: "string",
+    enum: ["whenHidden", "never"],
+    default: "whenHidden",
   },
   ...ACP_PROVIDERS.flatMap((provider) => [
     {
@@ -27,4 +44,25 @@ export const agentConfiguration: Setting[] = [
       default: JSON.stringify(provider.args),
     },
   ]),
+  {
+    id: settingId(ACP_CUSTOM_PROVIDER, "name"),
+    title: "Custom agent name",
+    category: "Agent ACP",
+    type: "string",
+    default: "",
+  },
+  {
+    id: settingId(ACP_CUSTOM_PROVIDER, "command"),
+    title: "Custom agent executable",
+    category: "Agent ACP",
+    type: "string",
+    default: "",
+  },
+  {
+    id: settingId(ACP_CUSTOM_PROVIDER, "args"),
+    title: "Custom agent arguments (JSON array)",
+    category: "Agent ACP",
+    type: "string",
+    default: "[]",
+  },
 ];

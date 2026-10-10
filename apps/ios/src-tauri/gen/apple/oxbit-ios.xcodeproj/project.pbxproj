@@ -9,13 +9,19 @@
 /* Begin PBXBuildFile section */
 		177246758C13CB90ECC4BD3B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA78B0330CFAA52E4905C4E8 /* Metal.framework */; };
 		1FFFA0E6B1AEBB164CB9ECDF /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 81B46168467A9426CE314C5C /* UIKit.framework */; };
+		4A38C4DB13EA906977189516 /* OxbitLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9608FB42A99B4D6DFA1014E /* OxbitLiveActivity.swift */; };
 		4F559FCB5AB6A375C68AE31F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C76BDA9D442D380319495D08 /* QuartzCore.framework */; };
 		5BE2443510B7068D401E5306 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9CCD767DAE681A5F87DAAE28 /* CoreGraphics.framework */; };
+		5DA9864E74C23D1E79D676F7 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 073E84E22FD132C8396EF820 /* ActivityKit.framework */; };
 		66393EEFCE56BD77650B4830 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE0C5346302FA763366B633A /* main.mm */; };
 		6F97996F2EBF771DA6170226 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A288129BE292BDAD0A27B27B /* LaunchScreen.storyboard */; };
+		71EA8C3C0595F5C0C0D2B7EF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15E9BFA6DADDEA5DDCC98129 /* SwiftUI.framework */; };
 		83DEC424240FBF29007490BB /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68A2EC5BF74EAECDEB4A2B48 /* WebKit.framework */; };
+		85EB1078105D5DBF27F6E75D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C3372D4A6C5E4ADEE39ADA8 /* WidgetKit.framework */; };
 		A45A09AC734E4C418D2C1231 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F0903926E53AE70EF2F0064 /* MetalKit.framework */; };
+		B0B69F97AA28D4B0A445340C /* OxbitLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3990E58F530ABAD5E308894 /* OxbitLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B2952170DCA9F317ABD139C6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 10E703597749E84B5604223E /* Assets.xcassets */; };
+		BCE9E1EBA6685097CD2298C3 /* AgentActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 673A146E3709C586928F352E /* AgentActivityAttributes.swift */; };
 		C476D92C6B2BF7A1C7481C14 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 54A676C9E721064DFC46968D /* Security.framework */; };
 		DE29EFAAFB3EE7ED5A603498 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 984FCB3A1F89E00CC94CEA69 /* assets */; };
 		FBCA7E0AD7897B4256FE14E0 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65E89CC83BA1EDA2644E3DE9 /* libapp.a */; };
@@ -23,14 +29,43 @@
 		091F1BB18EA4919BCC24A613 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = CF1F220DB7A5467BBCC22F48 /* libz.tbd */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		C0A323E5386C1DE1369C13BD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 324C763D96ABEBDEE776407C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6CE38406454E0C032D32CE9A;
+			remoteInfo = OxbitLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		689DA202C0F0ED466236F6F5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B0B69F97AA28D4B0A445340C /* OxbitLiveActivity.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		073E84E22FD132C8396EF820 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
+		0C3372D4A6C5E4ADEE39ADA8 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		10E703597749E84B5604223E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		15E9BFA6DADDEA5DDCC98129 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		1F0903926E53AE70EF2F0064 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		27C519A13224EDE035859D33 /* oxbit-ios_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "oxbit-ios_iOS.entitlements"; sourceTree = "<group>"; };
+		324DB93E7B2E7087286DB4D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		43137A9836BDF86901FC2338 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4370B813778DDE2E32E61F0E /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
 		54A676C9E721064DFC46968D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		65E89CC83BA1EDA2644E3DE9 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		673A146E3709C586928F352E /* AgentActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentActivityAttributes.swift; sourceTree = "<group>"; };
 		68A2EC5BF74EAECDEB4A2B48 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		748791193E049BD41E66A82A /* spike.rs */ = {isa = PBXFileReference; lastKnownFileType = file; path = spike.rs; sourceTree = "<group>"; };
 		7DDFF80698406A14ADDDF014 /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
@@ -38,6 +73,8 @@
 		984FCB3A1F89E00CC94CEA69 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
 		9CCD767DAE681A5F87DAAE28 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		A288129BE292BDAD0A27B27B /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A3990E58F530ABAD5E308894 /* OxbitLiveActivity.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OxbitLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9608FB42A99B4D6DFA1014E /* OxbitLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OxbitLiveActivity.swift; sourceTree = "<group>"; };
 		C76BDA9D442D380319495D08 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		DE0C5346302FA763366B633A /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
 		F64B133237AD9373D9CDB480 /* Oxbit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oxbit.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -48,6 +85,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		47926555DD099F3D30DDA539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5DA9864E74C23D1E79D676F7 /* ActivityKit.framework in Frameworks */,
+				71EA8C3C0595F5C0C0D2B7EF /* SwiftUI.framework in Frameworks */,
+				85EB1078105D5DBF27F6E75D /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		786039EDFB221EAE35276A52 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,14 +118,17 @@
 		2AAB5BC74A81A82E4BA9FEBF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				073E84E22FD132C8396EF820 /* ActivityKit.framework */,
 				9CCD767DAE681A5F87DAAE28 /* CoreGraphics.framework */,
 				65E89CC83BA1EDA2644E3DE9 /* libapp.a */,
 				FA78B0330CFAA52E4905C4E8 /* Metal.framework */,
 				1F0903926E53AE70EF2F0064 /* MetalKit.framework */,
 				C76BDA9D442D380319495D08 /* QuartzCore.framework */,
 				54A676C9E721064DFC46968D /* Security.framework */,
+				15E9BFA6DADDEA5DDCC98129 /* SwiftUI.framework */,
 				81B46168467A9426CE314C5C /* UIKit.framework */,
 				68A2EC5BF74EAECDEB4A2B48 /* WebKit.framework */,
+				0C3372D4A6C5E4ADEE39ADA8 /* WidgetKit.framework */,
 				CF1F220DB7A5467BBCC22F48 /* libz.tbd */,
 				8998039E0DB95E8E77C0D11C /* libiconv.tbd */,
 			);
@@ -105,6 +155,7 @@
 			isa = PBXGroup;
 			children = (
 				F64B133237AD9373D9CDB480 /* Oxbit.app */,
+				A3990E58F530ABAD5E308894 /* OxbitLiveActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,7 +168,9 @@
 				A288129BE292BDAD0A27B27B /* LaunchScreen.storyboard */,
 				6727415A568E9FBC1B2A3753 /* Externals */,
 				3A9A015C0DA381C46DDF5D9B /* oxbit-ios_iOS */,
+				CD3A0A187163582FAA3B833A /* OxbitLiveActivity */,
 				B869B80720EE47D465C637E2 /* Sources */,
+				9B359A189E374DFA9BE3AF20 /* Sources */,
 				872C9D38CF6B6D5BFF95BEB3 /* src */,
 				2AAB5BC74A81A82E4BA9FEBF /* Frameworks */,
 				759033283F691A42A22CD3C9 /* Products */,
@@ -144,6 +197,15 @@
 			path = "oxbit-ios";
 			sourceTree = "<group>";
 		};
+		9B359A189E374DFA9BE3AF20 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				673A146E3709C586928F352E /* AgentActivityAttributes.swift */,
+			);
+			name = Sources;
+			path = "../../../plugins/oxbit-files/ios/Sources";
+			sourceTree = "<group>";
+		};
 		A6DB536348C877928B9A0710 /* bindings */ = {
 			isa = PBXGroup;
 			children = (
@@ -160,9 +222,37 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		CD3A0A187163582FAA3B833A /* OxbitLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				324DB93E7B2E7087286DB4D2 /* Info.plist */,
+				A9608FB42A99B4D6DFA1014E /* OxbitLiveActivity.swift */,
+			);
+			path = OxbitLiveActivity;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6CE38406454E0C032D32CE9A /* OxbitLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3A1BFA7417EBA60625467A0B /* Build configuration list for PBXNativeTarget "OxbitLiveActivity" */;
+			buildPhases = (
+				22A2241744DCAD37EE4CF799 /* Sources */,
+				47926555DD099F3D30DDA539 /* Frameworks */,
+				E61AC9042D3E6D35C63C0A52 /* Match App Version */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OxbitLiveActivity;
+			packageProductDependencies = (
+			);
+			productName = OxbitLiveActivity;
+			productReference = A3990E58F530ABAD5E308894 /* OxbitLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		AB19618B082DB89FAC245CCE /* oxbit-ios_iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BB46D9871B13E11943123453 /* Build configuration list for PBXNativeTarget "oxbit-ios_iOS" */;
@@ -171,10 +261,12 @@
 				AC0095514B5E26C138C3774D /* Sources */,
 				16432EE498C71AA8F6B65A75 /* Resources */,
 				786039EDFB221EAE35276A52 /* Frameworks */,
+				689DA202C0F0ED466236F6F5 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				90E462F26925EC6D64A42089 /* PBXTargetDependency */,
 			);
 			name = "oxbit-ios_iOS";
 			packageProductDependencies = (
@@ -205,6 +297,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				6CE38406454E0C032D32CE9A /* OxbitLiveActivity */,
 				AB19618B082DB89FAC245CCE /* oxbit-ios_iOS */,
 			);
 		};
@@ -245,9 +338,39 @@
 			shellPath = /bin/sh;
 			shellScript = "bun run tauri -- ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}";
 		};
+		E61AC9042D3E6D35C63C0A52 /* Match App Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/oxbit-ios_iOS/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Match App Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nfor key in CFBundleShortVersionString CFBundleVersion; do\n  value=$(/usr/libexec/PlistBuddy -c \"Print :$key\" \"$SRCROOT/oxbit-ios_iOS/Info.plist\")\n  /usr/libexec/PlistBuddy -c \"Set :$key $value\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\ndone\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		22A2241744DCAD37EE4CF799 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BCE9E1EBA6685097CD2298C3 /* AgentActivityAttributes.swift in Sources */,
+				4A38C4DB13EA906977189516 /* OxbitLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AC0095514B5E26C138C3774D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -258,7 +381,36 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		90E462F26925EC6D64A42089 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6CE38406454E0C032D32CE9A /* OxbitLiveActivity */;
+			targetProxy = C0A323E5386C1DE1369C13BD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		5AA8DD01D34A758E060851FA /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 2P58V89SR7;
+				INFOPLIST_FILE = OxbitLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannelli.oxbit.LiveActivity;
+				PRODUCT_NAME = OxbitLiveActivity;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Oxbit CI Live Activity App Store";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = release;
+		};
 		6DF5B537CEB9961D7642C601 /* release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -466,9 +618,36 @@
 			};
 			name = release;
 		};
+		E02918ED54C606F35347C790 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = 2P58V89SR7;
+				INFOPLIST_FILE = OxbitLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannelli.oxbit.LiveActivity;
+				PRODUCT_NAME = OxbitLiveActivity;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3A1BFA7417EBA60625467A0B /* Build configuration list for PBXNativeTarget "OxbitLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E02918ED54C606F35347C790 /* debug */,
+				5AA8DD01D34A758E060851FA /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
 		3D7236BC0ADE05741E663DA8 /* Build configuration list for PBXProject "oxbit-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

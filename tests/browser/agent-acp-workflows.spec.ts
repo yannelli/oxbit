@@ -57,7 +57,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
         fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs"),
       },
     );
-    const panel = page.locator(".acp-panel:not(.acp-review-editor)");
+    const panel = page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
     const composer = panel.getByRole("textbox", { name: "Message agent" });
     const ready = () =>
       expect(panel.locator(".acp-status")).toHaveText("Ready");
@@ -66,13 +66,17 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       await panel.getByRole("button", { name: "Send", exact: true }).click();
       await ready();
     };
+    const menu = async (item: string) => {
+      await panel.getByRole("button", { name: "More agent actions", exact: true }).click();
+      await panel.getByRole("menuitem", { name: item, exact: true }).click();
+    };
     await fs.mkdir("evidence/agent-acp/workflows", { recursive: true });
     await panel.screenshot({ path: "evidence/agent-acp/workflows/disconnected-dark.png" });
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
+    await menu("Agent setup");
     await expect(panel.getByRole("textbox", { name: "Agent executable" })).toBeVisible();
     await panel.screenshot({ path: "evidence/agent-acp/workflows/setup-dark.png" });
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
-    await panel.getByRole("button", { name: "Connect", exact: true }).click();
+    await menu("Agent setup");
+    await panel.getByRole("button", { name: /^Start / }).click();
     await ready();
     await composer.fill("wait");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
@@ -88,7 +92,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       await app.workbench.openFile("hello.txt", { preview: false });
       app.workbench.run("agentACP.open");
     });
-    await panel.getByRole("button", { name: "Runtime sessions" }).click();
+    await menu("Runtime sessions");
     await expect(panel.getByRole("region", { name: "Runtime sessions" })).toContainText("wait");
     await panel.getByRole("button", { name: "Open", exact: true }).click();
     await expect(panel.locator(".acp-message.user .acp-user-text").filter({ hasText: /^wait$/ })).toHaveCount(1);
@@ -110,7 +114,13 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await ready();
     expect(await fs.readFile(path.join(root, "hello.txt"), "utf8")).toBe("hello from disk\n");
     await send("usage");
-    await expect(panel.getByRole("status", { name: "Context usage" })).toContainText("1,234/8,192");
+    const usage = panel.getByRole("meter", { name: "Context usage" });
+    await expect(usage).toContainText("1,234/8,192");
+    await expect(usage).toHaveAttribute("aria-valuetext", "15% of context used");
+    await expect(usage).not.toHaveAttribute("data-level", "high");
+    await send("usage-high");
+    await expect(usage).toHaveAttribute("aria-valuetext", "85% of context used");
+    await expect(usage).toHaveAttribute("data-level", "high");
     for (const dismiss of await page.getByRole("button", { name: "Dismiss notification" }).all()) await dismiss.click();
     expect((await panel.locator(".acp-header").boundingBox())!.height).toBeLessThanOrEqual(48);
     expect((await panel.locator(".acp-composer").boundingBox())!.height).toBeLessThanOrEqual(180);
@@ -239,7 +249,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       z.workbench.run("agentACP.open");
     });
     await expect(
-      panel.getByRole("button", { name: "Connect", exact: true }),
+      panel.getByRole("button", { name: /^Start / }),
     ).toBeVisible();
     await panel.getByRole("button", { name: "History", exact: true }).click();
     await panel
@@ -294,15 +304,18 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     });
     await ready();
     expect((await panel.locator(".acp-header").boundingBox())!.height).toBeLessThanOrEqual(48);
-    expect((await panel.locator(".acp-content").boundingBox())!.height).toBeGreaterThan(200);
+    const strip = (await panel.locator(".acp-threads").boundingBox())?.height ?? 0;
+    expect(strip).toBeLessThanOrEqual(40);
+    expect((await panel.locator(".acp-content").boundingBox())!.height + strip).toBeGreaterThan(200);
     await composer.fill("Explain the next change to hello.txt");
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeInViewport();
     await panel.screenshot({ path: "evidence/agent-acp/workflows/bottom-dark.png" });
     await panel.getByRole("button", { name: "Add context", exact: true }).click();
     await expect(panel.locator(".acp-context-menu")).toBeInViewport();
-    await composer.click();
+    const composerBox = (await composer.boundingBox())!;
+    await composer.click({ position: { x: composerBox.width - 16, y: 8 } });
     await expect(panel.locator(".acp-context-menu")).toBeHidden();
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
+    await menu("Agent setup");
     await panel.getByRole("button", { name: "History", exact: true }).click();
     await panel.locator(".acp-session-options > summary").click();
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeInViewport();

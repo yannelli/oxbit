@@ -6,19 +6,26 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
+  ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
-  type ACPProviderId,
+  acpPreset,
   type Extension,
   type FeatureOptions,
 } from "@oxbit/sdk";
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
-import {
-  AgentController,
-  providerFor,
-  type AgentRequest,
-} from "./controller.js";
+import { AgentController, type AgentRequest } from "./controller.js";
+import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
+import { ContextMeter } from "./context-meter.js";
+import { DictationButton } from "./dictation.js";
+import { RegistryBrowser } from "./registry-browser.js";
+import { AgentSetup } from "./setup.js";
+import { OverflowMenu, type MenuItem } from "./overflow-menu.js";
+import { agentName } from "./launch.js";
+import { AGENT_VIEW } from "./attention.js";
 import { sessionControls } from "./session-controls.js";
-import { ComposerInput } from "./composer-input.js";
+import { ComposerInput, SendHint, type ComposerActions } from "./composer-input.js";
+import { searchFiles } from "./mentions.js";
+import { imageFiles } from "./images.js";
 import {
   ActivityFeed,
   FilePatch,
@@ -29,7 +36,9 @@ import {
 } from "./views.js";
 
 import { Subagents } from "./subagents.js";
-import { agentConfiguration, settingId } from "./configuration.js";
+import { ThreadStrip, useThreadRefresh } from "./thread-strip.js";
+import { watchThreads } from "./threads.js";
+import { agentConfiguration } from "./configuration.js";
 function RequestCard({
   request,
   agent,
@@ -124,12 +133,20 @@ function RequestCard({
               <pre>{JSON.stringify(params.toolCall.rawInput, null, 2)}</pre>
             </details>
           )}
-          {params.toolCall?.content?.map((item: any, index: number) => (
-            <pre key={index}>
-              {item.content?.text ??
-                (item.type === "diff" ? `${item.path}\n${item.newText}` : "")}
-            </pre>
-          ))}
+          {params.toolCall?.content?.map((item: any, index: number) =>
+            item.type === "diff" ? (
+              <div className="acp-request-diff" key={index}>
+                <p>{item.path}</p>
+                <FilePatch
+                  path={item.path}
+                  before={item.oldText ?? ""}
+                  after={item.newText ?? ""}
+                />
+              </div>
+            ) : item.content?.text ? (
+              <pre key={index}>{item.content.text}</pre>
+            ) : null,
+          )}
           <div className="acp-actions">
             {(params.options ?? []).map((option: any) => (
               <button
@@ -280,25 +297,20 @@ function FileReview({
 function AgentPanel({ agent }: { agent: AgentController }) {
   useSyncExternalStore(agent.subscribe, agent.snapshot);
   const { kernel, runtime } = agent.options;
-  const [provider, setProvider] = useState<ACPProviderId>(
-    kernel.configuration.get<ACPProviderId>("agentACP.provider") ?? "codex",
-  );
-  const preset = providerFor(provider);
-  const [command, setCommand] = useState(
-    kernel.configuration.get<string>(settingId(provider, "command")) ||
-      preset.command,
-  );
-  const [args, setArgs] = useState(
-    kernel.configuration.get<string>(settingId(provider, "args")) ||
-      JSON.stringify(preset.args),
-  );
   const [showSetup, setShowSetup] = useState(false);
+  const [chooser, setChooser] = useState<Chooser>();
+  const [permission, setPermission] = useState(() =>
+    typeof Notification === "undefined" ? undefined : Notification.permission,
+  );
+  const panel = useRef<HTMLDivElement>(null);
+  const chooserRef = useRef<HTMLDivElement>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showLive, setShowLive] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [following, setFollowing] = useState(true);
   const contextId = useId();
   const composerInput = useRef<HTMLTextAreaElement>(null);
+  const composerActions = useRef<ComposerActions>(null);
   const contextTrigger = useRef<HTMLButtonElement>(null);
   const contextPopup = useRef<HTMLDivElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
@@ -351,72 +363,97 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       trigger.focus();
   }, [settingsDisabled]);
   useEffect(() => {
-    if (follow.current && transcript.current)
+    if (follow.current && transcript.current && agent.messages.length)
       transcript.current.scrollTop = transcript.current.scrollHeight;
   }, [agent.snapshot()]);
-  const choose = (value: string) => {
-    const next = providerFor(value);
-    setProvider(next.id);
-    setCommand(
-      kernel.configuration.get<string>(settingId(next.id, "command")) ||
-        next.command,
-    );
-    setArgs(
-      kernel.configuration.get<string>(settingId(next.id, "args")) ||
-        JSON.stringify(next.args),
-    );
-  };
-  const connect = () =>
-    agent.action(async () => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(args);
-      } catch {
-        throw new Error('Arguments must be a JSON array, such as ["acp"]');
-      }
-      if (
-        !Array.isArray(parsed) ||
-        parsed.some((arg) => typeof arg !== "string")
-      )
-        throw new Error("Arguments must be a JSON array of strings");
-      await kernel.configuration.set("agentACP.provider", provider, "user");
-      await kernel.configuration.set(
-        settingId(provider, "command"),
-        command,
-        "user",
-      );
-      await kernel.configuration.set(settingId(provider, "args"), args, "user");
-      await agent.connect({ provider, command, args: parsed });
+  useEffect(() => {
+    const node = panel.current;
+    agent.markSeen();
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) agent.markSeen();
     });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  useThreadRefresh(agent, panel);
+  const newThread = () => {
+    setChooser(undefined);
+    void agent.action(() => agent.detach());
+  };
+  const chosen = agent.chosen.provider;
+  useEffect(() => {
+    if (enabled && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER)
+      void agent.loadRegistry().catch(() => {});
+  }, [enabled, chosen]);
+  useEffect(() => {
+    if (chooser) chooserRef.current?.scrollIntoView({ block: "nearest" });
+  }, [chooser]);
+  const status = agent.requests.length
+    ? "attention"
+    : agent.busy || agent.connecting
+      ? "working"
+      : /failed/i.test(agent.status)
+        ? "error"
+        : connection
+          ? "ready"
+          : "off";
+  const menu: MenuItem[] = [
+    ...(enabled
+      ? [{
+          id: "live", label: "Runtime sessions", icon: "agentChat",
+          run: () => {
+            setShowLive(!showLive);
+            if (!showLive) void agent.action(() => agent.listLiveSessions());
+          },
+        }]
+      : []),
+    { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
+    { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
+    ...(connection
+      ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread },
+         { id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
+      : []),
+    ...(permission === "default"
+      ? [{
+          id: "notifications", label: "Enable notifications", icon: "bell",
+          run: () => void Notification.requestPermission().then(setPermission),
+        }]
+      : []),
+  ];
+  const chooserView =
+    chooser === "registry" ? (
+      <RegistryBrowser agent={agent} onDone={() => setChooser(undefined)} />
+    ) : chooser === "custom" ? (
+      <CustomAgentForm agent={agent} onDone={() => setChooser(undefined)} />
+    ) : undefined;
   return (
-    <div className="acp-panel">
+    <div className="acp-panel" ref={panel}>
+      <ThreadStrip agent={agent} onNew={newThread} />
       <div className="acp-header">
         <div className="acp-thread-heading">
           <strong title={agent.title}>{tr(agent.title)}</strong>
-          <div className="acp-status" role="status" title={tr(agent.status)}>
-            <span className={agent.busy ? "acp-dot working" : "acp-dot"} />
-            <span>{tr(agent.status)}</span>
+          <div className="acp-status" role="status" data-state={status} title={tr(agent.status)}>
+            <span className={agent.busy ? "acp-dot working" : "acp-dot"} data-state={status} />
+            <span className="acp-status-text">{tr(agent.status)}</span>
           </div>
-          <IconButton
-            icon="agent"
-            label="Open Agents"
-            onClick={() => agent.openAgents()}
-          />
-          <IconButton
-            icon="clock"
-            label="History"
-            aria-expanded={showHistory}
-            onClick={() => setShowHistory(!showHistory)}
-          />
-          {enabled && <IconButton
-            icon="agentChat"
-            label="Runtime sessions"
-            aria-expanded={showLive}
-            onClick={() => {
-              setShowLive(!showLive);
-              if (!showLive) void agent.action(() => agent.listLiveSessions());
-            }}
-          />}
+          {!connection && (agent.messages.length > 0 || agent.archived) && (
+            <button
+              className="button acp-connect"
+              data-tooltip={tr("Start {0}", { 0: agent.displayName })}
+              disabled={!enabled || agent.connecting}
+              onClick={() => void agent.action(() => agent.connectSelected())}
+            >
+              {tr(agent.connecting ? "Connecting…" : "Connect")}
+            </button>
+          )}
+          {agent.connecting && (
+            <IconButton
+              icon="x"
+              label="Cancel"
+              onClick={() => void agent.action(() => agent.disconnect())}
+            />
+          )}
           {connection?.sessionId && (
             <IconButton
               icon="plus"
@@ -432,35 +469,13 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               onClick={() => void agent.action(() => agent.newSession())}
             />
           )}
-          {connection ? (
-            <IconButton
-              icon="power"
-              label="Disconnect"
-              disabled={!enabled}
-              onClick={() => void agent.action(() => agent.disconnect())}
-            />
-          ) : (
-            <button
-              className="button acp-connect"
-              disabled={!enabled || agent.connecting}
-              onClick={() => void connect()}
-            >
-              {tr(agent.connecting ? "Connecting…" : "Connect")}
-            </button>
-          )}
-          {agent.connecting && (
-            <IconButton
-              icon="x"
-              label="Cancel"
-              onClick={() => void agent.action(() => agent.disconnect())}
-            />
-          )}
           <IconButton
-            icon="gear"
-            label="Setup"
-            aria-expanded={showSetup}
-            onClick={() => setShowSetup(!showSetup)}
+            icon="clock"
+            label="History"
+            aria-expanded={showHistory}
+            onClick={() => setShowHistory(!showHistory)}
           />
+          <OverflowMenu label="More agent actions" items={menu} />
         </div>
         {!enabled && (
           <p className="muted">
@@ -477,39 +492,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             </button>
           </p>
         )}
-        {showSetup && (
-          <div className="acp-setup">
-            <p>
-              {tr(preset.setup)}{" "}
-              <a href={preset.url} target="_blank" rel="noreferrer">
-                {tr("Setup guide")}
-              </a>
-            </p>
-            <label>
-              {tr("Executable")}
-              <input
-                aria-label={tr("Agent executable")}
-                value={command}
-                disabled={!!connection || agent.connecting}
-                onChange={(event) => setCommand(event.target.value)}
-              />
-            </label>
-            <label>
-              {tr("Arguments (JSON array)")}
-              <input
-                aria-label={tr("Agent arguments")}
-                value={args}
-                disabled={!!connection || agent.connecting}
-                onChange={(event) => setArgs(event.target.value)}
-              />
-            </label>
-            <p className="muted">
-              {tr(
-                "Connecting may download the adapter. Agents run with the trusted runtime's privileges and use its existing credentials.",
-              )}
-            </p>
-          </div>
-        )}
+        {showSetup && <AgentSetup key={connection?.provider ?? chosen} agent={agent} />}
         {connection && !connection.sessionId && (
           <div className="acp-actions">
             {connection.authMethods.map((method) => (
@@ -537,7 +520,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {showLive && <section className="acp-live-sessions" aria-label={tr("Runtime sessions")}>
           {agent.liveSessions.length === 0 && <p className="muted">{tr("No running conversations")}</p>}
           {agent.liveSessions.map(session => <div className="acp-live-session" key={session.connection.id}>
-            <span><strong>{session.title || tr("New conversation")}</strong><small className="muted">{providerFor(session.connection.provider).name} · {session.busy ? tr("Working…") : tr("Ready")}{session.queued ? ` · ${session.queued} ${tr("queued")}` : ""}</small></span>
+            <span><strong>{session.title || tr("New conversation")}</strong><small className="muted">{agentName(session.connection.provider, session.connection)} · {session.busy ? tr("Working…") : tr("Ready")}{session.queued ? ` · ${session.queued} ${tr("queued")}` : ""}</small></span>
             <button type="button" className="button" disabled={agent.connection?.id === session.connection.id}
               onClick={() => void agent.action(async () => { await agent.attachLive(session.connection.id); setShowLive(false); })}>
               {tr(agent.connection?.id === session.connection.id ? "Current" : "Open")}
@@ -561,7 +544,11 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           setFollowing(follow.current);
         }}
       >
-        {!agent.messages.length && (
+        {!agent.messages.length && chooserView}
+        {!agent.messages.length && !chooserView && !connection && !agent.archived && (
+          <AgentPicker agent={agent} enabled={enabled} onChoose={setChooser} />
+        )}
+        {!agent.messages.length && !chooserView && (connection || agent.archived) && (
           <div className="acp-welcome">
             <Icon name="agentChat" size={28} />
             <h2>{tr("Work with your agent")}</h2>
@@ -618,6 +605,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             <pre>{agent.logs}</pre>
           </details>
         )}
+        {agent.messages.length > 0 && chooserView && <div ref={chooserRef}>{chooserView}</div>}
       </div>
       {!following && (
         <button
@@ -665,6 +653,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           event.preventDefault();
           void agent.action(() => agent.send());
         }}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          const files = imageFiles(event.dataTransfer);
+          if (!files.length) return;
+          event.preventDefault();
+          void agent.action(async () => {
+            for (const file of files) await agent.attachImage(file);
+          });
+        }}
       >
         <div
           id={contextId}
@@ -684,6 +683,14 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           >
             <Icon name="warning" size={14} />
             {tr("Attach diagnostics")}
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => void agent.action(() => agent.attachChanges())}
+          >
+            <Icon name="git" size={14} />
+            {tr("Attach changes")}
           </button>
           <button
             type="button"
@@ -710,7 +717,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 <ContextItem item={context} />
                 <IconButton
                   icon="x"
-                  label={tr("Remove attachment {0}", { 0: context.path })}
+                  label={tr("Remove attachment {0}", {
+                    0: context.kind === "changes" ? tr("Uncommitted changes") : context.path,
+                  })}
                   onClick={() => {
                     agent.context.splice(index, 1);
                     agent.changed();
@@ -737,6 +746,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         )}
         <ComposerInput
           inputRef={composerInput}
+          actionsRef={composerActions}
+          configuration={kernel.configuration}
           commands={agent.commands}
           value={agent.draft}
           onChange={(value) => {
@@ -744,6 +755,16 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             agent.changed();
           }}
           onSend={() => { void agent.action(() => agent.send()); }}
+          onEscape={() => {
+            if (!agent.busy || agent.cancelling) return false;
+            void agent.action(() => agent.cancel());
+            return true;
+          }}
+          onMention={(mention) => void agent.action(() => agent.attachMention(mention))}
+          onImages={(files) => void agent.action(async () => {
+            for (const file of files) await agent.attachImage(file);
+          })}
+          findFiles={(query, signal) => searchFiles(agent.options.filesystem, query, signal)}
         />
         <div className="acp-composer-toolbar">
           <button
@@ -766,26 +787,29 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             }
           />
           {agent.commands.length > 0 && (
-            <Select
-              label={tr("Agent slash commands")}
-              value=""
-              options={[
-                { value: "", label: tr("Slash commands") },
-                ...agent.commands.map((command) => ({
-                  value: command.name,
-                  label: "/" + command.name,
-                })),
-              ]}
-              onChange={(command) => {
-                if (command) {
-                  agent.draft = "/" + command + " ";
-                  agent.changed();
-                  composerInput.current?.focus();
-                }
-              }}
-            />
+            <button
+              type="button"
+              className="icon-button acp-slash-button"
+              aria-label={tr("Slash commands")}
+              data-tooltip={tr("Slash commands")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => composerActions.current?.insertSlash()}
+            >
+              <span aria-hidden="true">/</span>
+            </button>
           )}
-          <span className="muted acp-hint">{tr("Ctrl/Cmd+Enter to send")}</span>
+          <DictationButton
+            value={agent.draft}
+            onChange={(value) => {
+              agent.draft = value;
+              agent.changed();
+            }}
+            onError={(message) => {
+              agent.error = message;
+              agent.changed();
+            }}
+          />
+          <SendHint configuration={kernel.configuration} />
           {agent.busy && (
             <IconButton
               icon="stop"
@@ -802,7 +826,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               className="icon-button acp-send"
               type="submit"
               disabled={
-                !connection?.sessionId ||
+                (!!connection && !connection.sessionId) ||
                 !agent.draft.trim() ||
                 !enabled ||
                 agent.connecting ||
@@ -814,26 +838,29 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </div>
       </form>
       <div className="acp-footer">
-        {agent.usage && <div className="acp-usage" role="status" aria-label={tr("Context usage")}>
-          {tr("Context")} {agent.usage.used.toLocaleString()}/{agent.usage.size.toLocaleString()}
-          {agent.usage.cost && ` · ${agent.usage.cost.amount.toLocaleString()} ${agent.usage.cost.currency}`}
-        </div>}
+        {agent.usage && <ContextMeter usage={agent.usage} />}
         {connection ? (
-          <div
-            className="acp-provider"
-            title={providerFor(connection.provider).name}
-          >
+          <div className="acp-provider" title={agent.displayName}>
             <Icon name="agent" size={14} />
-            <span>{providerFor(connection.provider).name}</span>
+            <span>{agent.displayName}</span>
           </div>
-        ) : (
+        ) : (agent.messages.length > 0 || agent.archived) && (
           <Select
             label={tr("ACP provider")}
             icon="agent"
-            value={provider}
-            options={ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
+            value={chosen}
+            options={[
+              ...ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name })),
+              ...(acpPreset(chosen) ? [] : [{ value: chosen, label: agent.displayName }]),
+              { value: "#registry", label: tr("More agents…") },
+              { value: "#custom", label: tr("Custom agent…") },
+            ]}
             disabled={agent.connecting}
-            onChange={choose}
+            onChange={(value) => {
+              if (value === "#registry") setChooser("registry");
+              else if (value === "#custom") setChooser("custom");
+              else void agent.action(() => agent.select({ provider: value }));
+            }}
           />
         )}
         {controls.length > 0 && (
@@ -878,6 +905,27 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     </div>
   );
 }
+function AgentStatusItem({ agent }: { agent: AgentController }) {
+  useSyncExternalStore(agent.subscribe, agent.snapshot);
+  if (!agent.connection) return null;
+  const [state, label] = agent.requests.length
+    ? ["attention", "Agent needs input"]
+    : agent.busy
+      ? ["working", "Agent working"]
+      : ["ready", "Agent ready"];
+  return (
+    <button
+      type="button"
+      className="acp-status-item"
+      data-state={state}
+      title={tr("Open Agent")}
+      onClick={() => void agent.options.kernel.commands.execute("agentACP.open")}
+    >
+      <Icon name="agentChat" size={13} />
+      <span>{tr(label)}</span>
+    </button>
+  );
+}
 export function createFeature(options: FeatureOptions): Extension {
   return {
     manifest: {
@@ -887,7 +935,7 @@ export function createFeature(options: FeatureOptions): Extension {
       version: "1.0.0",
       sdk: "^1.0.0",
       description:
-        "Codex ACP, Cursor ACP, and Amp Agent ACP with conversations, editor context, tool activity, and approvals.",
+        "Codex, Claude Agent, Gemini CLI, GitHub Copilot, Cursor, Amp, and ACP Registry agents with conversations, editor context, tool activity, and approvals.",
       enabledByDefault: false,
       environments: ["browser", "embedded"],
       activation: ["*"],
@@ -902,14 +950,15 @@ export function createFeature(options: FeatureOptions): Extension {
     activate(ctx) {
       const agent = new AgentController(options);
       ctx.own(agent);
+      ctx.own(watchThreads(agent, () => options.workbench.panelVisible?.(AGENT_VIEW) === true));
       ctx.own(ctx.services.register("agentACP", agent));
       ctx.own(
         ctx.contributions.register({
-          id: "agent-acp",
+          id: AGENT_VIEW,
           kind: "activityView",
           title: "Agent ACP",
           order: 45,
-          data: { icon: "agentChat" },
+          data: { icon: "agentChat", dock: "right", phoneBar: true, phoneLabel: "Agent" },
           component: () => <AgentPanel agent={agent} />,
         }),
       );
@@ -919,7 +968,7 @@ export function createFeature(options: FeatureOptions): Extension {
           kind: "activityView",
           title: "Agents",
           order: 46,
-          data: { icon: "agent" },
+          data: { icon: "agent", dock: "right" },
           component: () => (
             <Subagents
               agent={agent}
@@ -935,6 +984,14 @@ export function createFeature(options: FeatureOptions): Extension {
         }),
       );
       ctx.own(
+        ctx.contributions.register({
+          id: "agent-acp.status",
+          kind: "statusItem",
+          title: "Agent status",
+          component: () => <AgentStatusItem agent={agent} />,
+        }),
+      );
+      ctx.own(
         ctx.commands.register({
           id: "agentACP.openAgents",
           title: "Open Agents",
@@ -947,7 +1004,10 @@ export function createFeature(options: FeatureOptions): Extension {
           id: "agentACP.open",
           title: "Open Agent ACP",
           category: "Agent ACP",
-          run: () => options.workbench.openPanel("agent-acp"),
+          run: () => {
+            options.workbench.openPanel(AGENT_VIEW);
+            agent.markSeen();
+          },
         }),
       );
       for (const [id, title, run] of [

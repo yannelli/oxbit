@@ -6,7 +6,7 @@ export const productIconIds: Record<string, string | null> = {
   splitR: 'split-horizontal', splitD: 'split-vertical', layoutSide: 'layout-sidebar-left', layoutSideRight: 'layout-sidebar-right', layoutPanel: 'layout-panel',
   pin: 'pin', more: 'more', warning: 'warning', error: 'error', info: 'info', okCircle: 'pass', refresh: 'refresh',
   cloud: 'cloud', cloudOff: 'cloud-offline', cloudCheck: 'cloud-upload', users: 'organization', play: 'play', stop: 'debug-stop',
-  trash: 'trash', pencil: 'edit', copy: 'copy', bell: 'bell', focus: 'screen-full', lock: 'lock', eye: 'eye', save: 'save',
+  trash: 'trash', pencil: 'edit', copy: 'copy', bell: 'bell', mic: 'mic', focus: 'screen-full', lock: 'lock', eye: 'eye', save: 'save',
   book: 'book', filter: 'filter', arrowUp: 'arrow-up', arrowDown: 'arrow-down', replaceOne: 'replace', replaceAll: 'replace-all',
   folder: 'folder', folderOpen: 'folder-opened', newFile: 'new-file', newFolder: 'new-folder', collapse: 'collapse-all', goto: 'link-external',
   wifiOff: null, sync: 'sync', keyboard: 'keyboard', bulb: 'lightbulb', package: 'package', sun: null, moon: null,

@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ACP_PROVIDERS, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, acpBuiltinForRegistry, acpPreset, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
 import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
@@ -10,6 +10,7 @@ import { trackChild } from "./owned-processes.js";
 import { SubagentRegistry } from "./acp-subagents.js";
 import { AgentMCP } from "./agent-mcp.js";
 import { runtimeVersion } from "./version.js";
+import { REGISTRY_ID, type ACPRegistry } from "./acp-registry.js";
 
 type Params = Record<string, any>;
 type Pending = {
@@ -57,7 +58,13 @@ type Agent = {
   queuePaused: boolean;
   queueRunning: boolean;
 };
+type ResolvedLaunch = { provider: string; name: string; command: string; args: string[]; env?: Record<string, string> };
 const MAX_BYTES = 1024 * 1024;
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const MAX_IMAGES = 4;
+const MAX_IMAGE_DATA = Math.ceil((5 * 1024 * 1024) / 3) * 4;
+const MAX_QUEUED_IMAGE_DATA = 16 * 1024 * 1024;
+const withoutImageData = (key: string, value: unknown) => key === "data" ? undefined : value;
 const EDITOR_UNSUPPORTED = "The connected editor does not support this tool; update Oxbit";
 function strings(value: unknown): string[] {
   if (
@@ -80,6 +87,7 @@ export class AgentACP {
     private files: WorkspaceFiles,
     private emit: (owner: string, event: string, params: Params) => void,
     private stateChanged: () => void = () => {},
+    private acpRegistry?: ACPRegistry,
   ) {}
   private get(owner: string, id: string) {
     const agent = this.agents.get(id);
@@ -194,27 +202,15 @@ export class AgentACP {
     signal?: AbortSignal,
     client = owner,
   ): Promise<ACPConnection> {
-    const preset = ACP_PROVIDERS.find((p) => p.id === launch.provider);
-    if (!preset)
-      throw new RpcError("INVALID_PARAMS", "Choose Codex, Cursor, or Amp");
     if (signal?.aborted) throw new Error("Agent connection cancelled");
-    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
-    if (owned.length >= 3) {
-      const idle = owned.find((a) => !a.client && !this.working(a));
-      if (!idle)
-        throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
-      this.stopAgent(idle, "Stopped to start another agent");
-    }
-    const command = requireString(
-      { command: launch.command ?? preset.command },
-      "command",
-    );
-    if (!command.trim() || command.includes("\0"))
-      throw new RpcError("INVALID_PARAMS", "Invalid agent executable");
-    const args = strings(launch.args ?? [...preset.args]);
+    this.slot(owner, false);
+    const resolved = await this.resolveLaunch(launch, signal);
+    if (signal?.aborted) throw new Error("Agent connection cancelled");
+    this.slot(owner, true);
+    const { command, args } = resolved;
     const child = spawn(command, args, {
       cwd: this.files.root,
-      env: process.env,
+      env: resolved.env && Object.keys(resolved.env).length ? { ...process.env, ...resolved.env } : process.env,
       stdio: "pipe",
       detached: process.platform !== "win32",
       windowsHide: true,
@@ -227,7 +223,8 @@ export class AgentACP {
       child,
       connection: {
         id: randomUUID(),
-        provider: preset.id,
+        provider: resolved.provider,
+        name: resolved.name,
         root: this.files.root,
         authMethods: [],
       },
@@ -295,7 +292,7 @@ export class AgentACP {
         clientCapabilities: {
           fs: { readTextFile: true, writeTextFile: true },
           terminal: true,
-          ...(preset.id === "codex" ? { subagents: {} } : {}),
+          ...(resolved.provider === "codex" ? { subagents: {} } : {}),
         },
         clientInfo: { name: "oxbit", title: "Oxbit", version: runtimeVersion() },
       });
@@ -311,6 +308,43 @@ export class AgentACP {
     } finally {
       signal?.removeEventListener("abort", abort);
     }
+  }
+  private slot(owner: string, evict: boolean) {
+    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
+    if (owned.length < 3) return;
+    const idle = owned.find((a) => !a.client && !this.working(a));
+    if (!idle)
+      throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
+    if (evict) this.stopAgent(idle, "Stopped to start another agent");
+  }
+  private async resolveLaunch(launch: ACPLaunch, signal?: AbortSignal): Promise<ResolvedLaunch> {
+    const provider: unknown = launch?.provider;
+    if (typeof provider !== "string" || !provider || provider.length > 64)
+      throw new RpcError("INVALID_PARAMS", "Unknown agent");
+    if (launch.registry !== undefined) {
+      const { id, version } = (launch.registry ?? {}) as { id?: unknown; version?: unknown };
+      if (typeof id !== "string" || !REGISTRY_ID.test(id) || (version !== undefined && typeof version !== "string"))
+        throw new RpcError("INVALID_PARAMS", "Invalid ACP Registry agent");
+      const builtin = acpBuiltinForRegistry(id);
+      if (builtin)
+        return { provider: builtin.id, name: builtin.name, command: builtin.command, args: [...builtin.args] };
+      if (!this.acpRegistry)
+        throw new RpcError("INVALID_PARAMS", "This runtime cannot launch ACP Registry agents");
+      return { provider: id, ...(await this.acpRegistry.resolve(id, version, signal)) };
+    }
+    const preset = acpPreset(provider);
+    if (!preset && (typeof launch.command !== "string" || !launch.command.trim()))
+      throw new RpcError("INVALID_PARAMS", provider === ACP_CUSTOM_PROVIDER ? "Enter a command for the custom agent" : "Unknown agent");
+    const command = requireString({ command: launch.command ?? preset!.command }, "command");
+    if (!command.trim() || command.includes("\0"))
+      throw new RpcError("INVALID_PARAMS", "Invalid agent executable");
+    const custom = typeof launch.name === "string" ? launch.name.trim().slice(0, 80) : "";
+    return {
+      provider,
+      name: preset?.name ?? (custom || "Custom agent"),
+      command,
+      args: strings(launch.args ?? (preset ? [...preset.args] : [])),
+    };
   }
   async call(
     owner: string,
@@ -493,34 +527,9 @@ export class AgentACP {
     const text = requireString(params, "text", MAX_BYTES);
     if (!text.trim()) throw new Error("Enter a message");
     const prompt: Params[] = [{ type: "text", text }];
-    if (params.context !== undefined) {
-      if (!Array.isArray(params.context) || params.context.length > 8)
-        throw new Error("Attach up to eight context items");
-      for (const item of params.context) {
-        const content = requireString(item, "text", 200000);
-        const relative = requireString(item, "path");
-        const absolute = await this.files.resolve(relative);
-        const label =
-          typeof item.label === "string" ? item.label.slice(0, 1024) : relative;
-        if (agent.connection.capabilities?.promptCapabilities?.embeddedContext)
-          prompt.push({
-            type: "resource",
-            resource: {
-              uri:
-                pathToFileURL(absolute).href +
-                (Number.isSafeInteger(item.line) ? `#L${item.line}` : ""),
-              mimeType: "text/plain",
-              text: `Editor snapshot: ${label}\n${content}`,
-            },
-          });
-        else
-          prompt.push({
-            type: "text",
-            text: `Attached editor context: ${label}\n${content}`,
-          });
-      }
-    }
-    if (Buffer.byteLength(JSON.stringify(prompt)) > MAX_BYTES)
+    // Context-free prompts stay synchronous so a concurrent prompt hits the busy check first.
+    if (params.context !== undefined) prompt.push(...await this.contextBlocks(agent, params.context));
+    if (Buffer.byteLength(JSON.stringify(prompt.filter((block) => block.type !== "image"))) > MAX_BYTES)
       throw new Error("The message and attachments are too large");
     // Resolving attached paths yields; another request may have taken this connection.
     if (agent.busy || agent.stopped || agent.connection.sessionId !== sessionId)
@@ -529,7 +538,9 @@ export class AgentACP {
     agent.busy = true;
     agent.turn++;
     if (agent.title === "New conversation") agent.title = text.slice(0, 100);
-    this.publish(agent, "acp.turnStarted", { messageId, text, context: params.context ?? [] });
+    this.publish(agent, "acp.turnStarted", {
+      messageId, text, context: JSON.parse(JSON.stringify(params.context ?? [], withoutImageData)),
+    });
     const abort = () => this.stopAgent(agent, "Agent request interrupted");
     signal?.addEventListener("abort", abort, { once: true });
     let stopReason: string | undefined;
@@ -559,6 +570,49 @@ export class AgentACP {
       }
     }
   }
+  /** Validates attached context and converts it into ACP prompt content blocks. */
+  private async contextBlocks(agent: Agent, context: unknown): Promise<Params[]> {
+    if (context === undefined) return [];
+    if (!Array.isArray(context) || context.length > 8)
+      throw new Error("Attach up to eight context items");
+    if (context.filter((item) => item?.kind === "image").length > MAX_IMAGES)
+      throw new Error(`Attach up to ${MAX_IMAGES} images per message`);
+    const blocks: Params[] = [];
+    for (const item of context) {
+      if (item?.kind === "image") {
+        if (!agent.connection.capabilities?.promptCapabilities?.image)
+          throw new RpcError("INVALID_PARAMS", "This agent does not accept images");
+        const mimeType = requireString(item, "mimeType", 64);
+        const data = requireString(item, "data", MAX_IMAGE_DATA);
+        if (!IMAGE_TYPES.includes(mimeType) || !data || !/^[A-Za-z0-9+/]+={0,2}$/.test(data))
+          throw new RpcError("INVALID_PARAMS", "Invalid image attachment");
+        blocks.push({ type: "image", mimeType, data });
+        continue;
+      }
+      const content = requireString(item, "text", 200000);
+      const relative = requireString(item, "path");
+      const absolute = await this.files.resolve(relative);
+      const label =
+        typeof item.label === "string" ? item.label.slice(0, 1024) : relative;
+      if (agent.connection.capabilities?.promptCapabilities?.embeddedContext)
+        blocks.push({
+          type: "resource",
+          resource: {
+            uri:
+              pathToFileURL(absolute).href +
+              (Number.isSafeInteger(item.line) ? `#L${item.line}` : ""),
+            mimeType: "text/plain",
+            text: `Editor snapshot: ${label}\n${content}`,
+          },
+        });
+      else
+        blocks.push({
+          type: "text",
+          text: `Attached editor context: ${label}\n${content}`,
+        });
+    }
+    return blocks;
+  }
   private publishQueue(agent: Agent) {
     this.publish(agent, "acp.queue", { queue: agent.queue, paused: agent.queuePaused });
     return { queue: [...agent.queue], paused: agent.queuePaused };
@@ -569,18 +623,14 @@ export class AgentACP {
     const text = requireString(params, "text", MAX_BYTES).trim();
     if (!text) throw new Error("Enter a message");
     const messageId = params.messageId === undefined ? randomUUID() : requireString(params, "messageId", 256);
-    if (params.context !== undefined) {
-      if (!Array.isArray(params.context) || params.context.length > 8)
-        throw new Error("Attach up to eight context items");
-      for (const item of params.context) {
-        requireString(item, "text", 200000);
-        await this.files.resolve(requireString(item, "path"));
-      }
-    }
+    if (params.context !== undefined) await this.contextBlocks(agent, params.context);
     if (agent.stopped) throw new Error("Agent connection has ended");
     if (agent.queue.some((p) => p.id === messageId)) return this.publishQueue(agent);
     const prompt: ACPQueuedPrompt = { id: messageId, text, ...(params.context ? { context: structuredClone(params.context) } : {}) };
-    if (agent.queue.length >= 16 || Buffer.byteLength(JSON.stringify([...agent.queue, prompt])) > MAX_BYTES)
+    const queued = [...agent.queue, prompt];
+    const imageData = queued.flatMap((p) => p.context ?? []).reduce((n, item) => n + (item.data?.length ?? 0), 0);
+    if (agent.queue.length >= 16 || imageData > MAX_QUEUED_IMAGE_DATA
+      || Buffer.byteLength(JSON.stringify(queued, withoutImageData)) > MAX_BYTES)
       throw new Error("Queued messages exceed the limit; remove a message first");
     if (interrupt) {
       agent.queue.unshift(prompt);

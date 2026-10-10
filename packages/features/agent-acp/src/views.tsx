@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
 import { createTwoFilesPatch } from "diff";
 import { Icon, IconButton, translate as tr } from "@oxbit/ui";
 import type { ACPContext } from "@oxbit/sdk";
-import { providerFor, type AgentController } from "./controller.js";
+import { type AgentController } from "./controller.js";
+import { agentName } from "./launch.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: true });
 export function markdownHTML(text: string) {
@@ -117,6 +118,19 @@ export function FilePatch({
   );
 }
 export function ContextItem({ item }: { item: ACPContext }) {
+  if (item.kind === "image")
+    return (
+      <span className="acp-context-item acp-image-item" title={item.label || item.path}>
+        {item.data ? (
+          <img src={`data:${item.mimeType};base64,${item.data}`} alt={item.label || item.path} />
+        ) : (
+          <Icon name="files" size={14} />
+        )}
+        <span>
+          {item.label || item.path} <span className="muted">{item.text}</span>
+        </span>
+      </span>
+    );
   return (
     <details className="acp-context-item">
       <summary>
@@ -129,14 +143,50 @@ export function ContextItem({ item }: { item: ACPContext }) {
     </details>
   );
 }
+const TOOL_KINDS: Record<string, [icon: string, label: string]> = {
+  read: ["eye", "Read"],
+  edit: ["pencil", "Edit"],
+  delete: ["trash", "Delete"],
+  move: ["goto", "Move"],
+  search: ["search", "Search"],
+  execute: ["terminal", "Execute"],
+  think: ["bulb", "Think"],
+  fetch: ["cloud", "Fetch"],
+  switch_mode: ["sync", "Switch mode"],
+  other: ["tasks", "Other"],
+};
+const TOOL_STATUS: Record<string, string> = {
+  pending: "Pending",
+  in_progress: "Running",
+  completed: "Completed",
+  failed: "Failed",
+};
+export function ToolStatus({ status = "pending" }: { status?: string }) {
+  const label = tr(TOOL_STATUS[status] ?? status);
+  return (
+    <span className="acp-tool-status" data-status={status} role="img" aria-label={label} title={label}>
+      {status === "completed" ? (
+        <Icon name="check" size={14} />
+      ) : status === "failed" ? (
+        <Icon name="x" size={14} />
+      ) : (
+        <span className="acp-spinner" />
+      )}
+    </span>
+  );
+}
 function ToolCard({ id, agent }: { id: string; agent: AgentController }) {
   const tool = agent.tools.get(id);
   if (!tool) return null;
+  const kind = TOOL_KINDS[tool.kind] ? tool.kind : "other";
   return (
-    <details className="acp-card acp-tool" data-status={tool.status}>
+    <details className="acp-card acp-tool" data-status={tool.status} data-kind={kind}>
       <summary>
-        <span>{tool.title || tr("Agent tool")}</span>
-        <span className="acp-tool-status">{tr(tool.status ?? "pending")}</span>
+        <span className="acp-tool-kind" role="img" aria-label={tr(TOOL_KINDS[kind][1])}>
+          <Icon name={TOOL_KINDS[kind][0]} size={14} />
+        </span>
+        <span className="acp-tool-title">{tool.title || tr("Agent tool")}</span>
+        <ToolStatus status={tool.status} />
       </summary>
       {(tool.locations ?? []).map((location: any, index: number) => (
         <button
@@ -191,9 +241,56 @@ function ToolCard({ id, agent }: { id: string; agent: AgentController }) {
     </details>
   );
 }
+function WorkingRow({ agent }: { agent: AgentController }) {
+  const row = useRef<HTMLDivElement>(null);
+  const [turn, setTurn] = useState<{ started: number; now: number }>();
+  const busy = agent.busy;
+  useEffect(() => {
+    if (!busy) return setTurn(undefined);
+    const started = agent.turnStartedAt ?? Date.now();
+    setTurn({ started, now: started });
+    const node = row.current;
+    let visible = true;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const sync = () => {
+      clearInterval(timer);
+      timer = undefined;
+      if (visible && document.visibilityState === "visible") {
+        setTurn({ started, now: Date.now() });
+        timer = setInterval(() => setTurn({ started, now: Date.now() }), 1000);
+      }
+    };
+    const observer = typeof IntersectionObserver === "function" && node
+      ? new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); })
+      : undefined;
+    if (node) observer?.observe(node);
+    document.addEventListener("visibilitychange", sync);
+    sync();
+    return () => {
+      clearInterval(timer);
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [busy]);
+  if (!busy) return null;
+  const waiting = agent.requests.length > 0;
+  const seconds = turn ? Math.max(0, Math.floor((turn.now - turn.started) / 1000)) : 0;
+  const elapsed = seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  return (
+    <div ref={row} className="acp-working" data-waiting={waiting || undefined}>
+      {waiting ? <Icon name="warning" size={14} /> : <span className="acp-spinner" />}
+      <span>{waiting ? tr("Waiting for your approval") : `${tr("Working")} · ${elapsed}`}</span>
+    </div>
+  );
+}
 export function ActivityFeed({ agent }: { agent: AgentController }) {
   const [copied, setCopied] = useState<number>();
+  const connection = agent.connection?.id, last = agent.activity.at(-1), busy = agent.busy;
+  useEffect(() => {
+    if (connection && !busy) agent.checkpoints.refresh();
+  }, [agent, connection, busy, last]);
   return (
+    <>
     <div
       role="log"
       aria-label={tr("Agent conversation")}
@@ -220,7 +317,7 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
           )
         ) : entry.kind === "notice" ? (
           <p className="acp-turn-note" key={index}>
-            {tr(entry.text)}
+            {tr(entry.text, entry.values)}
           </p>
         ) : entry.message.role === "thought" ? (
           <details className="acp-message acp-thinking" key={index}>
@@ -234,10 +331,20 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
               <strong>
                 {entry.message.role === "user"
                   ? tr("You")
-                  : providerFor(
+                  : agentName(
                       agent.connection?.provider ?? agent.launch.provider,
-                    ).name}
+                      agent.connection,
+                    )}
               </strong>
+              {entry.message.role === "user" && agent.connection && agent.checkpoints.differs(entry.message) && (
+                <button
+                  className="button acp-checkpoint-restore"
+                  disabled={agent.busy || agent.connecting || agent.requests.length > 0 || agent.activeSubagentCount > 0 || agent.checkpoints.restoring}
+                  onClick={() => void agent.action(() => agent.restoreCheckpoint(entry.message))}
+                >
+                  {tr("Restore checkpoint")}
+                </button>
+              )}
               <IconButton
                 icon={copied === index ? "check" : "copy"}
                 label="Copy message"
@@ -262,6 +369,8 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
         ),
       )}
     </div>
+    <WorkingRow agent={agent} />
+    </>
   );
 }
 export function ConversationBrowser({ agent }: { agent: AgentController }) {
@@ -296,7 +405,7 @@ export function ConversationBrowser({ agent }: { agent: AgentController }) {
         <article className="acp-history-entry" key={entry.id}>
           <strong>{entry.title}</strong>
           <span className="muted">
-            {providerFor(entry.provider).name} ·{" "}
+            {entry.name || agentName(entry.provider)} ·{" "}
             {new Date(entry.updatedAt).toLocaleString()}
           </span>
           {entry.truncated && (

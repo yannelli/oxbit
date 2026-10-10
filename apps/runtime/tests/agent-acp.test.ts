@@ -181,10 +181,42 @@ describe("ACP runtime bridge", () => {
     const { agent } = await setup();
     await expect(
       agent.start("client", { provider: "unknown" as any }),
-    ).rejects.toThrow("Choose");
+    ).rejects.toThrow("Unknown agent");
     await expect(
       agent.start("client", { provider: "amp", command: "/missing/oxbit-acp" }),
     ).rejects.toThrow("Could not launch");
+    await expect(
+      agent.start("client", { provider: "custom", command: " " }),
+    ).rejects.toThrow("Enter a command for the custom agent");
+    await expect(
+      agent.start("client", { provider: "unknown", registry: { id: "../x" } }),
+    ).rejects.toThrow("Invalid ACP Registry agent");
+    await expect(
+      agent.start("client", { provider: "remote", registry: { id: "remote-agent" } }),
+    ).rejects.toThrow("cannot launch ACP Registry agents");
+  });
+  it("names preset and custom agents and maps registry entries to built-in presets", async () => {
+    const { agent, connection } = await setup();
+    expect(connection).toMatchObject({ provider: "codex", name: "Codex ACP" });
+    const custom = await agent.start("client", {
+      provider: "custom",
+      command: process.execPath,
+      args: [fixture],
+      name: `  ${"My agent ".repeat(20)}`,
+    });
+    expect(custom.provider).toBe("custom");
+    expect(custom.name).toBe("My agent ".repeat(20).slice(0, 80));
+    await agent.call("client", custom.id, "session/new");
+    await expect(
+      agent.call("client", custom.id, "session/prompt", { text: "Hello" }),
+    ).resolves.toEqual({ stopReason: "end_turn" });
+    const unnamed = await agent.start("client", { provider: "custom", command: process.execPath, args: [fixture] });
+    expect(unnamed.name).toBe("Custom agent");
+    const resolve = (launch: object) => (agent as any).resolveLaunch(launch);
+    await expect(resolve({ provider: "ignored", registry: { id: "codex-acp" }, command: "/bin/false" })).resolves.toEqual({
+      provider: "codex", name: "Codex ACP", command: "npx", args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
+    });
+    await expect(resolve({ provider: "x", registry: { id: "cursor" } })).resolves.toMatchObject({ provider: "cursor", command: "agent", args: ["acp"] });
   });
   it("discovers workspace sessions, restores replay before the response, and continues after a process restart", async () => {
     const { root, agent, connection, events } = await setup(["--history"]);
@@ -298,4 +330,22 @@ describe("ACP runtime bridge", () => {
       ).rejects.toThrow();
     },
   );
+  it.each([true, false])("sends image blocks only when the agent accepts images (%s)", async (accepted) => {
+    const { agent, connection, events } = await setup(accepted ? [] : ["--no-images"]);
+    const image = { kind: "image", path: "shot.png", text: "Image", mimeType: "image/png", data: "iVBORw0KGgo=" };
+    const prompt = agent.call("client", connection.id, "session/prompt", { text: "look", context: [image] });
+    if (!accepted) {
+      await expect(prompt).rejects.toThrow("does not accept images");
+      return;
+    }
+    await prompt;
+    expect(events.some((e) => e.params.update?.content?.text === "Received image image/png ")).toBe(true);
+    const started = events.find((e) => e.name === "acp.turnStarted")!;
+    expect(started.params.context[0]).toEqual({ kind: "image", path: "shot.png", text: "Image", mimeType: "image/png" });
+    for (const bad of [{ ...image, mimeType: "image/svg+xml" }, { ...image, data: "<svg>" }])
+      await expect(agent.call("client", connection.id, "session/prompt", { text: "look", context: [bad] }))
+        .rejects.toThrow("Invalid image attachment");
+    await expect(agent.call("client", connection.id, "session/prompt", { text: "look", context: Array(5).fill(image) }))
+      .rejects.toThrow("up to 4 images");
+  });
 });

@@ -10,17 +10,29 @@ export type Message = {
   role: "user" | "agent" | "thought";
   text: string;
   context?: ACPContext[];
+  /** User messages: git tree of the workspace before the prompt was sent. */
+  checkpoint?: string;
 };
 export type Activity =
   | { kind: "message"; message: Message }
   | { kind: "tool"; id: string }
   | { kind: "subagent"; id: string }
-  | { kind: "notice"; text: string };
+  | { kind: "notice"; text: string; values?: Record<string, string> };
+export type SavedLaunch = {
+  registry?: { id: string };
+  name?: string;
+  command?: string;
+  args?: string[];
+};
 export type Conversation = {
   id: string;
   sessionId: string;
   root: string;
   provider: ACPProviderId;
+  /** Display name at save time. Entries saved by 0.7.1 and earlier omit it. */
+  name?: string;
+  /** Launch fields needed to resume a registry or custom agent. */
+  launch?: SavedLaunch;
   title: string;
   updatedAt: string;
   draft: string;
@@ -31,6 +43,20 @@ export type Conversation = {
   subagentsTruncated?: boolean;
   truncated?: boolean;
 };
+function validLaunch(value: unknown): SavedLaunch | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const launch = value as Record<string, unknown>;
+  const registry = launch.registry as { id?: unknown } | undefined;
+  return {
+    registry: typeof registry?.id === "string" ? { id: registry.id } : undefined,
+    name: typeof launch.name === "string" ? launch.name : undefined,
+    command: typeof launch.command === "string" ? launch.command : undefined,
+    args:
+      Array.isArray(launch.args) && launch.args.every((arg) => typeof arg === "string")
+        ? launch.args
+        : undefined,
+  };
+}
 const MAX_BYTES = 4 * 1024 * 1024;
 /** Workspace-local history. Store only display data, never approvals or process handles. */
 export class ConversationHistory {
@@ -58,7 +84,8 @@ export class ConversationHistory {
               typeof entry.sessionId === "string" &&
               typeof entry.root === "string" &&
               typeof entry.title === "string" &&
-              ["codex", "cursor", "amp"].includes(entry.provider) &&
+              typeof entry.provider === "string" &&
+              /^[a-z0-9][a-z0-9._-]{0,63}$/.test(entry.provider) &&
               Array.isArray(entry.activity) &&
               Array.isArray(entry.tools) &&
               Array.isArray(entry.context),
@@ -66,6 +93,8 @@ export class ConversationHistory {
           .slice(0, 30)
           .map((entry) => ({
             ...entry,
+            name: typeof entry.name === "string" ? entry.name : undefined,
+            launch: validLaunch(entry.launch),
             subagents: Array.isArray(entry.subagents)
               ? entry.subagents
                   .filter(
