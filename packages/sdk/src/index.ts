@@ -1,4 +1,5 @@
 import type { PanelLayout, PanelTarget } from "./panels.js";
+import type { LanguageSelector } from "./language-servers.js";
 export * from "./panels.js";
 import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
@@ -45,6 +46,8 @@ export interface Setting {
   min?: number;
   max?: number;
   category?: string;
+  /** Element type of an `array` setting; string arrays get a list editor. */
+  items?: "string";
 }
 export type ContributionKind =
   | "activityView"
@@ -121,6 +124,8 @@ export interface ProviderDocument {
 }
 export interface LanguageTransportProvider {
   languages: string[];
+  /** Replaces `languages` for matching when present; patterns use `matchesFilePattern`. */
+  selectors?: LanguageSelector[];
   runtimeFallback?: boolean;
   createTransport(context: {
     workspaceId: string;
@@ -367,6 +372,33 @@ export interface FileSystem {
   delete(path: string): Promise<void>;
   watch(listener: (event: FileChange) => void): Disposable;
   dispose?(): void;
+  /** Content search with the runtime `search.query` semantics. Hosts without native search omit it. */
+  search?(options: WorkspaceSearchOptions, signal?: AbortSignal): Promise<WorkspaceSearchResult>;
+  /** Quick-open file paths whose lowercase form contains `query` as a subsequence, at most 1000. */
+  findFiles?(query: string, signal?: AbortSignal): Promise<string[]>;
+}
+export interface WorkspaceSearchOptions {
+  query: string;
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  regex?: boolean;
+  /** Comma-separated globs. */
+  include?: string;
+  exclude?: string;
+}
+/** `column`, `from`, and `to` count UTF-16 code units in the decoded file text. */
+export interface WorkspaceSearchMatch {
+  path: string;
+  line: number;
+  column: number;
+  from: number;
+  to: number;
+  text: string;
+  revision: string;
+}
+export interface WorkspaceSearchResult {
+  matches: WorkspaceSearchMatch[];
+  truncated: boolean;
 }
 export interface Persistence {
   get<T>(key: string): Promise<T | undefined>;

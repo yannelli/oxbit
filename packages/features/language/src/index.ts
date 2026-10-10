@@ -3,7 +3,7 @@ import { LanguageOverlays, semanticTypes, semanticModifiers } from "./overlays.j
 import { completionItems, completionTransactions } from "./completion.js";
 import { documentationPopups, showDocumentation, showSignature } from "./popups.js";
 import { logLinkExtensions } from "./log-links.js";
-import { languages, languageForKernel, matchesFilePattern, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings } from "@oxbit/sdk";
+import { languages, languageForKernel, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
 import { LocalLanguageTransport } from "./local.js";
 import { translate as tr } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
@@ -271,6 +271,7 @@ export class LanguageService {
     private providerContext?: {
       owner: LanguageService;
       languages: string[];
+      selectors?: LanguageSelector[];
       rootUri?: string;
       path?: string;
       createTransport?: () => LanguageTransport;
@@ -542,7 +543,7 @@ export class LanguageService {
       const configured = settings[id];
       if (configured?.enabled === false) return false;
       if (!configured?.selectors) return presets.includes(id);
-      return configured.selectors.some(selector => (!selector.language || selector.language === "*" || selector.language === definition.id) && (!selector.pattern || matchesFilePattern(selector.pattern, path)));
+      return selectorsMatch(configured.selectors, definition.id, path);
     }).sort((a, b) => (settings[b]?.priority ?? 0) - (settings[a]?.priority ?? 0) || a.localeCompare(b)).map(id => ({ id, language: definition.id, title: languages.find(item => item.id === definition.id)?.title ?? definition.id }));
   }
   servicesForPath(path: string): LanguageService[] {
@@ -596,6 +597,7 @@ export class LanguageService {
       const service = new LanguageService(this.o, transport, {
         owner: this,
         languages: provider.languages,
+        selectors: provider.selectors,
         rootUri: provider.rootUri,
         createTransport: () => provider.createTransport({ workspaceId: this.o.filesystem.id, signal: controller.signal }),
       });
@@ -695,7 +697,9 @@ export class LanguageService {
   }
   private accepts(path: string) {
     return this.providerContext
-      ? this.providerContext.path ? this.providerContext.path === path : this.providerContext.languages.includes("*") ||
+      ? this.providerContext.path ? this.providerContext.path === path
+        : this.providerContext.selectors ? selectorsMatch(this.providerContext.selectors, documentLanguage(this.o, path), path)
+        : this.providerContext.languages.includes("*") ||
           this.providerContext.languages.includes(
             documentLanguage(this.o, path),
           )
@@ -1738,6 +1742,7 @@ export class LanguageService {
     this.listeners.clear();
   }
 }
+export { managedServerExtensionId, managedServerIds, registerManagedServerFeatures } from "./managed-extensions.js";
 export function createFeature(o: FeatureOptions): Extension {
   let language: LanguageService;
   function Problems() {

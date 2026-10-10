@@ -6,18 +6,20 @@ mod git_operations;
 mod git_requests;
 mod icon_packs;
 pub mod remote_runtime;
+mod search;
+mod search_core;
 mod ssh;
 mod storage;
 mod watch;
 
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 use tauri::Manager;
 
 pub struct AppState {
     pub storage: storage::Storage,
     pub roots: Mutex<fs_core::Roots>,
     pub watchers: watch::Watchers,
-    pub language_servers: Mutex<()>,
+    pub language_servers: RwLock<()>,
     pub git: git_operations::Operations,
     pub ssh: ssh::Ssh,
 }
@@ -36,7 +38,7 @@ pub fn run() {
                 storage: storage::Storage::new(directory),
                 roots: Mutex::new(fs_core::Roots::default()),
                 watchers: watch::Watchers::default(),
-                language_servers: Mutex::new(()),
+                language_servers: RwLock::new(()),
                 git: git_operations::Operations::default(),
                 ssh,
             });
@@ -89,6 +91,8 @@ pub fn run() {
             ssh::fs_commands::ios_ssh_upload,
             ssh::fs_commands::ios_ssh_download,
             ssh::fs_commands::ios_ssh_transfer_cancel,
+            search::ios_search_request,
+            search::ios_search_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Oxbit");

@@ -14,7 +14,7 @@ use std::{
 
 pub const MAX_READ_BYTES: u64 = 20 * 1024 * 1024;
 pub const WATCH_ENTRY_LIMIT: usize = 10_000;
-const TEMP_PREFIX: &str = ".oxbit-tmp-";
+pub(crate) const TEMP_PREFIX: &str = ".oxbit-tmp-";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {

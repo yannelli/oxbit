@@ -210,7 +210,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .markdown-document>.preview-toolbar{flex:none;min-width:0;gap:8px}
 .markdown-document>.preview-toolbar>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .markdown-preview img{max-width:100%;height:auto}
-@media(max-width:650px){.html-preview-toolbar .icon-button,.html-preview-toolbar .button,.markdown-document>.preview-toolbar .button,.preview-resource-control select{min-height:44px;min-width:44px}.html-preview-toolbar{padding:2px 6px;gap:4px}}
+@media(max-width:650px){.html-preview-toolbar .icon-button,.html-preview-toolbar .button,.markdown-document>.preview-toolbar .button,.preview-resource-control select{min-height:44px;min-width:44px}.html-preview-toolbar{padding:2px 6px;gap:4px}/* WebKit keeps a native select at its own height, so draw the arrow to apply the touch size. */.preview-resource-control select{appearance:none;-webkit-appearance:none;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,var(--fg-3) 50%),linear-gradient(135deg,var(--fg-3) 50%,transparent 50%);background-position:right 15px center,right 10px center;background-size:5px 5px;background-repeat:no-repeat}}
 .markdown-preview h1,.markdown-preview h2,.markdown-preview h3{color:var(--preview-foreground)}
 .workbench .tree-row{min-height:max(var(--row),calc(var(--font-body-font-size) * var(--font-body-line-height) + 6px))}
 .theme-packs input[type=file]{max-width:100%}.theme-packs .toolbar{flex-wrap:wrap}.theme-packs .setting-row{overflow-wrap:anywhere}
@@ -866,3 +866,5 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 }
 
 .media-document{height:100%;min-height:0;min-width:0;display:flex;flex-direction:column}.media-document>.preview-toolbar{flex:none;gap:8px;min-width:0}.pdf-preview{flex:1;width:100%;min-height:0;border:0;background:var(--bg-surface)}.media-hint{margin:0;padding:6px 12px;font-size:calc(var(--font-small-font-size) * 1);color:var(--fg-3)}.audio-preview{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:var(--bg-surface)}.audio-preview>svg{color:var(--accent);flex:none}.audio-preview>h2{max-width:100%;overflow-wrap:anywhere;margin:0;font-size:calc(var(--font-heading-font-size) * 0.5625)}.audio-preview>p{margin:0}.audio-preview>audio{width:100%;max-width:480px;flex:none}
+.setting-list{display:flex;flex-direction:column;gap:6px;max-width:600px}.setting-list-row{display:flex;align-items:center;gap:4px}.setting-list-row>input{flex:1;min-width:0;height:28px;font-family:var(--font-mono)}.setting-list-row>input[aria-invalid=true]{border-color:var(--err)}.setting-list>.button{align-self:flex-start;display:flex;align-items:center;gap:4px}
+@media(max-width:599px){.setting-list-row>input{min-height:40px}.setting-list-row>.icon-button{width:40px;height:40px}}

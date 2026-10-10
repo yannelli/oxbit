@@ -1,5 +1,6 @@
 import ts from "typescript";
 import type { WorkspaceFiles, Position } from "./files.js";
+import type { NativeService } from "./server.js";
 
 const symbols: Record<string, number> = {
   module: 2, class: 5, interface: 11, type: 11, enum: 10, "enum member": 22, method: 6, function: 12,
@@ -10,7 +11,14 @@ const completionKinds: Record<string, number> = {
   interface: 8, module: 9, enum: 13, "enum member": 20, keyword: 14, type: 25, alias: 6,
 };
 
-export class TypeScriptServer {
+export class TypeScriptServer implements NativeService {
+  readonly name = "TypeScript / JavaScript (iOS)";
+  readonly languages = ["typescript", "typescriptreact", "javascript", "javascriptreact"];
+  readonly capabilities = {
+    completionProvider: { triggerCharacters: [".", "\"", "'"], resolveProvider: true }, hoverProvider: true, documentSymbolProvider: true,
+    definitionProvider: true, typeDefinitionProvider: true, implementationProvider: true, referencesProvider: true,
+    renameProvider: { prepareProvider: true }, signatureHelpProvider: { triggerCharacters: ["(", ","] },
+  };
   private generation = 0;
   private config: ts.ParsedCommandLine;
   private service: ts.LanguageService;

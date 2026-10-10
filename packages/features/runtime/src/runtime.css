@@ -30,6 +30,7 @@
 .runtime-facts dt { color: var(--fg-3); font-size: var(--font-small-font-size); }
 .runtime-facts dd { margin: 2px 0 0; font-family: var(--font-mono); font-size: var(--font-mono-font-size); overflow-wrap: anywhere; }
 .runtime-progress, .runtime-searching { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--fg-2); }
+.runtime-hint.runtime-denied { margin: 0 0 12px; color: var(--fg-2); }
 .runtime-spinner {
   width: 12px; height: 12px; flex: none; border-radius: 50%;
   border: 2px solid var(--bd-strong); border-top-color: var(--accent); animation: runtime-spin 0.9s linear infinite;

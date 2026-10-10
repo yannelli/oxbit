@@ -41,14 +41,20 @@ export class SettingsStore {
       ignored: file => !this.paths.some(target => target === file || target.startsWith(file + path.sep)),
       awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 25 },
     });
-    this.watcher.on("all", () => {
-      clearTimeout(this.timer);
-      this.timer = setTimeout(() => this.changed(), 75);
-      this.timer.unref();
-    });
+    this.watcher.on("all", () => this.schedule());
     this.watcher.on("error", () => this.changed());
     await new Promise<void>((resolve, reject) => { this.watcher!.once("ready", resolve); this.watcher!.once("error", reject); });
     return this;
+  }
+  private schedule() {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.changed(), 75);
+    this.timer.unref();
+  }
+  /** The polling watcher can miss a write followed quickly by a delete, so workspace edits through the runtime report here too. */
+  workspaceChanged(relativePath: string) {
+    const file = path.resolve(this.files.root, relativePath);
+    if (this.paths.some(target => target === file || target.startsWith(file + path.sep))) this.schedule();
   }
   private async authorized(file: string) {
     // A repository cannot redirect settings reads or writes outside its authorized root.

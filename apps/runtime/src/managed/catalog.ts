@@ -24,6 +24,9 @@ export const serverCatalog: readonly LanguageServerDefinition[] = [
   preset("intelephense", "Intelephense", ["php"], ["composer.json", ".git"]),
   preset("laravel", "Laravel", ["php", "blade"], ["artisan"]),
   preset("lemminx", "LemMinX", ["xml"], [".lemminx", "pom.xml", ".git"]),
+  preset("yaml", "YAML", ["yaml"], [".git"]),
+  preset("basedpyright", "basedpyright", ["python"], ["pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "requirements.txt", ".git"]),
+  preset("ruff", "Ruff", ["python"], ["pyproject.toml", "ruff.toml", ".ruff.toml", ".git"]),
 ];
 export interface LaunchSpec {
   schemaContent?: (uri: string) => Promise<string>;
@@ -36,6 +39,22 @@ export interface LaunchSpec {
   version?: string;
   companion?: LaunchSpec;
   dependencyRoots?: string[];
+  diagnostics?: (diagnostics: any[]) => any[];
+}
+/** basedpyright rules that repeat a Ruff check. Ruff keeps these and syntax errors; see docs/ios-language-servers.md. */
+export const ruffOwnedPyrightRules = [
+  "reportUndefinedVariable", "reportUnboundVariable", "reportUnsupportedDunderAll", "reportUnusedImport", "reportUnusedVariable",
+  "reportRedeclaration", "reportInvalidStringEscapeSequence", "reportAssertAlwaysTrue", "reportWildcardImportFromLibrary",
+];
+/** Turns off basedpyright's Ruff-overlapping rules and drops its parser errors, which have no rule code. User overrides win. */
+export function deferToRuff(spec: LaunchSpec): LaunchSpec {
+  const analysis = spec.settings?.basedpyright?.analysis ?? {};
+  const diagnosticSeverityOverrides = { ...Object.fromEntries(ruffOwnedPyrightRules.map(rule => [rule, "none"])), ...analysis.diagnosticSeverityOverrides };
+  return {
+    ...spec,
+    settings: { ...spec.settings, basedpyright: { ...spec.settings?.basedpyright, analysis: { ...analysis, diagnosticSeverityOverrides } } },
+    diagnostics: diagnostics => diagnostics.filter(item => item.code !== undefined),
+  };
 }
 const npmPresets: Record<string, [string, string, string[]?]> = {
   typescript: ["typescript-language-server", "lib/cli.mjs", ["typescript"]],
@@ -47,11 +66,13 @@ const npmPresets: Record<string, [string, string, string[]?]> = {
   dockerfile: ["dockerfile-language-server-nodejs", "bin/docker-langserver"],
   bash: ["bash-language-server", "out/cli.js"],
   intelephense: ["intelephense", "lib/intelephense.js"],
+  yaml: ["yaml-language-server", "bin/yaml-language-server", ["vscode-languageserver-protocol"]],
+  basedpyright: ["basedpyright", "langserver.index.js"],
 };
 export async function resolveLaunch(id: string, root: string, installer: ManagedInstaller, signal?: AbortSignal): Promise<LaunchSpec> {
-  if (id === "laravel") {
-    const binary = await installer.native("laravel", signal);
-    return { executable: binary.executable, args: [], version: binary.version };
+  if (id === "laravel" || id === "ruff") {
+    const binary = await installer.native(id, signal);
+    return { executable: binary.executable, args: id === "ruff" ? ["server"] : [], version: binary.version };
   }
   if (id === "marksman" || id === "taplo") {
     const binary = await installer.native(id, signal);
@@ -105,6 +126,11 @@ export async function resolveLaunch(id: string, root: string, installer: Managed
     spec.settings = { bashIde: { shellcheckPath: shellcheck.executable, shfmt: { path: "" } } };
   }
   if (id === "json") spec.settings = { json: { validate: { enable: true }, schemas: [] } };
+  if (id === "yaml") spec.settings = { yaml: { validate: true, hover: true, completion: true, format: { enable: true }, schemaStore: { enable: true, url: "https://www.schemastore.org/api/json/catalog.json" }, keyOrdering: false } };
+  if (id === "basedpyright") {
+    spec.dependencyRoots = [await fs.realpath(path.join(modules, "basedpyright/dist/typeshed-fallback"))];
+    spec.settings = { basedpyright: { analysis: { typeCheckingMode: "standard", diagnosticMode: "openFilesOnly" } } };
+  }
   if (id === "intelephense") {
     spec.dependencyRoots = [await fs.realpath(path.join(modules, "intelephense/lib/stub"))];
     spec.settings = { intelephense: { telemetry: { enabled: false } } };

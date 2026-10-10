@@ -232,7 +232,7 @@ export const ssh = {
 };
 
 export const native = {
-  lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json"; method: string; params: unknown }) =>
+  lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
   gitCredentials: (request: GitCredentialRequest) =>
     call<GitCredentials>("plugin:oxbit-files|git_credentials", { request }),
@@ -268,4 +268,11 @@ export const native = {
   openFolder: (id: string) => call<Folder>("plugin:oxbit-files|open_folder", { id }),
   closeFolder: (id: string) => call<void>("plugin:oxbit-files|close_folder", { id }),
   forgetFolder: (id: string) => call<void>("plugin:oxbit-files|forget_folder", { id }),
+};
+
+/** Workspace search on device roots; `method` is `search` for content or `files` for quick open. */
+export const search = {
+  request: <T>(id: string, requestId: string, method: "search" | "files", params: Record<string, unknown>) =>
+    call<T>("ios_search_request", { id, requestId, method, params }),
+  cancel: (id: string, requestId: string) => call<void>("ios_search_cancel", { id, requestId }),
 };

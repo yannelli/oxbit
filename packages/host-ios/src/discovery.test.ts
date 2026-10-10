@@ -39,6 +39,18 @@ describe("discovery.watch", () => {
     expect(invoke).toHaveBeenCalledWith(DISCOVERY, { request: { operation: "start" } });
   });
 
+  it("reports Local Network denial until iOS allows browsing", async () => {
+    vi.useFakeTimers();
+    const states = [true, true, false];
+    invoke.mockImplementation(async (_command: string, args: { request: { operation: string } }) =>
+      args.request.operation === "start" ? { runtimes: [], localNetworkDenied: false } : { runtimes: states.shift() === false ? [mac] : [], localNetworkDenied: states.length > 0 });
+    const seen: [unknown[], boolean][] = [];
+    const dispose = discovery.watch((runtimes, denied) => seen.push([runtimes, denied]));
+    for (let poll = 0; poll < 3; poll += 1) await vi.advanceTimersByTimeAsync(DISCOVERY_POLL_MS);
+    dispose();
+    expect(seen).toEqual([[[], false], [[], true], [[mac], false]]);
+  });
+
   it("does not poll when browsing cannot start", async () => {
     vi.useFakeTimers();
     invoke.mockRejectedValue(new Error("Files app folders need iOS"));

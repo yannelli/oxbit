@@ -3,7 +3,8 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { WorkspaceFiles } from "../src/filesystem.js";
-import { LanguageServerManager } from "../src/lsp-manager.js";
+import { LanguageServerManager, yamlSchemaSettings } from "../src/lsp-manager.js";
+import { deferToRuff, resolveLaunch, serverCatalog } from "../src/managed/catalog.js";
 import { fingerprint, lockedPackages, ManagedInstaller, managedPlatforms, verifyIntegrity } from "../src/managed/install.js";
 import nativeLock from "../src/managed/artifacts.lock.json" with { type: "json" };
 import { createHash } from "node:crypto";
@@ -89,6 +90,13 @@ describe("managed installation locks", () => {
     for (const entry of vue.values()) { expect(entry.integrity).toMatch(/^sha512-/); expect(entry.resolved).toMatch(/^https:\/\/registry.npmjs.org\//); }
     expect(fingerprint({ a: 1, b: { c: 2 } })).toBe(fingerprint({ b: { c: 2 }, a: 1 }));
   });
+  it("locks the YAML and basedpyright trees", () => {
+    for (const name of ["yaml-language-server", "basedpyright", "vscode-languageserver-protocol"]) {
+      const tree = lockedPackages([name]);
+      expect(tree.get(`node_modules/${name}`)?.version).toBe({ "yaml-language-server": "1.24.0", basedpyright: "1.40.2" }[name] ?? "3.18.3");
+      for (const entry of tree.values()) { expect(entry.integrity).toMatch(/^sha512-/); expect(entry.resolved).toMatch(/^https:\/\/registry.npmjs.org\//); }
+    }
+  });
   it("rejects corruption, unsupported platforms and cancelled downloads", async () => {
     const bytes = Buffer.from("verified");
     const integrity = "sha256-" + createHash("sha256").update(bytes).digest("base64");
@@ -162,4 +170,63 @@ it("repairs an interrupted installed tree after staging a complete replacement",
   expect(await fs.readFile(path.join(target, "server"), "utf8")).toBe("first");
   expect(await installer.install("fixture", "digest", async (stage: string) => fs.writeFile(path.join(stage, "server"), "repaired"))).toBe(target);
   expect(await fs.readFile(path.join(target, "server"), "utf8")).toBe("repaired");
+});
+
+describe("YAML and Python presets", () => {
+  async function fakeInstaller() {
+    const { root } = await setup();
+    const directory = path.join(root, "npm-install"), modules = path.join(directory, "node_modules"), installs: string[][] = [];
+    await fs.mkdir(path.join(modules, "basedpyright/dist/typeshed-fallback"), { recursive: true });
+    const installer = {
+      cache: path.join(root, "cache"),
+      npm: async (id: string, roots: string[]) => (installs.push(roots), { directory, version: `${roots[0]}@locked`, integrity: id }),
+      native: async (id: string) => ({ directory, executable: path.join(directory, id), version: `${id}@pinned`, integrity: id }),
+    } as unknown as ManagedInstaller;
+    return { root, installer, modules, installs };
+  }
+  it("registers the presets for their languages", () => {
+    const languages = Object.fromEntries(serverCatalog.map(preset => [preset.id, preset.selectors.map(selector => selector.language)]));
+    expect(languages).toMatchObject({ yaml: ["yaml"], basedpyright: ["python"], ruff: ["python"] });
+  });
+  it("launches yaml-language-server over stdio with schema store settings", async () => {
+    const { root, installer, modules, installs } = await fakeInstaller();
+    const spec = await resolveLaunch("yaml", root, installer);
+    expect(installs).toEqual([["yaml-language-server", "vscode-languageserver-protocol"]]);
+    expect(spec.executable).toBe(process.execPath);
+    expect(spec.args.slice(-2)).toEqual([path.join(modules, "yaml-language-server/bin/yaml-language-server"), "--stdio"]);
+    expect(spec.version).toBe("yaml-language-server@locked");
+    expect(spec.settings).toEqual({ yaml: { validate: true, hover: true, completion: true, format: { enable: true }, schemaStore: { enable: true, url: "https://www.schemastore.org/api/json/catalog.json" }, keyOrdering: false } });
+  });
+  it("disables the YAML schema store with the JSON schema gates", () => {
+    const settings = { yaml: { schemaStore: { enable: true, url: "https://example.test/catalog.json" }, hover: true } };
+    expect(yamlSchemaSettings(settings, { catalog: true, download: true }).yaml.schemaStore).toEqual(settings.yaml.schemaStore);
+    expect(yamlSchemaSettings(settings, { catalog: false, download: true }).yaml.schemaStore.enable).toBe(false);
+    expect(yamlSchemaSettings(settings, { catalog: true, download: false }).yaml).toEqual({ hover: true, schemaStore: { enable: false, url: "https://example.test/catalog.json" } });
+    expect(yamlSchemaSettings({ yaml: { schemaStore: { enable: false } } }, { catalog: true, download: true }).yaml.schemaStore.enable).toBe(false);
+  });
+  it("launches basedpyright over stdio with standard open-file checking", async () => {
+    const { root, installer, modules, installs } = await fakeInstaller();
+    const spec = await resolveLaunch("basedpyright", root, installer);
+    expect(installs).toEqual([["basedpyright"]]);
+    expect(spec.args.slice(-2)).toEqual([path.join(modules, "basedpyright/langserver.index.js"), "--stdio"]);
+    expect(spec.version).toBe("basedpyright@locked");
+    expect(spec.settings).toEqual({ basedpyright: { analysis: { typeCheckingMode: "standard", diagnosticMode: "openFilesOnly" } } });
+    expect(spec.dependencyRoots).toEqual([await fs.realpath(path.join(modules, "basedpyright/dist/typeshed-fallback"))]);
+  });
+  it("hands overlapping Python checks and syntax errors to Ruff", async () => {
+    const { root, installer } = await fakeInstaller();
+    const launched = await resolveLaunch("basedpyright", root, installer);
+    const spec = deferToRuff({ ...launched, settings: { basedpyright: { analysis: { ...launched.settings!.basedpyright.analysis, diagnosticSeverityOverrides: { reportUnusedImport: "warning" } } } } });
+    expect(spec.settings!.basedpyright.analysis).toMatchObject({ typeCheckingMode: "standard", diagnosticSeverityOverrides: { reportUndefinedVariable: "none", reportUnusedVariable: "none", reportUnusedImport: "warning" } });
+    expect(spec.diagnostics!([{ code: "reportAttributeAccessIssue", message: "missing" }, { message: "Expected expression" }])).toEqual([{ code: "reportAttributeAccessIssue", message: "missing" }]);
+    const { manager } = await setup();
+    const withRuff = await manager.attach("main.py", "one", {}, {}, "basedpyright");
+    const alone = await manager.attach("main.py", "one", { ruff: { enabled: false } }, {}, "basedpyright");
+    expect(alone.instanceId).not.toBe(withRuff.instanceId);
+  });
+  it("launches the pinned Ruff binary as a language server", async () => {
+    const { root, installer } = await fakeInstaller();
+    const spec = await resolveLaunch("ruff", root, installer);
+    expect(spec).toEqual({ executable: path.join(root, "npm-install", "ruff"), args: ["server"], version: "ruff@pinned" });
+  });
 });

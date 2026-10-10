@@ -21,6 +21,16 @@ async function fixture() {
 }
 
 describe("merged settings files", () => {
+  it("reports runtime edits to settings files without waiting for the watcher", async () => {
+    const { store, events } = await fixture();
+    const before = events();
+    store.workspaceChanged("notes.txt");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(events()).toBe(before);
+    store.workspaceChanged(".config/oxbit");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(events()).toBe(before + 1);
+  });
   it("creates private defaults, migrates old settings once and never creates root overrides", async () => {
     const { root, store } = await fixture();
     await fs.mkdir(path.join(root, ".oxbit"));

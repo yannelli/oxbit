@@ -196,7 +196,8 @@ export function createFeature(o: FeatureOptions): Extension {
   const fontOptions = () => { const font=themeTypography(o.kernel,'terminal');return {fontFamily:fontFamily(font),fontSize:font.size,fontWeight:font.weight as 400,fontWeightBold:Math.min(900,font.weight+300) as 700,lineHeight:font.lineHeight,letterSpacing:font.letterSpacing}; };
   function TerminalPane({ session }: { session: Session }) {
     const ref = useRef<HTMLDivElement>(null),
-      searchRef = useRef<HTMLInputElement>(null);
+      searchRef = useRef<HTMLInputElement>(null),
+      tap = useRef<{ x: number; y: number }>(undefined);
     const [query, setQuery] = useState("");
     const [searching, setSearching] = useState(false);
     useEffect(() => { if (searching) searchRef.current?.focus(); }, [searching]);
@@ -367,6 +368,13 @@ export function createFeature(o: FeatureOptions): Extension {
         ref,
         style: { flex: 1, minHeight: 0, padding: 4 },
         onFocus: () => select(session.id),
+        // A touch tap reaches xterm without mouse events, so its input never takes focus and the keyboard stays closed.
+        onPointerDown: (event: React.PointerEvent) => { tap.current = event.pointerType === "touch" ? { x: event.clientX, y: event.clientY } : undefined; },
+        onPointerUp: (event: React.PointerEvent) => {
+          const start = tap.current;
+          tap.current = undefined;
+          if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 10) session.terminal?.focus();
+        },
       }),
     );
   }

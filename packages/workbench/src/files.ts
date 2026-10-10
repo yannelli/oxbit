@@ -37,6 +37,7 @@ export async function findWorkspaceFiles(
 ): Promise<string[]> {
   const term = query.trim().toLowerCase();
   if (!term) return [];
+  if (filesystem.findFiles) return filesystem.findFiles(term, signal);
   const matches: string[] = [];
   for await (const entry of workspaceEntries(filesystem, {
     signal,

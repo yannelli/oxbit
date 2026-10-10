@@ -380,7 +380,10 @@ export class LanguageServer {
         const adding = message.method === "client/registerCapability";
         const registrations = adding ? message.params?.registrations : message.params?.unregisterations;
         const syncMethods = ["textDocument/didOpen", "textDocument/didClose", "textDocument/didChange", "textDocument/didSave", "textDocument/willSave", "textDocument/willSaveWaitUntil"];
-        const supported = (item: any) => item && typeof item.id === "string" && (lspCapabilityKeys[item.method] || syncMethods.includes(item.method) || item.method === "workspace/didChangeConfiguration" || item.method === "workspace/didChangeWorkspaceFolders" || item.method === "workspace/didChangeWatchedFiles" && Array.isArray(item.registerOptions?.watchers) && item.registerOptions.watchers.every((watcher: any) => lspWatchPattern(watcher.globPattern, pathToFileURL(this.options.root ?? this.files.root).href) !== undefined && (watcher.kind === undefined || Number.isInteger(watcher.kind) && watcher.kind >= 1 && watcher.kind <= 7)));
+        // basedpyright exits when a registration fails, and it watches the interpreter's library folders.
+        // Watchers outside the workspace are accepted; watched() reports workspace changes only.
+        const watcherShape = (watcher: any) => (typeof watcher?.globPattern === "string" || typeof watcher?.globPattern?.pattern === "string") && (watcher.kind === undefined || Number.isInteger(watcher.kind) && watcher.kind >= 1 && watcher.kind <= 7);
+        const supported = (item: any) => item && typeof item.id === "string" && (lspCapabilityKeys[item.method] || syncMethods.includes(item.method) || item.method === "workspace/didChangeConfiguration" || item.method === "workspace/didChangeWorkspaceFolders" || item.method === "workspace/didChangeWatchedFiles" && Array.isArray(item.registerOptions?.watchers) && item.registerOptions.watchers.every(watcherShape));
         if (!Array.isArray(registrations) || new Set(registrations.map(item => item?.id)).size !== registrations.length || registrations.some(item => adding ? !supported(item) || this.registrations.has(item.id) : this.registrations.get(item.id)?.method !== item.method)) {
           this.send({ id: message.id, error: { code: -32602, message: "Unsupported or unknown capability registration" } });
         } else {
@@ -427,6 +430,7 @@ export class LanguageServer {
       }).catch(() => null).then(result => { if (this.child === child) this.send({ jsonrpc: "2.0", method: "tsserver/response", params: Array.isArray(message.params?.[0]) ? [[id, result?.body ?? null]] : [id, result?.body ?? null] }); });
       return;
     }
+    if (message.method === "textDocument/publishDiagnostics" && this.launchSpec?.diagnostics) message.params = { ...message.params, diagnostics: this.launchSpec.diagnostics(message.params.diagnostics ?? []) };
     if (message.method === "textDocument/publishDiagnostics" && this.companion) {
       this.primaryDiagnostics.set(message.params.uri, message.params.diagnostics ?? []);
       this.emit(message.method, { ...message.params, diagnostics: [...(message.params.diagnostics ?? []), ...(this.companionDiagnostics.get(message.params.uri) ?? [])] }); return;

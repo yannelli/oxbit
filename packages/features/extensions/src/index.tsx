@@ -218,12 +218,14 @@ export function ExtensionDetails({
             >
               {tr("Update from URL…")}
             </button>
-            <button
-              className="button"
-              onClick={() => void workbench.run("settings.open")}
-            >
-              {tr("Configure")}
-            </button>
+            {!!record.manifest.configuration?.length && (
+              <button
+                className="button"
+                onClick={() => void workbench.run("settings.open", { extension: id })}
+              >
+                {tr("Configure")}
+              </button>
+            )}
           </div>
         </div>
       </div>

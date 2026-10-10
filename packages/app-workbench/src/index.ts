@@ -26,7 +26,7 @@ import {
   rainbowIconPack,
 } from "@oxbit/feature-themes";
 import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
-import { createFeature as languageFeature } from "@oxbit/feature-language";
+import { createFeature as languageFeature, registerManagedServerFeatures } from "@oxbit/feature-language";
 import { createFeature as searchFeature } from "@oxbit/feature-search";
 import { createFeature as previewsFeature } from "@oxbit/feature-previews";
 import { createFeature as imagesFeature } from "@oxbit/feature-images";
@@ -217,6 +217,7 @@ export async function createWorkbenchSession({
       if (disabled.includes(feature.manifest.id) ||
           (feature.manifest.enabledByDefault === false && !enabled.includes(feature.manifest.id)))
         await kernel.extensions.disable(feature.manifest.id);
+    if (runtime) await registerManagedServerFeatures(kernel, disabled);
     for (const [savedId, url] of Object.entries(
       (await persistence.get<Record<string, string>>("extension-artifacts")) ||
         {},

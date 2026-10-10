@@ -117,6 +117,7 @@ if (mode === "upload") {
 }
 if (mode === "check") {
   run("bun", ["run", "--filter", "@oxbit/ios", "build"]);
+  run("node", ["scripts/ios/language-server-notices.mjs", "--check"]);
   const nativeTests = mkdtempSync(join(tmpdir(), "oxbit-ios-language-"));
   try {
     const binary = join(nativeTests, "language-server-files");
@@ -147,6 +148,23 @@ if (mode === "check") {
       "-o", runtimeDownload,
     ]);
     run(runtimeDownload, []);
+    const schemaCache = join(nativeTests, "schema-cache");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/SchemaCache.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/SchemaCache/main.swift",
+      "-o", schemaCache,
+    ]);
+    run(schemaCache, []);
+    const bundles = join(nativeTests, "language-server-bundle");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/LanguageServerFiles.swift",
+      "apps/ios/plugins/oxbit-files/ios/Sources/SchemaCache.swift",
+      "apps/ios/plugins/oxbit-files/ios/Sources/LanguageServerRuntime.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/LanguageServerBundle/main.swift",
+      "-o", bundles,
+    ]);
+    // iOS app contexts run without the JIT.
+    run(bundles, ["apps/ios/src-tauri/gen/apple/assets/language-servers"], undefined, { ...process.env, JSC_useJIT: "0" });
   } finally {
     rmSync(nativeTests, { recursive: true, force: true });
   }

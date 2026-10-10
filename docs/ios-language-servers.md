@@ -1,25 +1,125 @@
 # Language servers on iOS
 
-Created: 2026-10-02. Last updated: 2026-10-02.
+Created: 2026-10-02. Last updated: 2026-10-09.
 
-Device folders support TypeScript, JavaScript, TSX, JSX, JSON, and JSONC without a computer connection. Open a supported file to start its server. The LSP status control supports stopping and restarting it. Disable **iOS Language Servers** in Extensions to turn off the device providers.
+Device folders get language servers without a computer connection. Each server is its own extension under **Extensions**:
 
-TypeScript and JavaScript provide diagnostics, completion, hover, definitions, type definitions, implementations, references, rename, document symbols, and signature help. The server reads the workspace's `tsconfig.json` or `jsconfig.json`, imports, installed type declarations, and unsaved open documents. JSON and JSONC provide diagnostics, completion, hover, and document symbols. JSON schemas resolve from workspace files. Remote schema downloads are unavailable.
+| Extension | Server | File types (default) |
+| --- | --- | --- |
+| `oxbit.language-typescript` | TypeScript language service | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
+| `oxbit.language-json` | vscode-json-languageservice | `json`, `jsonc` |
+| `oxbit.language-yaml` | yaml-language-server | `yaml` (`.yaml`, `.yml`) |
+| `oxbit.language-dockerfile` | dockerfile-language-service, dockerfile-utils | `dockerfile` (`Dockerfile`, `*.dockerfile`, `Containerfile`) |
+| `oxbit.language-shell` | bash-language-server analyser, tree-sitter-bash, shfmt | `shellscript` (`.sh`, `.bash`, bash/sh/dash/ksh shebangs) |
+| `oxbit.language-zsh` | Same bundle as shell, bash grammar | `zsh` (`.zsh`, `.zshrc`, zsh shebang) |
+| `oxbit.language-python` | Ruff (Wasm), basedpyright | `python` (`.py`, `.pyi`, python shebangs) |
 
-`scripts/ios/build-language-servers.mjs` bundles the existing TypeScript and JSON libraries and TypeScript standard declarations into `Resources/language-servers.js` and embeds it in `Sources/LanguageServerBundle.swift`. Swift compiles the script into the native plugin. Both the iOS dev and build commands generate these files. The generated files stay out of Git.
+- TypeScript and JavaScript: diagnostics, completion, hover, definitions, type definitions, implementations, references, rename, document symbols, signature help. Reads `tsconfig.json`/`jsconfig.json`, imports, and installed type declarations.
+- JSON: diagnostics, completion, hover, document symbols, formatting, with SchemaStore schemas (see Schemas).
+- YAML: diagnostics, completion, hover, document symbols, and formatting (Prettier inside yaml-language-server). Schemas come from SchemaStore catalog associations and `# yaml-language-server: $schema=` modelines. Kubernetes detection is off.
+- Dockerfile: diagnostics from dockerfile-utils, completion, hover, document symbols, signature help, and formatting. Image tag completion makes no network requests.
+- Bash and sh: syntax errors from the tree-sitter parse, completion (symbols, keywords, builtins), hover, definitions, references, highlights, and document symbols across open documents and up to 500 workspace `.sh`/`.bash`/`.zsh` files scanned once at start. shfmt formats with the bash dialect. ShellCheck is GPL-3.0 and is not included.
+- Zsh: the same features with the bash grammar. Syntax errors are not reported, because the bash grammar rejects valid zsh such as `${(f)x}` and `{ cmd }`. shfmt formats with its zsh dialect.
+- Python: Ruff diagnostics (default rules E, F, W; `line-length`, `select`, `ignore`, and `extend-select` from `.ruff.toml`, `ruff.toml`, or `[tool.ruff]` in `pyproject.toml` at the workspace root) and Ruff formatting. basedpyright adds type diagnostics, completion, hover, definitions, and signature help with `typeCheckingMode: "standard"`. basedpyright starts on the first opened Python file from a snapshot of the workspace's `.py`/`.pyi` files (8 MB cap). It runs in child JavaScriptCore contexts on the session's virtual machine; diagnostics wait up to 15 s for its first result, then fall back to Ruff alone. Each problem is reported once; see [Python: Ruff and basedpyright](#python-ruff-and-basedpyright).
 
-Swift runs each server in a JavaScriptCore context on a serial background queue. `ios_lsp_message` validates the open workspace before forwarding its canonical root to the native plugin. Filesystem callbacks check resolved paths against that root, including symlinks. They expose reads and directory listings. Closing a workspace releases its contexts before releasing folder access. LSP document changes carry unsaved editor text.
+WebAssembly modules load synchronously (`initSync`, `Language.loadSync`): on a dispatch queue, promises from `WebAssembly.instantiate` did not resolve.
 
-Connected computer workspaces use their runtime's existing LSPs. Device providers are registered for local folders. Executable-based desktop servers require a computer runtime.
+## Python: Ruff and basedpyright
+
+Ruff keeps every check both servers make, including syntax errors, because its parser also reports errors basedpyright misses (an invalid f-string conversion) and reports one error where basedpyright reports several. Ruff's fixes (remove an unused import) stay available. While Ruff runs, basedpyright sets these rules to `none` and drops its diagnostics without a rule code, which are parser and binder errors:
+
+| Problem | Ruff (kept) | basedpyright (off) |
+| --- | --- | --- |
+| Undefined name | F821, F405 | `reportUndefinedVariable` |
+| Local used before assignment, deleted name | F821, F823 | `reportUnboundVariable` |
+| Undefined name in `__all__` | F822 | `reportUnsupportedDunderAll` |
+| Unused import | F401 | `reportUnusedImport` |
+| Unused local variable | F841 | `reportUnusedVariable` |
+| Redefined function, class, or import | F811 | `reportRedeclaration` |
+| Invalid escape sequence | W605 | `reportInvalidStringEscapeSequence` |
+| `assert` on a tuple | F631 | `reportAssertAlwaysTrue` |
+| Wildcard import | F403 | `reportWildcardImportFromLibrary` |
+| Syntax errors, duplicate parameters, `return`/`yield`/`await`/`break`/`continue` outside their block, two starred targets, `except` order | `invalid-syntax`, F622, F701, F702, F704, F706, F707 | Diagnostics without a rule code |
+
+basedpyright keeps type checks, possibly-unbound names (`reportPossiblyUnbound`), attribute and call errors, and hints for unused parameters and unreachable code.
+
+- iOS: `packages/features/language/src/native/python.ts` (`ruffOwnedPyrightRules`). Ruff always runs in the Python bundle; if basedpyright does not start, Ruff's diagnostics are unchanged.
+- Desktop: `apps/runtime/src/managed/catalog.ts` (`deferToRuff`). The runtime applies it when the Ruff server is enabled and its file types match the file; with Ruff disabled, basedpyright reports everything. Overrides in `languageServers.basedpyright.settings.basedpyright.analysis.diagnosticSeverityOverrides` take precedence.
+- Desktop basedpyright registers file watchers for the Python interpreter's library folders and exits if `client/registerCapability` fails. `apps/runtime/src/lsp.ts` accepts watchers outside the workspace and reports workspace changes only.
+- Ruff's own rule selection (`select`, `ignore`) applies. A project that turns off F rules also turns off undefined-name checks while both servers run.
+- basedpyright's `No binding for nonlocal` error has no rule code, and Ruff's default rules do not report it, so it is dropped while Ruff runs.
+- A duplicate keyword argument in a call is still reported twice: Ruff `invalid-syntax` and basedpyright `reportCallIssue`, which also covers other call errors.
+
+## Settings
+
+**Configure** on an extension opens only that extension's settings.
+
+- `languageServer.<id>.fileTypes`: language IDs or glob patterns. An entry with `*`, `?`, `/`, or a leading `.` is a glob matched against the workspace path (`**/*.yaml.tmpl`, `.clang-format`); other entries are language IDs. The list becomes the transport's `selectors` (`packages/sdk/src/languages.ts` `fileTypesToSelectors`).
+- `json.schemaStore.enable`, `yaml.schemaStore.enable`: associate files with SchemaStore catalog schemas.
+- `json.schemaDownload.enable`, `yaml.schemaDownload.enable`: download schemas over HTTPS. When off, cached and bundled copies are used. `languageServers.json.settings.json.schemaDownload.enable: false` and the matching `schemaStore` and `yaml` keys from desktop also turn these off.
+
+Workspaces saved with the earlier single **iOS Language Servers** extension (`oxbit.ios-language`) disabled open with every server extension disabled (`migrateIosLanguageState` in `packages/host-ios/src/language.ts`).
+
+On desktop and connected runtimes, each managed server (`typescript`, `json`, `yaml`, `basedpyright`, `ruff`, `bash`, and the others in `apps/runtime/src/managed/catalog.ts`) is also an extension `oxbit.language-<id>`. Disabling one writes `languageServers.<id>.enabled: false`; its file types setting writes `languageServers.<id>.selectors`. Existing `languageServers` settings keep working.
+
+## Bundles
+
+`scripts/ios/build-language-servers.mjs` builds one IIFE bundle per server kind into `apps/ios/src-tauri/gen/apple/assets/language-servers/<kind>.js`, with the Wasm and worker files each kind loads and the bundled schemas. Xcode copies the `assets` folder into the app. The generated folder stays out of Git. Node built-ins resolve to `path-browserify` or empty stubs; any other built-in fails the build.
+
+Sizes on 2026-10-09 (bytes):
+
+| Kind | Script | Other files | Total |
+| --- | --- | --- | --- |
+| typescript | 6,821,576 | | 6,821,576 |
+| json | 159,599 | | 159,599 |
+| yaml | 1,179,692 | | 1,179,692 |
+| dockerfile | 314,044 | | 314,044 |
+| shell | 408,318 | tree-sitter-bash.wasm 1,358,679; web-tree-sitter.wasm 210,415; shfmt.wasm 400,843 | 2,378,255 |
+| python | 45,397 | ruff_wasm_bg.wasm 10,924,574; pyright.worker.js 17,982,887 | 28,952,858 |
+
+`assets/language-servers` is 39 MB in the simulator build (196 MB app). `OXBIT_LANGUAGE_SIZES=1 node scripts/ios/build-language-servers.mjs` prints the totals.
+
+## Runtime
+
+Swift (`LanguageServerRuntime.swift`) runs each session in its own JavaScriptCore context on a serial queue and loads only that session's bundle. The context gets timers, a monotonic clock, logging, `resource(name)` for bundled Wasm bytes, and `schema(uri, download, completion)` for JSON schemas. App contexts run without the JIT; WebAssembly runs in the IPInt interpreter. `ios_lsp_message` validates the open workspace; filesystem callbacks check resolved paths against its root, including symlinks. Closing a workspace releases its contexts before releasing folder access.
+
+## Schemas
+
+`SchemaCache.swift` serves schemas to the JSON and YAML servers and mirrors the desktop runtime's `apps/runtime/src/json-schemas.ts`:
+
+- HTTPS only (HTTP upgrades), no credentials or non-default ports, redirects must stay on HTTPS.
+- 5 MiB limit; JSON objects or booleans only.
+- Cached in `Caches/json-schemas` with a SHA-256 integrity check for 24 hours; offline requests use the stale copy.
+- A failed download waits 60 seconds before retrying.
+- First launch offline uses the bundled copies in `packages/features/language/schemas/`: a trimmed SchemaStore catalog, `package.json`, `tsconfig.json`, GitHub workflow, and Compose specification schemas (about 940 KB). Kubernetes is not bundled: SchemaStore's Kubernetes schema references a multi-megabyte definitions file.
 
 ## Validation
 
-The native server and transport tests run through `bun run test`. `bun run ios:check` builds the frontend and native server bundle, compiles and runs the Foundation filesystem tests, and checks the Rust host on macOS. `bun run ios:simulator` builds the iOS app for simulator checks.
+- `bun run test` runs the native server tests (`packages/features/language/src/native/*.test.ts`), the transport and extension tests (`packages/host-ios/src/language.test.ts`), and the desktop extension tests (`packages/features/language/src/managed-extensions.test.ts`).
+- `bun run ios:check` builds the bundles, runs the Swift filesystem and schema cache tests, and loads each bundle in JavaScriptCore with `JSC_useJIT=0` (`Tests/LanguageServerBundle/main.swift`). The harness prints load, initialize, first-diagnostics, and completion times per language.
+- `tests/ios/language-extensions.spec.ts` covers the Extensions list, migration, Configure, and the file types editor.
+
+Simulator timings (iPhone 17 Pro simulator, iOS 26.5, `JSC_useJIT=0`, cold run after boot, milliseconds since the bundle started loading):
+
+| Language | Load | Initialize | First diagnostics |
+| --- | --- | --- | --- |
+| TypeScript | 184 | 191 | 1,708 |
+| JSON | 5 | 33 | 104 |
+| YAML | 123 | 174 | 257 |
+| Dockerfile | 11 | 13 | 15 |
+| Bash | 19 | 55 | 55 |
+| Zsh | 18 | 36 | 39 (no diagnostics by design) |
+| Python (Ruff + basedpyright) | 2 | 3 | 7,866 |
+
+In the app with the JIT off, the time from tapping a file to the first underline was 715 ms (YAML), 736 ms (JSON), at most 840 ms (Dockerfile, shell), 2,144 ms (TypeScript), and 8,578 ms (Python). Ruff alone reached first diagnostics in 117 ms on macOS before basedpyright was added; basedpyright's first answer dominates the Python time. Peak memory of the macOS harness with Python loaded was 448 to 624 MB.
+
+## Research
+
+[On-device language research](ios-language-research.md) records the package choices, JIT-less Wasm measurements, and App Store rules.
 
 ## API references
 
-Use these references when changing the JavaScriptCore context or Rust-to-Swift bridge:
-
 - [Apple JavaScriptCore](https://developer.apple.com/documentation/javascriptcore) describes native JavaScript evaluation.
 - [Apple JSContext](https://developer.apple.com/documentation/javascriptcore/jscontext) documents context creation and script evaluation.
+- [JSVirtualMachine](https://developer.apple.com/documentation/javascriptcore/jsvirtualmachine) documents contexts that share objects.
 - [Tauri mobile plugin development](https://v2.tauri.app/develop/plugins/develop-mobile/) documents Swift commands and `run_mobile_plugin`.

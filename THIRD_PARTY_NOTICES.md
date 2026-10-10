@@ -25,6 +25,14 @@ The full [license notice](packages/features/themes/LICENSE.vscode.txt) is includ
 
 The iOS app links russh 0.64.1, russh-sftp 3.0.1, ssh-key 0.7.0-rc.11, aws-lc-rs 1.18.1, and their dependencies for SSH and SFTP. They are licensed under Apache-2.0, MIT, BSD-3-Clause, and ISC; aws-lc-sys also carries the OpenSSL and BoringSSL notices in its license file. The crate list and each crate's published license files are in [ios-ssh-crates.txt](apps/web/public/licenses/ios-ssh-crates.txt), which ships with the app.
 
+## iOS search crates
+
+The iOS app links ignore 0.4.33, grep-regex 0.1.14, grep-matcher 0.1.9, and their dependencies globset 0.4.20, bstr 1.13.1, crossbeam-deque 0.8.8, and crossbeam-epoch 0.9.21 for workspace search and quick open. They are licensed under Unlicense OR MIT, or MIT OR Apache-2.0. The crate list and each crate's published license files are in [ios-search-crates.txt](apps/web/public/licenses/ios-search-crates.txt), which ships with the app.
+
+## iOS language servers
+
+The iOS app bundles yaml-language-server 1.24.0, dockerfile-language-service 0.16.1, dockerfile-utils 0.16.3, bash-language-server 5.8.1, web-tree-sitter 0.27.1, @wasm-fmt/shfmt 0.2.7, @astral-sh/ruff-wasm-web 0.16.10, browser-basedpyright 1.40.2, path-browserify 1.0.1, and their dependencies for on-device language servers, plus SchemaStore and Compose specification JSON schemas. They are licensed under MIT, ISC, BSD-3-Clause, and Apache-2.0. browser-basedpyright embeds typeshed (Apache-2.0). The package list, each package's published license file, and the Ruff and typeshed notices are in [ios-language-servers.txt](apps/web/public/licenses/ios-language-servers.txt), which ships with the app. `node scripts/ios/language-server-notices.mjs` regenerates it.
+
 ## Managed language servers
 
 Separately installed language servers and their pinned dependency trees are documented in [managed server notices](apps/runtime/src/managed/NOTICES.md). Original package licenses are retained in the runtime cache; Intelephense is acquired directly from upstream and is not redistributed in Oxbit's open-source server bundles.

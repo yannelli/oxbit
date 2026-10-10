@@ -7,7 +7,7 @@ import type { FeatureOptions } from "@oxbit/sdk";
 import type { IosFileSystem } from "./filesystem.js";
 const mocks = vi.hoisted(() => ({ message: vi.fn() }));
 vi.mock("./native.js", () => ({ native: { lspMessage: mocks.message } }));
-import { createIosLanguageFeature, IosLanguageTransport } from "./language.js";
+import { createIosLanguageFeature, createIosLanguageFeatures, iosLanguageServers, IosLanguageTransport, migrateIosLanguageState } from "./language.js";
 
 const transports: IosLanguageTransport[] = [];
 const payload = (result: unknown = null, notifications: unknown[] = []) => ({ payload: JSON.stringify({ result, notifications }) });
@@ -75,11 +75,13 @@ describe("native iOS LSP transport", () => {
     kernel.services.register("language", {
       servicesForPath: () => kernel.contributions.list("transport").length ? [{ transport: lsp, state: "stopped", start }] : [],
     });
-    const feature = createIosLanguageFeature(filesystem);
-    kernel.extensions.register(feature);
+    const features = createIosLanguageFeatures(filesystem);
+    for (const feature of features) kernel.extensions.register(feature);
+    const feature = features.find(feature => feature.manifest.id === "oxbit.language-typescript")!;
     await kernel.extensions.activate(feature.manifest.id);
+    expect(features.map(feature => feature.manifest.id)).toEqual(["oxbit.language-typescript", "oxbit.language-json", "oxbit.language-yaml", "oxbit.language-dockerfile", "oxbit.language-shell", "oxbit.language-zsh", "oxbit.language-python"]);
     const providers = kernel.contributions.list("transport");
-    expect(providers.map(provider => provider.id).sort()).toEqual(["language.ios.json", "language.ios.typescript"]);
+    expect(providers.map(provider => provider.id)).toEqual(["language.ios.typescript"]);
     const provider = providers.find(provider => provider.id === "language.ios.typescript")!;
     expect(provider.data.rootUri).toBe("file:///workspace%20folder");
     expect(start).toHaveBeenCalledOnce();
@@ -121,5 +123,57 @@ describe("native iOS LSP transport", () => {
     expect(opened).toEqual(["file:///workspace/next.ts"]);
     expect(language.fileEnabled("main.ts")).toBe(false);
     language.dispose(); documents.dispose(); kernel.dispose();
+  });
+});
+
+describe("iOS language server extensions", () => {
+  const filesystem = { id: "ios:workspace", root: "/workspace", watch: () => ({ dispose() {} }) } as unknown as IosFileSystem;
+  async function activate(id: string) {
+    const kernel = createKernel();
+    kernel.services.register("documents", { documents: new Map() });
+    const feature = createIosLanguageFeature(filesystem, iosLanguageServers.find(server => server.id === id));
+    kernel.extensions.register(feature);
+    await kernel.extensions.activate(feature.manifest.id);
+    return kernel;
+  }
+
+  it("keeps every server disabled when the combined extension was disabled", async () => {
+    const persistence = new MemoryPersistence();
+    await persistence.set("extension-disabled", ["oxbit.git", "oxbit.ios-language"]);
+    const disabled = await migrateIosLanguageState(persistence);
+    expect(disabled).toEqual(["oxbit.git", ...iosLanguageServers.map(server => `oxbit.language-${server.id}`)]);
+    expect(await persistence.get("extension-disabled")).toEqual(disabled);
+    await persistence.set("extension-disabled", ["oxbit.language-python"]);
+    expect(await migrateIosLanguageState(persistence)).toEqual(["oxbit.language-python"]);
+  });
+
+  it("routes the file types setting to transport selectors", async () => {
+    const kernel = await activate("yaml");
+    const selectors = () => (kernel.contributions.list("transport")[0]!.data as { selectors: unknown }).selectors;
+    expect(selectors()).toEqual([{ language: "yaml" }]);
+    kernel.configuration.set("languageServer.yaml.fileTypes", ["yaml", "**/*.yaml.tmpl", ".clang-format"]);
+    expect(selectors()).toEqual([{ language: "yaml" }, { pattern: "**/*.yaml.tmpl" }, { pattern: ".clang-format" }]);
+    expect(() => kernel.configuration.set("languageServer.yaml.fileTypes", ["yaml", ""])).toThrow("File types");
+    kernel.dispose();
+  });
+
+  it("sends schema switches on initialize and only changed settings afterwards", async () => {
+    const kernel = await activate("json");
+    const transport = (kernel.contributions.list("transport")[0]!.data as any).createTransport({ workspaceId: filesystem.id, signal: new AbortController().signal }) as IosLanguageTransport;
+    transports.push(transport);
+    await transport.request("initialize", { initializationOptions: { locale: "en" } });
+    expect(mocks.message.mock.calls[0]![0].params.initializationOptions).toEqual({ locale: "en", settings: { schemaDownload: true, schemaStore: true } });
+    transport.notify("workspace/didChangeConfiguration", { settings: null });
+    kernel.configuration.set("json.schemaDownload.enable", false);
+    transport.notify("workspace/didChangeConfiguration", { settings: null });
+    kernel.configuration.register({ id: "languageServers", title: "Language Servers", type: "object", default: {} });
+    kernel.configuration.set("languageServers", { json: { settings: { json: { schemaStore: { enable: false } } } } });
+    transport.notify("workspace/didChangeConfiguration", { settings: null });
+    await vi.waitFor(() => expect(mocks.message).toHaveBeenCalledTimes(3));
+    expect(mocks.message.mock.calls.slice(1).map(([message]) => message.params)).toEqual([
+      { settings: { schemaDownload: false, schemaStore: true } },
+      { settings: { schemaDownload: false, schemaStore: false } },
+    ]);
+    kernel.dispose();
   });
 });

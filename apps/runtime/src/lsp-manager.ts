@@ -5,7 +5,7 @@ import { languageIdForPath, resolveLanguage, matchesFilePattern, validateFileAss
 import { RpcError } from "@oxbit/protocol";
 import { LanguageServer } from "./lsp.js";
 import { WorkspaceFiles } from "./filesystem.js";
-import { serverCatalog, resolveLaunch, type LaunchSpec } from "./managed/catalog.js";
+import { deferToRuff, serverCatalog, resolveLaunch, type LaunchSpec } from "./managed/catalog.js";
 import { ManagedInstaller, fingerprint } from "./managed/install.js";
 import { setting } from "./branding.js";
 import { JsonSchemas } from "./json-schemas.js";
@@ -26,6 +26,10 @@ interface Instance {
 function merge(a: any, b: any): any {
   if (!a || !b || Array.isArray(a) || Array.isArray(b) || typeof a !== "object" || typeof b !== "object") return b ?? a;
   return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map(key => [key, merge(a[key], b[key])]));
+}
+export function yamlSchemaSettings(settings: Record<string, any>, options: { catalog: boolean; download: boolean }) {
+  const yaml = settings.yaml ?? {};
+  return { ...settings, yaml: { ...yaml, schemaStore: { ...yaml.schemaStore, enable: options.catalog && options.download && yaml.schemaStore?.enable !== false } } };
 }
 export class LanguageServerManager {
   private instances = new Map<string, Instance>();
@@ -94,7 +98,8 @@ export class LanguageServerManager {
     if (!definition.executable && !serverCatalog.some(preset => preset.id === definition.id)) throw new RpcError("INVALID_PARAMS", "Custom language servers require an executable");
     const root = definition.id === "laravel" ? await this.laravelRoot(relative) : await this.projectRoot(relative, definition.rootMarkers);
     if (!root) throw new RpcError("LSP_UNAVAILABLE", "Laravel language support requires a project containing artisan");
-    const digest = fingerprint({ definition, associations }), id = `${definition.id}:${fingerprint([root, digest]).slice(0, 24)}`;
+    const ruff = definition.id === "basedpyright" && definitions.some(item => item.id === "ruff" && item.enabled !== false && this.matches({ definition: item, root: this.files.root, associations }, relative, text));
+    const digest = fingerprint({ definition, associations, ...ruff ? { ruff } : {} }), id = `${definition.id}:${fingerprint([root, digest]).slice(0, 24)}`;
     let instance = this.instances.get(id);
     if (!instance) {
       const server = new LanguageServer(this.files, (method, params) => this.emit(method, params, id), {
@@ -105,11 +110,16 @@ export class LanguageServerManager {
           if (override) spec = { executable: override, args: definition.args ?? ["--stdio"] };
           else spec = await resolveLaunch(definition.id, root, this.installer, signal);
           spec = { ...spec, args: definition.args ?? spec.args, env: { ...spec.env, ...definition.env }, initializationOptions: merge(spec.initializationOptions, definition.initializationOptions), settings: merge(spec.settings, definition.settings) };
+          if (ruff) spec = deferToRuff(spec);
           if (definition.id === "json") {
             const options = this.project ? (await this.project.reload()).schemas : { catalog: true, download: true, associations: [] };
             spec.settings = await this.schemas.settings(spec.settings ?? {}, options);
             spec.initializationOptions = { ...spec.initializationOptions, handledSchemaProtocols: [] };
             spec.schemaContent = uri => this.schemas.content(uri, options.download && spec.settings?.json?.schemaDownload?.enable !== false);
+          }
+          if (definition.id === "yaml") {
+            const options = this.project ? (await this.project.reload()).schemas : { catalog: true, download: true };
+            spec.settings = yamlSchemaSettings(spec.settings ?? {}, options);
           }
           return spec;
         },
@@ -161,7 +171,7 @@ export class LanguageServerManager {
     await Promise.all([this.defaultServer.watched(relative, type), ...[...this.instances.values()].map(instance => instance.server.watched(relative, type))]);
   }
   async refreshSchemas() {
-    await Promise.allSettled([...this.instances.values()].filter(instance => instance.definition.id === "json" && instance.server.status().state === "ready").map(instance => this.restart(instance.id)));
+    await Promise.allSettled([...this.instances.values()].filter(instance => ["json", "yaml"].includes(instance.definition.id) && instance.server.status().state === "ready").map(instance => this.restart(instance.id)));
   }
   authorizeExternal(uri: string, id?: string) { return this.get(id).external.authorize(uri); }
   readExternal(handle: string, id?: string) { return this.get(id).external.read(handle); }

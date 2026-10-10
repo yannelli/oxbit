@@ -5,9 +5,15 @@ export interface NativeFileHost {
   fileExists(path: string): boolean;
   directoryExists(path: string): boolean;
   list(path: string): string;
+  /** Bundled binary assets, such as WebAssembly modules, by file name. */
+  resource?(name: string): ArrayBuffer | null | undefined;
+  /** Remote JSON schema text from the host cache, download, or bundled fallback. */
+  schema?(uri: string, download: boolean, completion: (text: string | null, error: string | null) => void): void;
 }
+export const nativeLanguageKinds = ["typescript", "json", "yaml", "dockerfile", "shell", "python"] as const;
+export type NativeLanguageKind = typeof nativeLanguageKinds[number];
 export interface OpenDocument { text: string; version: number; language: string }
-export interface ServerOptions { root: string; rootUri: string; kind: "typescript" | "json" }
+export interface ServerOptions { root: string; rootUri: string; kind: NativeLanguageKind }
 export type Position = { line: number; character: number };
 export type Range = { start: Position; end: Position };
 

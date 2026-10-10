@@ -24,6 +24,26 @@ test("the iOS shell fills the screen after a stale keyboard accessory inset", as
   await expect.poll(() => page.locator(".activity-bar").evaluate(element => element.getBoundingClientRect().bottom)).toBe(852);
 });
 
+test("tapping the terminal opens its input and typed text reaches the shell", async ({ page }) => {
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    await z.runtime.trust(true);
+    await z.runCommand("terminal.new");
+    z.workbench.openPanel("terminal");
+  });
+  await expect(page.locator(".xterm-screen")).toBeVisible();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.locator(".xterm-screen").tap();
+  await expect(page.locator(".xterm-helper-textarea")).toBeFocused();
+  await page.keyboard.type("echo tapped-$((6*7))\n");
+  await expect.poll(() => page.evaluate(() => {
+    const session = [...(window as any).__oxbit.kernel.services.get("terminal").sessions.values()][0] as any, buffer = session.terminal.buffer.active;
+    return Array.from({ length: buffer.length }, (_, line) => buffer.getLine(line)?.translateToString(true) ?? "").join("\n");
+  })).toContain("tapped-42");
+});
+
 // Runs on the webkit-phone project only: a touch-first WebKit profile that approximates the
 // iOS WKWebView shell before device checks.
 async function ready(page: Page) {

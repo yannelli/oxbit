@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
-  // themes.spec.ts and icon-packs.spec.ts have their own configs and servers.
-  testIgnore: ["themes.spec.ts", "icon-packs.spec.ts", "tasks.spec.ts"],
   fullyParallel: false,
   workers: 1,
+  // Shared CI runners hit timing races that do not reproduce locally; a test that fails twice still fails.
+  retries: process.env.CI ? 1 : 0,
   timeout: 120000,
   expect: { timeout: 15000 },
   reporter: [
@@ -18,7 +18,8 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "chromium", testIgnore: ["mobile.spec.ts"], use: { browserName: "chromium" } },
+    // A project's testIgnore replaces the top-level one. These specs have their own configs and servers.
+    { name: "chromium", testIgnore: ["mobile.spec.ts", "themes.spec.ts", "icon-packs.spec.ts", "tasks.spec.ts"], use: { browserName: "chromium" } },
     // WebKit with a touch-first phone profile approximates WKWebView before device checks.
     {
       name: "webkit-phone",

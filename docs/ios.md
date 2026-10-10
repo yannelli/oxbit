@@ -62,7 +62,7 @@ Apps built with the iOS 27 SDK must adopt the UIScene life cycle or they fail to
 
 The start screen lists the Oxbit folder on the device, remembered Files app folders, and **Open Folder…**. Choosing a folder stores a security-scoped bookmark under Application Support; relaunching reopens it without the picker, and a folder that no longer resolves shows an error. Files in iCloud Drive that are not downloaded read as unavailable.
 
-Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search runs on the device through the worker search path. Formatting uses the bundled Prettier and TypeScript formatter workers.
+Documents, layout, and unsaved drafts are restored after a relaunch. The app persists when it moves to the background. Search and quick open on device folders run in the Rust host with ripgrep's `ignore` and `grep-regex` crates; SFTP folders use the worker search path. See [Runtime features on iOS](ios-runtime-parity.md). Formatting uses the bundled Prettier and TypeScript formatter workers.
 
 TypeScript, JavaScript, TSX, JSX, JSON, and JSONC language servers run on the device through JavaScriptCore. Open a supported file to start its server; the LSP status control supports stopping and restarting it. See [device language servers](ios-language-servers.md) for supported operations, build assets, and native API references.
 
@@ -83,6 +83,8 @@ oxbit --lan
 In the iOS app, open the Runtime page from the connection button in the header or **Connect Runtime…** on the workspace screen. Allow Local Network access when iOS asks. The page lists runtimes found on the network. Tap one and enter the pairing code once. Both devices need to be on the same network. A runtime on another network can still be entered by address, for example `http://192.168.1.10:9277`.
 
 Discovery uses `NWBrowser` in the `oxbit-files` plugin (`RuntimeDiscovery.swift`). For each service it opens a short-lived connection to read the resolved address, IPv4 first, and drops services without a TXT `id`. The WebView polls the `runtime_discovery` command every 2 seconds; browsing stops when the page closes or 2 minutes after the last poll. `Info.ios.plist` declares `_oxbit._tcp` under `NSBonjourServices`, which iOS requires before an app can browse a service type.
+
+While Local Network access is off for Oxbit, `NWBrowser` waits with the DNS-SD error `PolicyDenied` (-65570). `runtime_discovery` returns `localNetworkDenied: true` in that state, and the page shows where to turn Local Network on in Settings. The browser turns ready again once access is allowed. On macOS 15.4 and later, a simulator app's browse gets no results, because macOS denies it local network access without a prompt ([Apple Developer Forums 788601](https://developer.apple.com/forums/thread/788601)). Check discovery on a device, or on macOS by compiling `RuntimeDiscovery.swift` and `RuntimeRecords.swift` with a stub `Invoke` and running it from Terminal.
 
 Connecting opens the computer's workspace. Choose **Trust workspace tools** to permit code execution there. Device folders remain separate and available from the workspace screen. Saved runtime connections reconnect without reentering the pairing code; removing their last recent workspace deletes the saved credential. Disconnect closes the workspace and preserves the credential for next time.
 

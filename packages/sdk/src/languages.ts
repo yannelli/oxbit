@@ -1,4 +1,5 @@
 import type { Kernel, LanguageDefinition } from "./index.js";
+import type { LanguageSelector } from "./language-servers.js";
 
 export interface LanguagePreset extends LanguageDefinition {
   title: string;
@@ -22,9 +23,11 @@ export const languages: readonly LanguagePreset[] = [
   { id: "html", title: "HTML", extensions: ["html", "htm"], syntax: "html", providers: ["html"], badge: "<>" },
   { id: "vue", title: "Vue", extensions: ["vue"], syntax: "vue", providers: ["vue"], badge: "V" },
   { id: "astro", title: "Astro", extensions: ["astro"], syntax: "astro", providers: ["astro"], badge: "A" },
-  { id: "dockerfile", title: "Dockerfile", extensions: ["dockerfile"], filenames: ["Dockerfile"], patterns: ["Dockerfile.*"], syntax: "dockerfile", providers: ["dockerfile"], badge: "D" },
-  { id: "shellscript", title: "Bash", extensions: ["sh", "bash"], filenames: [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile"], shebangs: ["bash", "sh"], syntax: "shell", providers: ["bash"], badge: "$" },
+  { id: "dockerfile", title: "Dockerfile", extensions: ["dockerfile", "containerfile"], filenames: ["Dockerfile", "Containerfile"], patterns: ["Dockerfile.*", "Containerfile.*"], syntax: "dockerfile", providers: ["dockerfile"], badge: "D" },
+  { id: "shellscript", title: "Bash", extensions: ["sh", "bash"], filenames: [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".bash_aliases", ".profile"], shebangs: ["bash", "sh", "dash", "ksh"], syntax: "shell", providers: ["bash"], badge: "$" },
   { id: "zsh", title: "Zsh", extensions: ["zsh"], filenames: [".zshrc", ".zshenv", ".zprofile", ".zlogin", ".zlogout"], shebangs: ["zsh"], syntax: "zsh", providers: ["local"], badge: "%" },
+  { id: "yaml", title: "YAML", extensions: ["yaml", "yml"], syntax: "yaml", providers: ["yaml"], badge: "Y" },
+  { id: "python", title: "Python", extensions: ["py", "pyi", "pyw"], shebangs: ["python", "python3"], syntax: "python", providers: ["basedpyright", "ruff"], badge: "Py" },
   { id: "json", title: "JSON", extensions: ["json"], syntax: "json", providers: ["json"], badge: "{}" },
   { id: "jsonc", title: "JSON with Comments", extensions: ["jsonc"], syntax: "jsonc", providers: ["json"], badge: "{}" },
   { id: "jsonl", title: "JSON Lines", extensions: ["jsonl", "ndjson"], syntax: "jsonl", providers: ["local"], badge: "{}" },
@@ -52,6 +55,23 @@ export function matchesFilePattern(pattern: string, file: string): boolean {
   ).join("");
   const normalized = file.replaceAll("\\", "/").replace(/^\.\//, "");
   return new RegExp(`^${source}$`).test(pattern.includes("/") ? normalized : normalized.split("/").at(-1)!);
+}
+
+/** A file type containing `*`, `?`, `/`, or a leading `.` is a glob; any other entry is a language ID. */
+export function fileTypesToSelectors(fileTypes: readonly string[]): LanguageSelector[] {
+  return fileTypes.map(item => item.trim()).filter(Boolean).map(item => /[*?/]|^\./.test(item) ? { pattern: item } : { language: canonicalLanguageId(item) });
+}
+
+export function selectorsToFileTypes(selectors: readonly LanguageSelector[]): string[] {
+  return selectors.flatMap(selector => selector.pattern ?? selector.language ?? []);
+}
+
+export function selectorsMatch(selectors: readonly LanguageSelector[], language: string, file: string): boolean {
+  return selectors.some(selector => (!selector.language || selector.language === "*" || canonicalLanguageId(selector.language) === canonicalLanguageId(language)) && (!selector.pattern || matchesFilePattern(selector.pattern, file)));
+}
+
+export function validateFileTypes(value: unknown): void {
+  if (!Array.isArray(value) || value.some(item => typeof item !== "string" || !item.trim() || item.length > 1024)) throw new Error("File types must be language IDs or glob patterns");
 }
 
 export interface LanguageResolutionOptions {

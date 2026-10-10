@@ -11,8 +11,10 @@ export interface DiscoveredRuntime {
 }
 export const DISCOVERY_POLL_MS = 2000;
 
+/** `localNetworkDenied` is true while iOS denies Oxbit Local Network access. */
+interface DiscoveryList { runtimes: DiscoveredRuntime[]; localNetworkDenied?: boolean }
 const request = (operation: "start" | "list" | "stop") =>
-  invoke<{ runtimes: DiscoveredRuntime[] }>("plugin:oxbit-files|runtime_discovery", { request: { operation } });
+  invoke<DiscoveryList>("plugin:oxbit-files|runtime_discovery", { request: { operation } });
 
 function unique(runtimes: DiscoveredRuntime[]): DiscoveredRuntime[] {
   const byId = new Map<string, DiscoveredRuntime>();
@@ -22,17 +24,18 @@ function unique(runtimes: DiscoveredRuntime[]): DiscoveredRuntime[] {
 
 /** Native browsing stops two minutes after the last `start` or `list`, so watching polls `list`. */
 export const discovery = {
-  watch(listener: (runtimes: DiscoveredRuntime[]) => void): () => void {
+  watch(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied: boolean) => void): () => void {
     let active = true;
     let last: string | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const deliver = ({ runtimes }: { runtimes: DiscoveredRuntime[] }) => {
+    const deliver = ({ runtimes, localNetworkDenied }: DiscoveryList) => {
       if (!active) return;
       const next = unique(Array.isArray(runtimes) ? runtimes : []);
-      const key = JSON.stringify(next);
+      const denied = localNetworkDenied === true;
+      const key = JSON.stringify([next, denied]);
       if (key === last) return;
       last = key;
-      listener(next);
+      listener(next, denied);
     };
     const poll = () => {
       timer = setTimeout(() => {

@@ -28,8 +28,8 @@ if (mode === "dev")
     "--cwd",
     "apps/desktop",
     "tauri",
-    "--",
     "dev",
+    "--",
     "--no-default-features",
   ]);
 if (mode === "native-build")
