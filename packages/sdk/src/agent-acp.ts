@@ -126,7 +126,7 @@ export interface ACPConfigOption {
 export interface ACPConnection {
   id: string;
   provider: ACPProviderId;
-  /** Display name resolved by the runtime. Runtimes before 0.8.0 omit it. */
+  /** Display name resolved by the runtime. Runtimes from 0.7.1 and earlier omit it. */
   name?: string;
   root: string;
   sessionId?: string;

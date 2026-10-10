@@ -27,7 +27,7 @@ export type Conversation = {
   sessionId: string;
   root: string;
   provider: ACPProviderId;
-  /** Display name at save time. Entries before 0.8.0 omit it. */
+  /** Display name at save time. Entries saved by 0.7.1 and earlier omit it. */
   name?: string;
   /** Launch fields needed to resume a registry or custom agent. */
   launch?: SavedLaunch;

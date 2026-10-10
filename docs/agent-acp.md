@@ -30,7 +30,7 @@ message once the session is ready. The choice is saved as `agentACP.provider`.
   arguments as a shell-style line; quotes group words. They are saved as
   `agentACP.custom.name`, `agentACP.custom.command`, and `agentACP.custom.args`.
 
-Runtimes before 0.8.0 accept only Codex, Cursor and Amp. Starting another agent on
+Runtimes from 0.7.1 and earlier accept only Codex, Cursor and Amp. Starting another agent on
 such a runtime shows "This runtime does not support … Update Oxbit on the runtime host."
 
 ## Providers
