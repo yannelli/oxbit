@@ -45,7 +45,7 @@ async function open(page: Page, args: string[] = []) {
     async close() {
       await page.goto("about:blank");
       await runtime.close();
-      await fs.rm(directory, { recursive: true, force: true });
+      await fs.rm(directory, { recursive: true, force: true, maxRetries: 5 });
     },
   };
 }
@@ -246,10 +246,13 @@ test("@ attaches a workspace symbol's lines from a running language server", asy
           return null;
         }, notify() {}, onNotification() { return { dispose() {} }; }, dispose() {},
       }) } });
-      await z.workbench.openFile("src/login.sym", { preview: false });
-      await z.kernel.services.get("language").serviceForPath("src/login.sym").start(true);
+      void z.workbench.openFile("src/login.sym", { preview: false });
+      void z.kernel.services.get("language").serviceForPath("src/login.sym").start(true);
       z.workbench.run("agentACP.open");
     });
+    // Waiting here keeps a long page-side await out of page.evaluate.
+    await page.waitForFunction(() =>
+      (window as any).__oxbit.kernel.services.get("language").serviceForPath("src/login.sym").state === "ready");
     await app.input.fill("context-inspect @handleLo");
     const option = page.getByRole("listbox", { name: "Mention files and context" }).getByRole("option", { name: /handleLogin/ });
     await expect(option).toContainText("src/login.sym:2");

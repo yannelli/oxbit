@@ -47,7 +47,7 @@ async function boot(page: Page, pairingCode: string, acpRegistryUrl?: string) {
     close: async () => {
       await page.close({ runBeforeUnload: false });
       await runtime.close();
-      await fs.rm(directory, { recursive: true, force: true });
+      await fs.rm(directory, { recursive: true, force: true, maxRetries: 5 });
     },
   };
 }
