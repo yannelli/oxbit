@@ -680,6 +680,45 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .acp-agents-empty { padding:24px 12px; color:var(--fg-3); text-align:center; }
 .acp-delegation-link { display:flex; gap:6px; margin:8px 0; max-width:100%; overflow-wrap:anywhere; }
 @container(min-width:680px) { .acp-agents-view .acp-agents-layout { grid-template-columns:minmax(220px,1fr) minmax(0,2fr); } .acp-agents-view .acp-agent-detail { border-top:0; border-left:1px solid var(--bd); padding:0 0 0 16px; } }
+/* Agent ACP: start flow, header status, overflow menu, and status bar item. */
+.acp-status { max-width:none; flex:none; }
+.acp-status-text { max-width:140px; }
+.acp-dot[data-state=ready] { background:var(--ok); }
+.acp-dot[data-state=working] { background:var(--accent); animation:acp-pulse 1.4s ease-in-out infinite; }
+.acp-dot[data-state=attention] { background:var(--warn); }
+.acp-dot[data-state=error] { background:var(--err); }
+@keyframes acp-pulse { 50% { opacity:.35; } }
+@media(prefers-reduced-motion:reduce) { .acp-dot[data-state=working] { animation:none; } }
+@container(max-width:399px) { .acp-status-text { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } .acp-status { margin-right:2px; } }
+.acp-menu > button { display:flex; align-items:center; gap:8px; }
+.acp-menu > button > span { flex:1; }
+.acp-agent-picker { display:flex; flex-direction:column; gap:6px; width:min(560px,100%); margin:12px auto; }
+.acp-agent-picker h2,.acp-registry h2,.acp-custom-agent h2 { margin:4px 0 6px; font-size:calc(var(--font-body-font-size) * 1.15); color:var(--fg); }
+.acp-agent-picker [role=radiogroup],.acp-agent-more { display:flex; flex-direction:column; gap:2px; }
+.acp-agent-more { border-top:1px solid var(--bd); padding-top:6px; margin-top:4px; }
+.acp-agent-option { display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:6px 10px; border-radius:6px; border:1px solid transparent; text-align:left; color:var(--fg-2); }
+.acp-agent-option > svg { flex:none; color:var(--fg-3); }
+.acp-agent-option > span { display:flex; flex-direction:column; min-width:0; flex:1; }
+.acp-agent-option strong { color:var(--fg); font-weight:600; }
+.acp-agent-option small { color:var(--fg-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acp-agent-option[aria-checked=true] { border-color:var(--accent); background:var(--accent-soft); }
+.acp-agent-option[aria-checked=true] > svg { color:var(--accent); }
+.acp-agent-start { align-self:stretch; justify-content:center; min-height:34px; margin-top:6px; }
+.acp-registry { display:flex; flex-direction:column; gap:8px; width:min(640px,100%); margin:12px auto; }
+.acp-registry-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.acp-registry-list { display:flex; flex-direction:column; gap:2px; max-height:min(420px,60vh); overflow:auto; }
+.acp-registry-entry { display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
+.acp-registry-entry[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
+.acp-registry-title { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
+.acp-registry-title > small { color:var(--fg-3); }
+.acp-registry-tag { padding:0 5px; border:1px solid var(--bd); border-radius:4px; font-size:calc(var(--font-small-font-size) * 0.9); }
+.acp-registry-description { color:var(--fg-2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.acp-custom-agent { width:min(560px,100%); margin-inline:auto; }
+.acp-custom-agent label > small { color:var(--fg-3); }
+.acp-setup label > small { color:var(--fg-3); }
+.statusbar > .acp-status-item[data-state=attention] { color:var(--warn); }
+.statusbar > .acp-status-item[data-state=working] > svg { color:var(--accent); }
+@media(pointer:coarse) { .acp-agent-option,.acp-registry-entry { min-height:48px; } .acp-menu > button { min-height:40px; } }
 
 /* Software keyboard: the workbench follows the visual viewport instead of the layout viewport. */
 .workbench[data-keyboard="1"]{top:var(--viewport-offset,0px)}

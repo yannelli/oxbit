@@ -1,6 +1,8 @@
 import {
-  ACP_PROVIDERS,
+  ACP_CUSTOM_PROVIDER,
+  acpPreset,
   type ACPConnection,
+  type ACPRegistryListing,
   type ACPLaunch,
   type ACPContext,
   type ACPQueuedPrompt,
@@ -19,7 +21,18 @@ import {
   type Activity,
   type Conversation,
   type Message,
+  type SavedLaunch,
 } from "./history.js";
+import {
+  agentName,
+  launchName,
+  rememberAgentName,
+  rememberRegistryName,
+  resolveLaunch,
+  runtimeSupportError,
+} from "./launch.js";
+import { Attention } from "./attention.js";
+import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 
 export type AgentRequest = {
@@ -59,7 +72,11 @@ export class AgentController {
     sessionId: string;
     root: string;
     provider: ACPLaunch["provider"];
+    name?: string;
+    launch?: SavedLaunch;
   };
+  private replaying = false;
+  readonly attention: Attention;
   readonly history: ConversationHistory;
   activity: Activity[] = [];
   subagents = new Map<string, ACPSubagent>();
@@ -86,6 +103,8 @@ export class AgentController {
   launch: ACPLaunch = { provider: "codex" };
   /** The launch used when Connect or the next message starts an agent. */
   selection?: ACPLaunch;
+  registry?: ACPRegistryListing;
+  registryLoading = false;
   busy = false;
   connecting = false;
   cancelling = false;
@@ -115,7 +134,12 @@ export class AgentController {
       ).persistence,
       `acp-history:${options.filesystem.id}`,
     );
-    void this.history.ready.then(() => this.changed());
+    this.attention = new Attention(options);
+    void this.history.ready.then(() => {
+      for (const entry of this.history.entries)
+        if (!acpPreset(entry.provider)) rememberAgentName(entry.provider, entry.name);
+      this.changed();
+    });
     const runtime = options.runtime;
     if (!runtime) return;
     const on = (event: string, fn: (params: any) => void) => {
@@ -148,6 +172,8 @@ export class AgentController {
       this.requests = this.requests.filter(request => this.isChildRequest(request));
       this.status = error ? "Turn failed" : stopReason === "cancelled" ? "Stopped" : "Ready";
       if (error) this.error = String(error);
+      if (!this.replaying && stopReason !== "cancelled")
+        this.attention.turnEnded(this.title, !!error);
     });
     on("acp.queue", ({ queue, paused }) => {
       this.queueRevision++;
@@ -265,6 +291,7 @@ export class AgentController {
   snapshot = () => this.revision;
   changed = () => {
     this.revision++;
+    if (!this.disposed) this.attention.sync(this.requests.length);
     for (const listener of this.listeners) listener();
     if (
       !this.disposed &&
@@ -404,6 +431,7 @@ export class AgentController {
         return;
       }
       this.connection = connection;
+      rememberAgentName(connection.provider, connection.name ?? launch.name);
       if (restore && restore.root !== connection.root)
         throw new Error("This conversation belongs to another workspace");
       this.status = "Connected";
@@ -414,7 +442,7 @@ export class AgentController {
       this.status = this.connection
         ? "Sign in or retry starting the conversation"
         : "Connection failed";
-      throw error;
+      throw this.connection ? error : runtimeSupportError(error, launchName(launch));
     } finally {
       if (generation === this.connectionGeneration) {
         this.startAbort = undefined;
@@ -424,9 +452,54 @@ export class AgentController {
     }
   }
   async connectSelected() {
-    await this.connect(this.selection ?? {
-      provider: this.options.kernel.configuration.get<string>("agentACP.provider") ?? "codex",
-    });
+    await this.connect(resolveLaunch(this.chosen, this.options.kernel.configuration));
+  }
+  /** The selection, or the persisted default agent. */
+  get chosen(): ACPLaunch {
+    return this.selection ?? {
+      provider: this.options.kernel.configuration?.get<string>("agentACP.provider") || "codex",
+    };
+  }
+  /** Label for the live connection, or for the agent Connect would start. */
+  get displayName() {
+    return this.connection
+      ? agentName(this.connection.provider, this.connection)
+      : launchName(resolveLaunch(this.chosen, this.options.kernel.configuration));
+  }
+  async select(launch: ACPLaunch) {
+    const config = this.options.kernel.configuration;
+    if (launch.provider === ACP_CUSTOM_PROVIDER) {
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "name"), launch.name ?? "", "user");
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "command"), launch.command ?? "", "user");
+      await config.set(settingId(ACP_CUSTOM_PROVIDER, "args"), JSON.stringify(launch.args ?? []), "user");
+    }
+    await config.set("agentACP.provider", launch.provider, "user");
+    this.selection = launch;
+    this.changed();
+  }
+  async loadRegistry() {
+    if (this.registryLoading) return;
+    this.registryLoading = true;
+    this.changed();
+    try {
+      const listing = await this.request<ACPRegistryListing>("acp.registry");
+      for (const agent of listing.agents) rememberRegistryName(agent.id, agent.name);
+      this.registry = listing;
+    } finally {
+      this.registryLoading = false;
+      this.changed();
+    }
+  }
+  markSeen() {
+    this.attention.seen();
+    this.changed();
+  }
+  private savedLaunch(launch: ACPLaunch): SavedLaunch | undefined {
+    if (launch.provider === ACP_CUSTOM_PROVIDER)
+      return { name: launch.name, command: launch.command, args: launch.args };
+    if (!acpPreset(launch.provider))
+      return { registry: launch.registry ?? { id: launch.provider } };
+    return undefined;
   }
   async call(method: string, params: Record<string, unknown> = {}) {
     if (!this.connection) throw new Error("Connect an agent first");
@@ -472,6 +545,8 @@ export class AgentController {
           sessionId: result.sessionId,
           root: result.root,
           provider: result.provider,
+          name: agentName(result.provider, result),
+          launch: this.savedLaunch(this.launch),
         };
         this.status = "Ready";
       }
@@ -544,14 +619,22 @@ export class AgentController {
       this.draft = draft;
       this.context = context;
       this.connection = snapshot.connection;
-      this.launch = { provider: snapshot.connection.provider };
+      this.launch = { provider: snapshot.connection.provider, name: snapshot.connection.name };
+      rememberAgentName(snapshot.connection.provider, snapshot.connection.name);
       this.activeConversation = {
         id: crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
         root: snapshot.connection.root, provider: snapshot.connection.provider,
+        name: agentName(snapshot.connection.provider, snapshot.connection),
+        launch: this.savedLaunch(this.launch),
       };
       this.replayTruncated = snapshot.truncated;
       this.status = snapshot.busy ? "Working…" : "Ready";
-      for (const event of snapshot.events) this.deliver(event.name, event.params);
+      this.replaying = true;
+      try {
+        for (const event of snapshot.events) this.deliver(event.name, event.params);
+      } finally {
+        this.replaying = false;
+      }
       this.lastSequence = Math.max(this.lastSequence, snapshot.sequence);
       this.queue = snapshot.queue;
       this.queuePaused = snapshot.queuePaused;
@@ -642,6 +725,8 @@ export class AgentController {
       sessionId: copy.sessionId,
       root: copy.root,
       provider: copy.provider,
+      name: copy.name,
+      launch: copy.launch,
     };
     this.title = copy.title;
     this.draft = copy.draft;
@@ -681,16 +766,14 @@ export class AgentController {
     )
       return this.restoreConversation(entry);
     await this.disconnect();
-    const preset = providerFor(entry.provider);
-    const config = this.options.kernel.configuration;
-    const command =
-      config.get<string>(`agentACP.${entry.provider}.command`) ||
-      preset.command;
-    const args = JSON.parse(
-      config.get<string>(`agentACP.${entry.provider}.args`) ||
-        JSON.stringify(preset.args),
-    );
-    await this.connect({ provider: entry.provider, command, args }, entry);
+    const saved = entry.launch;
+    const launch: ACPLaunch =
+      entry.provider === ACP_CUSTOM_PROVIDER
+        ? { provider: entry.provider, name: saved?.name ?? entry.name, command: saved?.command, args: saved?.args }
+        : acpPreset(entry.provider)
+          ? { provider: entry.provider }
+          : { provider: entry.provider, registry: saved?.registry ?? { id: entry.provider } };
+    await this.connect(resolveLaunch(launch, this.options.kernel.configuration), entry);
   }
   async restoreConversation(entry: Conversation) {
     if (this.requests.length)
@@ -1249,6 +1332,7 @@ export class AgentController {
       }
       if (!this.disposed && valid() && this.connection?.id === request.id) {
         this.requests.push(request);
+        this.attention.requestArrived(this.title);
         this.changed();
       }
     } catch (error) {
@@ -1455,5 +1539,5 @@ export class AgentController {
     this.requests = [];
   }
 }
-export const providerFor = (id: string) =>
-  ACP_PROVIDERS.find((provider) => provider.id === id) ?? ACP_PROVIDERS[0];
+/** Display data for a provider ID. Unknown IDs keep their own ID as the label. */
+export const providerFor = (id: string) => ({ id, name: agentName(id) });

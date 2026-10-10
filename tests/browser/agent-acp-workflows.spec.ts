@@ -66,12 +66,16 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       await panel.getByRole("button", { name: "Send", exact: true }).click();
       await ready();
     };
+    const menu = async (item: string) => {
+      await panel.getByRole("button", { name: "More agent actions", exact: true }).click();
+      await panel.getByRole("menuitem", { name: item, exact: true }).click();
+    };
     await fs.mkdir("evidence/agent-acp/workflows", { recursive: true });
     await panel.screenshot({ path: "evidence/agent-acp/workflows/disconnected-dark.png" });
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
+    await menu("Agent setup");
     await expect(panel.getByRole("textbox", { name: "Agent executable" })).toBeVisible();
     await panel.screenshot({ path: "evidence/agent-acp/workflows/setup-dark.png" });
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
+    await menu("Agent setup");
     await panel.getByRole("button", { name: "Connect", exact: true }).click();
     await ready();
     await composer.fill("wait");
@@ -88,7 +92,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       await app.workbench.openFile("hello.txt", { preview: false });
       app.workbench.run("agentACP.open");
     });
-    await panel.getByRole("button", { name: "Runtime sessions" }).click();
+    await menu("Runtime sessions");
     await expect(panel.getByRole("region", { name: "Runtime sessions" })).toContainText("wait");
     await panel.getByRole("button", { name: "Open", exact: true }).click();
     await expect(panel.locator(".acp-message.user .acp-user-text").filter({ hasText: /^wait$/ })).toHaveCount(1);
@@ -302,7 +306,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await expect(panel.locator(".acp-context-menu")).toBeInViewport();
     await composer.click();
     await expect(panel.locator(".acp-context-menu")).toBeHidden();
-    await panel.getByRole("button", { name: "Setup", exact: true }).click();
+    await menu("Agent setup");
     await panel.getByRole("button", { name: "History", exact: true }).click();
     await panel.locator(".acp-session-options > summary").click();
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeInViewport();
