@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import { IconButton, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
+import { AgentLogo } from "./agent-logo.js";
 import { agentName } from "./launch.js";
 import { liveThreads, refreshThreads, showThreads, stopThread, threadState } from "./threads.js";
 import "./thread-strip.css";
@@ -56,6 +57,7 @@ export function ThreadStrip({ agent, onNew }: { agent: AgentController; onNew():
               }}
             >
               <span className="acp-dot" data-state={state} aria-hidden="true" />
+              <AgentLogo provider={session.connection.provider} size={14} />
               <span className="acp-thread-text">
                 <strong>{label}</strong>
                 <small>

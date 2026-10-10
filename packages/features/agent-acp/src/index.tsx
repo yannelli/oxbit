@@ -39,6 +39,7 @@ import { Subagents } from "./subagents.js";
 import { ThreadStrip, useThreadRefresh } from "./thread-strip.js";
 import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
+import { AgentLogo } from "./agent-logo.js";
 function RequestCard({
   request,
   agent,
@@ -432,6 +433,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       <ThreadStrip agent={agent} onNew={newThread} />
       <div className="acp-header">
         <div className="acp-thread-heading">
+          <AgentLogo provider={connection?.provider ?? chosen} size={14} />
           <strong title={agent.title}>{tr(agent.title)}</strong>
           <div className="acp-status" role="status" data-state={status} title={tr(agent.status)}>
             <span className={agent.busy ? "acp-dot working" : "acp-dot"} data-state={status} />
@@ -520,6 +522,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {showLive && <section className="acp-live-sessions" aria-label={tr("Runtime sessions")}>
           {agent.liveSessions.length === 0 && <p className="muted">{tr("No running conversations")}</p>}
           {agent.liveSessions.map(session => <div className="acp-live-session" key={session.connection.id}>
+            <AgentLogo provider={session.connection.provider} />
             <span><strong>{session.title || tr("New conversation")}</strong><small className="muted">{agentName(session.connection.provider, session.connection)} · {session.busy ? tr("Working…") : tr("Ready")}{session.queued ? ` · ${session.queued} ${tr("queued")}` : ""}</small></span>
             <button type="button" className="button" disabled={agent.connection?.id === session.connection.id}
               onClick={() => void agent.action(async () => { await agent.attachLive(session.connection.id); setShowLive(false); })}>

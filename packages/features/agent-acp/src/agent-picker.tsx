@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, acpPreset } from "@oxbit/sdk";
 import { Icon, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
+import { AgentLogo } from "./agent-logo.js";
 import { settingId } from "./configuration.js";
 import { formatArgs, parseArgs, storedArgs } from "./launch.js";
 
@@ -38,7 +39,7 @@ export function AgentPicker({
       disabled={agent.connecting}
       onClick={() => select(id)}
     >
-      <Icon name={current === id ? "check" : "agent"} size={14} />
+      <AgentLogo provider={id} />
       <span>
         <strong>{name}</strong>
         <small title={title}>{hint}</small>

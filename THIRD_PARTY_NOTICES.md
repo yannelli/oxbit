@@ -37,6 +37,13 @@ The iOS app bundles yaml-language-server 1.24.0, dockerfile-language-service 0.1
 
 Separately installed language servers and their pinned dependency trees are documented in [managed server notices](apps/runtime/src/managed/NOTICES.md). Original package licenses are retained in the runtime cache; Intelephense is acquired directly from upstream and is not redistributed in Oxbit's open-source server bundles.
 
+## ACP Registry agent icons
+
+The agent panel bundles the agent icons from the
+[ACP Registry](https://github.com/agentclientprotocol/registry/tree/06c62b5944eb863e5de30580b25334f9c4fa3962)
+under the Apache License 2.0. The [license](packages/features/agent-acp/LICENSE.acp-registry.txt)
+is included. Each icon identifies its agent; the names and logos belong to their owners.
+
 ## Example icon pack
 
 `examples/icon-packs/jetbrains-icons.zip` repackages the file icon themes of

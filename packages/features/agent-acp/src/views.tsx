@@ -5,6 +5,7 @@ import { createTwoFilesPatch } from "diff";
 import { Icon, IconButton, translate as tr } from "@oxbit/ui";
 import type { ACPContext } from "@oxbit/sdk";
 import { type AgentController } from "./controller.js";
+import { AgentLogo } from "./agent-logo.js";
 import { agentName } from "./launch.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: true });
@@ -404,7 +405,8 @@ export function ConversationBrowser({ agent }: { agent: AgentController }) {
       {entries.map((entry) => (
         <article className="acp-history-entry" key={entry.id}>
           <strong>{entry.title}</strong>
-          <span className="muted">
+          <span className="muted acp-history-agent">
+            <AgentLogo provider={entry.provider} size={12} />
             {entry.name || agentName(entry.provider)} ·{" "}
             {new Date(entry.updatedAt).toLocaleString()}
           </span>

@@ -77,6 +77,12 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
     for (const name of builtins) await expect(picker.getByRole("radio", { name })).toBeVisible();
     await expect(picker.getByRole("radio")).toHaveCount(6);
     await expect(picker.getByRole("radio", { name: "Codex ACP" })).toHaveAttribute("aria-checked", "true");
+    const logos = picker.locator(".acp-agent-logo");
+    await expect(logos).toHaveCount(6);
+    expect(await logos.evaluateAll((elements) => elements.map((element) => {
+      const style = getComputedStyle(element);
+      return [element.getAttribute("data-agent"), style.maskImage.startsWith('url("data:image/svg+xml'), style.width];
+    }))).toEqual(["codex", "claude", "gemini", "copilot", "cursor", "amp"].map((id) => [id, true, "16px"]));
     await fs.mkdir(shots, { recursive: true });
     await page.screenshot({ path: `${shots}/desktop-1-picker.png` });
     await picker.getByRole("radio", { name: "Claude Agent" }).click();
@@ -95,6 +101,8 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
     await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.provider", "mystery-agent", "user"));
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").changed());
     await expect(picker.getByRole("radio", { name: "mystery-agent" })).toHaveAttribute("aria-checked", "true");
+    await expect(picker.getByRole("radio", { name: "mystery-agent" }).locator(".acp-agent-logo")).toHaveCount(0);
+    await expect(picker.getByRole("radio", { name: "mystery-agent" }).locator("svg")).toHaveCount(1);
     await expect(panel.getByRole("button", { name: "Start mystery-agent" })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
@@ -120,6 +128,7 @@ test("the registry browser filters, selects, and maps the old runtime error", as
     await expect(opencode).toContainText("1.18.35");
     await expect(opencode).toContainText("binary");
     await expect(opencode).toContainText("The open source coding agent");
+    await expect(opencode.locator(".acp-agent-logo")).toHaveAttribute("data-agent", "opencode");
     await registry.getByRole("textbox", { name: "Search agents" }).fill("");
     await page.screenshot({ path: `${shots}/desktop-2-registry.png` });
     await opencode.click();

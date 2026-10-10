@@ -22,6 +22,12 @@ A new conversation shows an agent picker. Choose an agent and select **Start**
 or type a message and send it: the panel starts the chosen agent and sends the
 message once the session is ready. The choice is saved as `agentACP.provider`.
 
+The picker, the registry browser, the header, thread chips, runtime sessions and
+history show each agent's ACP Registry icon in the current text color. The icons
+are vendored in `packages/features/agent-acp/src/agent-logos.ts`;
+`node scripts/agent-logos.mjs [commit]` refreshes them from the registry repository.
+Custom agents and registry agents added after that commit use the generic agent icon.
+
 - **Built-in agents** are listed below.
 - **More agents…** browses the [ACP Registry](https://agentclientprotocol.com/get-started/registry)
   through the runtime, with search by name, ID or description. Agents the runtime cannot

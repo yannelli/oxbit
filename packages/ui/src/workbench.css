@@ -742,6 +742,10 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .acp-registry-entry { display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
 .acp-registry-entry[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
 .acp-registry-title { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
+.acp-agent-logo { display:inline-block; flex:none; background:currentColor; -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; }
+.acp-agent-option > .acp-agent-logo,.acp-thread-heading > .acp-agent-logo,.acp-live-session > .acp-agent-logo { display:inline-block; flex:none; color:var(--fg-2); }
+.acp-registry-title > .acp-agent-logo { align-self:center; color:var(--fg-2); }
+.acp-history-agent { display:flex; align-items:center; gap:4px; }
 .acp-registry-title > small { color:var(--fg-3); }
 .acp-registry-tag { padding:0 5px; border:1px solid var(--bd); border-radius:4px; font-size:calc(var(--font-small-font-size) * 0.9); }
 .acp-registry-description { color:var(--fg-2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }

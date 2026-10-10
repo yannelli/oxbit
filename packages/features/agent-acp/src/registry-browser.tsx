@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { acpPreset, type ACPRegistryAgent } from "@oxbit/sdk";
 import { Icon, translate as tr } from "@oxbit/ui";
+import { AgentLogo } from "./agent-logo.js";
 import type { AgentController } from "./controller.js";
 
 /** Lists agents from the runtime's copy of the ACP Registry. */
@@ -64,6 +65,7 @@ export function RegistryBrowser({
               onClick={() => choose(entry)}
             >
               <span className="acp-registry-title">
+                <AgentLogo provider={entry.builtin ?? entry.id} size={14} />
                 <strong>{entry.name}</strong>
                 <small>{entry.version}</small>
                 <small className="acp-registry-tag">{entry.distribution}</small>
