@@ -10,12 +10,14 @@ export type Message = {
   role: "user" | "agent" | "thought";
   text: string;
   context?: ACPContext[];
+  /** User messages: git tree of the workspace before the prompt was sent. */
+  checkpoint?: string;
 };
 export type Activity =
   | { kind: "message"; message: Message }
   | { kind: "tool"; id: string }
   | { kind: "subagent"; id: string }
-  | { kind: "notice"; text: string };
+  | { kind: "notice"; text: string; values?: Record<string, string> };
 export type SavedLaunch = {
   registry?: { id: string };
   name?: string;

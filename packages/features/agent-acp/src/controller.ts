@@ -38,6 +38,7 @@ export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
 import { uncommittedChanges } from "./changes.js";
 import type { Mention } from "./mentions.js";
+import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
   id: string;
@@ -81,7 +82,9 @@ export class AgentController {
   };
   private replaying = false;
   private threadConversations = new Map<string, string>();
+  private checkpointing = false;
   readonly attention: Attention;
+  readonly checkpoints: Checkpoints;
   readonly history: ConversationHistory;
   activity: Activity[] = [];
   subagents = new Map<string, ACPSubagent>();
@@ -149,6 +152,7 @@ export class AgentController {
       `acp-history:${options.filesystem.id}`,
     );
     this.attention = new Attention(options);
+    this.checkpoints = new Checkpoints(async (method, params) => this.request(method, params), this.changed, () => this.messages);
     void this.history.ready.then(() => {
       for (const entry of this.history.entries)
         if (!acpPreset(entry.provider)) rememberAgentName(entry.provider, entry.name);
@@ -173,6 +177,8 @@ export class AgentController {
         const message: Message = { id: messageId, role: "user", text, context };
         this.messages.push(message);
         this.activity.push({ kind: "message", message });
+        if (!this.replaying)
+          void this.checkpoints.create().then((tree) => { if (tree) { message.checkpoint = tree; this.changed(); } });
       }
       if (this.title === "New conversation") this.title = text.slice(0, 100);
       this.busy = true;
@@ -879,6 +885,7 @@ export class AgentController {
     try {
       const result = await this.call(method, { sessionId: entry.sessionId });
       if (generation !== this.connectionGeneration) return;
+      if (method === "session/load") carryCheckpoints(entry.activity, this.activity);
       this.connection = result;
       this.status = "Ready";
       this.archived = false;
@@ -1081,6 +1088,7 @@ export class AgentController {
   }
   async send() {
     if (
+      this.checkpointing ||
       this.connecting ||
       this.updatingSettings ||
       this.discovering ||
@@ -1146,6 +1154,13 @@ export class AgentController {
     const generation = this.connectionGeneration;
     this.changed();
     try {
+      this.checkpointing = true;
+      try {
+        message.checkpoint = await this.checkpoints.create();
+      } finally {
+        this.checkpointing = false;
+      }
+      if (generation !== this.connectionGeneration) return;
       const result = await this.call("session/prompt", {
         text: prompt,
         messageId: message.id,
@@ -1564,7 +1579,16 @@ export class AgentController {
       this.changed();
     }
   }
-
+  async restoreCheckpoint(message: Message) {
+    if (!message.checkpoint || !this.connection) return;
+    if (this.busy || this.connecting || this.requests.length || this.activeSubagentCount)
+      throw new Error("Wait for the agent to finish before restoring a checkpoint");
+    const paths = await this.checkpoints.restore(message.checkpoint, (path) => !!this.documents.get(path)?.dirty);
+    if (!paths) return;
+    this.activity.push(restoredNotice(message));
+    this.changed();
+    await this.options.workbench.refreshFiles();
+  }
   private isChildRequest(request: AgentRequest) {
     return (
       !!request.sessionId &&

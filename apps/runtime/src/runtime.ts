@@ -41,6 +41,7 @@ import os from "node:os";
 import { Collaboration } from "./collaboration.js";
 import { AgentACP } from "./agent-acp.js";
 import { ACPRegistry } from "./acp-registry.js";
+import { ACPCheckpoints } from "./acp-checkpoints.js";
 import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
@@ -317,6 +318,7 @@ export async function createRuntime(options: RuntimeOptions) {
     },
   );
   const git = new Git(files, options.desktop?.gitPath);
+  const checkpoints = new ACPCheckpoints(files.root, options.desktop?.gitPath);
   const extensions = new RuntimeExtensions(files, {
     "runtime.git": {
       status: (signal?: AbortSignal) => git.status(signal),
@@ -674,7 +676,7 @@ export async function createRuntime(options: RuntimeOptions) {
       session = authorized(connection, required.cap, required.trust);
     if (method.startsWith("acp.")) {
       owner(connection);
-      if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method))
+      if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method) && !method.startsWith("acp.checkpoint."))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
     if (method.startsWith("project.")) owner(connection);
@@ -726,6 +728,14 @@ export async function createRuntime(options: RuntimeOptions) {
       case "acp.disconnect":
         agents.disconnect(session.id, connection.id);
         return {};
+      case "acp.checkpoint.create":
+        return checkpoints.create(signal);
+      case "acp.checkpoint.diff":
+        return checkpoints.diff(params.tree, signal);
+      case "acp.checkpoint.restore":
+        if (agents.list(session.id).sessions.some((agent) => agent.busy || agent.pendingRequests))
+          throw new RpcError("BUSY", "Wait for the agent to finish before restoring a checkpoint");
+        return checkpoints.restore(params.tree, params.paths, signal);
       case "workspace.info":
         return sessionInfo(session);
       case "workspace.trust":

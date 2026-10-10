@@ -285,6 +285,10 @@ function WorkingRow({ agent }: { agent: AgentController }) {
 }
 export function ActivityFeed({ agent }: { agent: AgentController }) {
   const [copied, setCopied] = useState<number>();
+  const connection = agent.connection?.id, last = agent.activity.at(-1), busy = agent.busy;
+  useEffect(() => {
+    if (connection && !busy) agent.checkpoints.refresh();
+  }, [agent, connection, busy, last]);
   return (
     <>
     <div
@@ -313,7 +317,7 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
           )
         ) : entry.kind === "notice" ? (
           <p className="acp-turn-note" key={index}>
-            {tr(entry.text)}
+            {tr(entry.text, entry.values)}
           </p>
         ) : entry.message.role === "thought" ? (
           <details className="acp-message acp-thinking" key={index}>
@@ -332,6 +336,15 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
                       agent.connection,
                     )}
               </strong>
+              {entry.message.role === "user" && agent.connection && agent.checkpoints.differs(entry.message) && (
+                <button
+                  className="button acp-checkpoint-restore"
+                  disabled={agent.busy || agent.connecting || agent.requests.length > 0 || agent.activeSubagentCount > 0 || agent.checkpoints.restoring}
+                  onClick={() => void agent.action(() => agent.restoreCheckpoint(entry.message))}
+                >
+                  {tr("Restore checkpoint")}
+                </button>
+              )}
               <IconButton
                 icon={copied === index ? "check" : "copy"}
                 label="Copy message"

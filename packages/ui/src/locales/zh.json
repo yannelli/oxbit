@@ -921,6 +921,8 @@
   "Attach the active file's diagnostics": "附加当前文件的诊断",
   "Working": "工作中",
   "Waiting for your approval": "等待你的批准",
+  "Restore checkpoint": "恢复检查点",
+  "Restored files to before “{message}”": "已将文件恢复到“{message}”之前的状态",
   "Execute": "执行",
   "Think": "思考",
   "Switch mode": "切换模式",

@@ -340,6 +340,42 @@ Markdown never executes HTML or loads remote images. Relative file links open
 inside the workspace; external HTTP(S) links open only when clicked. Multimodal
 attachments and arbitrary MCP server configuration remain outside this extension.
 
+### Checkpoints
+
+When the workspace root is the root of a git work tree, each user message stores a
+checkpoint: a git tree of the workspace files taken before the prompt is sent. The
+runtime copies the real index (`git rev-parse --git-path index`, which resolves
+linked worktrees whose `.git` is a file) to a temporary file, runs `git add -A` and
+`git write-tree` against the copy, and deletes it. Ignored files are not in the
+tree. If creation fails or takes longer than 5 seconds, the message still sends
+without a checkpoint. Queued messages are captured when the runtime starts their
+turn, after the prompt reaches the agent. Outside a repository, or when the
+workspace root is a subdirectory of one, no checkpoints are taken and the action is
+hidden.
+
+**Restore checkpoint** appears on a user message whose checkpoint differs from the
+current files. Restore is refused while the agent is working or has pending
+requests, and when a file it would change has unsaved editor edits. The runtime
+computes the current tree the same way, compares it with `git diff-tree -r`, writes
+the changed paths from the checkpoint through a temporary index (`git read-tree`,
+then `git checkout-index -f`), and deletes paths that exist now and are absent from
+the checkpoint. Ignored files, the real index, `HEAD`, and refs are unchanged;
+submodule entries are skipped. A note in the conversation names the message the
+files were restored to. The agent's context is unchanged: it keeps the later turns
+and is not told about the restore.
+
+Checkpoint trees are saved on user messages in history, so restore works after a
+reload. Loading a provider session matches replayed user messages to saved ones by
+text; attaching a live session replays messages without checkpoints. Checkpoints
+write git objects and no refs. Unreferenced objects follow git's `gc.pruneExpire`
+window (two weeks by default), after which `git gc` deletes them and restore
+reports that the checkpoint is no longer available.
+
+Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
+`{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and
+the changed paths; `acp.checkpoint.restore` `{ tree, paths }` restores and refuses
+when files outside `paths` changed since the diff.
+
 ## Protocol references
 
 Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup), [session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and [content](https://agentclientprotocol.com/protocol/v1/content) contracts. The native tool server follows [MCP Streamable HTTP and stdio transport rules](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports). Adapter defaults are checked against the [Codex ACP package](https://registry.npmjs.org/@agentclientprotocol%2Fcodex-acp/2.2.2) and [Amp ACP package](https://registry.npmjs.org/amp-acp/0.10.0).
@@ -351,7 +387,7 @@ Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) docu
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):
