@@ -82,9 +82,11 @@ For isolated hosts/tests, `OXBIT_SETTINGS_FILE` overrides the user settings path
 
 ## Settings screen
 
-The header has three rows: the title with a Keyboard Shortcuts button, the search box, and the filters. The filters are a User/Workspace segmented control, the language override select, and a Modified toggle chip. All header controls share one height: 30px on desktop and tablet, 44px below 600px width. Below 600px the header scrolls with the list, and while the software keyboard is open only the search box stays in the header.
+[Settings UI](settings-ui.md) covers the layout, the Zed findings it follows, and how categories become pages and sections.
 
-The All Settings and Source Control categories show a Git Accounts and Commit Author… button when the `git.account` command is registered and enabled. iOS registers it; desktop and web hide the button.
+The header has two rows. The first holds the title, an Edit as JSON button, and the User/Workspace segmented control. The second holds the search box, the language override select, and a Modified toggle chip. All header controls share one height: 30px on desktop and tablet, 44px below 600px width. Below 600px the header scrolls with the list, and while the software keyboard is open only the search box stays in the header.
+
+The Source Control page shows a Git Accounts and Commit Author row with a Manage Git Accounts… button when the `git.account` command is registered and enabled. iOS registers it; desktop and web hide the row.
 
 ## Runtime settings
 

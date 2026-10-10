@@ -123,13 +123,13 @@ function serverSettings(server: IosLanguageServer, configuration: ConfigurationS
 
 function serverConfiguration(server: IosLanguageServer): Setting[] {
   const settings: Setting[] = [{
-    id: fileTypesSetting(server.id), title: `${server.name}: File Types`, category: "Language Servers",
+    id: fileTypesSetting(server.id), title: "File Types", category: `Language Servers · ${server.name}`,
     description: "Language IDs (such as yaml) or glob patterns (such as **/*.conf or .github/**/*.yml) this server handles.",
     type: "array", items: "string", default: server.fileTypes, validate: validateFileTypes,
   }];
   if (server.schemas) settings.push(
-    { id: `${server.schemas}.schemaStore.enable`, title: `${server.name}: SchemaStore Catalog`, category: "Language Servers", description: "Associate files with schemas from the SchemaStore catalog.", type: "boolean", default: true },
-    { id: `${server.schemas}.schemaDownload.enable`, title: `${server.name}: Download Schemas`, category: "Language Servers", description: "Download schemas over HTTPS and cache them for 24 hours. When off, cached and bundled schemas are used.", type: "boolean", default: true },
+    { id: `${server.schemas}.schemaStore.enable`, title: "SchemaStore Catalog", category: `Language Servers · ${server.name}`, description: "Associate files with schemas from the SchemaStore catalog.", type: "boolean", default: true },
+    { id: `${server.schemas}.schemaDownload.enable`, title: "Download Schemas", category: `Language Servers · ${server.name}`, description: "Download schemas over HTTPS and cache them for 24 hours. When off, cached and bundled schemas are used.", type: "boolean", default: true },
   );
   return settings;
 }

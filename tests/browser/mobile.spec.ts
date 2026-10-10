@@ -464,6 +464,7 @@ test("German JSON settings use compact full-width editors and translated text", 
   await expect(page.locator(".setting-row p").first()).toContainText("Lizenzschlüssel");
   await page.screenshot({ path: info.outputPath("settings-german.png"), animations: "disabled" });
   await search.fill("");
+  await page.getByRole("navigation", { name: "Einstellungskategorien" }).getByRole("button", { name: "Darstellung", exact: true }).click();
   await expect(page.getByRole("button", { name: "Theme-Pakete verwalten" })).toBeVisible();
 });
 
@@ -682,4 +683,75 @@ test("file rows and menu labels resist selection while code and inputs remain se
   await input.fill("selectable input");
   await input.press("ControlOrMeta+a");
   expect(await input.evaluate(element => (element as HTMLInputElement).selectionEnd! - (element as HTMLInputElement).selectionStart!)).toBe("selectable input".length);
+});
+
+test("phone settings open on a page list, drill into a page, and return", async ({ page }) => {
+  await ready(page);
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.evaluate(() => (window as any).__oxbit.workbench.run("settings.open"));
+  const search = page.getByRole("textbox", { name: "Search settings" });
+  const pages = page.getByRole("navigation", { name: "Setting categories" });
+  await expect(pages).toHaveCount(1);
+  const names = await pages.getByRole("button").allTextContents();
+  expect(names.slice(0, 7)).toEqual(["Appearance", "Editor", "Formatting", "Files", "Terminal", "Source Control", "Language Servers"]);
+  expect(names.at(-1)).toBe("Keyboard Shortcuts");
+  for (const box of await pages.getByRole("button").evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect())))
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  await expect(page.locator(".setting-row")).toHaveCount(0);
+  await page.screenshot({ path: "evidence/settings-ui/phone-pages.png", animations: "disabled" });
+
+  await pages.getByRole("button", { name: "Editor", exact: true }).click();
+  await expect(pages).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Editor", level: 2 })).toBeVisible();
+  await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation"]);
+  await expect(search).toBeVisible();
+  const minimap = page.locator('[data-setting-id="editor.minimap"]');
+  const text = await minimap.locator(".setting-title").boundingBox(), toggle = await minimap.getByRole("switch", { name: "Minimap" }).boundingBox();
+  expect(toggle!.x).toBeGreaterThan(text!.x + text!.width - 1);
+  expect(toggle!.x + toggle!.width).toBeLessThanOrEqual(393);
+  await expect(minimap.getByRole("button", { name: "Copy setting ID" })).toBeHidden();
+  const wordWrap = page.locator('[data-setting-id="editor.wordWrap"]');
+  const title = await wordWrap.locator(".setting-title").boundingBox(), select = await wordWrap.getByRole("combobox", { name: "Word Wrap" }).boundingBox();
+  const description = await wordWrap.locator(".setting-text > p").boundingBox(), row = await wordWrap.boundingBox();
+  expect(select!.height).toBeGreaterThanOrEqual(44);
+  expect(select!.width).toBeLessThanOrEqual(393 * 0.45 + 1);
+  expect(Math.abs(select!.y + select!.height / 2 - (title!.y + title!.height / 2))).toBeLessThan(2);
+  expect(description!.y).toBeGreaterThanOrEqual(select!.y + select!.height - 1);
+  expect(description!.width).toBeGreaterThan(row!.width * 0.8);
+  const tabSize = page.locator('[data-setting-id="editor.tabSize"]');
+  const tabTitle = await tabSize.locator(".setting-title").boundingBox(), number = await tabSize.getByRole("spinbutton", { name: "Tab Size" }).boundingBox();
+  expect(number!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(number!.y + number!.height / 2 - (tabTitle!.y + tabTitle!.height / 2))).toBeLessThan(2);
+  const fontFamily = page.locator('[data-setting-id="editor.fontFamily"]');
+  const fontText = await fontFamily.locator(".setting-text").boundingBox(), fontInput = await fontFamily.getByRole("textbox", { name: "Font Family" }).boundingBox();
+  expect(fontInput!.y).toBeGreaterThanOrEqual(fontText!.y + fontText!.height - 1);
+  await page.screenshot({ path: "evidence/settings-ui/phone-editor.png", animations: "disabled" });
+
+  await page.getByRole("button", { name: "All settings" }).click();
+  await expect(pages.getByRole("button", { name: "Editor", exact: true })).toBeVisible();
+  await search.fill("tab size");
+  await expect(pages).toHaveCount(0);
+  await expect(page.locator('[data-setting-id="editor.tabSize"]')).toBeVisible();
+  await search.fill("");
+  await expect(pages).toBeVisible();
+});
+
+test("phone Language Servers rows open a server's settings page", async ({ page }) => {
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.evaluate(() => (window as any).__oxbit.workbench.run("settings.open"));
+  await page.getByRole("navigation", { name: "Setting categories" }).getByRole("button", { name: "Language Servers", exact: true }).click();
+  const row = page.locator(".server-row").filter({ hasText: "YAML Language Server" });
+  await expect(row.getByRole("switch", { name: "YAML Language Server" })).toBeVisible();
+  await row.scrollIntoViewIfNeeded();
+  await insideViewport(row.getByRole("button", { name: "Configure YAML Language Server" }));
+  await row.getByRole("button", { name: "Configure YAML Language Server" }).click();
+  await expect(page.getByRole("heading", { name: "YAML Language Server Settings" })).toBeVisible();
+  await expect(page.locator(".settings-page-title, .settings-section-title")).toHaveCount(0);
+  const fileTypes = page.getByRole("group", { name: "File Types", exact: true });
+  await expect(fileTypes.locator(".setting-chip-item").first()).toBeVisible();
+  const add = await fileTypes.getByRole("textbox", { name: "Add to File Types" }).boundingBox();
+  expect(add!.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({ path: "evidence/settings-ui/phone-language-server.png", animations: "disabled" });
 });

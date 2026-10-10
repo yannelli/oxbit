@@ -27,17 +27,20 @@ test("language servers are separate extensions with their own file type settings
   await page.getByRole("button", { name: "Configure", exact: true }).click();
   await expect(page.getByRole("heading", { name: "YAML Language Server Settings" })).toBeVisible();
   await expect(page.locator(".setting-row")).toHaveCount(3);
-  await expect(page.locator(".setting-id")).toContainText(["languageServer.yaml.fileTypes", "yaml.schemaStore.enable", "yaml.schemaDownload.enable"]);
-  const fileTypes = page.getByRole("group", { name: "YAML: File Types" });
+  expect(await page.locator(".setting-row").evaluateAll(rows => rows.map(row => row.getAttribute("data-setting-id")))).toEqual(["languageServer.yaml.fileTypes", "yaml.schemaStore.enable", "yaml.schemaDownload.enable"]);
+  const fileTypes = page.getByRole("group", { name: "File Types", exact: true });
+  const chips = fileTypes.locator(".setting-chip-item");
+  await expect(chips).toHaveText(["yaml"]);
   await expect(fileTypes.getByRole("textbox")).toHaveCount(1);
-  await expect(fileTypes.getByRole("textbox", { name: "YAML: File Types, item 1" })).toHaveValue("yaml");
-  await fileTypes.getByRole("button", { name: "Add Item" }).click();
-  await fileTypes.getByRole("textbox", { name: "YAML: File Types, item 2" }).fill("**/*.yaml.tmpl");
+  const add = fileTypes.getByRole("textbox", { name: "Add to File Types" });
+  await add.fill("**/*.yaml.tmpl");
+  await add.press("Enter");
+  await expect(chips).toHaveText(["yaml", "**/*.yaml.tmpl"]);
+  await expect(add).toHaveValue("");
   await expect(page.locator(".setting-row.modified")).toHaveCount(1);
   await page.screenshot({ path: "/tmp/oxbit-p2/browser-extension-configure.png" });
   await fileTypes.getByRole("button", { name: "Remove yaml" }).click();
-  await expect(fileTypes.getByRole("textbox")).toHaveCount(1);
-  await expect(fileTypes.getByRole("textbox", { name: "YAML: File Types, item 1" })).toHaveValue("**/*.yaml.tmpl");
+  await expect(chips).toHaveText(["**/*.yaml.tmpl"]);
 
   await openExtensions(page);
   await page.locator(".extension-card", { hasText: "YAML Language Server" }).tap();

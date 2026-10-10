@@ -1,6 +1,6 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-09.
+Created: 2026-10-02. Last updated: 2026-10-10.
 
 | Guide | Use when |
 | --- | --- |
@@ -20,3 +20,4 @@ Created: 2026-10-02. Last updated: 2026-10-09.
 | [Dependency audit](security.md#dependency-audit) | Running `bun audit`, the managed language-server `npm audit`, and the Cargo OSV query; fixed versions and accepted advisories with reachability; OSV batch API reference. |
 | [Runtime, trust and recovery](runtime.md) | Starting runtimes, the random port, runtime identity, `oxbit --lan` and Bonjour advertising, keep-alive, and the Runtime page and its per-app connectors; RFC 6762 and RFC 6763 references for the mDNS responder. |
 | [JSON settings](settings.md) | Settings files, precedence, the schema, and the `runtime.keepAlive` and `runtime.autoReconnect` settings. |
+| [Settings UI](settings-ui.md) | Changing the Settings screen: pages and sections from setting categories, the Language Servers Configure rows, the string list chip editor, the phone page list, and Edit as JSON; Zed Settings Editor references. |
