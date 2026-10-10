@@ -1,6 +1,7 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {RuntimeClient,RuntimeFileSystem} from './index.js';
 import type {RpcClient} from '@oxbit/sdk';
+import { operationEpoch } from '@oxbit/protocol';
 
 class Socket {
   static OPEN=1;static instances:Socket[]=[];readyState=0;bufferedAmount=0;sent:any[]=[];onopen?:()=>void;onmessage?:(event:{data:string})=>void;onclose?:(event:{code:number})=>void;onerror?:()=>void;
@@ -11,8 +12,30 @@ class Socket {
 }
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();Socket.instances=[];});
 describe('runtime connection recovery',()=>{
+  it('uses the advertised epoch for new operations and preserves an explicit replay ID', async () => {
+    const firstEpoch = crypto.randomUUID(), nextEpoch = crypto.randomUUID();
+    class EpochSocket extends Socket {
+      send(raw: string) {
+        const message = JSON.parse(raw); this.sent.push(message);
+        queueMicrotask(() => this.receive({ v: 1, type: 'response', id: message.id, result: message.method === 'auth.authenticate' ? { workspaceId: 'default', operationEpoch: firstEpoch } : { ok: true } }));
+      }
+    }
+    vi.stubGlobal('WebSocket', EpochSocket);
+    const client = new RuntimeClient('http://runtime.test'); await client.connect();
+    const replayId = client.createOperationId();
+    await client.request('fs.mkdir', { path: 'one' }, { id: replayId });
+    const socket = Socket.instances[0];
+    socket.receive({ v: 1, type: 'event', event: 'operation.epoch', params: { epoch: nextEpoch } });
+    await client.request('fs.mkdir', { path: 'two' });
+    await client.request('fs.mkdir', { path: 'one' }, { id: replayId });
+    const operations = socket.sent.filter(message => message.method === 'fs.mkdir');
+    expect(operationEpoch(operations[0].id)).toBe(firstEpoch);
+    expect(operationEpoch(operations[1].id)).toBe(nextEpoch);
+    expect(operations[2].id).toBe(replayId);
+    client.dispose();
+  });
   it('queries durable operation status after reconnect without repeating execution',async()=>{vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();const recovered:any[]=[];client.subscribe('operation.recovered',value=>recovered.push(value));const pending=client.request('git.commit',{message:'one commit'},{id:'commit-1'});const rejected=expect(pending).rejects.toMatchObject({code:'CONNECTION_LOST'});Socket.instances[0].close();await rejected;await vi.advanceTimersByTimeAsync(1000);expect(Socket.instances.flatMap(socket=>socket.sent).filter(message=>message.method==='git.commit')).toHaveLength(1);expect(recovered[0]).toMatchObject({id:'commit-1',status:'completed',result:{commit:'saved'}});client.dispose();});
-  it('rejects oversized and buffered requests before enqueueing them',async()=>{vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();await expect(client.request('fs.write',{text:'🚀'.repeat(600000)})).rejects.toMatchObject({code:'TOO_LARGE'});Socket.instances[0].bufferedAmount=1048577;await expect(client.request('fs.list')).rejects.toMatchObject({code:'BUSY'});client.dispose();});
+  it('rejects oversized and buffered requests before enqueueing them',async()=>{vi.stubGlobal('WebSocket',Socket);const client=new RuntimeClient('http://runtime.test');await client.connect();await expect(client.request('settings.patch',{text:'🚀'.repeat(600000)})).rejects.toMatchObject({code:'TOO_LARGE'});Socket.instances[0].bufferedAmount=1048577;await expect(client.request('fs.list')).rejects.toMatchObject({code:'BUSY'});client.dispose();});
   it('renews and disposes filesystem watches and saves detached shared documents through fs.write',async()=>{const listeners=new Map<string,Set<(value:any)=>void>>(),calls:string[]=[];const client:RpcClient={connected:true,request:async<T>(method:string)=>{calls.push(method);return {ok:true} as T;},subscribe(event,listener){const set=listeners.get(event)??new Set();set.add(listener);listeners.set(event,set);return()=>{set.delete(listener);};}};const files=new RuntimeFileSystem(client),watch=files.watch(()=>{});for(const listener of listeners.get('connection.change')??[])listener({state:'connected'});expect(calls.filter(method=>method==='fs.watch')).toHaveLength(2);watch.dispose();expect(calls.at(-1)).toBe('fs.unwatch');files.shared.set('file.ts',{revision:'old',savedText:'saved',update:''});await files.write('file.ts','local',{expectedRevision:'old'});expect(calls.at(-1)).toBe('fs.write');expect(files.shared.has('file.ts')).toBe(false);});
 });
 

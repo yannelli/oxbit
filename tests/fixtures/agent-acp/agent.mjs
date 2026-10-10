@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 let sessionId = "fixture-session";
+let mcpServers = [];
 const historyEnabled = process.argv.includes("--history");
 const resumeOnly = process.argv.includes("--resume-only");
 const historyPath = path.join(process.cwd(), ".fixture-acp-history.json");
@@ -119,17 +120,19 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
     if (method === "initialize")
       result = {
         protocolVersion: 1,
-        agentCapabilities: historyEnabled
-          ? {
+        agentCapabilities: {
+          mcpCapabilities: { http: true },
+          ...(historyEnabled ? {
               loadSession: !resumeOnly,
               sessionCapabilities: { list: {}, resume: {} },
               promptCapabilities: { embeddedContext: true },
-            }
-          : {},
+            } : {}),
+        },
         agentInfo: { name: "fixture", title: "Fixture Agent", version: "1.0" },
         authMethods: [{ id: "fixture", name: "Fixture sign in" }],
       };
     else if (method === "session/new") {
+      mcpServers = params.mcpServers;
       if (params.cwd !== process.cwd()) throw new Error("Wrong workspace");
       if (historyEnabled) {
         sessionId = randomUUID();
@@ -163,6 +166,7 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
         ...(all.length > page * 2 + 2 ? { nextCursor: "next" } : {}),
       };
     } else if (method === "session/load" || method === "session/resume") {
+      mcpServers = params.mcpServers;
       if (!historyEnabled || !sessions[params.sessionId])
         throw new Error("Session missing");
       sessionId = params.sessionId;
@@ -222,6 +226,24 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
         });
       }
       if (text === "wait") return;
+      if (text === "usage")
+        update({ sessionUpdate: "usage_update", used: 1234, size: 8192 });
+      if (text.startsWith("mcp:")) {
+        const [, name, json] = /^mcp:([^:]+):([\s\S]*)$/.exec(text);
+        const server = mcpServers.find((server) => server.name === "oxbit_workspace");
+        if (server?.type !== "http") throw new Error("Expected native HTTP MCP server");
+        const rpc = async (method, params, rpcId = 1) => {
+          const response = await fetch(server.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", ...Object.fromEntries(server.headers.map(({ name, value }) => [name, value])) },
+            body: JSON.stringify({ jsonrpc: "2.0", id: rpcId, method, params }),
+          });
+          return response.json();
+        };
+        await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "fixture", version: "1" } });
+        const response = await rpc("tools/call", { name, arguments: JSON.parse(json) }, 2);
+        update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: JSON.stringify(response.result ?? response.error) } });
+      }
       if (text === "error") throw new Error("Fixture prompt failed");
       if (text === "config-update") {
         configOptions = configOptions.map((option) =>

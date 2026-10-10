@@ -4,7 +4,7 @@ export const ACP_PROVIDERS = [
     id: "codex",
     name: "Codex ACP",
     command: "npx",
-    args: ["-y", "@agentclientprotocol/codex-acp@1.10.0"],
+    args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     setup:
       "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
     url: "https://github.com/agentclientprotocol/codex-acp",
@@ -22,7 +22,7 @@ export const ACP_PROVIDERS = [
     id: "amp",
     name: "Amp Agent ACP",
     command: "npx",
-    args: ["-y", "amp-acp@0.9.0"],
+    args: ["-y", "amp-acp@0.10.0"],
     setup:
       "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
     url: "https://github.com/tao12345666333/amp-acp",
@@ -33,6 +33,7 @@ export interface ACPLaunch {
   provider: ACPProviderId;
   command?: string;
   args?: string[];
+  clientCapabilities?: { editorTools?: boolean };
 }
 export interface ACPOption {
   id: string;
@@ -65,7 +66,8 @@ export interface ACPConnection {
       resume?: object;
       subagents?: object;
     };
-    promptCapabilities?: { embeddedContext?: boolean };
+    promptCapabilities?: { embeddedContext?: boolean; image?: boolean };
+    mcpCapabilities?: { http?: boolean };
   };
   modes?: { currentModeId: string; availableModes: ACPOption[] };
   models?: {
@@ -88,6 +90,37 @@ export interface ACPContext {
   endLine?: number;
   version?: number;
   kind?: "file" | "selection" | "diagnostics";
+}
+
+export interface ACPQueuedPrompt {
+  id: string;
+  text: string;
+  context?: ACPContext[];
+}
+export interface ACPLiveSession {
+  connection: ACPConnection;
+  busy: boolean;
+  title: string;
+  pendingRequests: number;
+  queued: number;
+}
+export interface ACPSessionSnapshot {
+  connection: ACPConnection;
+  busy: boolean;
+  events: { name: string; params: Record<string, any> }[];
+  requests: {
+    id: string;
+    requestId: string;
+    sessionId?: string;
+    rootSessionId?: string;
+    subagentId?: string;
+    method: string;
+    params: Record<string, any>;
+  }[];
+  queue: ACPQueuedPrompt[];
+  queuePaused: boolean;
+  sequence: number;
+  truncated: boolean;
 }
 
 export type ACPSubagentState =

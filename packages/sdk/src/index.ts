@@ -216,7 +216,7 @@ export interface ConfigurationService {
   flush?(): Promise<void>;
   register(setting: Setting): Disposable;
   get<T = unknown>(id: string, language?: string): T;
-  inspect<T = unknown>(id: string, language?: string): { value: T; explicit: boolean; scope?: "user" | "workspace"; language?: string; defaultValue: T };
+  inspect<T = unknown>(id: string, language?: string, scope?: "user" | "workspace"): { value: T; explicit: boolean; scope?: "user" | "workspace"; language?: string; defaultValue: T };
   set(
     id: string,
     value: unknown,

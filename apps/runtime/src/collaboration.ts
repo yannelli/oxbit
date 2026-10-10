@@ -9,7 +9,7 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 import type { Encoding, Eol } from "@oxbit/sdk";
-import { RpcError } from "@oxbit/protocol";
+import { MAX_COLLABORATION_UPDATE_BYTES, MAX_FILE_BYTES, MAX_MESSAGE_BYTES, RpcError } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { LanguageServer } from "./lsp.js";
 interface Room {
@@ -169,10 +169,10 @@ export class Collaboration {
       ),
     );
   }
-  private bytes(encoded: string) {
+  private bytes(encoded: string, limit = MAX_MESSAGE_BYTES) {
     if (
       !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) ||
-      encoded.length > 2 * 1024 * 1024
+      encoded.length > limit
     )
       throw new RpcError("INVALID_PARAMS", "Invalid collaboration update");
     return Buffer.from(encoded, "base64");
@@ -209,11 +209,11 @@ export class Collaboration {
   }
   async update(relative: string, connection: string, encoded: string) {
     const room = await this.member(relative, connection);
-    const bytes=this.bytes(encoded);
+    const bytes=this.bytes(encoded, MAX_COLLABORATION_UPDATE_BYTES);
     try {
-      if (room.doc.getText("content").length + bytes.length > 20 * 1024 * 1024) {
+      if (room.doc.getText("content").length + bytes.length > MAX_FILE_BYTES) {
         const candidate=new Y.Doc();
-        try { Y.applyUpdate(candidate,Y.encodeStateAsUpdate(room.doc));Y.applyUpdate(candidate,bytes);if(candidate.getText("content").length>20*1024*1024)throw new RpcError("FILE_TOO_LARGE","Shared documents are limited to 20 MiB"); } finally {candidate.destroy();}
+        try { Y.applyUpdate(candidate,Y.encodeStateAsUpdate(room.doc));Y.applyUpdate(candidate,bytes);if(candidate.getText("content").length>MAX_FILE_BYTES)throw new RpcError("FILE_TOO_LARGE","Shared documents are limited to 20 MiB"); } finally {candidate.destroy();}
       }
       Y.applyUpdate(room.doc, bytes, connection);
     } catch (error) {

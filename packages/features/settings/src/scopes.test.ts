@@ -65,6 +65,57 @@ describe("settings scope editing", () => {
       modified: false,
     });
   });
+  it("uses canonical language aliases without marking inherited values modified", () => {
+    const kernel = createKernel();
+    kernels.push(kernel);
+    const setting = {
+      id: "editor.tabSize",
+      title: "Tab size",
+      type: "number" as const,
+      default: 2,
+      min: 1,
+    };
+    kernel.configuration.register(setting);
+    kernel.configuration.set(setting.id, 4, "user");
+    kernel.configuration.set(setting.id, 8, "user", "tsx");
+    kernel.configuration.set(setting.id, 6, "workspace", "typescriptreact");
+    expect(scopedSetting(kernel, setting, "user", "typescriptreact")).toEqual({
+      value: 8,
+      modified: false,
+    });
+    expect(scopedSetting(kernel, setting, "workspace", "typescriptreact")).toEqual({
+      value: kernel.configuration.get(setting.id, "typescriptreact"),
+      modified: true,
+    });
+    expect(scopedSetting(kernel, setting, "workspace", "typescriptreact").value).toBe(6);
+  });
+  it("ignores invalid persisted values using the same validation as the editor", () => {
+    const kernel = createKernel();
+    kernels.push(kernel);
+    const setting = {
+      id: "editor.tabSize",
+      title: "Tab size",
+      type: "number" as const,
+      default: 2,
+      min: 1,
+    };
+    kernel.configuration.register(setting);
+    kernel.configuration.import({
+      user: { "editor.tabSize": 4 },
+      workspace: { "editor.tabSize": -4 },
+      userLanguages: { tsx: { "editor.tabSize": 8 } },
+      workspaceLanguages: { typescriptreact: { "editor.tabSize": "bad" } },
+    });
+    expect(scopedSetting(kernel, setting, "workspace")).toEqual({
+      value: kernel.configuration.get(setting.id),
+      modified: true,
+    });
+    expect(scopedSetting(kernel, setting, "workspace").value).toBe(4);
+    expect(scopedSetting(kernel, setting, "workspace", "typescriptreact")).toEqual({
+      value: 8,
+      modified: true,
+    });
+  });
 });
 
 it('shows theme defaults in user scope independently of workspace font overrides',()=>{

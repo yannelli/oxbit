@@ -156,6 +156,16 @@ async function setup() {
   disposables.push(kernel, documents, workbench);
   return { kernel, persistence, filesystem, documents, workbench };
 }
+function delayOpen(documents: DocumentService, delayedPath: string) {
+  const open = documents.open.bind(documents);
+  let release!: () => void;
+  const waiting = new Promise<void>((resolve) => { release = resolve; });
+  vi.spyOn(documents, "open").mockImplementation(async (path) => {
+    if (path === delayedPath) await waiting;
+    return open(path);
+  });
+  return release;
+}
 describe("workbench document and contribution lifecycle", () => {
   it("keeps JSONC formatting available when workbench context changes", async () => {
     const { kernel, workbench, documents, filesystem } = await setup();
@@ -250,6 +260,114 @@ describe("workbench document and contribution lifecycle", () => {
       workbench.state.groups[0]!.tabs.find((tab) => tab.id === "two.ts"),
     ).toMatchObject({ pinned: true, preview: false });
     expect(workbench.activePath()).toBe("one.ts");
+  });
+  it("ignores an older preview that finishes after a newer file open", async () => {
+    const { workbench, documents } = await setup();
+    const release = delayOpen(documents, "one.ts");
+    const first = workbench.openFile("one.ts", { preview: true });
+    await workbench.openFile("two.ts", { preview: true });
+    release();
+    await first;
+    expect(workbench.state.groups[0]!.tabs.map((tab) => tab.id)).toEqual(["two.ts"]);
+    expect(workbench.activePath()).toBe("two.ts");
+    expect(workbench.state.selectedPath).toBe("two.ts");
+    expect(workbench.state.recent[0]).toBe("two.ts");
+  });
+  it.each([false, undefined])(
+    "retains a late permanent open without changing the newer selection (preview=%s)",
+    async (preview) => {
+      const { workbench, documents } = await setup();
+      const release = delayOpen(documents, "one.ts");
+      const first = workbench.openFile("one.ts", { preview });
+      await workbench.openFile("two.ts", { preview: true });
+      release();
+      await first;
+      expect(workbench.state.groups[0]!.tabs.map((tab) => tab.id)).toEqual([
+        "two.ts", "one.ts",
+      ]);
+      expect(workbench.state.groups[0]!.tabs[1]!.preview).not.toBe(true);
+      expect(workbench.activePath()).toBe("two.ts");
+      expect(workbench.state.selectedPath).toBe("two.ts");
+    },
+  );
+  it("completes in the requested pane while keeping a newer pane focused", async () => {
+    const { workbench, documents } = await setup();
+    const second = workbench.split("row")!;
+    workbench.set({ activeGroup: "g1" });
+    const release = delayOpen(documents, "one.ts");
+    const first = workbench.openFile("one.ts", { preview: true });
+    workbench.set({ activeGroup: second });
+    await workbench.openFile("two.ts", { preview: true });
+    release();
+    await first;
+    expect(workbench.state.groups.find((group) => group.id === "g1")).toMatchObject({
+      active: "one.ts", tabs: [{ id: "one.ts" }],
+    });
+    expect(workbench.state.activeGroup).toBe(second);
+    expect(workbench.activePath()).toBe("two.ts");
+    expect(workbench.state.selectedPath).toBe("two.ts");
+  });
+  it("allows the latest pane request to activate after an earlier pane finishes", async () => {
+    const { workbench, documents } = await setup();
+    const second = workbench.split("row")!;
+    workbench.set({ activeGroup: "g1" });
+    const release = delayOpen(documents, "two.ts");
+    const first = workbench.openFile("one.ts", { groupId: "g1", preview: true });
+    const latest = workbench.openFile("two.ts", { groupId: second, preview: true });
+    await first;
+    release();
+    await latest;
+    expect(workbench.state.groups.find((group) => group.id === "g1")?.active).toBe("one.ts");
+    expect(workbench.state.activeGroup).toBe(second);
+    expect(workbench.state.selectedPath).toBe("two.ts");
+    expect(workbench.activePath()).toBe("two.ts");
+  });
+  it("does not reopen a pane removed during a file read", async () => {
+    const { workbench, documents } = await setup();
+    const second = workbench.split("row")!;
+    const release = delayOpen(documents, "one.ts");
+    const opening = workbench.openFile("one.ts", { groupId: second });
+    workbench.set({ groups: [{ id: "g1", tabs: [] }], activeGroup: "g1" });
+    release();
+    await opening;
+    expect(workbench.state.groups).toEqual([{ id: "g1", tabs: [] }]);
+    expect(workbench.state.activeGroup).toBe("g1");
+  });
+  it("keeps a tab activated while an earlier preview is loading", async () => {
+    const { workbench, documents } = await setup();
+    await workbench.openFile("two.ts");
+    const release = delayOpen(documents, "one.ts");
+    const opening = workbench.openFile("one.ts", { preview: true });
+    workbench.activateTab("g1", "two.ts");
+    release();
+    await opening;
+    expect(workbench.state.groups[0]!.tabs.map((tab) => tab.id)).toEqual(["two.ts"]);
+    expect(workbench.activePath()).toBe("two.ts");
+  });
+  it("does not close the document shared by overlapping opens of the same file", async () => {
+    const { workbench, documents } = await setup();
+    const release = delayOpen(documents, "one.ts");
+    const first = workbench.openFile("one.ts", { preview: true });
+    const second = workbench.openFile("one.ts", { preview: true });
+    release();
+    await Promise.all([first, second]);
+    expect(workbench.activePath()).toBe("one.ts");
+    expect(documents.get("one.ts")!.text.toString()).toBe("const one = 1;");
+  });
+  it("does not apply a queued cursor move to a newer editor", async () => {
+    const { workbench } = await setup();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const view = { focus: vi.fn(), dispatch: vi.fn() };
+    workbench.editors.set("g1", view as any);
+    await workbench.openFile("one.ts", { from: 3 });
+    await workbench.openFile("two.ts");
+    for (const frame of frames) frame(0);
+    expect(view.dispatch).not.toHaveBeenCalled();
+    expect(view.focus).toHaveBeenCalledOnce();
   });
   it("retains dirty text when one of two views closes and prompts on the final view", async () => {
     const { workbench, documents } = await setup();

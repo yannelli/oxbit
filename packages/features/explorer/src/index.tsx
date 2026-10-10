@@ -485,32 +485,63 @@ export function createFeature({
             [],
             [{ kind: "rename", path: args.from, to: args.to }],
           );
+          const renamedPath = (path: string) =>
+            path === args.from || path.startsWith(args.from + "/")
+              ? args.to + path.slice(args.from.length)
+              : path;
           workbench.set({
-            groups: workbench.state.groups.map((g) => ({
-              ...g,
-              tabs: g.tabs.map((t) =>
-                t.path === args.from || t.path?.startsWith(args.from + "/")
-                  ? {
-                      ...t,
-                      id: args.to + t.path!.slice(args.from.length),
-                      path: args.to + t.path!.slice(args.from.length),
-                      title: (args.to + t.path!.slice(args.from.length))
-                        .split("/")
-                        .pop()!,
-                    }
-                  : t,
-              ),
-              active:
-                g.active === args.from || g.active?.startsWith(args.from + "/")
-                  ? args.to + g.active.slice(args.from.length)
-                  : g.active,
-            })),
+            groups: workbench.state.groups.map((group) => {
+              const ids = new Map<string, string>();
+              const tabs = group.tabs.map((tab) => {
+                const propsPath =
+                  typeof tab.props?.path === "string" ? tab.props.path : undefined;
+                const previousPath = tab.path ?? propsPath;
+                if (!previousPath) return tab;
+                const path = renamedPath(previousPath);
+                if (path === previousPath) return tab;
+                const name = path.split("/").pop()!;
+                let id = tab.id,
+                  title = tab.title;
+                if (id === previousPath) {
+                  id = path;
+                  title = name;
+                } else if (
+                  id === "preview:" + previousPath ||
+                  id === "html-preview:" + previousPath
+                ) {
+                  id = id.slice(0, id.length - previousPath.length) + path;
+                  title = tr("{0} Preview", { 0: name });
+                } else if (
+                  id === "diff:" + previousPath ||
+                  id === "diff:" + previousPath + ":staged"
+                ) {
+                  id = "diff:" + path +
+                    (id === "diff:" + previousPath + ":staged" ? ":staged" : "");
+                  title = path + " Changes";
+                } else if (id === "compare:" + previousPath) {
+                  id = "compare:" + path;
+                  title = path + " Comparison";
+                } else if (title === previousPath) title = path;
+                else if (title === previousPath.split("/").pop()) title = name;
+                ids.set(tab.id, id);
+                return {
+                  ...tab,
+                  id,
+                  title,
+                  ...(tab.path ? { path } : {}),
+                  ...(propsPath
+                    ? { props: { ...tab.props, path: renamedPath(propsPath) } }
+                    : {}),
+                };
+              });
+              return {
+                ...group,
+                tabs,
+                active: group.active ? ids.get(group.active) ?? group.active : undefined,
+              };
+            }),
             selectedPath: args.to,
-            expanded: workbench.state.expanded.map((path) =>
-              path === args.from || path.startsWith(args.from + "/")
-                ? args.to + path.slice(args.from.length)
-                : path,
-            ),
+            expanded: workbench.state.expanded.map(renamedPath),
           });
           workbench.revealFile(args.to);
           await workbench.refreshFiles();

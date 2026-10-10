@@ -86,7 +86,7 @@ GitHub tokens and runtime pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.
 See [iOS setup and runtime connections](docs/ios.md).
-The [documentation index](docs/INDEX.md) links native source control, SSH and SFTP, language-server, runtime discovery and keep-alive, runtime parity, and settings UI guides with official API and crate references.
+The [documentation index](docs/INDEX.md) links agent hosting and tools, native source control, SSH and SFTP, language-server, runtime discovery and keep-alive, runtime parity, and settings UI guides with official references.
 The [iOS release artwork guide](docs/ios-release-assets.md) covers icon exports,
 App Store screenshots, and promo exports with Apple's design and size references.
 
@@ -117,8 +117,10 @@ App Store screenshots, and promo exports with Apple's design and size references
 
 Enable **Agent ACP** in Extensions to use Codex ACP, Cursor ACP, or Amp Agent ACP
 in a trusted runtime workspace. It includes conversation history, editor context,
-permission controls, diff review, and subagent tracking. It is disabled by default.
-See [Agent ACP](docs/agent-acp.md) for setup.
+permission controls, diff review, subagent tracking, and native workspace MCP tools.
+The runtime keeps agents running across client disconnects and supports reattach.
+It is disabled by default. See [Agent ACP](docs/agent-acp.md) for setup, hosting,
+tool contracts, and provider references.
 
 [Bundle Inspector](examples/bundle-inspector) demonstrates the public SDK with a
 command, panel, setting, status item, output channel, and document view.
@@ -161,6 +163,11 @@ watchers.
 See [architecture](docs/architecture.md), [feature status](docs/feature-status.md),
 [dependencies](docs/dependencies.md), [dependency audits](docs/security.md#dependency-audit),
 and [design assets](design/README.md).
+
+Use the [documentation index](docs/INDEX.md) to find implementation references.
+[Editor consistency contracts](docs/editor-consistency.md) records the Zed and
+language-specification references for document lifecycle, file operations,
+navigation, replacement, and Settings changes.
 
 ### Checks
 

@@ -267,12 +267,12 @@ export function createKernel({
       });
     },
     get<T>(id: string, language?: string): T { return configuration.inspect<T>(id, language).value; },
-    inspect<T>(id: string, language?: string) {
+    inspect<T>(id: string, language?: string, scope: "user" | "workspace" = "workspace") {
       const scopes = language ? [...new Set([language, canonicalLanguageId(language), ...(languages.find(item => item.id === canonicalLanguageId(language))?.settingsAliases ?? [])])] : [];
       const ordered = [
-        ...scopes.map(id => configurationData.workspaceLanguages[id]),
+        ...(scope === "workspace" ? scopes.map(id => configurationData.workspaceLanguages[id]) : []),
         ...scopes.map(id => configurationData.userLanguages[id]),
-        configurationData.workspace,
+        ...(scope === "workspace" ? [configurationData.workspace] : []),
         configurationData.user,
       ];
       let value: unknown = structuredClone(settings.get(id)?.default);

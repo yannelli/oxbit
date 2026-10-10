@@ -90,6 +90,7 @@ export function replaceMatch(
   const re = matcher(options);
   for (const match of text.matchAll(re)) {
     if (match.index !== from || from + match[0].length !== to) continue;
+    if (!options.regex) return replacement;
     return replacement.replace(
       /\$(\$|&|`|'|\d{1,2}|<[^>]+>)/g,
       (token, key: string) => {
@@ -98,7 +99,8 @@ export function replaceMatch(
         if (key === "`") return text.slice(0, from);
         if (key === "'") return text.slice(to);
         if (key.startsWith("<")) return match.groups?.[key.slice(1, -1)] ?? "";
-        return match[Number(key)] ?? token;
+        const index = Number(key);
+        return index < match.length ? (match[index] ?? "") : token;
       },
     );
   }

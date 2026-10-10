@@ -447,7 +447,7 @@ export class ProjectSessionManager {
       if (!entry?.session) continue;
       if (discard)
         for (const doc of entry.session.documents.documents.values())
-          if (doc.dirty) doc.replace(doc.savedText);
+          if (doc.dirty) entry.session.documents.discard(doc.path);
       await entry.session.persist();
       await entry.storage?.flush();
     }

@@ -17,7 +17,9 @@ import {
   RpcError,
   parseClientMessage,
   requireString,
-  MAX_MESSAGE_BYTES,
+  MAX_FILE_BYTES,
+  MAX_FILE_WRITE_MESSAGE_BYTES,
+  MAX_COLLABORATION_UPDATE_BYTES,
   MAX_BUFFER_BYTES,
   READ_CHUNK_BYTES,
   operationMethods,
@@ -25,6 +27,7 @@ import {
   type ServerMessage,
 } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
+import { OperationHistory } from "./operations.js";
 import { Processes, runCommand } from "./processes.js";
 import { TaskConfigStore } from "./tasks/config.js";
 import { TaskRunner } from "./tasks/runner.js";
@@ -84,17 +87,7 @@ interface Connection {
   alive: boolean;
   edits: Map<string,{resolve:(result:{applied:boolean;failureReason?:string})=>void;cleanup:()=>void}>;
 }
-interface Operation {
-  id: string;
-  owner: string;
-  method: string;
-  status: "running" | "completed" | "failed" | "interrupted";
-  startedAt: number;
-  result?: unknown;
-  error?: { code: string; message: string; data?: unknown };
-}
-// One LSP response can exceed MAX_BUFFER_BYTES (Astro completions are about 1.2 MB), so the backlog allows several.
-const MAX_SOCKET_BACKLOG_BYTES = 16 * MAX_BUFFER_BYTES;
+const MAX_SOCKET_BACKLOG_BYTES = MAX_FILE_WRITE_MESSAGE_BYTES;
 const allCapabilities: Capability[] = [
   "filesystem.read",
   "filesystem.write",
@@ -146,9 +139,9 @@ export async function createRuntime(options: RuntimeOptions) {
   const stateFile = path.join(dataDir, "runtime.json");
   const files = new WorkspaceFiles(root, dataDir),
     sessions = new Map<string, Session>(),
-    operations = new Map<string, Operation>(),
     inflight = new Map<string, Promise<unknown>>(),
     connections = new Map<string, Connection>();
+  let operations = new OperationHistory();
   let trusted = false,
     closed = false,
     runtimeId: string = randomUUID();
@@ -158,17 +151,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (typeof state.id === "string" && /^[A-Za-z0-9-]{8,64}$/.test(state.id)) runtimeId = state.id;
     for (const session of state.sessions ?? [])
       sessions.set(session.hash, session);
-    for (const operation of state.operations ?? []) {
-      if (operation.status === "running") {
-        operation.status = "interrupted";
-        operation.error = {
-          code: "INTERRUPTED",
-          message:
-            "Runtime stopped before operation completion was recorded; inspect state before retrying with a new request ID",
-        };
-      }
-      operations.set(`${operation.owner}:${operation.id}`, operation);
-    }
+    operations = new OperationHistory(state.operationHistory, state.operations ?? []);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT")
       throw new Error(`Cannot recover runtime state: ${String(error)}`);
@@ -187,6 +170,7 @@ export async function createRuntime(options: RuntimeOptions) {
       id: runtimeId,
       trusted,
       sessions: [...sessions.values()],
+      operationHistory: operations.checkpoint(),
       operations: [...operations.values()],
     });
     persistence = persistence
@@ -266,7 +250,7 @@ export async function createRuntime(options: RuntimeOptions) {
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
     if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
-  });
+  }, () => updateIdle());
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -367,6 +351,7 @@ export async function createRuntime(options: RuntimeOptions) {
     owner: session.owner,
     trusted,
     sessionId: session.id,
+    operationEpoch: operations.epoch,
   });
   const createSession = async (
     isOwner: boolean,
@@ -389,6 +374,7 @@ export async function createRuntime(options: RuntimeOptions) {
     const session = [...sessions.values()].find((s) => s.id === id);
     if (!session) throw new RpcError("NOT_FOUND", "Grant does not exist");
     session.revoked = true;
+    agents.disconnect(session.id);
     processes.revoke(session.id);
     tasks.revoke(session.id);
     for (const c of connections.values())
@@ -610,7 +596,7 @@ export async function createRuntime(options: RuntimeOptions) {
   });
   const websocket = new WebSocketServer({
     noServer: true,
-    maxPayload: MAX_MESSAGE_BYTES,
+    maxPayload: MAX_FILE_WRITE_MESSAGE_BYTES,
     perMessageDeflate: false,
   });
   server.on("upgrade", (request, socket, head) => {
@@ -682,7 +668,11 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Workspace is not granted");
     const required = permission(method),
       session = authorized(connection, required.cap, required.trust);
-    if (method.startsWith("acp.")) owner(connection);
+    if (method.startsWith("acp.")) {
+      owner(connection);
+      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect"].includes(method))
+        agents.control(session.id, requireString(params, "id"), connection.id);
+    }
     if (method.startsWith("project.")) owner(connection);
     if (method.startsWith("settings.")) owner(connection);
     switch (method) {
@@ -704,17 +694,28 @@ export async function createRuntime(options: RuntimeOptions) {
       case "project.relations":
         return project.relations(requireString(params, "path"));
       case "acp.start":
-        return agents.start(connection.id, params as unknown as ACPLaunch, signal);
+        return agents.start(session.id, params as unknown as ACPLaunch, signal, connection.id);
+      case "acp.list":
+        return agents.list(session.id);
+      case "acp.attach":
+        return agents.attach(session.id, requireString(params, "id"), connection.id, (params.clientCapabilities as ACPLaunch["clientCapabilities"])?.editorTools === true);
+      case "acp.enqueue":
+      case "acp.interrupt":
+        return agents.enqueue(session.id, requireString(params, "id"), params, method === "acp.interrupt");
+      case "acp.dequeue":
+        return agents.dequeue(session.id, requireString(params, "id"), requireString(params, "promptId"));
+      case "acp.resumeQueue":
+        return agents.resumeQueue(session.id, requireString(params, "id"));
       case "acp.call":
-        return agents.call(connection.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>, signal);
+        return agents.call(session.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>);
       case "acp.respond":
-        return agents.respond(connection.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
+        return agents.respond(session.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
       case "acp.cancel":
-        return agents.cancel(connection.id, requireString(params, "id"));
+        return agents.cancel(session.id, requireString(params, "id"));
       case "acp.stop":
-        return agents.stop(connection.id, requireString(params, "id"));
+        return agents.stop(session.id, requireString(params, "id"));
       case "acp.disconnect":
-        agents.disconnect(connection.id);
+        agents.disconnect(session.id, connection.id);
         return {};
       case "workspace.info":
         return sessionInfo(session);
@@ -724,7 +725,7 @@ export async function createRuntime(options: RuntimeOptions) {
           throw new RpcError("INVALID_PARAMS", "trusted must be boolean");
         trusted = params.trusted;
         if (!trusted) {
-          agents.dispose();
+          await agents.dispose();
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
           for (const s of sessions.values()) { processes.revoke(s.id); tasks.revoke(s.id); }
@@ -749,10 +750,7 @@ export async function createRuntime(options: RuntimeOptions) {
         owner(connection);
         return revoke(requireString(params, "id"));
       case "operation.status": {
-        const value = operations.get(
-          `${session.id}:${requireString(params, "id")}`,
-        );
-        return value ?? { id: params.id, status: "unknown" };
+        return operations.status(session.id, requireString(params, "id"));
       }
       case "fs.list":
         return files.list(typeof params.path === "string" ? params.path : "");
@@ -770,7 +768,7 @@ export async function createRuntime(options: RuntimeOptions) {
       case "fs.write": {
         const snapshot = await files.write(
           requireString(params, "path"),
-          requireString(params, "text", 20 * 1024 * 1024),
+          requireString(params, "text", MAX_FILE_BYTES),
           {
             expectedRevision: requireRevision(params),
             encoding: params.encoding as Encoding | undefined,
@@ -1016,7 +1014,7 @@ export async function createRuntime(options: RuntimeOptions) {
         return collaboration.update(
           requireString(params, "path"),
           connection.id,
-          requireString(params, "update", MAX_MESSAGE_BYTES),
+          requireString(params, "update", MAX_COLLABORATION_UPDATE_BYTES),
         );
       case "collab.awareness":
         return collaboration.awareness(
@@ -1136,7 +1134,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   let idleSince: number | undefined, idleTimer: ReturnType<typeof setTimeout> | undefined;
   const updateIdle = () => {
-    if ([...connections.values()].some((c) => c.session && !c.session.revoked)) {
+    if (agents.hasWork || [...connections.values()].some((c) => c.session && !c.session.revoked)) {
       idleSince = undefined;
       clearTimeout(idleTimer);
       return;
@@ -1226,7 +1224,7 @@ export async function createRuntime(options: RuntimeOptions) {
             const required = permission(method),
               session = authorized(connection, required.cap, required.trust);
             const key = `${session.id}:${id}`,
-              existing = operations.get(key);
+              existing = operations.get(session.id, id);
             if (existing) {
               if (existing.method !== method)
                 throw new RpcError(
@@ -1234,6 +1232,8 @@ export async function createRuntime(options: RuntimeOptions) {
                   "Request ID was used for another operation",
                 );
               if (inflight.has(key)) result = await inflight.get(key);
+              else if (existing.resultExpired)
+                throw new RpcError("OPERATION_RESULT_EXPIRED", "Operation result expired; inspect current state before submitting a new operation", { status: existing.status });
               else if (existing.status === "completed")
                 result = existing.result;
               else
@@ -1243,14 +1243,10 @@ export async function createRuntime(options: RuntimeOptions) {
                   existing.error?.data,
                 );
             } else {
-              const operation: Operation = {
-                id,
-                owner: session.id,
-                method,
-                status: "running",
-                startedAt: Date.now(),
-              };
-              operations.set(key, operation);
+              const previousEpoch = operations.epoch;
+              const operation = operations.begin(session.id, id, method);
+              if (operations.epoch !== previousEpoch)
+                for (const c of connections.values()) if (c.session && !c.session.revoked) event(c, "operation.epoch", { epoch: operations.epoch });
               const run = (async () => {
                 await persist();
                 try {
@@ -1261,13 +1257,11 @@ export async function createRuntime(options: RuntimeOptions) {
                     controller.signal,
                     id,
                   );
-                  operation.status = "completed";
-                  operation.result = value;
+                  operations.complete(operation, value);
                   await persist();
                   return value;
                 } catch (error) {
-                  operation.status = "failed";
-                  operation.error = errorShape(error);
+                  operations.fail(operation, errorShape(error));
                   await persist();
                   throw error;
                 }
@@ -1311,7 +1305,7 @@ export async function createRuntime(options: RuntimeOptions) {
     ws.on("error", () => {});
     ws.on("close", () => {
       clearTimeout(authDeadline);
-      agents.disconnect(connection.id);
+      agents.detach(connection.id);
       lsp.detach(connection.id);
       connections.delete(connection.id);
       updateIdle();
@@ -1321,7 +1315,7 @@ export async function createRuntime(options: RuntimeOptions) {
       for (const [id, controller] of connection.pending) {
         const operation =
           connection.session &&
-          operations.get(`${connection.session.id}:${id}`);
+          operations.get(connection.session.id, id);
         if (!operation) controller.abort();
       }
     });
@@ -1472,7 +1466,7 @@ export async function createRuntime(options: RuntimeOptions) {
         for (const controller of c.pending.values()) controller.abort();
         c.ws.terminate();
       }
-      agents.dispose();
+      await agents.dispose();
       extensions.dispose();
       processes.close();
       await tasks.close();
