@@ -77,6 +77,38 @@ keys or `AMP_CLI_PATH` through that environment; the extension has no credential
 fields. After a session reports an authentication error, use an advertised sign-in
 button or sign in using the provider CLI, then retry the conversation.
 
+### Threads
+
+Several agents run on the runtime at once, from the same provider or different
+ones. **New thread** in **More agent actions**, or **+** in the thread strip,
+saves the conversation to History, releases the panel from its agent with
+`acp.detach`, and shows the agent picker. The released agent keeps its running
+turn. **New thread** asks you to resolve pending requests, run or remove queued
+messages, and wait for active subagents first.
+
+The thread strip at the top of the panel shows one chip per live agent when the
+runtime has two or more, or when the panel has no agent and one still runs. A
+chip shows the title, the state (**Working…**, **Needs input (n)** or **Ready**)
+and the agent name. The shown thread's chip has `aria-current`. Selecting another
+chip attaches the panel to that agent and replays its recent timeline. On phones
+the strip scrolls horizontally and its controls are 44 px tall.
+
+The runtime sends no event when its agent list changes. The panel calls
+`acp.list` every 4 seconds while it is visible or other threads run, and when it
+gains focus. The Agent button count includes pending requests from other threads.
+
+Each chip has a stop button. After confirmation it calls `acp.stop`; the runtime
+owner can stop any of its agents without attaching first. Stopping the shown
+thread works like **Disconnect**. A released thread with no work is detached, so
+at the 3-agent device limit starting another agent stops the oldest such thread. When
+every agent has work, the start fails with the runtime's message, the status
+reads **Agent limit reached**, and the strip lists the threads to stop.
+
+Runtimes from 0.7.1 and earlier lack `acp.detach` and accept `acp.stop` only for
+an attached agent. With those runtimes a released thread stays bound to the
+window until another thread opens, and a chip's stop button fails until that
+thread is opened.
+
 ## Composer
 
 - **Enter** sends and **Shift+Enter** adds a new line. With
@@ -97,14 +129,14 @@ button or sign in using the provider CLI, then retry the conversation.
 
 - On desktop the panel opens in the right dock in new layouts. On phones,
   **Agent** has its own tab in the bottom bar.
-- The Agent button shows a count while requests wait for an answer, and a dot
+- The Agent button shows a count while requests in any thread wait for an answer, and a dot
   when a turn ends while the panel is hidden. The status bar shows the agent
   state; selecting it opens the panel.
 - When a turn ends or a request arrives while the panel is hidden, a toast
   offers **Open Agent**. When Oxbit is in the background, the browser shows a
   system notification if notification permission was granted. Set
   `agentACP.notifications` to `never` to turn these off.
-- Native macOS and iOS notifications, checkpoints, parallel threads, voice input
+- Native macOS and iOS notifications, checkpoints, voice input
   and a context-usage meter are not supported yet.
 
 ## In-app tools

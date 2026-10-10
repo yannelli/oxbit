@@ -971,5 +971,12 @@
   "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.": "GitHub Copilot CLI を ACP モードで実行します。提示された認証方法でサインインするか、先に copilot を実行して /login を使ってください。",
   "No build for this runtime's platform": "このランタイムのプラットフォーム向けビルドはありません",
   "The registry publishes no checksum for this build": "レジストリはこのビルドのチェックサムを公開していません",
-  "Oxbit cannot extract this build's archive format": "Oxbit はこのビルドのアーカイブ形式を展開できません"
+  "Oxbit cannot extract this build's archive format": "Oxbit はこのビルドのアーカイブ形式を展開できません",
+  "Agent threads": "エージェントのスレッド",
+  "New thread": "新しいスレッド",
+  "Needs input ({0})": "入力待ち ({0})",
+  "Stop {0}": "{0} を停止",
+  "Stop thread": "スレッドを停止",
+  "Stop {0}? Its agent process ends on the runtime.": "{0} を停止しますか? ランタイム上のエージェントプロセスが終了します。",
+  "Agent limit reached": "エージェント数の上限に達しました"
 }

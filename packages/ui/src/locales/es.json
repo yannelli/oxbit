@@ -971,5 +971,12 @@
   "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.": "Ejecuta GitHub Copilot CLI en modo ACP. Inicia sesión con un método de autenticación disponible o ejecuta copilot y usa /login primero.",
   "No build for this runtime's platform": "No hay compilación para la plataforma de este runtime",
   "The registry publishes no checksum for this build": "El registro no publica una suma de comprobación para esta compilación",
-  "Oxbit cannot extract this build's archive format": "Oxbit no puede extraer el formato de archivo de esta compilación"
+  "Oxbit cannot extract this build's archive format": "Oxbit no puede extraer el formato de archivo de esta compilación",
+  "Agent threads": "Hilos del agente",
+  "New thread": "Hilo nuevo",
+  "Needs input ({0})": "Necesita una respuesta ({0})",
+  "Stop {0}": "Detener {0}",
+  "Stop thread": "Detener el hilo",
+  "Stop {0}? Its agent process ends on the runtime.": "¿Detener {0}? Su proceso de agente termina en el runtime.",
+  "Agent limit reached": "Se alcanzó el límite de agentes"
 }

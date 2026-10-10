@@ -32,6 +32,7 @@ import {
   runtimeSupportError,
 } from "./launch.js";
 import { Attention } from "./attention.js";
+import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js";
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
@@ -78,6 +79,7 @@ export class AgentController {
     launch?: SavedLaunch;
   };
   private replaying = false;
+  private threadConversations = new Map<string, string>();
   readonly attention: Attention;
   readonly history: ConversationHistory;
   activity: Activity[] = [];
@@ -263,6 +265,7 @@ export class AgentController {
     });
     on("connection.change", ({ state }) => {
       if (state !== "connected") {
+        this.liveSessions = [];
         this.clearConnection(
           "Runtime disconnected. Open Runtime sessions after reconnecting to reattach.", true,
         );
@@ -293,7 +296,8 @@ export class AgentController {
   snapshot = () => this.revision;
   changed = () => {
     this.revision++;
-    if (!this.disposed) this.attention.sync(this.requests.length);
+    if (!this.disposed)
+      this.attention.sync(this.requests.length + backgroundRequests(this.liveSessions, this.connection?.id));
     for (const listener of this.listeners) listener();
     if (
       !this.disposed &&
@@ -441,9 +445,11 @@ export class AgentController {
       else await this.newSession();
     } catch (error) {
       if (generation !== this.connectionGeneration) return;
+      const limited = !this.connection && agentLimit(error);
       this.status = this.connection
         ? "Sign in or retry starting the conversation"
-        : "Connection failed";
+        : limited ? AGENT_LIMIT_STATUS : "Connection failed";
+      if (limited) void this.listLiveSessions().catch(() => {});
       throw this.connection ? error : runtimeSupportError(error, launchName(launch));
     } finally {
       if (generation === this.connectionGeneration) {
@@ -601,15 +607,43 @@ export class AgentController {
       if (generation === this.connectionGeneration) throw error;
     }
   }
+  /** Saves the conversation and clears the panel. The agent keeps running on the runtime. */
+  async detach() {
+    if (this.requests.length)
+      throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
+    if (this.activeSubagentCount)
+      throw new Error(
+        "Wait for active subagents or disconnect before changing conversations",
+      );
+    const connection = this.connection;
+    if (!connection || this.connecting || this.sessionStarting || this.updatingSettings || this.discovering)
+      return;
+    const released = this.options.runtime?.connected
+      ? this.request("acp.detach").catch(() => {})
+      : undefined;
+    if (this.activeConversation)
+      this.threadConversations.set(connection.id, this.activeConversation.id);
+    this.clearConnection("Disconnected", true);
+    await this.saveConversation();
+    this.activeConversation = undefined;
+    this.resetConversation();
+    this.changed();
+    await released;
+  }
   async listLiveSessions() {
     if (!this.options.runtime?.connected) return;
     const result = await this.request<{ sessions: ACPLiveSession[] }>("acp.list");
+    if (JSON.stringify(result.sessions) === JSON.stringify(this.liveSessions)) return;
     this.liveSessions = result.sessions;
     this.changed();
   }
   async attachLive(id: string) {
     if (this.connection?.id === id) return;
     await this.saveConversation();
+    if (this.connection && this.activeConversation)
+      this.threadConversations.set(this.connection.id, this.activeConversation.id);
     const generation = ++this.connectionGeneration;
     this.attachBuffer = [];
     try {
@@ -624,7 +658,7 @@ export class AgentController {
       this.launch = { provider: snapshot.connection.provider, name: snapshot.connection.name };
       rememberAgentName(snapshot.connection.provider, snapshot.connection.name);
       this.activeConversation = {
-        id: crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
+        id: this.threadConversations.get(id) ?? crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
         root: snapshot.connection.root, provider: snapshot.connection.provider,
         name: agentName(snapshot.connection.provider, snapshot.connection),
         launch: this.savedLaunch(this.launch),

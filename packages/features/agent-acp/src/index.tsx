@@ -34,6 +34,8 @@ import {
 } from "./views.js";
 
 import { Subagents } from "./subagents.js";
+import { ThreadStrip, useThreadRefresh } from "./thread-strip.js";
+import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 function RequestCard({
   request,
@@ -372,6 +374,11 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
+  useThreadRefresh(agent, panel);
+  const newThread = () => {
+    setChooser(undefined);
+    void agent.action(() => agent.detach());
+  };
   const chosen = agent.chosen.provider;
   useEffect(() => {
     if (enabled && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER)
@@ -402,7 +409,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
     { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
     ...(connection
-      ? [{ id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
+      ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread },
+         { id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
       : []),
     ...(permission === "default"
       ? [{
@@ -419,6 +427,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     ) : undefined;
   return (
     <div className="acp-panel" ref={panel}>
+      <ThreadStrip agent={agent} onNew={newThread} />
       <div className="acp-header">
         <div className="acp-thread-heading">
           <strong title={agent.title}>{tr(agent.title)}</strong>
@@ -921,6 +930,7 @@ export function createFeature(options: FeatureOptions): Extension {
     activate(ctx) {
       const agent = new AgentController(options);
       ctx.own(agent);
+      ctx.own(watchThreads(agent, () => options.workbench.panelVisible?.(AGENT_VIEW) === true));
       ctx.own(ctx.services.register("agentACP", agent));
       ctx.own(
         ctx.contributions.register({
