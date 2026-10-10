@@ -177,6 +177,13 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
   `agentACP.open` in the open workspace when Agent ACP is enabled there
   (`native.onNotificationTap` in `packages/host-ios`). The desktop plugin reports
   no actions, so selecting a macOS notification does not open the panel.
+- The iOS plugin keeps posted notifications in memory. After iOS terminates
+  Oxbit, tapping an earlier notification relaunches the app into the force unwrap
+  in `toActiveNotification` (`ios/Sources/NotificationHandler.swift:79`), which
+  crashes it ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533),
+  open on 2026-10-10). This comes from the 2.4.0 source and the upstream report;
+  it has not been reproduced. A tap on a cold launch also reaches no listener
+  ([#3534](https://github.com/tauri-apps/plugins-workspace/issues/3534)).
 - iOS suspends the app shortly after it leaves the foreground. A turn that ends
   while the app is suspended posts no notification; that needs a push relay.
 

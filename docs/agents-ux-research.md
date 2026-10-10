@@ -70,7 +70,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads | `agent-acp-composer`: mentions, `@Changes` |
 | Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Tapping an iOS notification opens the agent panel. No push to a suspended iOS app | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: notification plugin; `packages/host-ios/src/agent-activity.test.ts`: iOS tap |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Tapping an iOS notification opens the agent panel while Oxbit still runs; after iOS terminates Oxbit, a tap crashes it in the plugin ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533)). No push to a suspended iOS app | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: notification plugin; `packages/host-ios/src/agent-activity.test.ts`: iOS tap |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged | `agent-acp-checkpoints` |
@@ -85,5 +85,6 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 - Codex, GitHub Mobile, Cursor and Claude push to a suspended phone. Oxbit's iOS app
   posts notifications and updates its Live Activity only while it runs.
 - Zed mentions symbols and threads with `@`; Oxbit does not.
-- Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click. On iOS a tap opens the panel; this has not run on a device.
+- Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click. On iOS a tap opens the panel while Oxbit still runs; this has not run on a device.
+- After iOS terminates Oxbit, tapping an earlier notification crashes the app in `tauri-plugin-notification` 2.4.0 (plugins-workspace#3533, from the source and the upstream report; not reproduced).
 - Dictation and the Live Activity have not run on a physical device.
