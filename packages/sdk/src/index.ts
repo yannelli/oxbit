@@ -495,6 +495,10 @@ export interface WorkbenchService {
   movePanel?(id: string, target: PanelTarget): void;
   detachPanel?(id: string): Promise<void>;
   redockPanel?(id: string): void;
+  /** Optional on older hosts. True while the panel is on screen. */
+  panelVisible?(id: string): boolean;
+  /** Optional on older hosts. Marks the view's activity button; `count` 0 shows a dot, undefined clears it. */
+  setViewBadge?(id: string, badge?: { count: number; label: string; tone?: "attention" | "info" }): void;
   openView(
     id: string,
     title: string,
