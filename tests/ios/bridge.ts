@@ -6,8 +6,9 @@ export interface BridgeAccount { id: string; provider: "github" | "gitea"; host:
 /** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
 /** An added token names its login; the token `rejected` fails validation. */
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown> } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored }) => {
+/** `notificationTapped` launches the app from a notification tap; `__iosTest.tapNotification()` taps one later. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -57,6 +58,14 @@ export async function installBridge(page: Page, { repository = false, accounts =
     const copied: string[] = [];
     let signing: { enabled: boolean; key?: Record<string, unknown> } = { enabled: false };
     let callback = 0;
+    const notifications: { title: string; body?: string; tag?: string }[] = [];
+    let tapChannel: { id: number } | undefined;
+    let tapIndex = 0;
+    let tapped = notificationTapped;
+    const tapNotification = () => {
+      if (tapChannel) callbacks.get(tapChannel.id)?.({ index: tapIndex++, message: {} });
+      else tapped = true;
+    };
     const callbacks = new Map<number, (event: unknown) => void>();
     const listeners: { id: number; event: string; handler: number }[] = [];
     const emit = (event: string, payload: unknown) => {
@@ -109,6 +118,19 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return signing;
         }
         if (command === "plugin:clipboard-manager|write_text") { copied.push(args.text); return; }
+        if (command === "plugin:oxbit-files|notification_permission") return { permission: "default" };
+        if (command === "plugin:oxbit-files|request_notification_permission") return { permission: "granted" };
+        if (command === "plugin:oxbit-files|notify") { notifications.push({ title: args.title, body: args.body, tag: args.tag }); return; }
+        if (command === "plugin:oxbit-files|watch_notification_taps") {
+          tapChannel = args.channel;
+          tapIndex = 0;
+          if (tapped) { tapped = false; tapNotification(); }
+          return;
+        }
+        if (command === "plugin:oxbit-files|unwatch_notification_taps") {
+          if (tapChannel?.id === args.id) tapChannel = undefined;
+          return;
+        }
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
         if (command === "ios_icon_packs_read") return [...packs.values()];
@@ -184,7 +206,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, copied, storage, searches, runtimeRequests, get opened() { return opened; }, get signing() { return signing; } },
+      __iosTest: { closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, get opened() { return opened; }, get signing() { return signing; } },
     });
-  }, { repository, accounts, runtimes, localNetworkDenied, stored });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped });
 }

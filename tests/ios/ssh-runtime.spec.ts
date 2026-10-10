@@ -138,6 +138,38 @@ test("Relaunching the app reopens the remote runtime with the same workspace key
   expect(after.filter(recent => recent.kind === "sshRuntime").map(recent => recent.id)).toEqual([last]);
 });
 
+test("Tapping an agent notification that relaunched the app opens the agent panel in the reopened runtime", async ({ page, context }) => {
+  await start(page);
+  await startProject(page);
+  const [first] = await starts(page);
+  const recents = await stored(page, "session:recents");
+  const last = await stored(page, "session:last-workspace");
+  await page.close();
+
+  const relaunched = await context.newPage();
+  await installBridge(relaunched, {
+    notificationTapped: true,
+    stored: { "session:recents": recents, "session:last-workspace": last, [`ios:${first!.workspaceKey}:extension-enabled`]: ["oxbit.agent-acp"] },
+  });
+  await installSshBridge(relaunched, seed);
+  await mockRuntime(relaunched);
+  await relaunched.goto("/");
+  await release(relaunched);
+  await expect(relaunched.locator(".workspace-title")).toHaveText("Build box: project");
+  // The mock runtime answers agent requests with empty results, so only the opened view is checked.
+  const agent = relaunched.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agent ACP" });
+  const view = relaunched.getByRole("tabpanel", { name: "agent-acp" });
+  await expect(agent).toHaveAttribute("aria-pressed", "true");
+  await expect(view).toBeVisible();
+  await shoot(relaunched, "notification-tap-agent");
+
+  await relaunched.getByRole("button", { name: "Close sidebar" }).last().click();
+  await expect(view).toBeHidden();
+  await relaunched.evaluate(() => (window as any).__iosTest.tapNotification());
+  await expect(agent).toHaveAttribute("aria-pressed", "true");
+  await expect(view).toBeVisible();
+});
+
 test("A dropped remote runtime offers Reconnect", async ({ page }) => {
   await start(page);
   await startProject(page);

@@ -1,4 +1,4 @@
-import { addPluginListener, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
+import { Channel, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
 import type { AgentActivityUpdate, FileEntry } from "@oxbit/sdk";
@@ -234,11 +234,12 @@ export const ssh = {
 export const native = {
   agentActivity: (update: AgentActivityUpdate | null) =>
     call<{ enabled: boolean }>("plugin:oxbit-files|live_activity", { update }),
-  /** Runs `listener` when the user opens a notification the app posted. */
-  onNotificationTap: (listener: () => void) =>
-    addPluginListener<{ actionId: string }>("notification", "actionPerformed", (event) => {
-      if (event.actionId === "tap") listener();
-    }),
+  /** Runs `listener` for each tap on a posted notification, including the tap that launched the app. */
+  onNotificationTap: async (listener: () => void) => {
+    const channel = new Channel<unknown>(() => listener());
+    await call<void>("plugin:oxbit-files|watch_notification_taps", { channel });
+    return { unregister: () => call<void>("plugin:oxbit-files|unwatch_notification_taps", { id: channel.id }) };
+  },
   lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
   gitCredentials: (request: GitCredentialRequest) =>

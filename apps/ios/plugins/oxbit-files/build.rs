@@ -13,6 +13,11 @@ const COMMANDS: &[&str] = &[
     "start_dictation",
     "stop_dictation",
     "live_activity",
+    "notification_permission",
+    "request_notification_permission",
+    "notify",
+    "watch_notification_taps",
+    "unwatch_notification_taps",
 ];
 
 fn main() {

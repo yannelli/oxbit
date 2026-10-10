@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-unwatch-notification-taps"
+description = "Enables the unwatch_notification_taps command without any pre-configured scope."
+commands.allow = ["unwatch_notification_taps"]
+
+[[permission]]
+identifier = "deny-unwatch-notification-taps"
+description = "Denies the unwatch_notification_taps command without any pre-configured scope."
+commands.deny = ["unwatch_notification_taps"]

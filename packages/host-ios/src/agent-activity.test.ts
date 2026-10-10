@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { native } from "./native.js";
 
-const { invoke, addPluginListener } = vi.hoisted(() => ({ invoke: vi.fn(), addPluginListener: vi.fn() }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke, addPluginListener }));
+const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke,
+  Channel: class {
+    static next = 0;
+    id = ++(this.constructor as { next: number }).next;
+    constructor(public onmessage: (message: unknown) => void) {}
+  },
+}));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 
 describe("agent activity", () => {
@@ -17,14 +24,15 @@ describe("agent activity", () => {
     ]);
   });
 
-  it("reports taps on posted notifications and ignores other actions", async () => {
+  it("watches notification taps through a channel and stops only its own channel", async () => {
+    invoke.mockResolvedValue(undefined);
     const listener = vi.fn();
-    await native.onNotificationTap(listener);
-    expect(addPluginListener).toHaveBeenCalledWith("notification", "actionPerformed", expect.any(Function));
-    const handler = addPluginListener.mock.calls[0][2] as (event: { actionId: string }) => void;
-    handler({ actionId: "dismiss" });
-    expect(listener).not.toHaveBeenCalled();
-    handler({ actionId: "tap" });
+    const watch = await native.onNotificationTap(listener);
+    const [command, args] = invoke.mock.calls.at(-1)!;
+    expect(command).toBe("plugin:oxbit-files|watch_notification_taps");
+    args.channel.onmessage({});
     expect(listener).toHaveBeenCalledOnce();
+    await watch.unregister();
+    expect(invoke.mock.calls.at(-1)).toEqual(["plugin:oxbit-files|unwatch_notification_taps", { id: args.channel.id }, undefined]);
   });
 });

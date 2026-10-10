@@ -158,32 +158,35 @@ thread is opened.
 
 Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
 ([plugin guide](https://v2.tauri.app/plugin/notification/),
-[crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)).
+[crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)) and Apple's
+[UNUserNotificationCenterDelegate](https://developer.apple.com/documentation/usernotifications/unusernotificationcenterdelegate).
 
-- The desktop and iOS apps register `tauri-plugin-notification` `=2.4.0`. Versions
-  2.5.0 and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
-- The plugin's init script replaces `window.Notification` in the WebView, so the
-  panel's Web Notification calls post native notifications. The capabilities grant
-  only `notification:allow-notify`, `notification:allow-is-permission-granted`
-  and `notification:allow-request-permission`; iOS also grants
-  `notification:allow-register-listener`.
-- On desktop the plugin reports permission as granted (`src/desktop.rs`). On iOS
-  permission starts at "default" until **Enable notifications** asks.
+- The desktop app registers `tauri-plugin-notification` `=2.4.0`. Versions 2.5.0
+  and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
+- On desktop the plugin's init script replaces `window.Notification` in the
+  WebView, so the panel's Web Notification calls post native notifications. The
+  capability grants only `notification:allow-notify`,
+  `notification:allow-is-permission-granted` and `notification:allow-request-permission`.
+  The plugin reports permission as granted (`src/desktop.rs`) and reports no
+  actions, so selecting a macOS notification does not open the panel.
 - `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
   2026-10-10 `usernoted` logged both test notifications as delivered and presented.
   An unbundled debug binary posts them under Terminal's name.
-- The replacement `Notification` object never fires `onclick`. On iOS the app
-  listens for the plugin's `actionPerformed` event instead: a `tap` runs
-  `agentACP.open` in the open workspace when Agent ACP is enabled there
-  (`native.onNotificationTap` in `packages/host-ios`). The desktop plugin reports
-  no actions, so selecting a macOS notification does not open the panel.
-- The iOS plugin keeps posted notifications in memory. After iOS terminates
-  Oxbit, tapping an earlier notification relaunches the app into the force unwrap
-  in `toActiveNotification` (`ios/Sources/NotificationHandler.swift:79`), which
-  crashes it ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533),
-  open on 2026-10-10). This comes from the 2.4.0 source and the upstream report;
-  it has not been reproduced. A tap on a cold launch also reaches no listener
+- The iOS app does not use the plugin: its 2.4.0 iOS code force-unwraps an
+  in-memory map when a notification is tapped, so a tap after iOS terminated the
+  app crashes it ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533)),
+  and a tap that launches the app reaches no listener
   ([#3534](https://github.com/tauri-apps/plugins-workspace/issues/3534)).
+- In the iOS app `installNotifications` (`packages/host-ios/src/notifications.ts`)
+  installs a `Notification` that posts through the oxbit-files plugin
+  (`Notifications.swift`). Permission starts at "default" until **Enable
+  notifications** asks, and refreshes when the app returns to the foreground.
+- `Notifications.swift` becomes the notification center's delegate when the
+  plugin loads, before launch finishes, so iOS also hands it the tap that
+  launched the app. It keeps that tap until a workspace subscribes. Each
+  workspace session runs `agentACP.open` on a tap when Agent ACP is enabled
+  there; `tests/ios/ssh-runtime.spec.ts` covers a tap that relaunched the app and
+  a later tap.
 - iOS suspends the app shortly after it leaves the foreground. A turn that ends
   while the app is suspended posts no notification; that needs a push relay.
 

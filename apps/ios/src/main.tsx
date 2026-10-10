@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
 import { AGENT_ACTIVITY_SERVICE } from "@oxbit/sdk";
-import { IosGitClient, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
+import { IosGitClient, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -24,6 +24,7 @@ import "./ios.css";
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);
 installSpeechRecognition();
+installNotifications();
 // Panel tabs move with pointer events on touch; floating panel windows do not exist on iOS.
 configurePanelWindows({ pointerDrag: true, detach: false, open: () => null });
 window.open = ((url?: string | URL) => {
