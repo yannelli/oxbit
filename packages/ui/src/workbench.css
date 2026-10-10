@@ -762,6 +762,10 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
   .palette-results>button:active:not(:disabled) { background:var(--bg-selected); }
 }
 
+.badge.badge-dot { min-width:8px; width:8px; height:8px; padding:0; border-radius:50%; }
+.badge.badge-attention { background:var(--warn); color:var(--accent-fg); }
+.activity-bar>button>.badge { display:grid; place-items:center; line-height:1; pointer-events:none; }
+
 /* Phones use one bottom bar; only its final inset belongs to the home indicator. */
 .workbench[data-mode=phone] {
   --phone-bottom-inset:var(--safe-area-bottom);
