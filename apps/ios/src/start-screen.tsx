@@ -78,7 +78,7 @@ export function StartScreen({
               </span>
             </button>
             <button className="icon-button" aria-label={`Forget ${recent.name}`} onClick={() => onForget(recent)} disabled={!!busy}>
-              <Icon name="close" size={14} />
+              <Icon name="x" size={14} />
             </button>
           </div>
         ))}
@@ -94,7 +94,7 @@ export function StartScreen({
           <button className="ios-workspace" disabled={!!busy} onClick={() => onOpenRecent(recent)} aria-current={current === recent.id ? "true" : undefined}>
             <Icon name="cloud" /><span>{recent.name}<small>{recent.url}</small></span>
           </button>
-          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="close" size={14} /></button>
+          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="x" size={14} /></button>
         </div>)}
         <button className="button primary ios-open-folder" onClick={onConnect} disabled={!!busy}><Icon name="cloud" />Connect Runtime…</button>
       </section>
@@ -106,7 +106,7 @@ export function StartScreen({
             <Icon name={recent.kind === "sshRuntime" ? "terminal" : "cloud"} />
             <span>{recent.name}<small>{recent.kind === "sshRuntime" ? `Oxbit runtime · ${recent.remotePath}` : recent.remotePath}</small></span>
           </button>
-          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="close" size={14} /></button>
+          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="x" size={14} /></button>
         </div>)}
         <button className="button primary ios-open-folder" onClick={() => onSsh()} disabled={!!busy}><Icon name="cloud" />Connect with SSH…</button>
         <button className="button ios-open-folder" onClick={() => onSshRuntime()} disabled={!!busy}><Icon name="terminal" />Start Oxbit on This Server…</button>

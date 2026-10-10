@@ -892,5 +892,10 @@
   "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.": "Führt Taplo über die Oxbit-Runtime aus. Aktivierung und Dateitypen werden auf languageServers.taplo.enabled und languageServers.taplo.selectors abgebildet.",
   "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.": "Führt Laravel über die Oxbit-Runtime aus. Aktivierung und Dateitypen werden auf languageServers.laravel.enabled und languageServers.laravel.selectors abgebildet.",
   "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.": "Führt Intelephense über die Oxbit-Runtime aus. Aktivierung und Dateitypen werden auf languageServers.intelephense.enabled und languageServers.intelephense.selectors abgebildet.",
-  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Führt LemMinX über die Oxbit-Runtime aus. Aktivierung und Dateitypen werden auf languageServers.lemminx.enabled und languageServers.lemminx.selectors abgebildet."
+  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Führt LemMinX über die Oxbit-Runtime aus. Aktivierung und Dateitypen werden auf languageServers.lemminx.enabled und languageServers.lemminx.selectors abgebildet.",
+  "Theme Packs": "Theme-Pakete",
+  "Import and remove theme packs.": "Theme-Pakete importieren und entfernen.",
+  "Git Accounts and Commit Author": "Git-Konten und Commit-Autor",
+  "Sign in to Git hosts and set the name and email used for commits.": "Bei Git-Hosts anmelden und Name und E-Mail für Commits festlegen.",
+  "Manage Git Accounts…": "Git-Konten verwalten…"
 }

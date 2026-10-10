@@ -29,12 +29,25 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
     const directories = new Set(["src"]);
     const pending = new Map<string, { finish: () => void; cancel: () => void }>();
     const runtimes = new Set<string>();
+    const starts: { hostId: string; path: string; root: string; workspaceKey: string }[] = [];
+    let runtimeEmit: ((event: string, payload: unknown) => void) | undefined;
     const calls: string[] = [];
+    // The server's folders, listed when a root opens at `/`.
+    const server = new Set(["home", "home/dev", "home/dev/.cache", "home/dev/other", "home/dev/project", "home/dev/project/src", "srv", "srv/app"]);
+    const serverFiles = new Set(["home/dev/notes.txt"]);
     const clone = [...(seed.clone ?? [])];
     const prompts = new Map<string, any>();
     const remoteKey = { host: "github.com", port: 22, ...presented };
     let count = 0;
     const fail = (code: string, message: string) => { throw { code, message }; };
+    const resolve = (path: string) => {
+      const requested = String(path ?? "").trim().replace(/(.)\/+$/, "$1");
+      return !requested || requested === "~" ? "/home/dev" : requested.startsWith("/") ? requested : `/home/dev/${requested.replace(/^~\//, "")}`;
+    };
+    // Mirrors `key_root` in the iOS crate: a folder under home keys as `/~/...`.
+    const keyRoot = (root: string) => root === "/home/dev" ? "/~" : root.startsWith("/home/dev/") ? "/~/" + root.slice(10) : root;
+    const workspaceKey = (hostId: string, root: string) =>
+      [...encoder.encode(`${hostId}\0${keyRoot(root)}`)].map(byte => byte.toString(16).padStart(2, "0")).join("").padEnd(64, "0").slice(0, 64);
     const children = (path: string) => [
       ...[...directories].filter(dir => dir.split("/").slice(0, -1).join("/") === path).map(dir => ({ path: dir, name: dir.split("/").at(-1), kind: "directory" })),
       ...[...files.keys()].filter(file => file.split("/").slice(0, -1).join("/") === path).map(file => ({ path: file, name: file.split("/").at(-1), kind: "file" })),
@@ -88,13 +101,21 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
       ios_ssh_disconnect: ({ hostId }) => { connected.delete(hostId); },
       ios_ssh_open_root: ({ hostId, path }) => {
         if (!connected.has(hostId)) fail("NOT_CONNECTED", "Connect to this host first.");
-        const root = !path || path === "~" ? "/home/dev" : path.startsWith("/") ? path : `/home/dev/${path.replace(/^~\//, "")}`;
+        const root = resolve(path);
         const id = `ios:${root.replace(/\W/g, "-")}`;
         roots.set(id, root);
         return { id, root, name: root.split("/").at(-1) };
       },
       ios_ssh_close_root: ({ id }) => { roots.delete(id); },
-      ios_ssh_fs_list: ({ id, path }) => roots.has(id) ? children(path) : fail("ROOT_CLOSED", "Workspace root is not open"),
+      ios_ssh_fs_list: ({ id, path }) => {
+        if (!roots.has(id)) fail("ROOT_CLOSED", "Workspace root is not open");
+        if (roots.get(id) !== "/") return children(path);
+        const within = (item: string) => item.split("/").slice(0, -1).join("/") === path;
+        return [
+          ...[...server].filter(within).map(dir => ({ path: dir, name: dir.split("/").at(-1), kind: "directory" })),
+          ...[...serverFiles].filter(within).map(file => ({ path: file, name: file.split("/").at(-1), kind: "file" })),
+        ];
+      },
       ios_ssh_fs_read: ({ path }) => files.has(path) ? encoder.encode(files.get(path)).buffer : fail("NOT_FOUND", `ENOENT: no such file or directory: ${path}`),
       ios_ssh_fs_write: (body, _emit, options) => {
         const path = decodeURIComponent(options.headers["x-oxbit-path"]);
@@ -121,13 +142,16 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
       ios_ssh_runtime_start: ({ id, hostId, path }, emit) => {
         if (!connected.has(hostId)) fail("NOT_CONNECTED", "Connect to this SSH host before opening its files.");
         emit(`ios-ssh-runtime:${id}`, { state: "progress", message: "Installing the remote runtime…" });
-        return new Promise((resolve, reject) => pending.set(id, {
+        return new Promise((done, reject) => pending.set(id, {
           finish: () => {
             if (seed.runtimeFailure) return reject({ code: "REMOTE_UNSUPPORTED", message: seed.runtimeFailure });
             emit(`ios-ssh-runtime:${id}`, { state: "progress", message: "Starting the remote workspace…" });
             runtimes.add(id);
-            const root = "/home/dev/" + String(path).replace(/^~\/?/, "");
-            setTimeout(() => resolve({ url: runtimeUrl, token: "t".repeat(64), workspaceKey: "a".repeat(64), root, openFile: null }), 300);
+            runtimeEmit = emit;
+            const root = resolve(path);
+            const started = { hostId, path, root, workspaceKey: workspaceKey(hostId, root) };
+            starts.push(started);
+            setTimeout(() => done({ url: runtimeUrl, token: "t".repeat(64), workspaceKey: started.workspaceKey, root, openFile: null }), 300);
           },
           cancel: () => reject({ code: "CANCELLED", message: "Cancelled" }),
         }));
@@ -143,6 +167,11 @@ export async function installSshBridge(page: Page, seed: SshSeed = {}) {
       __sshMock: {
         calls,
         files,
+        starts,
+        /** Sends a runtime event, as the native side does after a dropped connection. */
+        runtimeEvent(payload: unknown) {
+          for (const id of runtimes) runtimeEmit?.(`ios-ssh-runtime:${id}`, payload);
+        },
         handles: (command: string) => command in handlers,
         /** Answers `git.clone`; other Git requests return undefined and reach the default bridge. */
         gitRequest({ id, method, params }: { id: string; method: string; params: { destination: string } }) {

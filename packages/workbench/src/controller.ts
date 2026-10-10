@@ -778,6 +778,11 @@ export class WorkbenchController {
     panelLayout.activeDock = side;
     this.set({ panelLayout, panelOverlay: true });
   }
+  openDock(side: DockSide) {
+    const { panelLayout, panelOverlay } = this.state;
+    const overlay = (globalThis.innerWidth || 1440) < 1100;
+    if (!panelLayout.docks[side].visible || overlay && !(panelOverlay && panelLayout.activeDock === side)) this.toggleDock(side);
+  }
   getPanelLayout(): PanelLayout { return structuredClone(this.state.panelLayout); }
   movePanel(id: string, target: PanelTarget) {
     this.set({ panelLayout: movePanel(this.state.panelLayout, id, target), panelOverlay: true });

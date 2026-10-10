@@ -35,6 +35,7 @@ export function createFeature(o: FeatureOptions): Extension {
     early = new Map<string, Chunk[]>();
   const emittedStates = new Map<string,string>();
   let active: string | undefined,
+    size = { cols: 100, rows: 24 },
     split = false,
     splitIds: string[] = [],
     disposed = false;
@@ -159,7 +160,7 @@ export function createFeature(o: FeatureOptions): Extension {
     }
   };
   const create = async () => {
-    const result = await request("terminal.create", { cols: 100, rows: 24 });
+    const result = await request("terminal.create", size);
     const session = add(result);
     active = session.id;
     changed();
@@ -241,12 +242,15 @@ export function createFeature(o: FeatureOptions): Extension {
       for (const chunk of session.history) renderChunk(session, chunk);
       const resize = () => {
         try {
+          // A collapsed pane measures as FitAddon's 2x1 minimum, and zsh 5.9 aborts with heap corruption at 2 columns.
+          const proposed = fit.proposeDimensions();
+          if (!proposed || proposed.cols <= 2 || proposed.rows <= 1) return;
           fit.fit();
+          size = { cols: terminal.cols, rows: terminal.rows };
           if (session.exitCode === undefined && o.runtime?.connected)
             void request("terminal.resize", {
               id: session.id,
-              cols: terminal.cols,
-              rows: terminal.rows,
+              ...size,
             }).catch(() => {});
         } catch {
           /* A hidden pane has no measurable dimensions. */
@@ -415,9 +419,9 @@ export function createFeature(o: FeatureOptions): Extension {
             React.createElement("span", null, session.name),
             React.createElement("span", { className: "terminal-state-dot", "data-state": session.state, title: session.state })))),
         React.createElement("div", { className: "terminal-actions" },
-          React.createElement("button", { className: "button terminal-new", disabled: !o.runtime?.connected,
+          React.createElement("button", { className: "button terminal-new", disabled: !o.runtime?.connected, "aria-label": tr("New terminal"), title: tr("New terminal"),
             onClick: () => { void o.kernel.commands.execute("terminal.new").catch(error => o.workbench.notify(String(error), "error")); } },
-            React.createElement(Icon, { name: "plus", size: 14 }), tr("New terminal")),
+            React.createElement(Icon, { name: "plus", size: 14 }), React.createElement("span", null, tr("New terminal"))),
           React.createElement(IconButton, { icon: "splitR", label: tr("Split terminal"), disabled: !current || !o.runtime?.connected,
             onClick: () => { void o.kernel.commands.execute("terminal.split").catch(error => o.workbench.notify(String(error), "error")); } }),
           split && React.createElement(IconButton, { icon: "layoutSide", label: tr("Show single terminal"), onClick: () => { split = false; changed(); } }))),

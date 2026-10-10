@@ -29,6 +29,7 @@ export class IosRuntimeConnector implements RuntimeConnector {
   host?: IosRuntimeHost;
   private workspace?: OpenWorkspace;
   private saved: RecentWorkspace[] = [];
+  private all: RecentWorkspace[] = [];
   private mirror: Record<string, unknown> = {};
   private detach: (() => void)[] = [];
   status = this.store.get;
@@ -53,7 +54,10 @@ export class IosRuntimeConnector implements RuntimeConnector {
   keepAlive() { return keepAliveMs(this.settings.get(KEEP_ALIVE_SETTING)); }
   autoReconnect() { return this.settings.get(AUTO_RECONNECT_SETTING) !== false; }
 
-  setRecents(recents: RecentWorkspace[]) { this.saved = recents.filter(item => item.kind === "runtime" || item.kind === "sshRuntime"); }
+  setRecents(recents: RecentWorkspace[]) {
+    this.all = recents;
+    this.saved = recents.filter(item => item.kind === "runtime" || item.kind === "sshRuntime");
+  }
 
   attach(workspace?: OpenWorkspace) {
     for (const off of this.detach) off();
@@ -84,9 +88,16 @@ export class IosRuntimeConnector implements RuntimeConnector {
     );
   }
 
+  /** The open workspace's runtime; an SFTP folder starts one on its host at that folder. */
   quickTarget(): RuntimeTarget | undefined {
     const current = this.workspace?.recent;
     if (current && (current.kind === "runtime" || current.kind === "sshRuntime")) return targetOf(current);
+    if (current?.kind === "ssh" && current.hostId && current.remotePath) {
+      const { hostId, remotePath } = current;
+      const saved = this.saved.find(item => item.kind === "sshRuntime" && item.hostId === hostId && item.remotePath === remotePath);
+      return saved ? targetOf(saved)
+        : { key: `ssh:${hostId}:${remotePath}`, kind: "ssh", name: current.name, hostId, path: remotePath, detail: `Oxbit runtime · ${remotePath}` };
+    }
     return this.saved[0] && targetOf(this.saved[0]);
   }
   async recents() { return this.saved.map(targetOf); }
@@ -103,6 +114,7 @@ export class IosRuntimeConnector implements RuntimeConnector {
   }
   async connect(target: RuntimeTarget) {
     if (target.kind === "ssh") {
+      if (this.workspace?.remote && target.key === this.workspace.recent.id) return this.restart();
       if (target.hostId) this.host?.startSsh(target.hostId, target.path ?? "~");
       return;
     }
@@ -117,8 +129,20 @@ export class IosRuntimeConnector implements RuntimeConnector {
   }
   async restart() {
     const workspace = this.workspace;
-    if (workspace?.remote) await ssh.runtimeResume(workspace.remote.id);
-    else workspace?.session.runtime?.reconnect();
+    const runtime = workspace?.session.runtime;
+    if (!workspace?.remote) {
+      runtime?.reconnect();
+      return;
+    }
+    this.store.set({ state: "connecting", progress: "Reconnecting over SSH…", error: undefined });
+    try {
+      await ssh.runtimeResume(workspace.remote.id);
+    } catch (error) {
+      this.store.fail(error);
+      throw error;
+    }
+    await runtime?.reconnect().catch(() => {});
+    if (this.workspace === workspace) this.store.set({ state: runtime?.connected ? "connected" : "reconnecting", progress: undefined });
   }
   async trust(trusted: boolean) {
     const session = this.workspace?.session;
@@ -137,8 +161,14 @@ export class IosRuntimeConnector implements RuntimeConnector {
     const hosts = await ssh.hosts();
     return hosts.map(host => ({
       id: host.id, label: host.label, detail: `${host.username}@${host.hostname}${host.port === 22 ? "" : ":" + host.port}`,
-      lastPath: this.saved.find(recent => recent.hostId === host.id)?.remotePath,
+      lastPath: this.lastFolder(host.id),
     }));
+  }
+  /** The open workspace's folder on this host, else the most recent one. */
+  lastFolder(hostId: string) {
+    const current = this.workspace?.recent;
+    if (current?.hostId === hostId && current.remotePath) return current.remotePath;
+    return this.all.find(recent => recent.hostId === hostId && recent.remotePath)?.remotePath;
   }
   async startSsh(hostId: string, path: string) { this.host?.startSsh(hostId, path); }
   manageSsh() { this.host?.manageSsh(); }

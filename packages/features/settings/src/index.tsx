@@ -1,6 +1,6 @@
 import { languages } from "@oxbit/sdk";
 import { translate as tr } from "@oxbit/ui";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import type { Extension, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
 import { Icon, IconButton, Dialog, Select, IconThemeSelect } from "@oxbit/ui";
@@ -39,6 +39,13 @@ export function Settings({
   const categories = [
     ...new Set(settings.map((s) => s.category || "Extensions")),
   ];
+  const actions: SettingAction[] = owner || modified ? [] : [
+    { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
+    ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
+  ].filter(action => (category === "All" || action.category === category) && `${action.title} ${action.description}`.toLowerCase().includes(query.toLowerCase()));
+  const placed = new Set<SettingAction>();
+  const actionsBefore = (settingCategory?: string) => actions.filter(action => !placed.has(action) && (settingCategory === undefined || action.category === settingCategory) && placed.add(action))
+    .map(action => <ActionRow key={action.command} action={action} workbench={workbench} />);
   const selected = settings.filter(
     (s) =>
       (category === "All" || s.category === category) &&
@@ -116,21 +123,35 @@ export function Settings({
         </nav>
         <div className="settings-list">
           {owner && !settings.length && <p className="muted">{tr("This extension has no settings.")}</p>}
-          {!owner && !query && (category === "All" || category === "Appearance") && <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Manage Theme Packs")}</button>}
-          {!owner && !query && gitAccounts && (category === "All" || category === "Source Control") && <button className="button" onClick={() => void workbench.run("git.account")}>{tr("Git Accounts and Commit Author…")}</button>}
           {selected.map((s) => (
-            <SettingRow
-              key={`${s.id}:${scope}:${language}`}
-              setting={s}
-              kernel={kernel}
-              workbench={workbench}
-              scope={scope}
-              language={language || undefined}
-            />
+            <Fragment key={`${s.id}:${scope}:${language}`}>
+              {actionsBefore(s.category)}
+              <SettingRow
+                setting={s}
+                kernel={kernel}
+                workbench={workbench}
+                scope={scope}
+                language={language || undefined}
+              />
+            </Fragment>
           ))}
+          {actionsBefore()}
         </div>
       </div>
     </div>
+  );
+}
+interface SettingAction { category: string; title: string; description: string; label: string; command: string }
+function ActionRow({ action, workbench }: { action: SettingAction; workbench: WorkbenchController }) {
+  return (
+    <section className="setting-row">
+      <div className="setting-title">
+        <span className="muted">{tr(action.category)}: </span>
+        <strong>{action.title}</strong>
+      </div>
+      <p>{action.description}</p>
+      <button className="button" onClick={() => void workbench.run(action.command)}>{action.label}</button>
+    </section>
   );
 }
 function SettingRow({

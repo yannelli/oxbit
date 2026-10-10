@@ -116,6 +116,28 @@ fn maps_the_folder_field_to_a_launch_root() {
 }
 
 #[test]
+fn keys_a_resolved_folder_like_its_home_relative_launch_root() {
+    for (folder, root) in [
+        ("/home/dev", "/~"),
+        ("/home/dev/project", "/~/project"),
+        ("/home/dev/project/app", "/~/project/app"),
+        ("/home/devops", "/home/devops"),
+        ("/srv/app", "/srv/app"),
+        ("/", "/"),
+    ] {
+        assert_eq!(key_root("/home/dev", folder), root, "{folder}");
+        assert_eq!(key_root("/home/dev/", folder), root, "{folder}");
+    }
+    for typed in ["project", "~/project", "~/project/"] {
+        assert_eq!(
+            remote_root(typed).unwrap(),
+            key_root("/home/dev", "/home/dev/project")
+        );
+    }
+    assert_eq!(key_root("/", "/srv/app"), "/srv/app");
+}
+
+#[test]
 fn writes_launch_heartbeat_and_task_frames() {
     let launch: Value = serde_json::from_str(&launch_frame("/~/app", KEY, "token", None)).unwrap();
     assert_eq!(

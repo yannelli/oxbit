@@ -919,5 +919,10 @@
   "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.": "Ejecuta Taplo a través del runtime de Oxbit. El estado de activación y los tipos de archivo se asignan a languageServers.taplo.enabled y languageServers.taplo.selectors.",
   "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.": "Ejecuta Laravel a través del runtime de Oxbit. El estado de activación y los tipos de archivo se asignan a languageServers.laravel.enabled y languageServers.laravel.selectors.",
   "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.": "Ejecuta Intelephense a través del runtime de Oxbit. El estado de activación y los tipos de archivo se asignan a languageServers.intelephense.enabled y languageServers.intelephense.selectors.",
-  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Ejecuta LemMinX a través del runtime de Oxbit. El estado de activación y los tipos de archivo se asignan a languageServers.lemminx.enabled y languageServers.lemminx.selectors."
+  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Ejecuta LemMinX a través del runtime de Oxbit. El estado de activación y los tipos de archivo se asignan a languageServers.lemminx.enabled y languageServers.lemminx.selectors.",
+  "Theme Packs": "Paquetes de temas",
+  "Import and remove theme packs.": "Importa y elimina paquetes de temas.",
+  "Git Accounts and Commit Author": "Cuentas de Git y autor de commits",
+  "Sign in to Git hosts and set the name and email used for commits.": "Inicia sesión en servidores Git y define el nombre y el correo de los commits.",
+  "Manage Git Accounts…": "Administrar cuentas de Git…"
 }
