@@ -3,6 +3,9 @@ import {
   type ACPConnection,
   type ACPLaunch,
   type ACPContext,
+  type ACPQueuedPrompt,
+  type ACPLiveSession,
+  type ACPSessionSnapshot,
   type ACPSessionInfo,
   type ACPSubagent,
   type ACPSubagentEvent,
@@ -46,6 +49,11 @@ export class AgentController {
   private fileActions = new Set<string>();
   private historyGeneration = 0;
   private historyTimer?: ReturnType<typeof setTimeout>;
+  private eventHandlers = new Map<string, (params: any) => void>();
+  private attachBuffer?: { name: string; params: any }[];
+  private lastSequence = 0;
+  private queueRevision = 0;
+  private activeTurnId?: string;
   private activeConversation?: {
     id: string;
     sessionId: string;
@@ -91,6 +99,11 @@ export class AgentController {
   commands: { name: string; description: string }[] = [];
   logs = "";
   context: ACPContext[] = [];
+  queue: ACPQueuedPrompt[] = [];
+  queuePaused = false;
+  liveSessions: ACPLiveSession[] = [];
+  replayTruncated = false;
+  usage?: { used: number; size: number; cost?: { amount: number; currency: string } };
   constructor(readonly options: FeatureOptions) {
     this.history = new ConversationHistory(
       (
@@ -103,15 +116,43 @@ export class AgentController {
     void this.history.ready.then(() => this.changed());
     const runtime = options.runtime;
     if (!runtime) return;
-    const on = (event: string, fn: (params: any) => void) =>
-      this.subscriptions.push(
-        runtime.subscribe(event, (params) => {
-          if (this.disposed) return;
-          if (params.id && params.id !== this.connection?.id) return;
-          fn(params);
-          this.changed();
-        }),
-      );
+    const on = (event: string, fn: (params: any) => void) => {
+      this.eventHandlers.set(event, fn);
+      this.subscriptions.push(runtime.subscribe(event, (params) => {
+        if (this.attachBuffer && event !== "connection.change" && event !== "workspace.trust") {
+          this.attachBuffer.push({ name: event, params });
+          return;
+        }
+        this.deliver(event, params);
+      }));
+    };
+    on("acp.turnStarted", ({ messageId, text, context }) => {
+      if (!messageId) return;
+      this.activeTurnId = messageId;
+      if (!this.messages.some(message => message.id === messageId)) {
+        const message: Message = { id: messageId, role: "user", text, context };
+        this.messages.push(message);
+        this.activity.push({ kind: "message", message });
+      }
+      if (this.title === "New conversation") this.title = text.slice(0, 100);
+      this.busy = true;
+      this.cancelling = false;
+      this.status = "Working…";
+    });
+    on("acp.turnEnded", ({ stopReason, error }) => {
+      this.activeTurnId = undefined;
+      this.busy = this.cancelling = false;
+      this.rootRequestGeneration++;
+      this.requests = this.requests.filter(request => this.isChildRequest(request));
+      this.status = error ? "Turn failed" : stopReason === "cancelled" ? "Stopped" : "Ready";
+      if (error) this.error = String(error);
+    });
+    on("acp.queue", ({ queue, paused }) => {
+      this.queueRevision++;
+      this.queue = queue ?? [];
+      this.queuePaused = paused === true;
+    });
+    on("acp.attachedElsewhere", () => this.clearConnection("Opened in another window", true));
     on("acp.update", ({ update, sessionId, rootSessionId }) => {
       if (
         !sessionId ||
@@ -193,7 +234,7 @@ export class AgentController {
     on("connection.change", ({ state }) => {
       if (state !== "connected") {
         this.clearConnection(
-          "Runtime disconnected. Reconnect the agent to start a new conversation.",
+          "Runtime disconnected. Open Runtime sessions after reconnecting to reattach.", true,
         );
       }
     });
@@ -202,6 +243,16 @@ export class AgentController {
         this.clearConnection("Workspace trust was revoked");
       }
     });
+  }
+  private deliver(name: string, params: any) {
+    if (this.disposed) return;
+    if (params.id && params.id !== this.connection?.id) return;
+    if (typeof params.seq === "number") {
+      if (params.seq <= this.lastSequence) return;
+      this.lastSequence = params.seq;
+    }
+    this.eventHandlers.get(name)?.(params);
+    this.changed();
   }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -262,16 +313,23 @@ export class AgentController {
     this.title = "New conversation";
     this.draft = "";
     this.context = [];
+    this.queue = [];
+    this.queuePaused = false;
+    this.replayTruncated = false;
+    this.usage = undefined;
+    this.lastSequence = 0;
+    this.queueRevision = 0;
+    this.activeTurnId = undefined;
     this.archived = false;
   }
   private get documents() {
     return this.options.documents as DocumentService;
   }
-  private clearConnection(status: string) {
+  private clearConnection(status: string, retained = false) {
     if (this.busy)
       this.activity.push({
         kind: "notice",
-        text: "Connection ended during this turn. The prompt was not resent.",
+        text: retained ? "The runtime kept this turn. Reattach to follow it." : "The agent turn ended.",
       });
     for (const child of this.subagents.values()) {
       if (
@@ -296,6 +354,9 @@ export class AgentController {
       this.updatingSettings =
         false;
     this.requests = [];
+    this.queue = [];
+    this.queuePaused = false;
+    this.activeTurnId = undefined;
     this.status = status;
   }
   private request<T = any>(
@@ -367,6 +428,8 @@ export class AgentController {
   async newSession() {
     if (this.requests.length)
       throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
     if (this.activeSubagentCount)
       throw new Error(
         "Wait for active subagents or disconnect before changing conversations",
@@ -383,6 +446,8 @@ export class AgentController {
     const generation = this.connectionGeneration;
     this.sessionStarting = true;
     this.connecting = true;
+    const draft = this.draft;
+    const context = this.context;
     let previous: Conversation | undefined;
     this.changed();
     try {
@@ -406,6 +471,10 @@ export class AgentController {
     } catch (error) {
       if (generation !== this.connectionGeneration) return;
       if (previous) this.restoreSnapshot(previous);
+      else {
+        this.draft = draft;
+        this.context = context;
+      }
       this.status = "Sign in or retry starting the conversation";
       throw error;
     } finally {
@@ -448,6 +517,48 @@ export class AgentController {
       if (generation === this.connectionGeneration) throw error;
     }
   }
+  async listLiveSessions() {
+    if (!this.options.runtime?.connected) return;
+    const result = await this.request<{ sessions: ACPLiveSession[] }>("acp.list");
+    this.liveSessions = result.sessions;
+    this.changed();
+  }
+  async attachLive(id: string) {
+    if (this.connection?.id === id) return;
+    await this.saveConversation();
+    const generation = ++this.connectionGeneration;
+    this.attachBuffer = [];
+    try {
+      const snapshot = await this.request<ACPSessionSnapshot>("acp.attach", { id });
+      if (generation !== this.connectionGeneration || this.disposed || !this.options.runtime?.connected) return;
+      const draft = this.draft;
+      const context = this.context;
+      this.resetConversation();
+      this.draft = draft;
+      this.context = context;
+      this.connection = snapshot.connection;
+      this.launch = { provider: snapshot.connection.provider };
+      this.activeConversation = {
+        id: crypto.randomUUID(), sessionId: snapshot.connection.sessionId ?? "",
+        root: snapshot.connection.root, provider: snapshot.connection.provider,
+      };
+      this.replayTruncated = snapshot.truncated;
+      this.status = snapshot.busy ? "Working…" : "Ready";
+      for (const event of snapshot.events) this.deliver(event.name, event.params);
+      this.lastSequence = Math.max(this.lastSequence, snapshot.sequence);
+      this.queue = snapshot.queue;
+      this.queuePaused = snapshot.queuePaused;
+      this.busy = snapshot.busy;
+      for (const request of snapshot.requests) void this.clientRequest(request);
+      for (const event of this.attachBuffer ?? []) this.deliver(event.name, event.params);
+      this.changed();
+    } catch (error) {
+      for (const event of this.attachBuffer ?? []) this.deliver(event.name, event.params);
+      throw error;
+    } finally {
+      this.attachBuffer = undefined;
+    }
+  }
   async discover(more = false) {
     if (
       !this.connection ||
@@ -488,6 +599,8 @@ export class AgentController {
   async viewConversation(entry: Conversation) {
     if (this.requests.length)
       throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
     if (this.activeSubagentCount)
       throw new Error(
         "Wait for active subagents or disconnect before changing conversations",
@@ -542,6 +655,8 @@ export class AgentController {
   async resumeSaved(entry: Conversation) {
     if (this.requests.length)
       throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
     if (this.activeSubagentCount)
       throw new Error(
         "Wait for active subagents or disconnect before changing conversations",
@@ -573,6 +688,8 @@ export class AgentController {
   async restoreConversation(entry: Conversation) {
     if (this.requests.length)
       throw new Error("Resolve pending requests before changing conversations");
+    if (this.queue.length)
+      throw new Error("Run or remove queued messages before changing conversations");
     if (this.activeSubagentCount)
       throw new Error(
         "Wait for active subagents or disconnect before changing conversations",
@@ -794,7 +911,6 @@ export class AgentController {
   }
   async send() {
     if (
-      this.busy ||
       this.connecting ||
       this.updatingSettings ||
       this.discovering ||
@@ -804,10 +920,30 @@ export class AgentController {
       return;
     const prompt = this.draft.trim();
     const context = this.context.map((c) => ({ ...c }));
+    const draft = this.draft;
+    const contextSnapshot = JSON.stringify(this.context);
     if (JSON.stringify({ prompt, context }).length > 1000000)
       throw new Error("The message and attachments are too large");
     if (!this.connection?.sessionId)
       throw new Error("Start a conversation first");
+    if (this.busy) {
+      const queueRevision = this.queueRevision;
+      const generation = this.connectionGeneration;
+      const result = await this.request<{ queue: ACPQueuedPrompt[]; paused: boolean }>(
+        "acp.enqueue", { id: this.connection.id, text: prompt, context, messageId: crypto.randomUUID() },
+      );
+      if (generation !== this.connectionGeneration) return;
+      if (this.queueRevision === queueRevision) {
+        this.queue = result.queue;
+        this.queuePaused = result.paused;
+      }
+      if (this.draft === draft && JSON.stringify(this.context) === contextSnapshot) {
+        this.draft = "";
+        this.context = [];
+      }
+      this.changed();
+      return;
+    }
     const message: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -826,10 +962,12 @@ export class AgentController {
     try {
       const result = await this.call("session/prompt", {
         text: prompt,
+        messageId: message.id,
         ...(context.length ? { context } : {}),
       });
       if (generation !== this.connectionGeneration) return;
-      this.status = result?.stopReason === "cancelled" ? "Stopped" : "Ready";
+      if (!this.activeTurnId || this.activeTurnId === message.id)
+        this.status = result?.stopReason === "cancelled" ? "Stopped" : "Ready";
       if (result?.stopReason && result.stopReason !== "end_turn")
         this.activity.push({
           kind: "notice",
@@ -837,7 +975,7 @@ export class AgentController {
         });
     } catch (error) {
       if (generation !== this.connectionGeneration) return;
-      this.status = "Turn failed";
+      if (!this.activeTurnId || this.activeTurnId === message.id) this.status = "Turn failed";
       this.activity.push({
         kind: "notice",
         text: "Turn failed. Review the error before retrying.",
@@ -849,12 +987,69 @@ export class AgentController {
       throw error;
     } finally {
       if (generation === this.connectionGeneration) {
-        this.busy = this.cancelling = false;
-        this.rootRequestGeneration++;
-        this.requests = this.requests.filter((r) => this.isChildRequest(r));
+        if (!this.activeTurnId || this.activeTurnId === message.id) {
+          this.busy = this.cancelling = false;
+          this.rootRequestGeneration++;
+          this.requests = this.requests.filter((r) => this.isChildRequest(r));
+        }
         this.changed();
         await this.saveConversation();
       }
+    }
+  }
+  async removeQueued(promptId: string) {
+    if (!this.connection) return;
+    await this.request("acp.dequeue", { id: this.connection.id, promptId });
+    this.queue = this.queue.filter(prompt => prompt.id !== promptId);
+    this.changed();
+  }
+  async editQueued(promptId: string) {
+    const prompt = this.queue.find(item => item.id === promptId);
+    if (!prompt) return;
+    await this.removeQueued(promptId);
+    this.draft = prompt.text;
+    this.context = prompt.context ?? [];
+    this.changed();
+  }
+  async resumeQueue() {
+    if (!this.connection) return;
+    await this.request("acp.resumeQueue", { id: this.connection.id });
+    this.queuePaused = false;
+    this.changed();
+  }
+  async interruptAndSend() {
+    if (!this.connection || !this.busy || this.cancelling || !this.draft.trim()) return;
+    const text = this.draft.trim();
+    const context = this.context.map(item => ({ ...item }));
+    const draft = this.draft;
+    const contextSnapshot = JSON.stringify(this.context);
+    const generation = this.connectionGeneration;
+    const queueRevision = this.queueRevision;
+    const turnId = this.activeTurnId;
+    this.cancelling = true;
+    this.status = "Stopping…";
+    this.changed();
+    try {
+      const result = await this.request<{ queue: ACPQueuedPrompt[]; paused: boolean }>(
+        "acp.interrupt", { id: this.connection.id, text, context, messageId: crypto.randomUUID() },
+      );
+      if (generation !== this.connectionGeneration) return;
+      if (this.queueRevision === queueRevision) {
+        this.queue = result.queue;
+        this.queuePaused = result.paused;
+      }
+      if (this.draft === draft && JSON.stringify(this.context) === contextSnapshot) {
+        this.draft = "";
+        this.context = [];
+      }
+      this.changed();
+    } catch (error) {
+      if (generation === this.connectionGeneration && this.activeTurnId === turnId && this.cancelling) {
+        this.cancelling = false;
+        this.status = this.busy ? "Working…" : "Ready";
+        this.changed();
+      }
+      throw error;
     }
   }
   async cancel() {
@@ -928,6 +1123,13 @@ export class AgentController {
       typeof update.title === "string"
     )
       this.title = update.title.slice(0, 200);
+    else if (update.sessionUpdate === "usage_update") {
+      const usage = update.usage ?? update;
+      if (Number.isFinite(usage.used) && Number.isFinite(usage.size) && usage.size > 0)
+        this.usage = { used: Math.max(0, usage.used), size: usage.size,
+          ...(usage.cost && Number.isFinite(usage.cost.amount) && typeof usage.cost.currency === "string"
+            ? { cost: usage.cost } : {}) };
+    }
     else if (update.sessionUpdate === "plan") this.plan = update.entries ?? [];
     else if (update.sessionUpdate === "available_commands_update")
       this.commands = update.availableCommands ?? [];
@@ -945,6 +1147,7 @@ export class AgentController {
     while (this.activity.length > 200) this.activity.shift();
   }
   private async clientRequest(request: AgentRequest) {
+    if (this.pendingClientRequests.has(request.requestId) || this.requests.some(item => item.requestId === request.requestId)) return;
     const pending = { expired: false };
     this.pendingClientRequests.set(request.requestId, pending);
     const generation = this.requestGeneration;
@@ -955,6 +1158,45 @@ export class AgentController {
       (this.isChildRequest(request) ||
         rootGeneration === this.rootRequestGeneration);
     try {
+      if (["oxbit/workspace", "oxbit/diagnostics", "oxbit/open_file"].includes(request.method)) {
+        const path = request.params.path;
+        if (path !== undefined && (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..") || path.includes("\0")))
+          throw new Error("Choose a file inside the workspace");
+        const workbench = this.options.workbench as typeof this.options.workbench & { state?: { groups?: { tabs: { path?: string }[] }[] } };
+        const openFiles = [...new Set((workbench.state?.groups ?? []).flatMap(group => group.tabs.map(tab => tab.path).filter((item): item is string => !!item)))].slice(0, 100);
+        const activeFile = this.options.workbench.activePath();
+        const diagnostics = (target?: string) => {
+          const service = this.options.kernel.services.get<any>("language");
+          const paths = target ? [target] : openFiles;
+          return paths.flatMap(file => (service?.diagnostics?.get(file) ?? []).slice(0, 100).map((item: any) => ({
+            path: file, line: (item.range?.start?.line ?? 0) + 1,
+            character: (item.range?.start?.character ?? 0) + 1,
+            message: String(item.message ?? "").slice(0, 4000),
+            source: item.source, severity: item.severity,
+          }))).slice(0, 200);
+        };
+        if (request.method === "oxbit/diagnostics") {
+          if (valid()) await this.respond(request, { diagnostics: diagnostics(path) });
+          return;
+        }
+        if (request.method === "oxbit/open_file") {
+          if (typeof path !== "string") throw new Error("Choose a file inside the workspace");
+          const line = request.params.line;
+          if (line !== undefined && (!Number.isInteger(line) || line < 1)) throw new Error("Line must be a positive integer");
+          await this.openLocation(path, line === undefined ? undefined : line - 1);
+          if (valid()) await this.respond(request, { path });
+          return;
+        }
+        const editor = this.options.workbench.activeEditor();
+        const range = editor?.state?.selection?.main;
+        const document = activeFile ? this.documents.get(activeFile) : undefined;
+        const selection = activeFile && document && range && !range.empty
+          ? { path: activeFile, text: document.text.toString().slice(range.from, Math.min(range.to, range.from + 200000)),
+              line: document.text.toString().slice(0, range.from).split("\n").length }
+          : undefined;
+        if (valid()) await this.respond(request, { activeFile, openFiles, selection, diagnostics: diagnostics(activeFile) });
+        return;
+      }
       if (request.method === "fs/read_text_file") {
         const document = await this.documents.open(request.params.path);
         const text = document.text.toString();

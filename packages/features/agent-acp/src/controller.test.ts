@@ -46,6 +46,23 @@ function setup(document?: any, persistence?: any) {
   return { agent, runtime, filesystem, listeners, options };
 }
 describe("ACP editor integration", () => {
+  it("answers native workspace context from the open editor", async () => {
+    const document = { text: { toString: () => "first\nselected text\n" } };
+    const { agent, listeners, runtime, options } = setup(document);
+    const workbench = options.workbench as any;
+    workbench.state = { groups: [{ tabs: [{ path: "hello.txt" }] }] };
+    workbench.activePath = () => "hello.txt";
+    workbench.activeEditor = () => ({ state: { selection: { main: { from: 6, to: 19, empty: false } } } });
+    (options.kernel as any).services = { get: () => ({ diagnostics: new Map([["hello.txt", [{ message: "Issue", range: { start: { line: 1, character: 2 } } }]]]) }) };
+    listeners.get("acp.request")!({ id: "connection", requestId: "workspace", method: "oxbit/workspace", params: {} });
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
+    expect(runtime.request).toHaveBeenCalledWith("acp.respond", expect.objectContaining({ result: expect.objectContaining({
+      activeFile: "hello.txt", openFiles: ["hello.txt"],
+      selection: expect.objectContaining({ text: "selected text" }),
+      diagnostics: [expect.objectContaining({ path: "hello.txt", line: 2, character: 3 })],
+    }) }));
+    agent.dispose();
+  });
   it("answers reads from unsaved editor state with line limits", async () => {
     const { agent, listeners, runtime, filesystem } = setup({
       text: { toString: () => "unsaved\nsecond\nthird" },
@@ -183,6 +200,123 @@ function settings(agent: AgentController) {
   return sessionControls(agent.connection)[0];
 }
 describe("ACP session lifecycle", () => {
+  it("keeps the next turn's approval when the previous prompt RPC settles", async () => {
+    const { agent, runtime, listeners } = setup();
+    const prompt = deferred();
+    runtime.request.mockReturnValueOnce(prompt.promise);
+    agent.draft = "First";
+    const first = agent.send();
+    listeners.get("acp.turnStarted")!({ id: "connection", seq: 1, messageId: agent.messages[0].id, text: "First" });
+    listeners.get("acp.turnEnded")!({ id: "connection", seq: 2, stopReason: "end_turn" });
+    listeners.get("acp.turnStarted")!({ id: "connection", seq: 3, messageId: "next", text: "Next" });
+    agent.requests.push({ id: "connection", requestId: "next-approval", method: "session/request_permission", params: {} });
+    prompt.resolve({ stopReason: "end_turn" });
+    await first;
+    expect(agent.busy).toBe(true);
+    expect(agent.requests.map(request => request.requestId)).toEqual(["next-approval"]);
+    agent.dispose();
+  });
+  it("keeps newer queue events and draft edits during enqueue and interrupt", async () => {
+    const { agent, runtime, listeners } = setup();
+    const enqueue = deferred();
+    agent.busy = true;
+    agent.draft = "Queue this";
+    runtime.request.mockReturnValueOnce(enqueue.promise);
+    const queued = agent.send();
+    listeners.get("acp.queue")!({ id: "connection", seq: 1, queue: [{ id: "new", text: "Queue this" }], paused: false });
+    agent.draft = "Edited while sending";
+    enqueue.resolve({ queue: [], paused: true });
+    await queued;
+    expect(agent.queue.map(prompt => prompt.id)).toEqual(["new"]);
+    expect(agent.draft).toBe("Edited while sending");
+    const interrupt = deferred();
+    runtime.request.mockReturnValueOnce(interrupt.promise);
+    const sending = agent.interruptAndSend();
+    expect(agent.status).toBe("Stopping…");
+    listeners.get("acp.queue")!({ id: "connection", seq: 2, queue: [{ id: "priority", text: "Edited while sending" }], paused: false });
+    listeners.get("acp.turnStarted")!({ id: "connection", seq: 3, messageId: "priority", text: "Edited while sending" });
+    agent.draft = "New draft";
+    interrupt.resolve({ queue: [], paused: true });
+    await sending;
+    expect(agent.queue.map(prompt => prompt.id)).toEqual(["priority"]);
+    expect(agent.draft).toBe("New draft");
+    expect(agent.status).toBe("Working…");
+    agent.dispose();
+  });
+  it("does not attach a session after the runtime disconnects", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.connection = undefined;
+    const pending = deferred();
+    runtime.request.mockReturnValueOnce(pending.promise);
+    const attach = agent.attachLive("live");
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
+    listeners.get("connection.change")!({ state: "disconnected" });
+    pending.resolve({ connection: { id: "live", root: "/workspace", provider: "codex", sessionId: "live", authMethods: [] },
+      busy: false, events: [], requests: [], queue: [], queuePaused: false, sequence: 0, truncated: false });
+    await attach;
+    expect(agent.connection).toBeUndefined();
+    agent.dispose();
+  });
+  it("queues a prompt during a turn and lets the draft be restored for editing", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.busy = true;
+    agent.draft = "Follow up";
+    runtime.request.mockResolvedValueOnce({ queue: [{ id: "queued", text: "Follow up" }], paused: false });
+    await agent.send();
+    expect(runtime.request).toHaveBeenCalledWith("acp.enqueue", expect.objectContaining({ id: "connection", text: "Follow up" }));
+    expect(agent.draft).toBe("");
+    listeners.get("acp.queue")!({ id: "connection", seq: 1, queue: [{ id: "queued", text: "Follow up" }], paused: true });
+    expect(agent.queuePaused).toBe(true);
+    await agent.editQueued("queued");
+    expect(agent.draft).toBe("Follow up");
+    expect(agent.queue).toEqual([]);
+    agent.dispose();
+  });
+  it("keeps queued prompts when a conversation change is requested", async () => {
+    const { agent, runtime } = setup();
+    agent.queue = [{ id: "pending", text: "Keep queued" }];
+    agent.draft = "Keep draft";
+    await expect(agent.newSession()).rejects.toThrow("Run or remove queued messages");
+    expect(agent.queue).toHaveLength(1);
+    expect(agent.draft).toBe("Keep draft");
+    expect(runtime.request).not.toHaveBeenCalled();
+    agent.dispose();
+  });
+  it("replays a live turn once and restores its pending queue", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.connection = undefined;
+    agent.draft = "Keep this draft";
+    runtime.request.mockResolvedValueOnce({
+      connection: { id: "live", root: "/workspace", provider: "codex", sessionId: "live-session", authMethods: [] },
+      busy: true, queue: [{ id: "next", text: "Next" }], queuePaused: false,
+      sequence: 2, truncated: false, requests: [],
+      events: [
+        { name: "acp.turnStarted", params: { id: "live", seq: 1, messageId: "turn", text: "First" } },
+        { name: "acp.update", params: { id: "live", seq: 2, update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Working" } } } },
+      ],
+    });
+    await agent.attachLive("live");
+    expect(agent.draft).toBe("Keep this draft");
+    expect(agent.messages.map(message => message.text)).toEqual(["First", "Working"]);
+    expect(agent.busy).toBe(true);
+    expect(agent.queue).toHaveLength(1);
+    listeners.get("acp.turnStarted")!({ id: "live", seq: 1, messageId: "turn", text: "First" });
+    expect(agent.messages).toHaveLength(2);
+    agent.requests.push({ id: "live", requestId: "approval", method: "session/request_permission", params: {} });
+    listeners.get("acp.turnEnded")!({ id: "live", seq: 3, stopReason: "end_turn" });
+    expect(agent.busy).toBe(false);
+    expect(agent.requests).toEqual([]);
+    agent.dispose();
+  });
+  it("records reported context usage", () => {
+    const { agent, listeners } = setup();
+    listeners.get("acp.update")!({ id: "connection", update: {
+      sessionUpdate: "usage_update", used: 1200, size: 8000,
+      cost: { amount: 0.02, currency: "USD" },
+    } });
+    expect(agent.usage).toEqual({ used: 1200, size: 8000, cost: { amount: 0.02, currency: "USD" } });
+    agent.dispose();
+  });
   it("blocks overlapping settings and prompts and applies all dependent config changes", async () => {
     const { agent, runtime } = setup();
     const control = settings(agent),
