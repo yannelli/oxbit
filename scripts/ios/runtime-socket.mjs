@@ -18,12 +18,13 @@ export async function until(check, what, limit = 30000) {
 
 export async function connect(url, token) {
   const socket = new WebSocket(url.replace(/^http/, "ws") + "/ws", { origin: "tauri://localhost" });
-  const pending = new Map(), events = [], run = randomUUID();
-  let sequence = 0;
+  const pending = new Map(), events = [];
+  let operationEpoch;
   socket.on("error", (error) => fail(String(error)));
   socket.on("message", (raw) => {
     const message = JSON.parse(raw.toString());
     if (message.type === "event") events.push(message);
+    if (message.event === "operation.epoch") operationEpoch = message.params.epoch;
     const entry = pending.get(message.id);
     if (!entry) return;
     pending.delete(message.id);
@@ -31,12 +32,13 @@ export async function connect(url, token) {
     else entry.resolve(message.result);
   });
   const request = (method, params = {}) => new Promise((resolve, reject) => {
-    // Unique per run: the runtime persists operation results by request id across launches.
-    const id = `probe-${run}-${++sequence}`;
+    const nonce = randomUUID();
+    const id = operationEpoch ? `op:${operationEpoch}:${nonce}` : nonce;
     pending.set(id, { method, resolve, reject });
     socket.send(JSON.stringify({ v: 1, type: "request", id, method, params }));
   });
   await new Promise((resolve) => socket.once("open", resolve));
   const session = await request("auth.authenticate", { token });
+  operationEpoch = session.operationEpoch;
   return { socket, request, events, session };
 }

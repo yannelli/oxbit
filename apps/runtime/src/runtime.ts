@@ -17,7 +17,9 @@ import {
   RpcError,
   parseClientMessage,
   requireString,
-  MAX_MESSAGE_BYTES,
+  MAX_FILE_BYTES,
+  MAX_FILE_WRITE_MESSAGE_BYTES,
+  MAX_COLLABORATION_UPDATE_BYTES,
   MAX_BUFFER_BYTES,
   READ_CHUNK_BYTES,
   operationMethods,
@@ -25,6 +27,7 @@ import {
   type ServerMessage,
 } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
+import { OperationHistory } from "./operations.js";
 import { Processes, runCommand } from "./processes.js";
 import { TaskConfigStore } from "./tasks/config.js";
 import { TaskRunner } from "./tasks/runner.js";
@@ -84,17 +87,7 @@ interface Connection {
   alive: boolean;
   edits: Map<string,{resolve:(result:{applied:boolean;failureReason?:string})=>void;cleanup:()=>void}>;
 }
-interface Operation {
-  id: string;
-  owner: string;
-  method: string;
-  status: "running" | "completed" | "failed" | "interrupted";
-  startedAt: number;
-  result?: unknown;
-  error?: { code: string; message: string; data?: unknown };
-}
-// One LSP response can exceed MAX_BUFFER_BYTES (Astro completions are about 1.2 MB), so the backlog allows several.
-const MAX_SOCKET_BACKLOG_BYTES = 16 * MAX_BUFFER_BYTES;
+const MAX_SOCKET_BACKLOG_BYTES = MAX_FILE_WRITE_MESSAGE_BYTES;
 const allCapabilities: Capability[] = [
   "filesystem.read",
   "filesystem.write",
@@ -146,9 +139,9 @@ export async function createRuntime(options: RuntimeOptions) {
   const stateFile = path.join(dataDir, "runtime.json");
   const files = new WorkspaceFiles(root, dataDir),
     sessions = new Map<string, Session>(),
-    operations = new Map<string, Operation>(),
     inflight = new Map<string, Promise<unknown>>(),
     connections = new Map<string, Connection>();
+  let operations = new OperationHistory();
   let trusted = false,
     closed = false,
     runtimeId: string = randomUUID();
@@ -158,17 +151,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (typeof state.id === "string" && /^[A-Za-z0-9-]{8,64}$/.test(state.id)) runtimeId = state.id;
     for (const session of state.sessions ?? [])
       sessions.set(session.hash, session);
-    for (const operation of state.operations ?? []) {
-      if (operation.status === "running") {
-        operation.status = "interrupted";
-        operation.error = {
-          code: "INTERRUPTED",
-          message:
-            "Runtime stopped before operation completion was recorded; inspect state before retrying with a new request ID",
-        };
-      }
-      operations.set(`${operation.owner}:${operation.id}`, operation);
-    }
+    operations = new OperationHistory(state.operationHistory, state.operations ?? []);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT")
       throw new Error(`Cannot recover runtime state: ${String(error)}`);
@@ -187,6 +170,7 @@ export async function createRuntime(options: RuntimeOptions) {
       id: runtimeId,
       trusted,
       sessions: [...sessions.values()],
+      operationHistory: operations.checkpoint(),
       operations: [...operations.values()],
     });
     persistence = persistence
@@ -367,6 +351,7 @@ export async function createRuntime(options: RuntimeOptions) {
     owner: session.owner,
     trusted,
     sessionId: session.id,
+    operationEpoch: operations.epoch,
   });
   const createSession = async (
     isOwner: boolean,
@@ -610,7 +595,7 @@ export async function createRuntime(options: RuntimeOptions) {
   });
   const websocket = new WebSocketServer({
     noServer: true,
-    maxPayload: MAX_MESSAGE_BYTES,
+    maxPayload: MAX_FILE_WRITE_MESSAGE_BYTES,
     perMessageDeflate: false,
   });
   server.on("upgrade", (request, socket, head) => {
@@ -749,10 +734,7 @@ export async function createRuntime(options: RuntimeOptions) {
         owner(connection);
         return revoke(requireString(params, "id"));
       case "operation.status": {
-        const value = operations.get(
-          `${session.id}:${requireString(params, "id")}`,
-        );
-        return value ?? { id: params.id, status: "unknown" };
+        return operations.status(session.id, requireString(params, "id"));
       }
       case "fs.list":
         return files.list(typeof params.path === "string" ? params.path : "");
@@ -770,7 +752,7 @@ export async function createRuntime(options: RuntimeOptions) {
       case "fs.write": {
         const snapshot = await files.write(
           requireString(params, "path"),
-          requireString(params, "text", 20 * 1024 * 1024),
+          requireString(params, "text", MAX_FILE_BYTES),
           {
             expectedRevision: requireRevision(params),
             encoding: params.encoding as Encoding | undefined,
@@ -1016,7 +998,7 @@ export async function createRuntime(options: RuntimeOptions) {
         return collaboration.update(
           requireString(params, "path"),
           connection.id,
-          requireString(params, "update", MAX_MESSAGE_BYTES),
+          requireString(params, "update", MAX_COLLABORATION_UPDATE_BYTES),
         );
       case "collab.awareness":
         return collaboration.awareness(
@@ -1226,7 +1208,7 @@ export async function createRuntime(options: RuntimeOptions) {
             const required = permission(method),
               session = authorized(connection, required.cap, required.trust);
             const key = `${session.id}:${id}`,
-              existing = operations.get(key);
+              existing = operations.get(session.id, id);
             if (existing) {
               if (existing.method !== method)
                 throw new RpcError(
@@ -1234,6 +1216,8 @@ export async function createRuntime(options: RuntimeOptions) {
                   "Request ID was used for another operation",
                 );
               if (inflight.has(key)) result = await inflight.get(key);
+              else if (existing.resultExpired)
+                throw new RpcError("OPERATION_RESULT_EXPIRED", "Operation result expired; inspect current state before submitting a new operation", { status: existing.status });
               else if (existing.status === "completed")
                 result = existing.result;
               else
@@ -1243,14 +1227,10 @@ export async function createRuntime(options: RuntimeOptions) {
                   existing.error?.data,
                 );
             } else {
-              const operation: Operation = {
-                id,
-                owner: session.id,
-                method,
-                status: "running",
-                startedAt: Date.now(),
-              };
-              operations.set(key, operation);
+              const previousEpoch = operations.epoch;
+              const operation = operations.begin(session.id, id, method);
+              if (operations.epoch !== previousEpoch)
+                for (const c of connections.values()) if (c.session && !c.session.revoked) event(c, "operation.epoch", { epoch: operations.epoch });
               const run = (async () => {
                 await persist();
                 try {
@@ -1261,13 +1241,11 @@ export async function createRuntime(options: RuntimeOptions) {
                     controller.signal,
                     id,
                   );
-                  operation.status = "completed";
-                  operation.result = value;
+                  operations.complete(operation, value);
                   await persist();
                   return value;
                 } catch (error) {
-                  operation.status = "failed";
-                  operation.error = errorShape(error);
+                  operations.fail(operation, errorShape(error));
                   await persist();
                   throw error;
                 }
@@ -1321,7 +1299,7 @@ export async function createRuntime(options: RuntimeOptions) {
       for (const [id, controller] of connection.pending) {
         const operation =
           connection.session &&
-          operations.get(`${connection.session.id}:${id}`);
+          operations.get(connection.session.id, id);
         if (!operation) controller.abort();
       }
     });

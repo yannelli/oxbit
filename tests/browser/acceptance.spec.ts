@@ -453,7 +453,7 @@ test("stage and commit actual Git changes without repeating a request", async ({
       path: "commit-proof.txt",
       staged: true,
     });
-    const id = "browser-commit-proof";
+    const id = z.runtime.createOperationId();
     const first = await z.runtime.request(
       "git.commit",
       { message: "Verify real browser commit" },

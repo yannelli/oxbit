@@ -4,7 +4,7 @@ import os from "node:os";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 const { WebSocket } = createRequire(
@@ -107,7 +107,7 @@ async function launch() {
 }
 const events = [];
 const pending = new Map();
-let seq = 0;
+let operationEpoch;
 async function connect(port) {
   socket = new WebSocket(`ws://127.0.0.1:${port}/ws`, {
     origin: "tauri://localhost",
@@ -119,6 +119,7 @@ async function connect(port) {
   socket.on("message", (raw) => {
     const msg = JSON.parse(raw.toString());
     if (msg.type === "event") events.push(msg);
+    if (msg.event === "operation.epoch") operationEpoch = msg.params.epoch;
     const item = pending.get(msg.id);
     if (item) {
       clearTimeout(item.timer);
@@ -131,11 +132,14 @@ async function connect(port) {
     request("auth.authenticate", { token: "wrong" }),
     (e) => e.code === "UNAUTHENTICATED",
   );
-  return request("auth.authenticate", { token });
+  const session = await request("auth.authenticate", { token });
+  operationEpoch = session.operationEpoch;
+  return session;
 }
 function request(method, params = {}) {
   return new Promise((resolve, reject) => {
-    const id = `smoke-${++seq}`;
+    const nonce = randomUUID();
+    const id = operationEpoch ? `op:${operationEpoch}:${nonce}` : nonce;
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`${method} timed out`));

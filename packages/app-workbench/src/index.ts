@@ -404,6 +404,7 @@ export async function createWorkbenchSession({
         await workbench.persist();
       },
       async dispose() {
+        await session.persist();
         document.removeEventListener("focusout", focus);
         window.removeEventListener("blur", windowBlur);
         window.removeEventListener("pagehide", persist);
@@ -414,7 +415,6 @@ export async function createWorkbenchSession({
         connection?.();
         trust?.();
         documentChange();
-        await session.persist();
         iconThemes.dispose();
         await configurationPersistence.dispose();
         workbench.dispose();

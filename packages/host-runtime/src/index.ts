@@ -7,7 +7,7 @@ import type {
   FileChange,
   Disposable,
 } from "@oxbit/sdk";
-import { RpcError, MAX_MESSAGE_BYTES, MAX_BUFFER_BYTES, READ_CHUNK_BYTES, operationMethods, isRuntimeIdentity, type RuntimeIdentity, type ServerMessage } from "@oxbit/protocol";
+import { RpcError, requestMessageLimit, MAX_BUFFER_BYTES, READ_CHUNK_BYTES, operationId, operationMethods, isRuntimeIdentity, type RuntimeIdentity, type ServerMessage } from "@oxbit/protocol";
 const TOKEN_KEY = "oxbit.runtime.token:";
 type Pending = {
   resolve: (v: any) => void;
@@ -33,6 +33,7 @@ export class RuntimeClient implements RpcClient {
   private uncertain = new Map<string, string>();
   private recoveryTimer?: ReturnType<typeof setTimeout>;
   private recoveringOperations = false;
+  private operationEpoch?: string;
   private opening?: Promise<void>;
   connected = false;
   /** When false, a dropped connection stays disconnected until connect() runs again. */
@@ -117,6 +118,7 @@ export class RuntimeClient implements RpcClient {
             clearTimeout(timer);
             this.connected = true;
             this.retries = 0;
+            this.operationEpoch = typeof session.operationEpoch === "string" ? session.operationEpoch : undefined;
             if (isRuntimeIdentity(session.runtime)) {
               this.identity = session.runtime;
               this.persistToken();
@@ -169,6 +171,7 @@ export class RuntimeClient implements RpcClient {
               else p.resolve(m.result);
             }
           } else if (m.type === "event") {
+            if (m.event === "operation.epoch" && typeof m.params.epoch === "string") this.operationEpoch = m.params.epoch;
             if (m.event === "workspace.trust" && this.session) this.session.trusted = m.params.trusted === true;
             this.emit(m.event, {
               ...m.params,
@@ -251,12 +254,17 @@ export class RuntimeClient implements RpcClient {
       );
     return this.sendRequest(method, params, options);
   }
+  createOperationId() {
+    const nonce = crypto.randomUUID();
+    return this.operationEpoch ? operationId(this.operationEpoch, nonce) : nonce;
+  }
   private sendRequest<T = unknown>(
     method: string,
     params: Record<string, unknown>,
     options: { signal?: AbortSignal; id?: string },
   ): Promise<T> {
-    const id = options.id ?? crypto.randomUUID();
+    const id = options.id ?? ((operationMethods as readonly string[]).includes(method)
+      ? this.createOperationId() : crypto.randomUUID());
     if (options.signal?.aborted)
       return Promise.reject(
         options.signal.reason ?? new DOMException("Cancelled", "AbortError"),
@@ -265,7 +273,7 @@ export class RuntimeClient implements RpcClient {
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) { reject(new RpcError("OFFLINE", "Runtime socket is closed")); return; }
       if (this.pending.size >= 64 || this.socket.bufferedAmount > MAX_BUFFER_BYTES) { reject(new RpcError("BUSY", "Runtime request queue is full")); return; }
       const serialized = JSON.stringify({v:1,type:"request",id,method,params:{workspaceId:this.workspaceId,...params}});
-      if (new TextEncoder().encode(serialized).byteLength > MAX_MESSAGE_BYTES) { reject(new RpcError("TOO_LARGE", "Runtime request exceeds 2 MiB")); return; }
+      if (new TextEncoder().encode(serialized).byteLength > requestMessageLimit(method)) { reject(new RpcError("TOO_LARGE", "Runtime request exceeds its message limit")); return; }
       if (this.pending.has(id)) {
         reject(new Error("Duplicate pending request ID"));
         return;

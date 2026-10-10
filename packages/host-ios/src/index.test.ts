@@ -60,6 +60,42 @@ describe("IosFileSystem", () => {
     expect(options).toEqual({ headers: { "x-oxbit-root": "ios:abc", "x-oxbit-path": "a.txt", "x-oxbit-expected": "r1" } });
     expect(result).toMatchObject({ revision: "r2", encoding: "utf-16le", eol: "CRLF" });
   });
+  it.each([
+    { from: "a.txt", to: "b.txt", path: "a.txt", target: "b.txt" },
+    { from: "src", to: "lib", path: "src/a.txt", target: "lib/a.txt" },
+  ])("moves encoding hints when renaming $from to $to", async ({ from, to, path, target }) => {
+    const fs = new IosFileSystem(root);
+    invoke.mockResolvedValueOnce({ revision: "r1" });
+    await fs.write(path, "café", { expectedRevision: null, encoding: "latin1" });
+    invoke.mockResolvedValueOnce(undefined);
+    await fs.rename("./" + from, "./" + to);
+    invoke.mockResolvedValueOnce(new Uint8Array([0x63, 0x61, 0x66, 0xe9]).buffer);
+    expect(await fs.read(target)).toMatchObject({ text: "café", encoding: "latin1" });
+    invoke.mockResolvedValueOnce(encoder.encode("café").buffer);
+    expect(await fs.read(path)).toMatchObject({ text: "café", encoding: "utf-8" });
+  });
+  it.each([
+    { deleted: "a.txt", path: "a.txt" },
+    { deleted: "src", path: "src/a.txt" },
+  ])("clears encoding hints after deleting $deleted", async ({ deleted, path }) => {
+    const fs = new IosFileSystem(root);
+    invoke.mockResolvedValueOnce({ revision: "r1" });
+    await fs.write(path, "café", { expectedRevision: null, encoding: "latin1" });
+    invoke.mockResolvedValueOnce(undefined);
+    await fs.delete("./" + deleted);
+    invoke.mockResolvedValueOnce(encoder.encode("café").buffer);
+    expect(await fs.read(path)).toMatchObject({ text: "café", encoding: "utf-8" });
+  });
+  it.each(["rename", "delete"])("retains encoding hints when %s fails", async (operation) => {
+    const fs = new IosFileSystem(root);
+    invoke.mockResolvedValueOnce({ revision: "r1" });
+    await fs.write("a.txt", "café", { expectedRevision: null, encoding: "latin1" });
+    invoke.mockRejectedValueOnce(new Error("native operation failed"));
+    await expect(operation === "rename" ? fs.rename("a.txt", "b.txt") : fs.delete("a.txt"))
+      .rejects.toThrow("native operation failed");
+    invoke.mockResolvedValueOnce(new Uint8Array([0x63, 0x61, 0x66, 0xe9]).buffer);
+    expect(await fs.read("a.txt")).toMatchObject({ text: "café", encoding: "latin1" });
+  });
   it("rejects paths that escape the root before calling native code", async () => {
     await expect(new IosFileSystem(root).read("../etc/passwd")).rejects.toThrow(/Invalid workspace path/);
     expect(invoke).not.toHaveBeenCalled();
