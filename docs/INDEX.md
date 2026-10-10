@@ -4,6 +4,7 @@ Created: 2026-10-02. Last updated: 2026-10-10.
 
 | Guide | Use when |
 | --- | --- |
+| [Agent ACP](agent-acp.md) | Changing agent providers, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
 | [Editor consistency contracts](editor-consistency.md) | Changing document lifecycle, file operations, tab navigation, replacement semantics, Settings resolution, and runtime operation retention; Zed, ECMAScript, and idempotency references. |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
 | [npm packages](npm.md) | Publishing `@oxbit/sdk` and `@oxbit/cli`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |

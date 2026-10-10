@@ -208,6 +208,15 @@ describe("authenticated runtime with real services", () => {
       trusted: true,
     });
   });
+  it("stops an agent whose start request is cancelled", async () => {
+    const owner = await connect();
+    const start = owner.request("acp.start", { provider: "codex", command: process.execPath, args: ["-e", "setInterval(() => {}, 1000)"] }, "acp-start-cancel");
+    await expect.poll(async () => (await owner.request("acp.list")).sessions.length).toBe(1);
+    owner.socket.send(JSON.stringify({ v: 1, type: "cancel", id: "acp-start-cancel" }));
+    await expect(start).rejects.toMatchObject({ message: expect.stringContaining("cancelled") });
+    expect((await owner.request("acp.list")).sessions).toEqual([]);
+    owner.close();
+  });
   it("edits configured tasks only as owner and enforces execution grants", async () => {
     const catalog = await client.request("tasks.catalog"),
       source = catalog.sources.find((item: any) => item.private);

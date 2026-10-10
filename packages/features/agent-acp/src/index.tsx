@@ -294,6 +294,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   );
   const [showSetup, setShowSetup] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showLive, setShowLive] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [following, setFollowing] = useState(true);
   const contextId = useId();
@@ -407,6 +408,15 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             aria-expanded={showHistory}
             onClick={() => setShowHistory(!showHistory)}
           />
+          {enabled && <IconButton
+            icon="agentChat"
+            label="Runtime sessions"
+            aria-expanded={showLive}
+            onClick={() => {
+              setShowLive(!showLive);
+              if (!showLive) void agent.action(() => agent.listLiveSessions());
+            }}
+          />}
           {connection?.sessionId && (
             <IconButton
               icon="plus"
@@ -416,6 +426,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 agent.connecting ||
                 agent.updatingSettings ||
                 agent.discovering ||
+                agent.queue.length > 0 ||
                 agent.activeSubagentCount > 0
               }
               onClick={() => void agent.action(() => agent.newSession())}
@@ -523,6 +534,16 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           </div>
         )}
         {showHistory && <ConversationBrowser agent={agent} />}
+        {showLive && <section className="acp-live-sessions" aria-label={tr("Runtime sessions")}>
+          {agent.liveSessions.length === 0 && <p className="muted">{tr("No running conversations")}</p>}
+          {agent.liveSessions.map(session => <div className="acp-live-session" key={session.connection.id}>
+            <span><strong>{session.title || tr("New conversation")}</strong><small className="muted">{providerFor(session.connection.provider).name} · {session.busy ? tr("Working…") : tr("Ready")}{session.queued ? ` · ${session.queued} ${tr("queued")}` : ""}</small></span>
+            <button type="button" className="button" disabled={agent.connection?.id === session.connection.id}
+              onClick={() => void agent.action(async () => { await agent.attachLive(session.connection.id); setShowLive(false); })}>
+              {tr(agent.connection?.id === session.connection.id ? "Current" : "Open")}
+            </button>
+          </div>)}
+        </section>}
         {agent.error && (
           <p role="alert" className="error-text">
             {agent.error}
@@ -551,6 +572,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             </p>
           </div>
         )}
+        {agent.replayTruncated && <p className="acp-turn-note" role="status">{tr("Earlier activity was trimmed by the runtime.")}</p>}
         {agent.subagents.size > 0 && <Subagents agent={agent} compact />}
         <ActivityFeed agent={agent} />
         {agent.plan.length > 0 && (
@@ -627,6 +649,16 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           {tr("Agent needs your input")} · {agent.requests.length}
         </button>
       )}
+      {agent.queue.length > 0 && <section className="acp-queue" aria-label={tr("Queued messages")}>
+        <div className="acp-queue-heading"><strong>{tr("Queued messages")} · {agent.queue.length}</strong>
+          {agent.queuePaused && <button className="button" type="button" onClick={() => void agent.action(() => agent.resumeQueue())}>{tr("Run queue")}</button>}
+        </div>
+        {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id}>
+          <span title={prompt.text}>{index + 1}. {prompt.text}</span>
+          <IconButton icon="pencil" label={tr("Edit queued message")} onClick={() => void agent.action(() => agent.editQueued(prompt.id))} />
+          <IconButton icon="x" label={tr("Remove queued message")} onClick={() => void agent.action(() => agent.removeQueued(prompt.id))} />
+        </div>)}
+      </section>}
       <form
         className="acp-composer"
         onSubmit={(event) => {
@@ -754,30 +786,38 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             />
           )}
           <span className="muted acp-hint">{tr("Ctrl/Cmd+Enter to send")}</span>
-          {agent.busy ? (
+          {agent.busy && (
             <IconButton
               icon="stop"
               label={agent.cancelling ? "Stopping…" : "Stop"}
               disabled={agent.cancelling}
               onClick={() => void agent.action(() => agent.cancel())}
             />
-          ) : (
-            <IconButton
+          )}
+          {agent.busy && agent.draft.trim() && <button type="button" className="button acp-interrupt" disabled={agent.cancelling}
+            onClick={() => void agent.action(() => agent.interruptAndSend())}>{tr("Interrupt & send")}</button>}
+          <IconButton
               icon="arrowUp"
-              label="Send"
+              label={agent.busy ? "Queue message" : "Send"}
               className="icon-button acp-send"
               type="submit"
               disabled={
                 !connection?.sessionId ||
                 !agent.draft.trim() ||
                 !enabled ||
-                settingsDisabled
+                agent.connecting ||
+                agent.updatingSettings ||
+                agent.discovering ||
+                agent.archived
               }
             />
-          )}
         </div>
       </form>
       <div className="acp-footer">
+        {agent.usage && <div className="acp-usage" role="status" aria-label={tr("Context usage")}>
+          {tr("Context")} {agent.usage.used.toLocaleString()}/{agent.usage.size.toLocaleString()}
+          {agent.usage.cost && ` · ${agent.usage.cost.amount.toLocaleString()} ${agent.usage.cost.currency}`}
+        </div>}
         {connection ? (
           <div
             className="acp-provider"

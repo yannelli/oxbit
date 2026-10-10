@@ -2,12 +2,14 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ACP_PROVIDERS, type ACPConnection, type ACPLaunch } from "@oxbit/sdk";
+import { ACP_PROVIDERS, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
 import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
 import { trackChild } from "./owned-processes.js";
 import { SubagentRegistry } from "./acp-subagents.js";
+import { AgentMCP } from "./agent-mcp.js";
+import { runtimeVersion } from "./version.js";
 
 type Params = Record<string, any>;
 type Pending = {
@@ -15,7 +17,12 @@ type Pending = {
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 };
-type Approval = { rpcId: string | number; method: string; params: Params };
+type Approval = {
+  method: string;
+  params: Params;
+  resolve: (result: unknown) => void;
+  reject: (error: Error) => void;
+};
 type Terminal = {
   sessionId: string;
   child: ChildProcessWithoutNullStreams;
@@ -28,6 +35,8 @@ type Terminal = {
 type Agent = {
   connection: ACPConnection;
   owner: string;
+  client?: string;
+  editorTools: boolean;
   child: ChildProcessWithoutNullStreams;
   pending: Map<number, Pending>;
   approvals: Map<string, Approval>;
@@ -39,8 +48,17 @@ type Agent = {
   turn: number;
   newSessionUpdates?: Params[];
   subagents?: SubagentRegistry;
+  events: ACPSessionSnapshot["events"];
+  eventBytes: number;
+  eventSequence: number;
+  truncated: boolean;
+  title: string;
+  queue: ACPQueuedPrompt[];
+  queuePaused: boolean;
+  queueRunning: boolean;
 };
 const MAX_BYTES = 1024 * 1024;
+const EDITOR_UNSUPPORTED = "The connected editor does not support this tool; update Oxbit";
 function strings(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
@@ -57,9 +75,11 @@ function strings(value: unknown): string[] {
 }
 export class AgentACP {
   private agents = new Map<string, Agent>();
+  private mcp = new AgentMCP((id, name, args) => this.tool(id, name, args));
   constructor(
     private files: WorkspaceFiles,
     private emit: (owner: string, event: string, params: Params) => void,
+    private stateChanged: () => void = () => {},
   ) {}
   private get(owner: string, id: string) {
     const agent = this.agents.get(id);
@@ -103,19 +123,88 @@ export class AgentACP {
     });
   }
   private publish(agent: Agent, event: string, params: Params) {
-    this.emit(agent.owner, event, { id: agent.connection.id, ...params });
+    const payload = { id: agent.connection.id, ...params, seq: ++agent.eventSequence };
+    if (["acp.update", "acp.subagent", "acp.terminal", "acp.turnStarted", "acp.turnEnded"].includes(event)) {
+      const entry = JSON.parse(JSON.stringify({ name: event, params: payload }));
+      agent.events.push(entry);
+      agent.eventBytes += Buffer.byteLength(JSON.stringify(entry));
+      while (agent.events.length > 2000 || agent.eventBytes > 2 * MAX_BYTES) {
+        agent.eventBytes -= Buffer.byteLength(JSON.stringify(agent.events.shift()));
+        agent.truncated = true;
+      }
+    }
+    if (agent.client) this.emit(agent.client, event, payload);
+    this.stateChanged();
+  }
+  list(owner: string) {
+    return { sessions: [...this.agents.values()].filter((a) => a.owner === owner && !a.stopped).map((a) => ({
+      connection: a.connection, busy: a.busy, title: a.title,
+      pendingRequests: a.approvals.size, queued: a.queue.length,
+    })) };
+  }
+  control(owner: string, id: string, client: string) {
+    if (this.get(owner, id).client !== client)
+      throw new RpcError("BUSY", "Attach this agent session before controlling it");
+  }
+  attach(owner: string, id: string, client = owner, editorTools = false): ACPSessionSnapshot {
+    const agent = this.get(owner, id);
+    if (agent.client && agent.client !== client)
+      this.emit(agent.client, "acp.attachedElsewhere", { id, reason: "This session was attached in another Oxbit window" });
+    this.detach(client, id);
+    agent.client = client;
+    agent.editorTools = editorTools;
+    if (!editorTools) this.rejectEditorRequests(agent, EDITOR_UNSUPPORTED);
+    return {
+      connection: agent.connection, busy: agent.busy,
+      events: [...agent.events],
+      requests: [...agent.approvals].map(([requestId, request]) => this.requestEvent(agent, requestId, request)),
+      queue: [...agent.queue], queuePaused: agent.queuePaused,
+      sequence: agent.eventSequence, truncated: agent.truncated,
+    };
+  }
+  detach(client: string, exceptId?: string) {
+    for (const agent of this.agents.values()) {
+      if (agent.client !== client || agent.connection.id === exceptId) continue;
+      agent.client = undefined;
+      for (const [id, request] of agent.approvals) {
+        if (request.method === "fs/read_text_file") {
+          agent.approvals.delete(id);
+          void this.readFile(request.params).then(request.resolve, request.reject);
+        }
+      }
+      this.rejectEditorRequests(agent, "The editor disconnected; attach an Oxbit window to use this tool");
+    }
+  }
+  private rejectEditorRequests(agent: Agent, reason: string) {
+    for (const [id, request] of agent.approvals) {
+      if (!request.method.startsWith("oxbit/")) continue;
+      agent.approvals.delete(id);
+      request.reject(new Error(reason));
+    }
+  }
+  private working(agent: Agent) {
+    return agent.busy || agent.queueRunning || !!agent.approvals.size || !!agent.subagents?.activeCount || !!agent.queue.length;
+  }
+  get hasWork() {
+    return [...this.agents.values()].some((a) => this.working(a));
   }
   async start(
     owner: string,
     launch: ACPLaunch,
     signal?: AbortSignal,
+    client = owner,
   ): Promise<ACPConnection> {
     const preset = ACP_PROVIDERS.find((p) => p.id === launch.provider);
     if (!preset)
       throw new RpcError("INVALID_PARAMS", "Choose Codex, Cursor, or Amp");
     if (signal?.aborted) throw new Error("Agent connection cancelled");
-    if ([...this.agents.values()].filter((a) => a.owner === owner).length >= 3)
-      throw new RpcError("BUSY", "Disconnect an agent before starting another");
+    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
+    if (owned.length >= 3) {
+      const idle = owned.find((a) => !a.client && !this.working(a));
+      if (!idle)
+        throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
+      this.stopAgent(idle, "Stopped to start another agent");
+    }
     const command = requireString(
       { command: launch.command ?? preset.command },
       "command",
@@ -133,6 +222,8 @@ export class AgentACP {
     trackChild(child);
     const agent: Agent = {
       owner,
+      client,
+      editorTools: launch.clientCapabilities?.editorTools === true,
       child,
       connection: {
         id: randomUUID(),
@@ -148,6 +239,8 @@ export class AgentACP {
       stopped: false,
       sequence: 0,
       turn: 0,
+      events: [], eventBytes: 0, eventSequence: 0, truncated: false,
+      title: "New conversation", queue: [], queuePaused: false, queueRunning: false,
     };
     this.agents.set(agent.connection.id, agent);
     const abort = () => this.stopAgent(agent, "Agent connection cancelled");
@@ -204,7 +297,7 @@ export class AgentACP {
           terminal: true,
           ...(preset.id === "codex" ? { subagents: {} } : {}),
         },
-        clientInfo: { name: "oxbit", title: "Oxbit", version: "0.1.0" },
+        clientInfo: { name: "oxbit", title: "Oxbit", version: runtimeVersion() },
       });
       if (initialized.protocolVersion !== 1)
         throw new Error("Agent does not support ACP version 1");
@@ -296,6 +389,10 @@ export class AgentACP {
       const previous = { ...agent.connection };
       const previousRegistry = agent.subagents;
       const previousTerminals = agent.terminals;
+      const previousEvents = agent.events;
+      const previousBytes = agent.eventBytes;
+      const previousTitle = agent.title;
+      const previousTruncated = agent.truncated;
       const target =
         method === "session/new"
           ? undefined
@@ -304,7 +401,14 @@ export class AgentACP {
         throw new Error(
           "Resolve pending requests before changing conversations",
         );
+      if (agent.queue.length)
+        throw new Error("Remove queued messages before changing conversations");
       agent.busy = true;
+      agent.events = [];
+      agent.eventBytes = 0;
+      agent.truncated = false;
+      agent.title = "New conversation";
+      agent.queuePaused = false;
       // Load replays history before its response. Route only the requested session.
       agent.connection.sessionId = target;
       agent.subagents = target ? this.registry(agent, target, true) : undefined;
@@ -313,7 +417,7 @@ export class AgentACP {
       try {
         const result = await this.request(agent, method, {
           cwd: this.files.root,
-          mcpServers: [],
+          mcpServers: [await this.mcp.server(agent.connection.id, !!agent.connection.capabilities?.mcpCapabilities?.http)],
           ...(target ? { sessionId: target } : {}),
         });
         const sessionId = target ?? result?.sessionId;
@@ -338,6 +442,10 @@ export class AgentACP {
           killProcess(terminal.child);
         agent.terminals = previousTerminals;
         agent.subagents = previousRegistry;
+        agent.events = previousEvents;
+        agent.eventBytes = previousBytes;
+        agent.title = previousTitle;
+        agent.truncated = previousTruncated;
         throw error;
       } finally {
         agent.newSessionUpdates = undefined;
@@ -417,37 +525,117 @@ export class AgentACP {
     // Resolving attached paths yields; another request may have taken this connection.
     if (agent.busy || agent.stopped || agent.connection.sessionId !== sessionId)
       throw new Error("Agent connection is busy or ended");
+    const messageId = params.messageId === undefined ? randomUUID() : requireString(params, "messageId", 256);
     agent.busy = true;
     agent.turn++;
+    if (agent.title === "New conversation") agent.title = text.slice(0, 100);
+    this.publish(agent, "acp.turnStarted", { messageId, text, context: params.context ?? [] });
     const abort = () => this.stopAgent(agent, "Agent request interrupted");
     signal?.addEventListener("abort", abort, { once: true });
+    let stopReason: string | undefined;
+    let failure: string | undefined;
     try {
-      return await this.request(
+      const result = await this.request(
         agent,
         method,
         { sessionId, prompt },
         30 * 60 * 1000,
       );
+      stopReason = result?.stopReason;
+      if (stopReason !== "end_turn" && stopReason !== "cancelled") agent.queuePaused = true;
+      return result;
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+      agent.queuePaused = true;
+      throw error;
     } finally {
       this.expireRequests(agent, sessionId);
       agent.busy = false;
       signal?.removeEventListener("abort", abort);
+      if (!agent.stopped) {
+        this.publish(agent, "acp.turnEnded", { stopReason, error: failure });
+        this.publishQueue(agent);
+        queueMicrotask(() => this.runQueue(agent));
+      }
     }
   }
-  cancel(owner: string, id: string) {
+  private publishQueue(agent: Agent) {
+    this.publish(agent, "acp.queue", { queue: agent.queue, paused: agent.queuePaused });
+    return { queue: [...agent.queue], paused: agent.queuePaused };
+  }
+  async enqueue(owner: string, id: string, params: Params, interrupt = false) {
     const agent = this.get(owner, id);
+    if (!agent.connection.sessionId) throw new Error("Start a conversation first");
+    const text = requireString(params, "text", MAX_BYTES).trim();
+    if (!text) throw new Error("Enter a message");
+    const messageId = params.messageId === undefined ? randomUUID() : requireString(params, "messageId", 256);
+    if (params.context !== undefined) {
+      if (!Array.isArray(params.context) || params.context.length > 8)
+        throw new Error("Attach up to eight context items");
+      for (const item of params.context) {
+        requireString(item, "text", 200000);
+        await this.files.resolve(requireString(item, "path"));
+      }
+    }
+    if (agent.stopped) throw new Error("Agent connection has ended");
+    if (agent.queue.some((p) => p.id === messageId)) return this.publishQueue(agent);
+    const prompt: ACPQueuedPrompt = { id: messageId, text, ...(params.context ? { context: structuredClone(params.context) } : {}) };
+    if (agent.queue.length >= 16 || Buffer.byteLength(JSON.stringify([...agent.queue, prompt])) > MAX_BYTES)
+      throw new Error("Queued messages exceed the limit; remove a message first");
+    if (interrupt) {
+      agent.queue.unshift(prompt);
+      agent.queuePaused = false;
+      if (agent.busy) this.cancel(owner, id, true);
+    } else agent.queue.push(prompt);
+    const result = this.publishQueue(agent);
+    queueMicrotask(() => this.runQueue(agent));
+    return result;
+  }
+  dequeue(owner: string, id: string, promptId: string) {
+    const agent = this.get(owner, id);
+    const index = agent.queue.findIndex((p) => p.id === promptId);
+    if (index < 0) throw new Error("The queued message has already started or was removed");
+    const [prompt] = agent.queue.splice(index, 1);
+    this.publishQueue(agent);
+    return { prompt };
+  }
+  resumeQueue(owner: string, id: string) {
+    const agent = this.get(owner, id);
+    agent.queuePaused = false;
+    this.publishQueue(agent);
+    queueMicrotask(() => this.runQueue(agent));
+    return {};
+  }
+  private runQueue(agent: Agent) {
+    if (agent.busy || agent.queueRunning || agent.stopped || agent.queuePaused || !agent.queue.length) return;
+    agent.queueRunning = true;
+    const prompt = agent.queue.shift()!;
+    this.publishQueue(agent);
+    void this.call(agent.owner, agent.connection.id, "session/prompt", {
+      text: prompt.text, context: prompt.context, messageId: prompt.id,
+    }).catch(() => {
+      if (agent.stopped) return;
+      agent.queuePaused = true;
+      agent.queue.unshift(prompt);
+      this.publishQueue(agent);
+    }).finally(() => {
+      agent.queueRunning = false;
+      this.runQueue(agent);
+    });
+  }
+  cancel(owner: string, id: string, continueQueue = false) {
+    const agent = this.get(owner, id);
+    agent.queuePaused = !continueQueue;
+    this.publishQueue(agent);
     this.send(agent, {
       method: "session/cancel",
       params: { sessionId: agent.connection.sessionId },
     });
     for (const [requestId, request] of agent.approvals) {
       if (request.params.sessionId !== agent.connection.sessionId) continue;
-      this.send(agent, {
-        id: request.rpcId,
-        ...(request.method === "session/request_permission"
-          ? { result: { outcome: { outcome: "cancelled" } } }
-          : { error: { code: -32800, message: "Cancelled" } }),
-      });
+      if (request.method === "session/request_permission")
+        request.resolve({ outcome: { outcome: "cancelled" } });
+      else request.reject(new Error("Cancelled"));
       agent.approvals.delete(requestId);
       agent.subagents?.waiting(
         request.params.sessionId,
@@ -491,6 +679,8 @@ export class AgentACP {
       !agent.subagents?.observe(sessionId, update)
     )
       return;
+    if (sessionId === agent.connection.sessionId && update.sessionUpdate === "session_info_update" && typeof update.title === "string")
+      agent.title = update.title.slice(0, 200);
     this.publish(agent, "acp.update", {
       rootSessionId: agent.subagents.root,
       sessionId,
@@ -510,13 +700,9 @@ export class AgentACP {
     const requestIds: string[] = [];
     for (const [id, request] of agent.approvals) {
       if (request.params.sessionId !== sessionId) continue;
-      if (!agent.stopped)
-        this.send(agent, {
-          id: request.rpcId,
-          ...(request.method === "session/request_permission"
-            ? { result: { outcome: { outcome: "cancelled" } } }
-            : { error: { code: -32800, message: "Session turn ended" } }),
-        });
+      if (request.method === "session/request_permission")
+        request.resolve({ outcome: { outcome: "cancelled" } });
+      else request.reject(new Error("Session turn ended"));
       agent.approvals.delete(id);
       requestIds.push(id);
       agent.subagents?.waiting(
@@ -541,6 +727,124 @@ export class AgentACP {
       .join("/");
     await this.files.resolve(relative, missing);
     return relative;
+  }
+  private requestEvent(agent: Agent, requestId: string, request: Approval) {
+    const sessionId = request.params.sessionId;
+    return {
+      id: agent.connection.id, requestId, sessionId,
+      rootSessionId: agent.subagents!.root,
+      subagentId: agent.subagents!.idForSession(sessionId) ?? agent.subagents!.idForTool(sessionId, request.params.toolCallId ?? request.params.toolCall?.toolCallId),
+      method: request.method, params: request.params,
+    };
+  }
+  private async readFile(params: Params) {
+    const file = await this.files.read(params.path);
+    const start = (params.line ?? 1) - 1;
+    const content = params.line !== undefined || params.limit !== undefined
+      ? file.text.split("\n").slice(start, params.limit ? start + params.limit : undefined).join("\n")
+      : file.text;
+    if (Buffer.byteLength(content) > MAX_BYTES)
+      throw new Error("File content exceeds 1 MiB; request a smaller line range");
+    return { content };
+  }
+  private async clientRequest(agent: Agent, method: string, params: Params): Promise<any> {
+    const registry = agent.subagents;
+    const sessionId = params.sessionId;
+    if (!registry?.acceptsRequest(sessionId)) throw new Error("Unknown ACP session");
+    if (agent.approvals.size >= 32) throw new Error("Too many pending agent requests");
+    if (method.startsWith("fs/")) {
+      params.path = await this.relative(params.path, method === "fs/write_text_file");
+      for (const field of ["line", "limit"])
+        if (params[field] !== undefined && (!Number.isSafeInteger(params[field]) || params[field] < 1))
+          throw new Error(`Invalid ${field}`);
+      if (method === "fs/write_text_file") requireString(params, "content", MAX_BYTES);
+    }
+    if (agent.stopped || registry !== agent.subagents || !registry.acceptsRequest(sessionId))
+      throw new Error("ACP session ended");
+    if (!agent.client && method === "fs/read_text_file") return this.readFile(params);
+    return new Promise((resolve, reject) => {
+      const requestId = randomUUID();
+      const request: Approval = { method, params, resolve, reject };
+      agent.approvals.set(requestId, request);
+      if (method !== "fs/read_text_file" && !method.startsWith("oxbit/"))
+        registry.waiting(sessionId, requestId, true, params.toolCallId ?? params.toolCall?.toolCallId);
+      this.publish(agent, "acp.request", this.requestEvent(agent, requestId, request));
+    });
+  }
+  private async tool(id: string, name: string, args: Params) {
+    const agent = this.agents.get(id);
+    const sessionId = agent?.connection.sessionId;
+    if (!agent || agent.stopped || !sessionId) throw new Error("Start an agent conversation first");
+    const registry = agent.subagents;
+    const toolCallId = `oxbit-${randomUUID()}`;
+    const write = name === "oxbit_propose_edit";
+    let relative: string | undefined;
+    if (args.path !== undefined) {
+      const input = requireString(args, "path");
+      relative = path.isAbsolute(input) ? await this.relative(input, write) : input;
+      await this.files.resolve(relative, write);
+    }
+    for (const key of ["line", "limit"])
+      if (args[key] !== undefined && (!Number.isSafeInteger(args[key]) || args[key] < 1))
+        throw new Error(`Invalid ${key}`);
+    const publish = (update: Params) => {
+      if (!agent.stopped && registry === agent.subagents)
+        this.routeUpdate(agent, sessionId, update);
+    };
+    const editor = () => {
+      if (agent.client && !agent.editorTools) throw new Error(EDITOR_UNSUPPORTED);
+      return !!agent.client;
+    };
+    publish({ sessionUpdate: "tool_call", toolCallId, title: name, kind: write ? "edit" : "read", status: "in_progress", rawInput: args,
+      ...(relative ? { locations: [{ path: path.join(this.files.root, relative), line: args.line }] } : {}),
+    });
+    try {
+      let result: unknown;
+      const params = { ...args, path: relative, sessionId, toolCallId };
+      switch (name) {
+        case "oxbit_get_workspace":
+          result = { root: this.files.root, clientConnected: !!agent.client,
+            ...(editor() ? await this.clientRequest(agent, "oxbit/workspace", params) : { activeFile: null, openFiles: [], selection: null, diagnostics: [] }) };
+          break;
+        case "oxbit_list_files": {
+          const entries = await this.files.list(relative ?? "");
+          result = { entries: entries.slice(0, 1000), truncated: entries.length > 1000 };
+          break;
+        }
+        case "oxbit_read_file":
+        case "oxbit_propose_edit":
+          if (relative === undefined) throw new Error("A workspace path is required");
+          result = await this.clientRequest(agent, write ? "fs/write_text_file" : "fs/read_text_file", {
+            ...params, path: path.join(this.files.root, relative),
+          });
+          break;
+        case "oxbit_get_diagnostics":
+          result = editor() ? await this.clientRequest(agent, "oxbit/diagnostics", params) : { diagnostics: [], available: false, reason: "Attach an Oxbit editor for language diagnostics" };
+          break;
+        case "oxbit_open_file":
+          if (relative === undefined) throw new Error("A workspace path is required");
+          if (!editor()) throw new Error("Attach an Oxbit editor to open a file");
+          result = await this.clientRequest(agent, "oxbit/open_file", params);
+          break;
+        case "oxbit_update_plan": {
+          if (!Array.isArray(args.entries) || args.entries.length > 50) throw new Error("Provide up to 50 plan entries");
+          const entries = args.entries.map((entry: Params) => {
+            const content = requireString(entry, "content", 2000);
+            if (!["pending", "in_progress", "completed"].includes(entry.status)) throw new Error("Invalid plan status");
+            return { content, status: entry.status, ...(typeof entry.priority === "string" ? { priority: entry.priority.slice(0, 40) } : {}) };
+          });
+          publish({ sessionUpdate: "plan", entries });
+          result = { entries };
+          break;
+        }
+        default: throw new Error("Unknown Oxbit tool");
+      }
+      publish({ sessionUpdate: "tool_call_update", toolCallId, status: "completed", rawOutput: JSON.stringify(result ?? {}).slice(0, 8000) });
+      return result ?? {};
+    } catch (error) {
+      publish({ sessionUpdate: "tool_call_update", toolCallId, status: "failed", rawOutput: String(error) });
+      throw error;
+    }
   }
   private async message(agent: Agent, message: Params) {
     if (agent.stopped) return;
@@ -612,51 +916,8 @@ export class AgentACP {
         });
         return;
       }
-      if (agent.approvals.size >= 32)
-        throw new Error("Too many pending agent requests");
-      if (message.method.startsWith("fs/")) {
-        params.path = await this.relative(
-          params.path,
-          message.method === "fs/write_text_file",
-        );
-        for (const field of ["line", "limit"])
-          if (
-            params[field] !== undefined &&
-            (!Number.isSafeInteger(params[field]) || params[field] < 1)
-          )
-            throw new Error(`Invalid ${field}`);
-        if (message.method === "fs/write_text_file")
-          requireString(params, "content", MAX_BYTES);
-      }
-      if (agent.stopped) return;
-      if (registry !== agent.subagents || !registry.acceptsRequest(sessionId))
-        throw new Error("ACP session ended");
-      const requestId = randomUUID();
-      agent.approvals.set(requestId, {
-        rpcId: message.id,
-        method: message.method,
-        params,
-      });
-      if (message.method !== "fs/read_text_file")
-        registry.waiting(
-          sessionId,
-          requestId,
-          true,
-          params.toolCallId ?? params.toolCall?.toolCallId,
-        );
-      this.publish(agent, "acp.request", {
-        sessionId,
-        rootSessionId: registry.root,
-        subagentId:
-          registry.idForSession(sessionId) ??
-          registry.idForTool(
-            sessionId,
-            params.toolCallId ?? params.toolCall?.toolCallId,
-          ),
-        requestId,
-        method: message.method,
-        params,
-      });
+      const result = await this.clientRequest(agent, message.method, params);
+      if (!agent.stopped) this.send(agent, { id: message.id, result });
     } catch (error) {
       if (!agent.stopped)
         this.send(agent, {
@@ -688,12 +949,8 @@ export class AgentACP {
       )
         throw new Error("Invalid permission response");
     }
-    this.send(agent, {
-      id: request.rpcId,
-      ...(error
-        ? { error: { code: -32603, message: error.slice(0, 4096) } }
-        : { result }),
-    });
+    if (error) request.reject(new Error(error.slice(0, 4096)));
+    else request.resolve(result);
     agent.approvals.delete(requestId);
     agent.subagents?.waiting(
       request.params.sessionId,
@@ -839,25 +1096,28 @@ export class AgentACP {
       pending.reject(new Error(reason));
     }
     agent.pending.clear();
+    for (const approval of agent.approvals.values()) approval.reject(new Error(reason));
     agent.approvals.clear();
     for (const terminal of agent.terminals.values())
       killProcess(terminal.child);
     agent.terminals.clear();
     killProcess(agent.child);
     this.agents.delete(agent.connection.id);
+    this.mcp.revoke(agent.connection.id);
     this.publish(agent, "acp.exit", { reason });
   }
   stop(owner: string, id: string) {
     this.stopAgent(this.get(owner, id), "Agent disconnected");
     return {};
   }
-  disconnect(owner: string) {
+  disconnect(owner: string, client?: string) {
     for (const agent of this.agents.values())
-      if (agent.owner === owner)
+      if (agent.owner === owner && (client === undefined || agent.client === client))
         this.stopAgent(agent, "Agent client disconnected");
   }
   dispose() {
     for (const agent of this.agents.values())
       this.stopAgent(agent, "Agent tooling stopped");
+    return this.mcp.close();
   }
 }

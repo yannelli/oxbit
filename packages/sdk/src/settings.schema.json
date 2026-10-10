@@ -27,7 +27,7 @@
     "agentACP.codex.args": {
       "title": "Codex ACP arguments (JSON array)",
       "type": "string",
-      "default": "[\"-y\",\"@agentclientprotocol/codex-acp@1.10.0\"]"
+      "default": "[\"-y\",\"@agentclientprotocol/codex-acp@2.2.2\"]"
     },
     "agentACP.cursor.command": {
       "title": "Cursor ACP executable",
@@ -47,7 +47,7 @@
     "agentACP.amp.args": {
       "title": "Amp Agent ACP arguments (JSON array)",
       "type": "string",
-      "default": "[\"-y\",\"amp-acp@0.9.0\"]"
+      "default": "[\"-y\",\"amp-acp@0.10.0\"]"
     },
     "workbench.keymap": {
       "title": "Keymap",

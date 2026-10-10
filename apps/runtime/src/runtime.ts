@@ -250,7 +250,7 @@ export async function createRuntime(options: RuntimeOptions) {
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
     if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
-  });
+  }, () => updateIdle());
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -374,6 +374,7 @@ export async function createRuntime(options: RuntimeOptions) {
     const session = [...sessions.values()].find((s) => s.id === id);
     if (!session) throw new RpcError("NOT_FOUND", "Grant does not exist");
     session.revoked = true;
+    agents.disconnect(session.id);
     processes.revoke(session.id);
     tasks.revoke(session.id);
     for (const c of connections.values())
@@ -667,7 +668,11 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Workspace is not granted");
     const required = permission(method),
       session = authorized(connection, required.cap, required.trust);
-    if (method.startsWith("acp.")) owner(connection);
+    if (method.startsWith("acp.")) {
+      owner(connection);
+      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect"].includes(method))
+        agents.control(session.id, requireString(params, "id"), connection.id);
+    }
     if (method.startsWith("project.")) owner(connection);
     if (method.startsWith("settings.")) owner(connection);
     switch (method) {
@@ -689,17 +694,28 @@ export async function createRuntime(options: RuntimeOptions) {
       case "project.relations":
         return project.relations(requireString(params, "path"));
       case "acp.start":
-        return agents.start(connection.id, params as unknown as ACPLaunch, signal);
+        return agents.start(session.id, params as unknown as ACPLaunch, signal, connection.id);
+      case "acp.list":
+        return agents.list(session.id);
+      case "acp.attach":
+        return agents.attach(session.id, requireString(params, "id"), connection.id, (params.clientCapabilities as ACPLaunch["clientCapabilities"])?.editorTools === true);
+      case "acp.enqueue":
+      case "acp.interrupt":
+        return agents.enqueue(session.id, requireString(params, "id"), params, method === "acp.interrupt");
+      case "acp.dequeue":
+        return agents.dequeue(session.id, requireString(params, "id"), requireString(params, "promptId"));
+      case "acp.resumeQueue":
+        return agents.resumeQueue(session.id, requireString(params, "id"));
       case "acp.call":
-        return agents.call(connection.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>, signal);
+        return agents.call(session.id, requireString(params, "id"), requireString(params, "method"), (params.params ?? {}) as Record<string, unknown>);
       case "acp.respond":
-        return agents.respond(connection.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
+        return agents.respond(session.id, requireString(params, "id"), requireString(params, "requestId"), params.result, params.error === undefined ? undefined : requireString(params, "error"));
       case "acp.cancel":
-        return agents.cancel(connection.id, requireString(params, "id"));
+        return agents.cancel(session.id, requireString(params, "id"));
       case "acp.stop":
-        return agents.stop(connection.id, requireString(params, "id"));
+        return agents.stop(session.id, requireString(params, "id"));
       case "acp.disconnect":
-        agents.disconnect(connection.id);
+        agents.disconnect(session.id, connection.id);
         return {};
       case "workspace.info":
         return sessionInfo(session);
@@ -709,7 +725,7 @@ export async function createRuntime(options: RuntimeOptions) {
           throw new RpcError("INVALID_PARAMS", "trusted must be boolean");
         trusted = params.trusted;
         if (!trusted) {
-          agents.dispose();
+          await agents.dispose();
           await extensions.suspend();
           for (const c of connections.values()) for (const pending of c.pending.values()) pending.abort();
           for (const s of sessions.values()) { processes.revoke(s.id); tasks.revoke(s.id); }
@@ -1118,7 +1134,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   let idleSince: number | undefined, idleTimer: ReturnType<typeof setTimeout> | undefined;
   const updateIdle = () => {
-    if ([...connections.values()].some((c) => c.session && !c.session.revoked)) {
+    if (agents.hasWork || [...connections.values()].some((c) => c.session && !c.session.revoked)) {
       idleSince = undefined;
       clearTimeout(idleTimer);
       return;
@@ -1289,7 +1305,7 @@ export async function createRuntime(options: RuntimeOptions) {
     ws.on("error", () => {});
     ws.on("close", () => {
       clearTimeout(authDeadline);
-      agents.disconnect(connection.id);
+      agents.detach(connection.id);
       lsp.detach(connection.id);
       connections.delete(connection.id);
       updateIdle();
@@ -1450,7 +1466,7 @@ export async function createRuntime(options: RuntimeOptions) {
         for (const controller of c.pending.values()) controller.abort();
         c.ws.terminate();
       }
-      agents.dispose();
+      await agents.dispose();
       extensions.dispose();
       processes.close();
       await tasks.close();

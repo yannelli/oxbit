@@ -167,7 +167,7 @@ var settings_schema_default = {
     "agentACP.codex.args": {
       title: "Codex ACP arguments (JSON array)",
       type: "string",
-      default: '["-y","@agentclientprotocol/codex-acp@1.10.0"]'
+      default: '["-y","@agentclientprotocol/codex-acp@2.2.2"]'
     },
     "agentACP.cursor.command": {
       title: "Cursor ACP executable",
@@ -187,7 +187,7 @@ var settings_schema_default = {
     "agentACP.amp.args": {
       title: "Amp Agent ACP arguments (JSON array)",
       type: "string",
-      default: '["-y","amp-acp@0.9.0"]'
+      default: '["-y","amp-acp@0.10.0"]'
     },
     "workbench.keymap": {
       title: "Keymap",
@@ -1248,7 +1248,7 @@ var ACP_PROVIDERS = [
     id: "codex",
     name: "Codex ACP",
     command: "npx",
-    args: ["-y", "@agentclientprotocol/codex-acp@1.10.0"],
+    args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     setup: "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
     url: "https://github.com/agentclientprotocol/codex-acp"
   },
@@ -1264,7 +1264,7 @@ var ACP_PROVIDERS = [
     id: "amp",
     name: "Amp Agent ACP",
     command: "npx",
-    args: ["-y", "amp-acp@0.9.0"],
+    args: ["-y", "amp-acp@0.10.0"],
     setup: "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
     url: "https://github.com/tao12345666333/amp-acp"
   }

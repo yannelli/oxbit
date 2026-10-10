@@ -1,5 +1,7 @@
 # Agent ACP
 
+Created: 2026-10-10. Last updated: 2026-10-10.
+
 Agent ACP is a bundled, **disabled-by-default** extension for Codex ACP,
 Cursor ACP, and Amp Agent ACP. Open **Extensions → Agent ACP → Enable**, then
 use **Agent ACP: Open Agent ACP** in the command palette or its activity icon.
@@ -16,9 +18,9 @@ do not gain agent access. Browser-only workspaces show runtime connection guidan
 
 | Provider | Default executable and arguments | Setup |
 | --- | --- | --- |
-| Codex ACP | `npx -y @agentclientprotocol/codex-acp@1.10.0` | Existing Codex credentials, or an advertised sign-in method |
+| Codex ACP | `npx -y @agentclientprotocol/codex-acp@2.2.2` | Existing Codex credentials, or an advertised sign-in method |
 | Cursor ACP | `agent acp` | Install Cursor CLI and run `agent login` |
-| Amp Agent ACP | `npx -y amp-acp@0.9.0` | Install Amp CLI and run `amp login` |
+| Amp Agent ACP | `npx -y amp-acp@0.10.0` | Install Amp CLI and run `amp login` |
 
 Codex uses the [maintained ACP adapter](https://github.com/agentclientprotocol/codex-acp),
 which bundles a compatible Codex dependency. Cursor uses its
@@ -76,11 +78,59 @@ button or sign in using the provider CLI, then retry the conversation.
 - Agent terminal commands run in the workspace, show bounded output, and support
   output, wait, kill, and release through ACP.
 - **Stop** cancels the parent turn and clears its pending approvals. Child requests
-  remain attributed to their sessions until those sessions finish or disconnect. **Disconnect** ends the
-  conversation. Disabling the extension, losing the client connection, revoking
-  trust, or closing the runtime terminates owned agent and terminal processes.
+  remain attributed to their sessions until those sessions finish or disconnect.
+  **Disconnect** ends the conversation. Disabling the extension, revoking trust,
+  or closing the runtime terminates owned agent and terminal processes.
   Late responses from an ended connection cannot change a newer conversation.
   Failed prompts leave the panel ready for another message, with the error shown.
+
+## Runtime hosting and native tools
+
+The runtime hosts agents for desktop and browser clients. Desktop bundles the
+runtime; a browser connects to a running daemon. An agent continues through a
+client WebSocket drop. Reattach from **Runtime sessions** to recover its recent
+timeline, queued messages, and pending approval. Replayed events are bounded to
+2,000 entries and 2 MiB. The daemon has one editor controller per agent; runtime
+owner authentication keeps other workspace clients from attaching or calling
+agent tools. A running agent ends when it is explicitly disconnected, the
+extension is disabled, workspace trust is revoked, or the runtime shuts down.
+Each paired device runs at most 3 agents. At that limit, starting an agent stops
+the oldest detached agent with no running turn, pending request, or queued
+message. When every agent is attached or has work, the start fails and names
+**Runtime sessions** as the place to stop one.
+Running processes and pending reviews do not survive runtime shutdown. Saved
+provider history remains available through the provider's resume support.
+
+When the agent advertises HTTP MCP support, Oxbit passes a local authenticated
+MCP server at session creation. Otherwise it passes a Node stdio proxy to the
+same server. The runtime binds the MCP endpoint to localhost and issues a
+per-agent bearer secret. Both transports expose:
+
+| Tool | Behavior |
+| --- | --- |
+| `oxbit_get_workspace` | Return workspace context, active editor, and selection when attached. |
+| `oxbit_list_files` | List a directory within the runtime workspace. |
+| `oxbit_read_file` | Read bounded lines from an unsaved editor buffer while attached, or from disk while detached. |
+| `oxbit_get_diagnostics` | Read live editor diagnostics; headless sessions need an attached editor. |
+| `oxbit_open_file` | Open a file and optional line in the attached editor. |
+| `oxbit_propose_edit` | Submit replacement content and wait for engineer review. |
+| `oxbit_update_plan` | Publish up to 50 plan entries. |
+
+Paths are workspace relative or absolute within the workspace. The runtime
+validates their workspace boundary. File review and permission requests wait for
+the next attach if the controller drops. Tools that require an editor report
+that requirement while headless. Clients declare editor tool support with
+`clientCapabilities: { editorTools: true }` on `acp.start` and `acp.attach`.
+While an attached client has not declared it, `oxbit_get_workspace`,
+`oxbit_get_diagnostics`, and `oxbit_open_file` return a tool error that asks the
+user to update Oxbit. MCP tools use the agent's existing permission
+policy; the Oxbit review applies to proposed edits through the Oxbit client.
+
+Messages sent during a turn enter a queue of at most 16 messages and 1 MiB.
+They run in order after a successful turn. A stopped or failed turn pauses the
+queue. **Interrupt and send** cancels the current turn and sends the correction
+after cancellation is acknowledged. Providers report plans and token usage only
+when they expose those events.
 
 Agents execute with the trusted runtime user's privileges. The workspace path
 checks apply to Oxbit's ACP filesystem and terminal working-directory APIs;
@@ -129,7 +179,7 @@ The parent may finish while its children are running or waiting for approval.
 Their tracking and requests remain active. New/Read/Resume wait for confirmed
 active children and pending requests; **Disconnect** remains available. The Stop
 command disconnects when only children are active. Cancellation is only reported
-as successful when the provider confirms it; a lost connection is shown as
+as successful when the provider confirms it; a lost provider connection is shown as
 disconnected. Unresponsive cancellation remains bounded by the runtime timeout.
 
 History saves bounded child summaries and activity with each conversation. Old
@@ -147,7 +197,9 @@ updates have a small bounded buffer and never authorize requests.
 
 This feature observes provider dispatch. It does not install provider hooks,
 monitor externally launched agents, provide manual dispatch, or expose individual
-child messaging/cancellation controls. Adapter versions remain pinned.
+child messaging/cancellation controls. Adapter defaults remain pinned. The
+subagent mapping references below describe the releases tested when that
+tracking was added; current defaults require their own live provider checks.
 
 Adapter references:
 [Codex child-session interfaces](https://github.com/agentclientprotocol/codex-acp/blob/v1.10.0/src/subagents/AcpSubagents.ts),
@@ -184,14 +236,16 @@ attachments and arbitrary MCP server configuration remain outside this extension
 
 ## Protocol references
 
-Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup), [session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and [content](https://agentclientprotocol.com/protocol/v1/content) contracts.
+Agent ACP uses the protocol's [session lifecycle](https://agentclientprotocol.com/protocol/v1/session-setup), [session discovery](https://agentclientprotocol.com/protocol/v1/session-list), and [content](https://agentclientprotocol.com/protocol/v1/content) contracts. The native tool server follows [MCP Streamable HTTP and stdio transport rules](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports). Adapter defaults are checked against the [Codex ACP package](https://registry.npmjs.org/@agentclientprotocol%2Fcodex-acp/2.2.2) and [Amp ACP package](https://registry.npmjs.org/amp-acp/0.10.0).
+
+Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) documents queues, context, and review; [VS Code sessions](https://code.visualstudio.com/docs/agents/run/sessions/manage-sessions) document session recovery and context usage; [OpenCode web](https://docs.opencode.ai/docs/web/) documents shared browser and terminal sessions; [Paseo CLI](https://github.com/getpaseo/paseo/blob/main/public-docs/cli.md) documents daemon-managed agents; [Oh My Pi RPC](https://github.com/can1357/oh-my-pi/blob/main/docs/rpc.md) documents headless client integration. Oxbit's provider behavior depends on each advertised ACP capability.
 
 ## Verification
 
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):
