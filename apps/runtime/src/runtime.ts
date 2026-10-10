@@ -46,6 +46,7 @@ import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
 import { lanOrigins, wildcardHost } from "./lan.js";
+import { loginShellEnvironment } from "./shell-environment.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -265,7 +266,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   const processes = new Processes(root, processEvent);
   const taskStore = await TaskConfigStore.create(root, { home: options.tasksHome ?? setting("TASKS_HOME"), gitPath: options.desktop?.gitPath });
-  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort);
+  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort, loginShellEnvironment);
   const worktrees = new TaskWorktrees(taskStore, tasks);
   let projectChanged = () => {};
   const project = await new ProjectStore(files, options.projectsDir ?? setting("PROJECTS_DIR") ?? path.join(os.homedir(), ".oxbit", "projects"), () => projectChanged()).initialize();

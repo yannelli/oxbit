@@ -83,6 +83,8 @@ The schema is [tasks.v1.schema.json](../apps/web/public/schemas/tasks.v1.schema.
 
 A `command` normally runs in the system shell. Use `execution: "process"` with an `args` array to execute an executable directly, preserving each argument literally after variable substitution. Shell `args` are individually quoted. `cwd` defaults to the project and must resolve inside it. Arrays of lifecycle commands run sequentially in one shell with `set -e`, retaining environment/cwd changes across lines. No task runs automatically merely because a project was opened.
 
+Tasks start with the terminal's environment: Oxbit runs the terminal shell once per runtime (`bash`, `zsh` and `fish` as login and interactive shells) and reads its environment, so a Node version that nvm adds in `~/.bashrc` applies to tasks as it does in the terminal. `OXBIT_RESOLVING_ENVIRONMENT=1` is set during that run, so startup files can skip work such as attaching to tmux. When the shell fails or takes longer than 10 seconds, tasks use the runtime's own environment. The runtime's `SSH_*`, `GH_*`, `GITHUB_*` and proxy variables take precedence over the shell's values.
+
 Dependencies run sequentially by default (`dependencyOrder: "parallel"` is also available). A command dependency must finish successfully. A service dependency must become ready. Cycles, missing dependencies, and ambiguous references fail before commands launch. Stopping a parent prevents its later launch but leaves dependencies available for other tasks; stop shared services explicitly.
 
 ## Assigned variables and ports
