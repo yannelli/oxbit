@@ -33,6 +33,7 @@ export interface ACPLaunch {
   provider: ACPProviderId;
   command?: string;
   args?: string[];
+  clientCapabilities?: { editorTools?: boolean };
 }
 export interface ACPOption {
   id: string;

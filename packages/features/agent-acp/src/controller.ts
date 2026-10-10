@@ -394,7 +394,7 @@ export class AgentController {
         throw new Error("Connect to a runtime workspace first");
       const connection = await this.options.runtime.request<ACPConnection>(
         "acp.start",
-        { ...launch },
+        { ...launch, clientCapabilities: { editorTools: true } },
         { signal: abort.signal },
       );
       if (this.disposed || generation !== this.connectionGeneration) {
@@ -529,7 +529,7 @@ export class AgentController {
     const generation = ++this.connectionGeneration;
     this.attachBuffer = [];
     try {
-      const snapshot = await this.request<ACPSessionSnapshot>("acp.attach", { id });
+      const snapshot = await this.request<ACPSessionSnapshot>("acp.attach", { id, clientCapabilities: { editorTools: true } });
       if (generation !== this.connectionGeneration || this.disposed || !this.options.runtime?.connected) return;
       const draft = this.draft;
       const context = this.context;

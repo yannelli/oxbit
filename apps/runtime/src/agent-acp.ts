@@ -36,6 +36,7 @@ type Agent = {
   connection: ACPConnection;
   owner: string;
   client?: string;
+  editorTools: boolean;
   child: ChildProcessWithoutNullStreams;
   pending: Map<number, Pending>;
   approvals: Map<string, Approval>;
@@ -57,6 +58,7 @@ type Agent = {
   queueRunning: boolean;
 };
 const MAX_BYTES = 1024 * 1024;
+const EDITOR_UNSUPPORTED = "The connected editor does not support this tool; update Oxbit";
 function strings(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
@@ -144,12 +146,14 @@ export class AgentACP {
     if (this.get(owner, id).client !== client)
       throw new RpcError("BUSY", "Attach this agent session before controlling it");
   }
-  attach(owner: string, id: string, client = owner): ACPSessionSnapshot {
+  attach(owner: string, id: string, client = owner, editorTools = false): ACPSessionSnapshot {
     const agent = this.get(owner, id);
     if (agent.client && agent.client !== client)
       this.emit(agent.client, "acp.attachedElsewhere", { id, reason: "This session was attached in another Oxbit window" });
     this.detach(client, id);
     agent.client = client;
+    agent.editorTools = editorTools;
+    if (!editorTools) this.rejectEditorRequests(agent, EDITOR_UNSUPPORTED);
     return {
       connection: agent.connection, busy: agent.busy,
       events: [...agent.events],
@@ -166,15 +170,23 @@ export class AgentACP {
         if (request.method === "fs/read_text_file") {
           agent.approvals.delete(id);
           void this.readFile(request.params).then(request.resolve, request.reject);
-        } else if (request.method.startsWith("oxbit/")) {
-          agent.approvals.delete(id);
-          request.reject(new Error("The editor disconnected; attach an Oxbit window to use this tool"));
         }
       }
+      this.rejectEditorRequests(agent, "The editor disconnected; attach an Oxbit window to use this tool");
     }
   }
+  private rejectEditorRequests(agent: Agent, reason: string) {
+    for (const [id, request] of agent.approvals) {
+      if (!request.method.startsWith("oxbit/")) continue;
+      agent.approvals.delete(id);
+      request.reject(new Error(reason));
+    }
+  }
+  private working(agent: Agent) {
+    return agent.busy || agent.queueRunning || !!agent.approvals.size || !!agent.subagents?.activeCount || !!agent.queue.length;
+  }
   get hasWork() {
-    return [...this.agents.values()].some((a) => a.busy || a.approvals.size || a.subagents?.activeCount || a.queue.length);
+    return [...this.agents.values()].some((a) => this.working(a));
   }
   async start(
     owner: string,
@@ -186,8 +198,13 @@ export class AgentACP {
     if (!preset)
       throw new RpcError("INVALID_PARAMS", "Choose Codex, Cursor, or Amp");
     if (signal?.aborted) throw new Error("Agent connection cancelled");
-    if ([...this.agents.values()].filter((a) => a.owner === owner).length >= 3)
-      throw new RpcError("BUSY", "Disconnect an agent before starting another");
+    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
+    if (owned.length >= 3) {
+      const idle = owned.find((a) => !a.client && !this.working(a));
+      if (!idle)
+        throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
+      this.stopAgent(idle, "Stopped to start another agent");
+    }
     const command = requireString(
       { command: launch.command ?? preset.command },
       "command",
@@ -206,6 +223,7 @@ export class AgentACP {
     const agent: Agent = {
       owner,
       client,
+      editorTools: launch.clientCapabilities?.editorTools === true,
       child,
       connection: {
         id: randomUUID(),
@@ -773,6 +791,10 @@ export class AgentACP {
       if (!agent.stopped && registry === agent.subagents)
         this.routeUpdate(agent, sessionId, update);
     };
+    const editor = () => {
+      if (agent.client && !agent.editorTools) throw new Error(EDITOR_UNSUPPORTED);
+      return !!agent.client;
+    };
     publish({ sessionUpdate: "tool_call", toolCallId, title: name, kind: write ? "edit" : "read", status: "in_progress", rawInput: args,
       ...(relative ? { locations: [{ path: path.join(this.files.root, relative), line: args.line }] } : {}),
     });
@@ -782,7 +804,7 @@ export class AgentACP {
       switch (name) {
         case "oxbit_get_workspace":
           result = { root: this.files.root, clientConnected: !!agent.client,
-            ...(agent.client ? await this.clientRequest(agent, "oxbit/workspace", params) : { activeFile: null, openFiles: [], selection: null, diagnostics: [] }) };
+            ...(editor() ? await this.clientRequest(agent, "oxbit/workspace", params) : { activeFile: null, openFiles: [], selection: null, diagnostics: [] }) };
           break;
         case "oxbit_list_files": {
           const entries = await this.files.list(relative ?? "");
@@ -797,11 +819,11 @@ export class AgentACP {
           });
           break;
         case "oxbit_get_diagnostics":
-          result = agent.client ? await this.clientRequest(agent, "oxbit/diagnostics", params) : { diagnostics: [], available: false, reason: "Attach an Oxbit editor for language diagnostics" };
+          result = editor() ? await this.clientRequest(agent, "oxbit/diagnostics", params) : { diagnostics: [], available: false, reason: "Attach an Oxbit editor for language diagnostics" };
           break;
         case "oxbit_open_file":
           if (relative === undefined) throw new Error("A workspace path is required");
-          if (!agent.client) throw new Error("Attach an Oxbit editor to open a file");
+          if (!editor()) throw new Error("Attach an Oxbit editor to open a file");
           result = await this.clientRequest(agent, "oxbit/open_file", params);
           break;
         case "oxbit_update_plan": {

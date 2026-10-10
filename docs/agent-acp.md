@@ -94,6 +94,10 @@ timeline, queued messages, and pending approval. Replayed events are bounded to
 owner authentication keeps other workspace clients from attaching or calling
 agent tools. A running agent ends when it is explicitly disconnected, the
 extension is disabled, workspace trust is revoked, or the runtime shuts down.
+Each paired device runs at most 3 agents. At that limit, starting an agent stops
+the oldest detached agent with no running turn, pending request, or queued
+message. When every agent is attached or has work, the start fails and names
+**Runtime sessions** as the place to stop one.
 Running processes and pending reviews do not survive runtime shutdown. Saved
 provider history remains available through the provider's resume support.
 
@@ -115,7 +119,11 @@ per-agent bearer secret. Both transports expose:
 Paths are workspace relative or absolute within the workspace. The runtime
 validates their workspace boundary. File review and permission requests wait for
 the next attach if the controller drops. Tools that require an editor report
-that requirement while headless. MCP tools use the agent's existing permission
+that requirement while headless. Clients declare editor tool support with
+`clientCapabilities: { editorTools: true }` on `acp.start` and `acp.attach`.
+While an attached client has not declared it, `oxbit_get_workspace`,
+`oxbit_get_diagnostics`, and `oxbit_open_file` return a tool error that asks the
+user to update Oxbit. MCP tools use the agent's existing permission
 policy; the Oxbit review applies to proposed edits through the Oxbit client.
 
 Messages sent during a turn enter a queue of at most 16 messages and 1 MiB.

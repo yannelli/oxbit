@@ -713,7 +713,7 @@ export async function createRuntime(options: RuntimeOptions) {
       case "acp.list":
         return agents.list(session.id);
       case "acp.attach":
-        return agents.attach(session.id, requireString(params, "id"), connection.id);
+        return agents.attach(session.id, requireString(params, "id"), connection.id, (params.clientCapabilities as ACPLaunch["clientCapabilities"])?.editorTools === true);
       case "acp.enqueue":
       case "acp.interrupt":
         return agents.enqueue(session.id, requireString(params, "id"), params, method === "acp.interrupt");

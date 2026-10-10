@@ -5,6 +5,10 @@ import path from "node:path";
 import { AgentACP } from "../src/agent-acp.js";
 import { WorkspaceFiles } from "../src/filesystem.js";
 
+const launch = {
+  provider: "codex" as const, command: process.execPath,
+  args: [path.resolve("tests/fixtures/agent-acp/agent.mjs")],
+};
 describe("runtime-owned agent workspaces", () => {
   const cleanups: (() => Promise<unknown>)[] = [];
   afterEach(async () => {
@@ -17,10 +21,7 @@ describe("runtime-owned agent workspaces", () => {
     const events: { client: string; name: string; params: any }[] = [];
     const agent = new AgentACP(new WorkspaceFiles(root), (client, name, params) => events.push({ client, name, params }));
     cleanups.push(() => agent.dispose());
-    const connection = await agent.start("owner", {
-      provider: "codex", command: process.execPath,
-      args: [path.resolve("tests/fixtures/agent-acp/agent.mjs")],
-    }, undefined, "window-one");
+    const connection = await agent.start("owner", launch, undefined, "window-one");
     await agent.call("owner", connection.id, "session/new");
     const prompt = (text: string) => agent.call("owner", connection.id, "session/prompt", { text });
     return { root, agent, connection, events, prompt };
@@ -123,5 +124,50 @@ describe("runtime-owned agent workspaces", () => {
     const snapshot = agent.attach("owner", connection.id);
     expect(snapshot.events.some(e => e.params.update?.content?.text?.includes('"clientConnected":false'))).toBe(true);
     expect(snapshot.events.some(e => e.params.update?.entries?.[0]?.content === "Implement requested change")).toBe(true);
+  });
+  it("stops the oldest idle detached agent when the device limit is reached", async () => {
+    const { agent, connection } = await setup();
+    agent.detach("window-one");
+    const second = await agent.start("owner", launch, undefined, "window-two");
+    agent.detach("window-two");
+    const third = await agent.start("owner", launch, undefined, "window-three");
+    agent.detach("window-three");
+    const fourth = await agent.start("owner", launch, undefined, "window-four");
+    expect(agent.list("owner").sessions.map(s => s.connection.id)).toEqual([second.id, third.id, fourth.id]);
+    expect(() => agent.attach("owner", connection.id)).toThrow("ended");
+  });
+  it("keeps detached agents with work and attached agents at the device limit", async () => {
+    const { agent, connection, prompt } = await setup();
+    prompt("wait").catch(() => {});
+    agent.detach("window-one");
+    const queued = await agent.start("owner", launch, undefined, "window-two");
+    await agent.call("owner", queued.id, "session/new");
+    const turn = agent.call("owner", queued.id, "session/prompt", { text: "wait" });
+    await agent.enqueue("owner", queued.id, { text: "follow up" });
+    agent.cancel("owner", queued.id);
+    await turn;
+    agent.detach("window-two");
+    const attached = await agent.start("owner", launch, undefined, "window-three");
+    await expect(agent.start("owner", launch, undefined, "window-four")).rejects.toMatchObject({
+      code: "BUSY", message: "3 agents are running for this device; stop one in Runtime sessions",
+    });
+    expect(agent.list("owner").sessions.map(s => s.connection.id)).toEqual([connection.id, queued.id, attached.id]);
+  });
+  it("answers editor tools with an error for clients without editor tool support", async () => {
+    const { agent, connection, events, prompt } = await setup();
+    await prompt('mcp:oxbit_get_workspace:{}');
+    expect(events.some(e => e.name === "acp.request")).toBe(false);
+    expect(JSON.stringify(agent.attach("owner", connection.id, "window-one").events)).toContain("does not support this tool; update Oxbit");
+  });
+  it("forwards editor tools to clients that declare editor tool support", async () => {
+    const { agent, connection, events, prompt } = await setup();
+    agent.attach("owner", connection.id, "window-two", true);
+    const turn = prompt('mcp:oxbit_get_workspace:{}');
+    await expect.poll(() => events.some(e => e.name === "acp.request")).toBe(true);
+    const request = events.find(e => e.name === "acp.request")!;
+    expect(request).toMatchObject({ client: "window-two", params: { method: "oxbit/workspace" } });
+    agent.respond("owner", connection.id, request.params.requestId, { activeFile: null, openFiles: [], selection: null, diagnostics: [] });
+    await turn;
+    expect(JSON.stringify(agent.attach("owner", connection.id, "window-two", true).events)).toContain('\\"clientConnected\\":true');
   });
 });
