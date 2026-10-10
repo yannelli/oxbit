@@ -354,6 +354,13 @@ describe("authenticated runtime with real services", () => {
     });
     expect(filtered).toHaveLength(0);
   });
+  it("keeps terminals at least four columns wide", async () => {
+    const terminal = await client.request("terminal.create", { cols: 80, rows: 24 });
+    await client.request("terminal.resize", { id: terminal.id, cols: 2, rows: 3 });
+    await client.request("terminal.input", { id: terminal.id, data: "stty size\r" });
+    await client.event("terminal.data", (p) => p.id === terminal.id && /\b3 4\b/.test(p.data));
+    await client.request("terminal.kill", { id: terminal.id });
+  });
   it("executes real PTYs and tasks with resize, cancellation and reconnect replay", async () => {
     const terminal = await client.request("terminal.create", {
       cols: 90,

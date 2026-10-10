@@ -44,6 +44,38 @@ test("tapping the terminal opens its input and typed text reaches the shell", as
   })).toContain("tapped-42");
 });
 
+test("hiding the terminal panel keeps the shell at a usable size and new terminals start no larger than the visible terminal", async ({ page }) => {
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit, request = z.runtime.request.bind(z.runtime);
+    z.terminalRequests = [];
+    z.runtime.request = (method: string, params: any) => {
+      if (method === "terminal.resize" || method === "terminal.create") z.terminalRequests.push({ method, cols: params?.cols, rows: params?.rows });
+      return request(method, params);
+    };
+    await z.runtime.trust(true);
+    await z.runCommand("terminal.new");
+    z.workbench.openPanel("terminal");
+  });
+  await expect(page.locator(".xterm-screen")).toBeVisible();
+  await page.evaluate(() => (window as any).__oxbit.runCommand("view.togglePanel"));
+  await expect(page.locator(".xterm-screen")).toBeHidden();
+  await page.waitForTimeout(300);
+  await page.evaluate(() => (window as any).__oxbit.runCommand("terminal.new"));
+  await expect(page.locator(".xterm-screen")).toBeVisible();
+  const visible = await page.evaluate(() => {
+    const session = [...(window as any).__oxbit.kernel.services.get("terminal").sessions.values()].at(-1) as any;
+    return { cols: session.terminal.cols, rows: session.terminal.rows };
+  });
+  const requests: { method: string; cols: number; rows: number }[] = await page.evaluate(() => (window as any).__oxbit.terminalRequests);
+  expect(requests.filter(request => request.cols <= 2 || request.rows <= 1)).toEqual([]);
+  // zsh draws its PROMPT_SP marker when the PTY is wider than the view.
+  const created = requests.filter(request => request.method === "terminal.create").at(-1)!;
+  expect(created.cols).toBeLessThanOrEqual(visible.cols);
+  expect(created.rows).toBeLessThanOrEqual(visible.rows);
+});
+
 // Runs on the webkit-phone project only: a touch-first WebKit profile that approximates the
 // iOS WKWebView shell before device checks.
 async function ready(page: Page) {
@@ -201,6 +233,55 @@ test("a context menu action works on the first tap after a long press", async ({
   await expect(menu).toBeVisible();
   await menu.getByRole("menuitem", { name: /Rename/ }).tap();
   await expect(page.getByRole("dialog", { name: /Rename/ })).toBeVisible();
+});
+
+test("phone terminal tabs and actions share one compact row", async ({ page }, info) => {
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    await z.runtime.trust(true);
+    await z.runCommand("terminal.new");
+    z.workbench.openPanel("terminal");
+  });
+  const tabs = page.getByRole("tablist", { name: "Terminal sessions" }).getByRole("tab");
+  await expect(tabs.first()).toBeVisible();
+  const count = await tabs.count();
+  expect((await page.locator(".terminal-tabs-toolbar").boundingBox())!.height).toBeLessThanOrEqual(48);
+  const create = page.getByRole("button", { name: "New terminal", exact: true });
+  expect((await create.boundingBox())!.width).toBeGreaterThanOrEqual(36);
+  await create.tap();
+  await expect(tabs).toHaveCount(count + 1);
+  expect((await page.locator(".terminal-tabs-toolbar").boundingBox())!.height).toBeLessThanOrEqual(48);
+  await page.screenshot({ path: info.outputPath("phone-terminal-toolbar.png"), animations: "disabled" });
+});
+
+test("swiping in from a screen edge opens that side's panels", async ({ page }) => {
+  await ready(page);
+  const swipe = (from: { x: number; y: number }, to: { x: number; y: number }) => page.evaluate(([from, to]) => {
+    const target = document.elementFromPoint(from.x, from.y)!;
+    // WebKit has no Touch constructor, so the events carry plain touch records.
+    const send = (type: string, x: number, y: number) => {
+      const touch = { identifier: 1, target, clientX: x, clientY: y };
+      const event = Object.assign(new Event(type, { bubbles: true, cancelable: true }), { touches: type === "touchend" ? [] : [touch], changedTouches: [touch] });
+      target.dispatchEvent(event);
+    };
+    send("touchstart", from.x, from.y);
+    for (let step = 1; step <= 4; step++) send("touchmove", from.x + (to.x - from.x) * step / 4, from.y + (to.y - from.y) * step / 4);
+    send("touchend", to.x, to.y);
+  }, [from, to] as const);
+  const left = page.locator('[data-dock="left"]'), right = page.locator('[data-dock="right"]');
+  await swipe({ x: 4, y: 400 }, { x: 10, y: 520 });
+  await expect(left).toHaveCount(0);
+  await swipe({ x: 4, y: 400 }, { x: 120, y: 410 });
+  await expect(left).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(left).toHaveCount(0);
+  await swipe({ x: 389, y: 400 }, { x: 270, y: 405 });
+  await expect(right).toBeVisible();
+  await expect(left).toHaveCount(0);
+  await swipe({ x: 200, y: 400 }, { x: 320, y: 400 });
+  await expect(right).toBeVisible();
 });
 
 test("phone palette clears the notch and home indicator and responds to one tap", async ({ page }, info) => {
