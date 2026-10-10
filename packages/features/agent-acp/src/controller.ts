@@ -21,6 +21,8 @@ import {
   type Message,
 } from "./history.js";
 export type { Message } from "./history.js";
+import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
+import type { Mention } from "./mentions.js";
 
 export type AgentRequest = {
   id: string;
@@ -285,7 +287,7 @@ export class AgentController {
         title: this.title,
         updatedAt: new Date().toISOString(),
         draft: this.draft,
-        context: this.context,
+        context: this.context.filter((item) => item.kind !== "image"),
         activity: this.activity,
         tools: [...this.tools],
         subagents: [...this.subagents.values()],
@@ -892,6 +894,26 @@ export class AgentController {
     });
     this.changed();
   }
+  async attachImage(file: File) {
+    if (!this.connection) throw new Error("Connect an agent to attach images");
+    const count = () => this.context.filter((item) => item.kind === "image").length;
+    const accepted = !!this.connection.capabilities?.promptCapabilities?.image;
+    const error = imageError(file, count(), accepted);
+    if (error) throw new Error(error);
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const { mimeType, data } = await encodeImage(file);
+    if (count() >= 4 || this.context.length >= 8)
+      throw new Error("Attach up to 4 images per message");
+    this.context.push(imageContext(file.name, mimeType, data));
+    this.changed();
+  }
+  async attachMention(mention: Mention) {
+    if (mention.kind !== "file")
+      return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
+    if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
+    await this.attachPath(mention.path);
+  }
   attachDiagnostics() {
     const path = this.options.workbench.activePath();
     if (!path) throw new Error("Open a file to attach its diagnostics");
@@ -925,11 +947,27 @@ export class AgentController {
       !this.draft.trim()
     )
       return;
+    if (!this.connection) {
+      const draft = this.draft;
+      const context = this.context;
+      try {
+        await this.connectSelected();
+      } finally {
+        // Starting a conversation resets the composer; the pending draft belongs to it.
+        this.draft = draft;
+        this.context = context;
+        this.changed();
+      }
+      const connection = this.connection as ACPConnection | undefined;
+      if (!connection) return;
+      if (!connection.sessionId)
+        throw new Error("Sign in to the agent, then send your message");
+    }
     const prompt = this.draft.trim();
     const context = this.context.map((c) => ({ ...c }));
     const draft = this.draft;
     const contextSnapshot = JSON.stringify(this.context);
-    if (JSON.stringify({ prompt, context }).length > 1000000)
+    if (JSON.stringify({ prompt, context: withoutImageData(context) }).length > 1000000)
       throw new Error("The message and attachments are too large");
     if (!this.connection?.sessionId)
       throw new Error("Start a conversation first");
@@ -955,7 +993,7 @@ export class AgentController {
       id: crypto.randomUUID(),
       role: "user",
       text: prompt,
-      context,
+      context: withoutImageData(context),
     };
     this.messages.push(message);
     this.activity.push({ kind: "message", message });

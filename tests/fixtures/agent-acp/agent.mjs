@@ -14,6 +14,7 @@ const remember = () => {
   if (historyEnabled) fs.writeFileSync(historyPath, JSON.stringify(sessions));
 };
 const legacy = process.argv.includes("--legacy-config");
+const images = !process.argv.includes("--no-images");
 const modes = {
   currentModeId: "ask",
   availableModes: [
@@ -125,8 +126,8 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
           ...(historyEnabled ? {
               loadSession: !resumeOnly,
               sessionCapabilities: { list: {}, resume: {} },
-              promptCapabilities: { embeddedContext: true },
             } : {}),
+          promptCapabilities: { embeddedContext: historyEnabled, image: images },
         },
         agentInfo: { name: "fixture", title: "Fixture Agent", version: "1.0" },
         authMethods: [{ id: "fixture", name: "Fixture sign in" }],
@@ -215,7 +216,7 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
       models.currentModelId = params.modelId;
     } else if (method === "session/prompt") {
       promptId = id;
-      const text = params.prompt[0].text;
+      const text = params.prompt.find((block) => block.type === "text").text;
       if (historyEnabled) {
         sessions[sessionId].messages.push({ role: "user", text });
         sessions[sessionId].title = text.slice(0, 80);
@@ -283,6 +284,12 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
           },
         ],
       });
+      for (const block of params.prompt)
+        if (block.type === "image")
+          update({
+            sessionUpdate: "agent_message_chunk",
+            content: { type: "text", text: `Received image ${block.mimeType} ` },
+          });
       if (text === "context-inspect") {
         update({
           sessionUpdate: "agent_message_chunk",
@@ -332,6 +339,33 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
             toolCallId: "edit",
             title: "Edit hello.txt",
             rawInput: { path: "hello.txt" },
+          },
+          options: [
+            { optionId: "allow-once", name: "Allow once", kind: "allow_once" },
+            { optionId: "reject-once", name: "Reject", kind: "reject_once" },
+          ],
+        });
+        update({
+          sessionUpdate: "agent_message_chunk",
+          content: { type: "text", text: JSON.stringify(decision) },
+        });
+      } else if (text === "tool-kinds") {
+        const statuses = { edit: "failed", delete: "pending", move: "in_progress" };
+        for (const kind of ["read", "edit", "delete", "move", "search", "execute", "think", "fetch", "switch_mode", "other"])
+          update({
+            sessionUpdate: "tool_call",
+            toolCallId: `kind-${kind}`,
+            title: `Tool ${kind}`,
+            kind,
+            status: statuses[kind] ?? "completed",
+          });
+      } else if (text === "permission-diff") {
+        const decision = await call("session/request_permission", {
+          toolCall: {
+            toolCallId: "edit-diff",
+            title: "Edit hello.txt",
+            kind: "edit",
+            content: [{ type: "diff", path: "hello.txt", oldText: "hello from disk\n", newText: "hello from the agent\n" }],
           },
           options: [
             { optionId: "allow-once", name: "Allow once", kind: "allow_once" },

@@ -910,5 +910,19 @@
   "Servers": "Servidores",
   "Configure {0}": "Configurar {0}",
   "Settings JSON": "JSON de configuración",
-  "Settings JSON must be an object.": "El JSON de configuración debe ser un objeto."
+  "Settings JSON must be an object.": "El JSON de configuración debe ser un objeto.",
+  "Send with Ctrl/Cmd+Enter only": "Enviar solo con Ctrl/Cmd+Enter",
+  "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.": "Enter inserta una nueva línea y Ctrl/Cmd+Enter envía el mensaje.",
+  "Enter to send · Shift+Enter for new line": "Enter para enviar · Mayús+Enter para nueva línea",
+  "Mention files and context": "Mencionar archivos y contexto",
+  "Selection": "Selección",
+  "Diagnostics": "Diagnósticos",
+  "Attach the editor selection": "Adjuntar la selección del editor",
+  "Attach the active file's diagnostics": "Adjuntar los diagnósticos del archivo activo",
+  "Working": "Trabajando",
+  "Waiting for your approval": "Esperando tu aprobación",
+  "Execute": "Ejecutar",
+  "Think": "Pensar",
+  "Switch mode": "Cambiar modo",
+  "Other": "Otro"
 }

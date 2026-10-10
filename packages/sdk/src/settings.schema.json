@@ -14,6 +14,12 @@
       "type": "string",
       "default": "codex"
     },
+    "agentACP.useModifierToSend": {
+      "title": "Send with Ctrl/Cmd+Enter only",
+      "description": "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.",
+      "type": "boolean",
+      "default": false
+    },
     "agentACP.codex.command": {
       "title": "Codex ACP executable",
       "type": "string",
@@ -712,6 +718,9 @@
       "properties": {
         "agentACP.provider": {
           "$ref": "#/properties/agentACP.provider"
+        },
+        "agentACP.useModifierToSend": {
+          "$ref": "#/properties/agentACP.useModifierToSend"
         },
         "agentACP.codex.command": {
           "$ref": "#/properties/agentACP.codex.command"

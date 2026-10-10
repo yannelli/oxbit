@@ -910,5 +910,19 @@
   "Servers": "服务器",
   "Configure {0}": "配置 {0}",
   "Settings JSON": "设置 JSON",
-  "Settings JSON must be an object.": "设置 JSON 必须是对象。"
+  "Settings JSON must be an object.": "设置 JSON 必须是对象。",
+  "Send with Ctrl/Cmd+Enter only": "仅使用 Ctrl/Cmd+Enter 发送",
+  "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.": "Enter 插入新行，Ctrl/Cmd+Enter 发送消息。",
+  "Enter to send · Shift+Enter for new line": "Enter 发送 · Shift+Enter 换行",
+  "Mention files and context": "提及文件和上下文",
+  "Selection": "选区",
+  "Diagnostics": "诊断",
+  "Attach the editor selection": "附加编辑器选区",
+  "Attach the active file's diagnostics": "附加当前文件的诊断",
+  "Working": "工作中",
+  "Waiting for your approval": "等待你的批准",
+  "Execute": "执行",
+  "Think": "思考",
+  "Switch mode": "切换模式",
+  "Other": "其他"
 }
