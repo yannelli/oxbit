@@ -26,6 +26,7 @@ struct AgentActivityWidget: Widget {
             .font(.caption)
             .foregroundStyle(.secondary)
             .lineLimit(1)
+            .dynamicIsland(verticalPlacement: .belowIfTooWide)
         }
         DynamicIslandExpandedRegion(.center) {
           Text(state.title)
@@ -39,6 +40,7 @@ struct AgentActivityWidget: Widget {
             DetailLine(detail: state.detail)
           }
           .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 8)
         }
       } compactLeading: {
         Image(systemName: "chevron.left.forwardslash.chevron.right")
@@ -48,7 +50,7 @@ struct AgentActivityWidget: Widget {
       } minimal: {
         StatusGlyph(status: state.status, stale: stale)
       }
-      .keylineTint(state.status.tint)
+      .keylineTint(stale ? .gray : state.status.tint)
     }
   }
 }
@@ -135,6 +137,7 @@ struct CompactTrailing: View {
       Text(startedAt, style: .timer)
         .monospacedDigit()
         .multilineTextAlignment(.trailing)
+        .minimumScaleFactor(0.6)
         .frame(maxWidth: 52)
         .foregroundStyle(state.status.tint)
     } else {

@@ -212,8 +212,11 @@ Added 2026-10-10.
 - The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in
   `@oxbit/sdk`) on each state change. The iOS app registers it per workspace
   (`apps/ios/src/main.tsx`); other hosts register none, so nothing is sent.
-- The widget extension `OxbitLiveActivity` (`com.yannelli.oxbit.LiveActivity`) is
-  signed with its own App Store profile; see [docs/release.md](release.md).
+- On 2026-10-10 the widget ran in the iOS 26.5 simulator on an iPhone 17 Pro. The
+  compact timer shrinks to fit past one hour, the expanded view moves the agent
+  name below the title when it does not fit, and a stale activity has a gray
+  outline. The Lock Screen layout was checked with `ImageRenderer` only; the
+  simulator cannot be locked from the command line.
 
 ### Dictation
 
