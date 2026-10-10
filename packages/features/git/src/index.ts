@@ -1443,7 +1443,7 @@ export function createFeature(o: FeatureOptions): Extension {
               );
               void refresh().catch(() => {});
             } else if (
-              ["failed", "interrupted", "unknown"].includes(operation.status)
+              ["failed", "interrupted", "unknown", "expired"].includes(operation.status)
             )
               o.workbench.notify(
                 operation.error?.message ??

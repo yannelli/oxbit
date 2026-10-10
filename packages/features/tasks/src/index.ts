@@ -447,7 +447,7 @@ export function createFeature(o: FeatureOptions): Extension {
               void recover();
               o.workbench.notify("Task operation completed after reconnect");
             } else if (
-              ["failed", "interrupted", "unknown"].includes(operation.status)
+              ["failed", "interrupted", "unknown", "expired"].includes(operation.status)
             ) {
               void refresh();
               o.workbench.notify(

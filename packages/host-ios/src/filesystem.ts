@@ -63,11 +63,22 @@ export class IosFileSystem implements FileSystem {
   mkdir(path: string): Promise<void> {
     return this.commands.mkdir(this.id, normalizePath(path));
   }
-  rename(path: string, to: string): Promise<void> {
-    return this.commands.rename(this.id, normalizePath(path), normalizePath(to));
+  async rename(path: string, to: string): Promise<void> {
+    path = normalizePath(path);
+    to = normalizePath(to);
+    await this.commands.rename(this.id, path, to);
+    for (const [name, encoding] of [...this.encodings])
+      if (name === path || name.startsWith(path + "/")) {
+        this.encodings.delete(name);
+        this.encodings.set(to + name.slice(path.length), encoding);
+      }
   }
-  delete(path: string): Promise<void> {
-    return this.commands.delete(this.id, normalizePath(path));
+  async delete(path: string): Promise<void> {
+    path = normalizePath(path);
+    await this.commands.delete(this.id, path);
+    for (const name of this.encodings.keys())
+      if (name === path || name.startsWith(path + "/"))
+        this.encodings.delete(name);
   }
   watch(listener: (event: FileChange) => void): Disposable {
     this.listeners.add(listener);

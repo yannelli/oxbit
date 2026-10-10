@@ -3,6 +3,8 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { randomUUID } from "node:crypto";
+import { operationId } from "@oxbit/protocol";
 import { WebSocket } from "ws";
 import * as Y from "yjs";
 import { createRuntime } from "../src/runtime.js";
@@ -13,6 +15,7 @@ import { encode, decode, WorkspaceFiles } from "../src/filesystem.js";
 
 class Client {
   sequence = 0;
+  operationEpoch?: string;
   events: { event: string; params: any; seq?: number }[] = [];
   pending = new Map<
     string,
@@ -22,6 +25,7 @@ class Client {
     socket.on("message", (bytes) => {
       const message = JSON.parse(bytes.toString());
       if (message.type === "event") {
+        if (message.event === "operation.epoch") this.operationEpoch = message.params.epoch;
         this.events.push(message);
         if (this.events.length > 10000) this.events.shift();
       } else {
@@ -34,10 +38,11 @@ class Client {
       }
     });
   }
+  createOperationId() { return this.operationEpoch ? operationId(this.operationEpoch, randomUUID()) : `test-${++this.sequence}`; }
   request(
     method: string,
     params: Record<string, unknown> = {},
-    id = `test-${++this.sequence}`,
+    id = this.createOperationId(),
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
@@ -71,6 +76,7 @@ describe("authenticated runtime with real services", () => {
     root: string,
     runtime: Awaited<ReturnType<typeof createRuntime>>,
     token: string,
+    commitId: string,
     client: Client;
   const clients: Client[] = [];
   async function connect(sessionToken = token, origin = `http://127.0.0.1:${runtime.port}`) {
@@ -83,7 +89,7 @@ describe("authenticated runtime with real services", () => {
     });
     const value = new Client(socket);
     clients.push(value);
-    await value.request("auth.authenticate", { token: sessionToken });
+    value.operationEpoch = (await value.request("auth.authenticate", { token: sessionToken })).operationEpoch;
     return value;
   }
   beforeAll(async () => {
@@ -416,16 +422,17 @@ describe("authenticated runtime with real services", () => {
         (c: any) => c.path === "hello.ts" && c.index === "A",
       ),
     ).toBe(true);
+    commitId = client.createOperationId();
     const commit = await client.request(
       "git.commit",
       { message: "test: create real editor commit" },
-      "one-commit",
+      commitId,
     );
     expect(commit.commit).toMatch(/^[a-f0-9]{40}$/);
     const repeated = await client.request(
       "git.commit",
       { message: "test: duplicate must not execute" },
-      "one-commit",
+      commitId,
     );
     expect(repeated.commit).toBe(commit.commit);
     expect(
@@ -434,7 +441,7 @@ describe("authenticated runtime with real services", () => {
       ).stdout.trim(),
     ).toBe("1");
     expect(
-      (await client.request("operation.status", { id: "one-commit" })).status,
+      (await client.request("operation.status", { id: commitId })).status,
     ).toBe("completed");
     await runCommand("git", ["branch", "other"], { cwd: root });
     await client.request("git.checkout", { branch: "other" });
@@ -680,7 +687,7 @@ describe("authenticated runtime with real services", () => {
     });
     client = await connect();
     expect(
-      (await client.request("operation.status", { id: "one-commit" })).status,
+      (await client.request("operation.status", { id: commitId })).status,
     ).toBe("completed");
     const room = await client.request("collab.join", { path: "shared.ts" });
     const doc = new Y.Doc();

@@ -1,9 +1,10 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-09.
+Created: 2026-10-02. Last updated: 2026-10-10.
 
 | Guide | Use when |
 | --- | --- |
+| [Editor consistency contracts](editor-consistency.md) | Changing document lifecycle, file operations, tab navigation, replacement semantics, Settings resolution, and runtime operation retention; Zed, ECMAScript, and idempotency references. |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
 | [npm packages](npm.md) | Publishing `@oxbit/sdk` and `@oxbit/cli`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |
 | [Remote workspaces over SSH](remote-ssh.md) | Building SSH runtime payloads for `darwin-arm64`, `linux-x64`, and `linux-arm64`; the release's `remote-runtime-*` assets and the manifest pinned into the iOS build; the remote runtime lease and `runtime.keepAlive`; running the SSH live harnesses against an arm64 container; Node, ripgrep, node-pty, GitHub arm runner, and Docker multi-platform references. |
