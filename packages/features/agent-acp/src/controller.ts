@@ -84,6 +84,8 @@ export class AgentController {
   }[] = [];
   connection?: ACPConnection;
   launch: ACPLaunch = { provider: "codex" };
+  /** The launch used when Connect or the next message starts an agent. */
+  selection?: ACPLaunch;
   busy = false;
   connecting = false;
   cancelling = false;
@@ -420,6 +422,11 @@ export class AgentController {
         this.changed();
       }
     }
+  }
+  async connectSelected() {
+    await this.connect(this.selection ?? {
+      provider: this.options.kernel.configuration.get<string>("agentACP.provider") ?? "codex",
+    });
   }
   async call(method: string, params: Record<string, unknown> = {}) {
     if (!this.connection) throw new Error("Connect an agent first");

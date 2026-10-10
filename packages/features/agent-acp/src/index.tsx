@@ -386,7 +386,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         "user",
       );
       await kernel.configuration.set(settingId(provider, "args"), args, "user");
-      await agent.connect({ provider, command, args: parsed });
+      agent.selection = { provider, command, args: parsed };
+      await agent.connectSelected();
     });
   return (
     <div className="acp-panel">
