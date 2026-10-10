@@ -538,6 +538,38 @@ test("extra tool panels stay in More without crowding phone navigation", async (
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("phone-extra-view"))).toBe(true);
 });
 
+test("a phoneBar view gets a bottom-bar slot with a badge and opens as an overlay", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    const app = (window as any).__oxbit, React = (window as any).__OXBIT_REACT__;
+    app.kernel.contributions.register({
+      id: "test-agent", kind: "activityView", title: "Test agent panel",
+      data: { dock: "right", phoneBar: true, phoneLabel: "Agent" },
+      component: () => React.createElement("p", null, "Agent body"),
+    });
+    app.workbench.setViewBadge("test-agent", { count: 3, label: "3 updates", tone: "attention" });
+  });
+  const nav = page.getByRole("navigation", { name: "Primary views" });
+  const agent = nav.getByRole("button", { name: "Test agent panel, 3 updates", exact: true });
+  await expect(agent).toBeVisible();
+  await expect(agent.locator(".badge")).toHaveText("3");
+  await expect(agent.locator(".phone-label")).toHaveText("Agent");
+  const labels = await nav.locator(".phone-label").evaluateAll(items =>
+    items.map(item => ({ text: item.textContent, clipped: item.scrollWidth > item.clientWidth })));
+  console.log("phone bar labels", JSON.stringify(labels));
+  await page.screenshot({ path: "/tmp/oxbit-agents/workbench/phone-bar.png" });
+  expect(labels.filter(label => label.clipped)).toEqual([]);
+  await agent.tap();
+  await expect(page.locator("section[data-dock=right]")).toBeVisible();
+  await expect(page.getByText("Agent body")).toBeVisible();
+  await expect.poll(() => page.locator("section[data-dock=right]").evaluate(element => element.getBoundingClientRect().width)).toBe(393);
+  await page.screenshot({ path: "/tmp/oxbit-agents/workbench/phone-overlay.png" });
+  await page.evaluate(() => (window as any).__oxbit.workbench.setViewBadge("test-agent", { count: 0, label: "Working" }));
+  await expect(nav.getByRole("button", { name: "Test agent panel, Working", exact: true }).locator(".badge.badge-dot")).toBeVisible();
+  await page.evaluate(() => (window as any).__oxbit.workbench.setViewBadge("test-agent"));
+  await expect(nav.getByRole("button", { name: "Test agent panel", exact: true }).locator(".badge")).toHaveCount(0);
+});
+
 test("phone panel picker switches full-height panels and preserves drafts", async ({ page }, info) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await ready(page);

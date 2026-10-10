@@ -37,6 +37,7 @@ import {
   type Group,
   type Tab,
   type Notification,
+  type ViewBadge,
 } from "./controller.js";
 import catalog from "./catalog.json";
 import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
@@ -91,6 +92,20 @@ const phoneViewLabels: Record<string, string> = {
   scm: "Changes view",
   extensions: "Extensions view",
 };
+const coreViews = ["explorer", "search", "scm", "extensions"];
+export const badgeLabel = (text: string, badge?: ViewBadge) =>
+  badge ? `${text}, ${badge.label}` : text;
+export function ViewBadgeMark({ badge }: { badge?: ViewBadge }) {
+  if (!badge) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className={`badge${badge.count ? "" : " badge-dot"}${badge.tone === "attention" ? " badge-attention" : ""}`}
+    >
+      {badge.count > 99 ? "99+" : badge.count || null}
+    </span>
+  );
+}
 export function viewIcon(view: Contribution) {
   return (view.data as any)?.icon || viewIcons[view.id] || "package";
 }
@@ -444,6 +459,21 @@ export function Workbench({
   const command = (id: string) => () => void workbench.run(id);
   const label = (view: Contribution) =>
     (t as Record<string, string>)[view.id] || tr(view.title);
+  const extraViews = views.filter((view) => !coreViews.includes(view.id));
+  const phoneBarViews = extraViews.filter(
+    (view) => (view.data as { phoneBar?: boolean } | undefined)?.phoneBar,
+  );
+  const barViews =
+    mode === "phone"
+      ? views
+          .filter((view) => coreViews.includes(view.id))
+          .concat(phoneBarViews)
+      : views
+          .filter((view) => coreViews.includes(view.id))
+          .concat(extraViews.slice(0, 3));
+  const overflowBadge = (overflow: Contribution[]) =>
+    overflow.map((view) => s.viewBadges[view.id]).find(Boolean);
+  const desktopOverflowBadge = overflowBadge(extraViews.slice(3));
   return (
     <IconProvider
       kernel={kernel}
@@ -647,29 +677,13 @@ export function Workbench({
           <div className="workspace-body">
             {!s.focus && (
               <nav className="activity-bar" aria-label={tr("Primary views")}>
-                {views
-                  .filter((view) =>
-                    ["explorer", "search", "scm", "extensions"].includes(
-                      view.id,
-                    ),
-                  )
-                  .concat(
-                    views
-                      .filter(
-                        (view) =>
-                          !["explorer", "search", "scm", "extensions"].includes(
-                            view.id,
-                          ),
-                      )
-                      .slice(0, mode === "phone" ? 0 : 3),
-                  )
-                  .map((view) => (
+                {barViews.map((view) => (
                     <button
                       key={view.id}
                       data-view={view.id}
                       data-tooltip={label(view)}
                       title=""
-                      aria-label={label(view)}
+                      aria-label={badgeLabel(label(view), s.viewBadges[view.id])}
                       aria-pressed={workbench.panelVisible(view.id)}
                       className={
                         workbench.panelVisible(view.id) ? "active" : ""
@@ -677,20 +691,19 @@ export function Workbench({
                       onClick={() => workbench.togglePanel(view.id)}
                     >
                       <Icon name={viewIcon(view)} size={18} />
-                      {view.id === "explorer" && dirty > 0 && (
-                        <span className="badge">{dirty}</span>
+                      {s.viewBadges[view.id] ? (
+                        <ViewBadgeMark badge={s.viewBadges[view.id]} />
+                      ) : (
+                        view.id === "explorer" && dirty > 0 && (
+                          <span className="badge">{dirty}</span>
+                        )
                       )}
-                      <span className="phone-label">{tr(phoneViewLabels[view.id] || view.title)}</span>
+                      <span className="phone-label">{tr((view.data as { phoneLabel?: string } | undefined)?.phoneLabel || phoneViewLabels[view.id] || view.title)}</span>
                     </button>
                   ))}
-                {mode !== "phone" && views.filter(
-                  (view) =>
-                    !["explorer", "search", "scm", "extensions"].includes(
-                      view.id,
-                    ),
-                ).length > 3 && (
+                {mode !== "phone" && extraViews.length > 3 && (
                   <button
-                    aria-label={tr("More views")}
+                    aria-label={badgeLabel(tr("More views"), desktopOverflowBadge)}
                     onClick={(event) => {
                       event.stopPropagation();
                       workbench.set({
@@ -699,16 +712,7 @@ export function Workbench({
                           location: "activity",
                           x: event.clientX,
                           y: event.clientY,
-                          ids: views
-                            .filter(
-                              (view) =>
-                                ![
-                                  "explorer",
-                                  "search",
-                                  "scm",
-                                  "extensions",
-                                ].includes(view.id),
-                            )
+                          ids: extraViews
                             .slice(3)
                             .map((view) => "workbench.surface." + view.id),
                         },
@@ -716,6 +720,7 @@ export function Workbench({
                     }}
                   >
                     <Icon name="more" />
+                    <ViewBadgeMark badge={desktopOverflowBadge} />
                   </button>
                 )}
                 <span className="activity-spacer" />
@@ -728,7 +733,7 @@ export function Workbench({
                   <Icon name="gear" size={18} />
                   <span className="phone-label">{tr("Settings view")}</span>
                 </button>
-                {mode !== "desktop" && <PanelSwitcher workbench={workbench} navigation />}
+                {mode !== "desktop" && <PanelSwitcher workbench={workbench} navigation barViews={barViews.map((view) => view.id)} badge={mode === "phone" ? overflowBadge(views.filter((view) => !barViews.includes(view))) : undefined} />}
               </nav>
             )}
             <PanelDock side="left" mode={mode} />

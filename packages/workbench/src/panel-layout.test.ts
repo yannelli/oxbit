@@ -141,6 +141,24 @@ describe("panel docking", () => {
       ),
     ).toBe(reconciled);
   });
+  it("places new views in their preferred dock and keeps saved placement", () => {
+    const agent = { id: "agent", kind: "activityView", dock: "right" as const };
+    const placed = reconcilePanels(layout(), [...surfaces, agent], "left");
+    expect(panelLocation(placed, "agent")?.container).toBe("right");
+    expect(
+      panelLocation(
+        reconcilePanels(emptyPanelLayout(), [...surfaces, { ...agent, dock: "bottom" as const }], "left"),
+        "agent",
+      )?.container,
+    ).toBe("bottom");
+    const saved = movePanel(placed, "agent", { container: "left" });
+    expect(
+      panelLocation(reconcilePanels(saved, [...surfaces, agent], "left"), "agent")?.container,
+    ).toBe("left");
+    expect(
+      panelLocation(reconcilePanels(emptyPanelLayout(), [{ ...agent, dock: "top" as never }], "right"), "agent")?.container,
+    ).toBe("right");
+  });
   it("rejects malformed persisted trees", () => {
     expect(validPanelLayout(layout())).toBe(true);
     expect(validPanelLayout({ ...layout(), floating: [null] })).toBe(false);
