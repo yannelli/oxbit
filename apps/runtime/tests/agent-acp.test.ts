@@ -330,4 +330,22 @@ describe("ACP runtime bridge", () => {
       ).rejects.toThrow();
     },
   );
+  it.each([true, false])("sends image blocks only when the agent accepts images (%s)", async (accepted) => {
+    const { agent, connection, events } = await setup(accepted ? [] : ["--no-images"]);
+    const image = { kind: "image", path: "shot.png", text: "Image", mimeType: "image/png", data: "iVBORw0KGgo=" };
+    const prompt = agent.call("client", connection.id, "session/prompt", { text: "look", context: [image] });
+    if (!accepted) {
+      await expect(prompt).rejects.toThrow("does not accept images");
+      return;
+    }
+    await prompt;
+    expect(events.some((e) => e.params.update?.content?.text === "Received image image/png ")).toBe(true);
+    const started = events.find((e) => e.name === "acp.turnStarted")!;
+    expect(started.params.context[0]).toEqual({ kind: "image", path: "shot.png", text: "Image", mimeType: "image/png" });
+    for (const bad of [{ ...image, mimeType: "image/svg+xml" }, { ...image, data: "<svg>" }])
+      await expect(agent.call("client", connection.id, "session/prompt", { text: "look", context: [bad] }))
+        .rejects.toThrow("Invalid image attachment");
+    await expect(agent.call("client", connection.id, "session/prompt", { text: "look", context: Array(5).fill(image) }))
+      .rejects.toThrow("up to 4 images");
+  });
 });

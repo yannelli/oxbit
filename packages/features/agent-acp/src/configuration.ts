@@ -10,6 +10,14 @@ export const agentConfiguration: Setting[] = [
     type: "string",
     default: "codex",
   },
+  {
+    id: "agentACP.useModifierToSend",
+    title: "Send with Ctrl/Cmd+Enter only",
+    description: "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.",
+    category: "Agent ACP",
+    type: "boolean",
+    default: false,
+  },
   ...ACP_PROVIDERS.flatMap((provider) => [
     {
       id: settingId(provider.id, "command"),

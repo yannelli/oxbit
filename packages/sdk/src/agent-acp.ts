@@ -156,13 +156,19 @@ export interface ACPSessionInfo {
   updatedAt?: string;
 }
 export interface ACPContext {
+  /** Workspace path; for images, the pasted file name. */
   path: string;
+  /** Snapshot text; for images, a display placeholder. */
   text: string;
   label?: string;
   line?: number;
   endLine?: number;
   version?: number;
-  kind?: "file" | "selection" | "diagnostics";
+  kind?: "file" | "selection" | "diagnostics" | "image";
+  /** Images only: png, jpeg, gif or webp. */
+  mimeType?: string;
+  /** Images only: base64 bytes. Saved transcripts omit it. */
+  data?: string;
 }
 
 export interface ACPQueuedPrompt {

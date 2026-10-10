@@ -18,7 +18,9 @@ import {
   type AgentRequest,
 } from "./controller.js";
 import { sessionControls } from "./session-controls.js";
-import { ComposerInput } from "./composer-input.js";
+import { ComposerInput, SendHint, type ComposerActions } from "./composer-input.js";
+import { searchFiles } from "./mentions.js";
+import { imageFiles } from "./images.js";
 import {
   ActivityFeed,
   FilePatch,
@@ -124,12 +126,20 @@ function RequestCard({
               <pre>{JSON.stringify(params.toolCall.rawInput, null, 2)}</pre>
             </details>
           )}
-          {params.toolCall?.content?.map((item: any, index: number) => (
-            <pre key={index}>
-              {item.content?.text ??
-                (item.type === "diff" ? `${item.path}\n${item.newText}` : "")}
-            </pre>
-          ))}
+          {params.toolCall?.content?.map((item: any, index: number) =>
+            item.type === "diff" ? (
+              <div className="acp-request-diff" key={index}>
+                <p>{item.path}</p>
+                <FilePatch
+                  path={item.path}
+                  before={item.oldText ?? ""}
+                  after={item.newText ?? ""}
+                />
+              </div>
+            ) : item.content?.text ? (
+              <pre key={index}>{item.content.text}</pre>
+            ) : null,
+          )}
           <div className="acp-actions">
             {(params.options ?? []).map((option: any) => (
               <button
@@ -299,6 +309,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const [following, setFollowing] = useState(true);
   const contextId = useId();
   const composerInput = useRef<HTMLTextAreaElement>(null);
+  const composerActions = useRef<ComposerActions>(null);
   const contextTrigger = useRef<HTMLButtonElement>(null);
   const contextPopup = useRef<HTMLDivElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
@@ -666,6 +677,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           event.preventDefault();
           void agent.action(() => agent.send());
         }}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          const files = imageFiles(event.dataTransfer);
+          if (!files.length) return;
+          event.preventDefault();
+          void agent.action(async () => {
+            for (const file of files) await agent.attachImage(file);
+          });
+        }}
       >
         <div
           id={contextId}
@@ -738,6 +760,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         )}
         <ComposerInput
           inputRef={composerInput}
+          actionsRef={composerActions}
+          configuration={kernel.configuration}
           commands={agent.commands}
           value={agent.draft}
           onChange={(value) => {
@@ -745,6 +769,16 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             agent.changed();
           }}
           onSend={() => { void agent.action(() => agent.send()); }}
+          onEscape={() => {
+            if (!agent.busy || agent.cancelling) return false;
+            void agent.action(() => agent.cancel());
+            return true;
+          }}
+          onMention={(mention) => void agent.action(() => agent.attachMention(mention))}
+          onImages={(files) => void agent.action(async () => {
+            for (const file of files) await agent.attachImage(file);
+          })}
+          findFiles={(query, signal) => searchFiles(agent.options.filesystem, query, signal)}
         />
         <div className="acp-composer-toolbar">
           <button
@@ -767,26 +801,18 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             }
           />
           {agent.commands.length > 0 && (
-            <Select
-              label={tr("Agent slash commands")}
-              value=""
-              options={[
-                { value: "", label: tr("Slash commands") },
-                ...agent.commands.map((command) => ({
-                  value: command.name,
-                  label: "/" + command.name,
-                })),
-              ]}
-              onChange={(command) => {
-                if (command) {
-                  agent.draft = "/" + command + " ";
-                  agent.changed();
-                  composerInput.current?.focus();
-                }
-              }}
-            />
+            <button
+              type="button"
+              className="icon-button acp-slash-button"
+              aria-label={tr("Slash commands")}
+              data-tooltip={tr("Slash commands")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => composerActions.current?.insertSlash()}
+            >
+              <span aria-hidden="true">/</span>
+            </button>
           )}
-          <span className="muted acp-hint">{tr("Ctrl/Cmd+Enter to send")}</span>
+          <SendHint configuration={kernel.configuration} />
           {agent.busy && (
             <IconButton
               icon="stop"
@@ -803,7 +829,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               className="icon-button acp-send"
               type="submit"
               disabled={
-                !connection?.sessionId ||
+                (!!connection && !connection.sessionId) ||
                 !agent.draft.trim() ||
                 !enabled ||
                 agent.connecting ||
