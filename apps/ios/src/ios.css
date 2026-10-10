@@ -24,7 +24,7 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-start-error { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(224, 82, 82, 0.15); color: #ff8a8a; }
 .ios-workspace-row { display: flex; align-items: stretch; gap: 8px; }
 .ios-workspace {
-  flex: 1; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border: 0; border-radius: 12px;
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border: 0; border-radius: 12px;
   background: rgba(255, 255, 255, 0.06); color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 .ios-workspace:active { background: rgba(255, 255, 255, 0.12); }
