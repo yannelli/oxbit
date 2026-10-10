@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ACP_PROVIDERS, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, acpBuiltinForRegistry, acpPreset, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
 import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
@@ -10,6 +10,7 @@ import { trackChild } from "./owned-processes.js";
 import { SubagentRegistry } from "./acp-subagents.js";
 import { AgentMCP } from "./agent-mcp.js";
 import { runtimeVersion } from "./version.js";
+import { REGISTRY_ID, type ACPRegistry } from "./acp-registry.js";
 
 type Params = Record<string, any>;
 type Pending = {
@@ -57,6 +58,7 @@ type Agent = {
   queuePaused: boolean;
   queueRunning: boolean;
 };
+type ResolvedLaunch = { provider: string; name: string; command: string; args: string[]; env?: Record<string, string> };
 const MAX_BYTES = 1024 * 1024;
 const EDITOR_UNSUPPORTED = "The connected editor does not support this tool; update Oxbit";
 function strings(value: unknown): string[] {
@@ -80,6 +82,7 @@ export class AgentACP {
     private files: WorkspaceFiles,
     private emit: (owner: string, event: string, params: Params) => void,
     private stateChanged: () => void = () => {},
+    private acpRegistry?: ACPRegistry,
   ) {}
   private get(owner: string, id: string) {
     const agent = this.agents.get(id);
@@ -194,27 +197,15 @@ export class AgentACP {
     signal?: AbortSignal,
     client = owner,
   ): Promise<ACPConnection> {
-    const preset = ACP_PROVIDERS.find((p) => p.id === launch.provider);
-    if (!preset)
-      throw new RpcError("INVALID_PARAMS", "Choose Codex, Cursor, or Amp");
     if (signal?.aborted) throw new Error("Agent connection cancelled");
-    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
-    if (owned.length >= 3) {
-      const idle = owned.find((a) => !a.client && !this.working(a));
-      if (!idle)
-        throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
-      this.stopAgent(idle, "Stopped to start another agent");
-    }
-    const command = requireString(
-      { command: launch.command ?? preset.command },
-      "command",
-    );
-    if (!command.trim() || command.includes("\0"))
-      throw new RpcError("INVALID_PARAMS", "Invalid agent executable");
-    const args = strings(launch.args ?? [...preset.args]);
+    this.slot(owner, false);
+    const resolved = await this.resolveLaunch(launch, signal);
+    if (signal?.aborted) throw new Error("Agent connection cancelled");
+    this.slot(owner, true);
+    const { command, args } = resolved;
     const child = spawn(command, args, {
       cwd: this.files.root,
-      env: process.env,
+      env: resolved.env && Object.keys(resolved.env).length ? { ...process.env, ...resolved.env } : process.env,
       stdio: "pipe",
       detached: process.platform !== "win32",
       windowsHide: true,
@@ -227,7 +218,8 @@ export class AgentACP {
       child,
       connection: {
         id: randomUUID(),
-        provider: preset.id,
+        provider: resolved.provider,
+        name: resolved.name,
         root: this.files.root,
         authMethods: [],
       },
@@ -295,7 +287,7 @@ export class AgentACP {
         clientCapabilities: {
           fs: { readTextFile: true, writeTextFile: true },
           terminal: true,
-          ...(preset.id === "codex" ? { subagents: {} } : {}),
+          ...(resolved.provider === "codex" ? { subagents: {} } : {}),
         },
         clientInfo: { name: "oxbit", title: "Oxbit", version: runtimeVersion() },
       });
@@ -311,6 +303,43 @@ export class AgentACP {
     } finally {
       signal?.removeEventListener("abort", abort);
     }
+  }
+  private slot(owner: string, evict: boolean) {
+    const owned = [...this.agents.values()].filter((a) => a.owner === owner);
+    if (owned.length < 3) return;
+    const idle = owned.find((a) => !a.client && !this.working(a));
+    if (!idle)
+      throw new RpcError("BUSY", "3 agents are running for this device; stop one in Runtime sessions");
+    if (evict) this.stopAgent(idle, "Stopped to start another agent");
+  }
+  private async resolveLaunch(launch: ACPLaunch, signal?: AbortSignal): Promise<ResolvedLaunch> {
+    const provider: unknown = launch?.provider;
+    if (typeof provider !== "string" || !provider || provider.length > 64)
+      throw new RpcError("INVALID_PARAMS", "Unknown agent");
+    if (launch.registry !== undefined) {
+      const { id, version } = (launch.registry ?? {}) as { id?: unknown; version?: unknown };
+      if (typeof id !== "string" || !REGISTRY_ID.test(id) || (version !== undefined && typeof version !== "string"))
+        throw new RpcError("INVALID_PARAMS", "Invalid ACP Registry agent");
+      const builtin = acpBuiltinForRegistry(id);
+      if (builtin)
+        return { provider: builtin.id, name: builtin.name, command: builtin.command, args: [...builtin.args] };
+      if (!this.acpRegistry)
+        throw new RpcError("INVALID_PARAMS", "This runtime cannot launch ACP Registry agents");
+      return { provider: id, ...(await this.acpRegistry.resolve(id, version, signal)) };
+    }
+    const preset = acpPreset(provider);
+    if (!preset && (typeof launch.command !== "string" || !launch.command.trim()))
+      throw new RpcError("INVALID_PARAMS", provider === ACP_CUSTOM_PROVIDER ? "Enter a command for the custom agent" : "Unknown agent");
+    const command = requireString({ command: launch.command ?? preset!.command }, "command");
+    if (!command.trim() || command.includes("\0"))
+      throw new RpcError("INVALID_PARAMS", "Invalid agent executable");
+    const custom = typeof launch.name === "string" ? launch.name.trim().slice(0, 80) : "";
+    return {
+      provider,
+      name: preset?.name ?? (custom || "Custom agent"),
+      command,
+      args: strings(launch.args ?? (preset ? [...preset.args] : [])),
+    };
   }
   async call(
     owner: string,

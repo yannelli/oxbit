@@ -40,6 +40,7 @@ import { JsonSchemas } from "./json-schemas.js";
 import os from "node:os";
 import { Collaboration } from "./collaboration.js";
 import { AgentACP } from "./agent-acp.js";
+import { ACPRegistry } from "./acp-registry.js";
 import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
@@ -67,6 +68,8 @@ export interface RuntimeOptions {
   pingIntervalMs?: number;
   /** Desktop has a private parent channel and never serves frontend assets or pairs over HTTP. */
   desktop?: { token: string; workspaceKey: string; rgPath: string; gitPath?: string };
+  /** ACP Registry document URL; defaults to ACP_REGISTRY_URL. */
+  acpRegistryUrl?: string;
 }
 interface Session {
   id: string;
@@ -247,10 +250,11 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
+  const acpRegistry = new ACPRegistry(dataDir, options.acpRegistryUrl);
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
     if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
-  }, () => updateIdle());
+  }, () => updateIdle(), acpRegistry);
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -670,7 +674,7 @@ export async function createRuntime(options: RuntimeOptions) {
       session = authorized(connection, required.cap, required.trust);
     if (method.startsWith("acp.")) {
       owner(connection);
-      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect"].includes(method))
+      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect", "acp.registry"].includes(method))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
     if (method.startsWith("project.")) owner(connection);
@@ -697,6 +701,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.start(session.id, params as unknown as ACPLaunch, signal, connection.id);
       case "acp.list":
         return agents.list(session.id);
+      case "acp.registry":
+        return acpRegistry.listing(params.refresh === true);
       case "acp.attach":
         return agents.attach(session.id, requireString(params, "id"), connection.id, (params.clientCapabilities as ACPLaunch["clientCapabilities"])?.editorTools === true);
       case "acp.enqueue":
