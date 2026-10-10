@@ -58,22 +58,32 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 - **GitHub Mobile** ([remote control GA](https://github.blog/changelog/2026-05-18-remote-control-for-copilot-cli-sessions-now-generally-available-on-mobile-web-and-vs-code/) 2026-05-18, [live notifications](https://github.blog/changelog/2026-07-08-github-mobile-live-notifications-for-copilot-cli-sessions) 2026-07-08): steer or queue messages, approve permissions, switch modes, and Live Activities for session state.
 - **Cursor iOS** ([mobile docs](https://cursor.com/docs/cloud-agent/mobile), [iOS app](https://cursor.com/blog/ios-mobile-app) 2026-06-29): an agent inbox, photo attachments, voice, diff review, and push on finish or when input is needed.
 - **Happy** ([mobile](https://happy.engineering/desktop/docs/mobile/)): QR pairing, an encrypted relay, permission answers and push when input is needed.
+- **Paseo** ([repository](https://github.com/getpaseo/paseo), checked 2026-10-10): vendors the ACP Registry agent icons in `packages/app/src/assets/acp-provider-icons.ts` for its provider list.
 
 ## Patterns most tools share
 
-| Pattern | Tools | Oxbit on `feat/agents-ux` |
-| --- | --- | --- |
-| Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents |
-| Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent |
-| Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` |
-| `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads |
-| Image paste and drop | All | Yes, when the agent advertises image prompts |
-| Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. No push to a suspended iOS app |
-| Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts |
-| Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes |
-| Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged |
-| Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button |
-| Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% |
-| Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts |
-| Live Activities | Codex, GitHub, Cursor | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs; no push updates while iOS suspends it |
+| Pattern | Tools | Oxbit on `feat/agents-ux` | Checked by |
+| --- | --- | --- | --- |
+| Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents | `agent-acp-start`: registry browser, registry binary install, custom agent |
+| Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent | `agent-acp-composer`: sends before connect |
+| Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` | `agent-acp-composer`: sends on Enter |
+| `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads | `agent-acp-composer`: mentions, `@Changes` |
+| Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
+| Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Tapping an iOS notification opens the agent panel. No push to a suspended iOS app | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: notification plugin; `packages/host-ios/src/agent-activity.test.ts`: iOS tap |
+| Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
+| Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
+| Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged | `agent-acp-checkpoints` |
+| Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button | `agent-acp-threads` |
+| Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% | `agent-acp-workflows`: 85% of context used |
+| Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts | `agent-acp-composer`: microphone; `tests/desktop/agent.e2e.mjs`: speech recognition; `packages/host-ios/src/speech.test.ts` |
+| Live Activities | Codex, GitHub, Cursor | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs; no push updates while iOS suspends it | `agent-acp-start`: activity service; `attention.test.ts`: 5-minute refresh |
+| Agent icons from the ACP Registry | Paseo | Picker, registry browser, header, thread chips, runtime sessions and history | `agent-acp-start`: picker and registry icons |
+
+## Gaps against other tools
+
+- Codex, GitHub Mobile, Cursor and Claude push to a suspended phone. Oxbit's iOS app
+  posts notifications and updates its Live Activity only while it runs.
+- Zed mentions symbols and threads with `@`; Oxbit does not.
+- Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click. On iOS a tap opens the panel; this has not run on a device.
+- Dictation and the Live Activity have not run on a physical device.

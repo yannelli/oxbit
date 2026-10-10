@@ -260,6 +260,11 @@ function App() {
         disposables.push(session.kernel.contributions.register({ id: `ios.${id}.explorer`, kind: "menu", location: "explorer", command: id, title }));
     }
     disposables.push(session.kernel.services.register(AGENT_ACTIVITY_SERVICE, { update: native.agentActivity }));
+    // Agent ACP posts the app's notifications.
+    const tap = native.onNotificationTap(() => {
+      if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");
+    }).catch(() => undefined);
+    disposables.push({ dispose: () => void tap.then((listener) => listener?.unregister()) });
     session.workbench.touch();
     return () => {
       for (const disposable of disposables) disposable.dispose();

@@ -165,14 +165,18 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
 - The plugin's init script replaces `window.Notification` in the WebView, so the
   panel's Web Notification calls post native notifications. The capabilities grant
   only `notification:allow-notify`, `notification:allow-is-permission-granted`
-  and `notification:allow-request-permission`.
+  and `notification:allow-request-permission`; iOS also grants
+  `notification:allow-register-listener`.
 - On desktop the plugin reports permission as granted (`src/desktop.rs`). On iOS
   permission starts at "default" until **Enable notifications** asks.
 - `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
   2026-10-10 `usernoted` logged both test notifications as delivered and presented.
   An unbundled debug binary posts them under Terminal's name.
-- The replacement `Notification` object never fires `onclick`, so selecting a
-  native notification does not open the panel.
+- The replacement `Notification` object never fires `onclick`. On iOS the app
+  listens for the plugin's `actionPerformed` event instead: a `tap` runs
+  `agentACP.open` in the open workspace when Agent ACP is enabled there
+  (`native.onNotificationTap` in `packages/host-ios`). The desktop plugin reports
+  no actions, so selecting a macOS notification does not open the panel.
 - iOS suspends the app shortly after it leaves the foreground. A turn that ends
   while the app is suspended posts no notification; that needs a push relay.
 

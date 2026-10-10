@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { native } from "./native.js";
 
-const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
-vi.mock("@tauri-apps/api/core", () => ({ invoke }));
+const { invoke, addPluginListener } = vi.hoisted(() => ({ invoke: vi.fn(), addPluginListener: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke, addPluginListener }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 
 describe("agent activity", () => {
@@ -15,5 +15,16 @@ describe("agent activity", () => {
       ["plugin:oxbit-files|live_activity", { update }, undefined],
       ["plugin:oxbit-files|live_activity", { update: null }, undefined],
     ]);
+  });
+
+  it("reports taps on posted notifications and ignores other actions", async () => {
+    const listener = vi.fn();
+    await native.onNotificationTap(listener);
+    expect(addPluginListener).toHaveBeenCalledWith("notification", "actionPerformed", expect.any(Function));
+    const handler = addPluginListener.mock.calls[0][2] as (event: { actionId: string }) => void;
+    handler({ actionId: "dismiss" });
+    expect(listener).not.toHaveBeenCalled();
+    handler({ actionId: "tap" });
+    expect(listener).toHaveBeenCalledOnce();
   });
 });
