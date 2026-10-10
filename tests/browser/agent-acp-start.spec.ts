@@ -323,11 +323,18 @@ test("a system notification reports a finished turn while Oxbit is in the backgr
     await page.evaluate(() => (window as any).__notifications[0].onclick());
     await expect(panel).toBeVisible();
     expect((await notifications())[0].closed).toBe(true);
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+      document.hasFocus = () => false;
+    });
+    await panel.getByRole("textbox", { name: "Message agent" }).fill("unfocused");
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+    await expect.poll(async () => (await notifications()).length).toBe(2);
     await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.notifications", "never", "user"));
     await panel.getByRole("textbox", { name: "Message agent" }).fill("again");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
     await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" }).first()).toBeVisible();
-    expect(await notifications()).toHaveLength(1);
+    expect(await notifications()).toHaveLength(2);
   } finally {
     await close();
   }

@@ -415,7 +415,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       : []),
     ...(permission === "default"
       ? [{
-          id: "notifications", label: "Enable desktop notifications", icon: "bell",
+          id: "notifications", label: "Enable notifications", icon: "bell",
           run: () => void Notification.requestPermission().then(setPermission),
         }]
       : []),

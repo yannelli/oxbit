@@ -12,8 +12,9 @@ export class Attention {
   private panelHidden() {
     return this.options.workbench.panelVisible?.(AGENT_VIEW) === false;
   }
+  /** True while Oxbit's window is hidden or another app has focus. */
   private appHidden() {
-    return typeof document !== "undefined" && document.hidden;
+    return typeof document !== "undefined" && (document.hidden || !document.hasFocus());
   }
   sync(pending: number) {
     if (this.unseen && this.options.workbench.panelVisible?.(AGENT_VIEW))

@@ -140,11 +140,30 @@ thread is opened.
   when a turn ends while the panel is hidden. The status bar shows the agent
   state; selecting it opens the panel.
 - When a turn ends or a request arrives while the panel is hidden, a toast
-  offers **Open Agent**. When Oxbit is in the background, the browser shows a
-  system notification if notification permission was granted. Set
-  `agentACP.notifications` to `never` to turn these off.
-- Native macOS and iOS notifications need the Tauri notification plugin, which
-  Oxbit does not include. The panel has no microphone button.
+  offers **Open Agent**. When Oxbit's window is hidden or another app has focus,
+  Oxbit also shows a system notification once permission is granted. Use
+  **Enable notifications** in **More agent actions** to grant it. Set
+  `agentACP.notifications` to `never` to turn system notifications off.
+- The panel has no microphone button.
+
+### System notifications
+
+Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
+([plugin guide](https://v2.tauri.app/plugin/notification/),
+[crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)).
+
+- The desktop and iOS apps register `tauri-plugin-notification` `=2.4.0`. Versions
+  2.5.0 and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
+- The plugin's init script replaces `window.Notification` in the WebView, so the
+  panel's Web Notification calls post native notifications. The capabilities grant
+  only `notification:allow-notify`, `notification:allow-is-permission-granted`
+  and `notification:allow-request-permission`.
+- On desktop the plugin reports permission as granted (`src/desktop.rs`). On iOS
+  permission starts at "default" until **Enable notifications** asks.
+- The replacement `Notification` object never fires `onclick`, so selecting a
+  native notification does not open the panel.
+- iOS suspends the app shortly after it leaves the foreground. A turn that ends
+  while the app is suspended posts no notification; that needs a push relay.
 
 ## In-app tools
 

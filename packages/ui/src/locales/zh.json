@@ -964,7 +964,7 @@
   "The runtime installs this agent from the ACP Registry and keeps its pinned version.": "运行时从 ACP Registry 安装此智能体并保持其固定版本。",
   "Runtime sessions": "运行时会话",
   "Agent setup": "智能体设置",
-  "Enable desktop notifications": "启用桌面通知",
+  "Enable notifications": "启用通知",
   "More agent actions": "更多智能体操作",
   "Agent working": "智能体工作中",
   "Agent ready": "智能体就绪",

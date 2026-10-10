@@ -69,7 +69,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | `@` mentions | All | Files, selection, diagnostics and uncommitted changes; no symbols or threads |
 | Image paste and drop | All | Yes, when the agent advertises image prompts |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification when the app is in the background. Native macOS and iOS notifications need the Tauri notification plugin, a new dependency awaiting approval |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. No push to a suspended iOS app |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes |
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged |

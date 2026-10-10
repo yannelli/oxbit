@@ -964,7 +964,7 @@
   "The runtime installs this agent from the ACP Registry and keeps its pinned version.": "The runtime installs this agent from the ACP Registry and keeps its pinned version.",
   "Runtime sessions": "Runtime sessions",
   "Agent setup": "Agent setup",
-  "Enable desktop notifications": "Enable desktop notifications",
+  "Enable notifications": "Enable notifications",
   "More agent actions": "More agent actions",
   "Agent working": "Agent working",
   "Agent ready": "Agent ready",

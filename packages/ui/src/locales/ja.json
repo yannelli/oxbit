@@ -964,7 +964,7 @@
   "The runtime installs this agent from the ACP Registry and keeps its pinned version.": "ランタイムはこのエージェントを ACP Registry からインストールし、固定されたバージョンを使います。",
   "Runtime sessions": "ランタイムセッション",
   "Agent setup": "エージェントの設定",
-  "Enable desktop notifications": "デスクトップ通知を有効にする",
+  "Enable notifications": "通知を有効にする",
   "More agent actions": "その他のエージェント操作",
   "Agent working": "エージェント作業中",
   "Agent ready": "エージェント準備完了",
