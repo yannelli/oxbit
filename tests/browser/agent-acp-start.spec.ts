@@ -2,7 +2,9 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { platformTarget } from "../../apps/runtime/src/acp-registry.js";
 import { createRuntime } from "../../apps/runtime/src/runtime.js";
+import { buildArchive, registryDocument, serve } from "../fixtures/agent-acp-registry/server.mjs";
 
 const shots = "/tmp/oxbit-agents/panel-start";
 const builtins = ["Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
@@ -15,7 +17,7 @@ const listing = {
   ],
 };
 
-async function boot(page: Page, pairingCode: string) {
+async function boot(page: Page, pairingCode: string, acpRegistryUrl?: string) {
   const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-acp-start-")));
   const root = path.join(directory, "workspace");
   await fs.mkdir(root);
@@ -23,7 +25,7 @@ async function boot(page: Page, pairingCode: string) {
   const runtime = await createRuntime({
     root, port: 0, dataDir: path.join(directory, "state"),
     settingsFile: path.join(directory, "settings.json"), projectsDir: path.join(directory, "projects"),
-    pairingCode, origins: ["http://127.0.0.1:9278"],
+    pairingCode, origins: ["http://127.0.0.1:9278"], acpRegistryUrl,
   });
   await page.goto(`http://127.0.0.1:${runtime.port}`);
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
@@ -41,7 +43,7 @@ async function boot(page: Page, pairingCode: string) {
     await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
   }, { command: process.execPath, fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs") });
   return {
-    panel: page.locator(".acp-panel:not(.acp-review-editor)"),
+    panel: page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)"),
     close: async () => {
       await page.close({ runBeforeUnload: false });
       await runtime.close();
@@ -217,5 +219,49 @@ test("the status item and a toast report a turn that ends while the panel is hid
     await page.screenshot({ path: `${shots}/phone-2-connected.png` });
   } finally {
     await close();
+  }
+});
+
+test("a registry binary agent installs through the runtime and its request badges the Agent button", async ({ page }) => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-acp-archive-"));
+  const archive = buildArchive(dir);
+  const binary = (sha256?: string) => ({
+    [platformTarget()!]: { archive: `${host.base}/agent.tar.gz`, cmd: "./bin/agent", ...(sha256 ? { sha256 } : {}) },
+  });
+  const host = await serve({
+    "/agent.tar.gz": () => ({ body: archive.data }),
+    "/registry.json": () => ({
+      headers: { "content-type": "application/json" },
+      body: registryDocument([
+        { id: "fixture-binary", name: "Fixture Binary", version: "1.0.0", description: "Runs the ACP fixture", distribution: { binary: binary(archive.sha256) } },
+        { id: "no-checksum", name: "No Checksum", version: "1.0.0", description: "Ships without a checksum", distribution: { binary: binary() } },
+      ]),
+    }),
+  });
+  const { panel, close } = await boot(page, "acp-start-binary", `${host.base}/registry.json`);
+  try {
+    await panel.getByRole("button", { name: /More agents…/ }).click();
+    const registry = panel.getByRole("region", { name: "ACP Registry" });
+    await expect(registry.locator(".acp-registry-entry")).toHaveCount(2);
+    await expect(registry.getByRole("button", { name: /No Checksum/ })).toBeDisabled();
+    await expect(registry.locator(".acp-registry-reason")).toHaveText("The registry publishes no checksum for this build");
+    await registry.getByRole("button", { name: /Fixture Binary/ }).click();
+    await panel.getByRole("textbox", { name: "Message agent" }).fill("permission");
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(panel.getByText("Permission required")).toBeVisible();
+    expect(host.hits["/agent.tar.gz"]).toBe(1);
+    const views = page.getByRole("navigation", { name: "Primary views" });
+    await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp-agents"));
+    await expect(panel).toBeHidden();
+    const agent = views.getByRole("button", { name: "Agent ACP, Agent needs input", exact: true });
+    await expect(agent.locator(".badge.badge-attention")).toHaveText("1");
+    await agent.click();
+    await panel.getByRole("button", { name: "Reject", exact: true }).click();
+    await expect(panel.getByRole("log")).toContainText("reject-once");
+    await expect(views.getByRole("button", { name: "Agent ACP", exact: true }).locator(".badge")).toHaveCount(0);
+  } finally {
+    await close();
+    await host.close();
+    await fs.rm(dir, { recursive: true, force: true });
   }
 });

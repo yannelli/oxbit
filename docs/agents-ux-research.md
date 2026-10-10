@@ -61,17 +61,19 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 
 ## Patterns most tools share
 
-| Pattern | Tools | Oxbit 0.8.0 |
+| Pattern | Tools | Oxbit on `feat/agents-ux` |
 | --- | --- | --- |
-| Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Added: registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents |
-| Type and send without a separate connect step | Zed, VS Code, Cursor | Added |
-| Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Added, with `agentACP.useModifierToSend` |
-| `@` file mentions | All | Added |
-| Image paste and drop | All | Added when the agent advertises image prompts |
-| Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Added |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Web Notification only; native notifications need a Tauri plugin |
-| Agent panel docked right | Zed, VS Code, Cursor | Added for new layouts |
-| Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Added |
-| Checkpoints and restore | Zed, VS Code, Cursor | Deferred; Oxbit has per-edit undo for reviewed edits |
-| Parallel threads in tabs | Zed, VS Code, Cursor | Deferred; Runtime sessions lists up to 3 agents per device |
-| Voice input | Cursor, Codex, Happy | Deferred |
+| Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents |
+| Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent |
+| Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` |
+| `@` mentions | All | Workspace files only |
+| Image paste and drop | All | Yes, when the agent advertises image prompts |
+| Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification only; native macOS and iOS notifications need a Tauri plugin |
+| Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts |
+| Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes |
+| Checkpoints and restore | Zed, VS Code, Cursor | Not yet; reviewed edits have per-edit undo |
+| Parallel threads in tabs | Zed, VS Code, Cursor | Not yet; Runtime sessions lists up to 3 agents per device |
+| Context-usage meter | Zed, VS Code, JetBrains, Cursor | Not yet |
+| Voice input | Cursor, Codex, Happy | Not yet |
+| Live Activities | Codex, GitHub, Cursor | Not yet |

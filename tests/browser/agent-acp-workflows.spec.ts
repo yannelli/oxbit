@@ -57,7 +57,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
         fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs"),
       },
     );
-    const panel = page.locator(".acp-panel:not(.acp-review-editor)");
+    const panel = page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
     const composer = panel.getByRole("textbox", { name: "Message agent" });
     const ready = () =>
       expect(panel.locator(".acp-status")).toHaveText("Ready");
@@ -304,7 +304,8 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await panel.screenshot({ path: "evidence/agent-acp/workflows/bottom-dark.png" });
     await panel.getByRole("button", { name: "Add context", exact: true }).click();
     await expect(panel.locator(".acp-context-menu")).toBeInViewport();
-    await composer.click();
+    const composerBox = (await composer.boundingBox())!;
+    await composer.click({ position: { x: composerBox.width - 16, y: 8 } });
     await expect(panel.locator(".acp-context-menu")).toBeHidden();
     await menu("Agent setup");
     await panel.getByRole("button", { name: "History", exact: true }).click();

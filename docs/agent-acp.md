@@ -2,43 +2,110 @@
 
 Created: 2026-10-10. Last updated: 2026-10-10.
 
-Agent ACP is a bundled, **disabled-by-default** extension for Codex ACP,
-Cursor ACP, and Amp Agent ACP. Open **Extensions → Agent ACP → Enable**, then
-use **Agent ACP: Open Agent ACP** in the command palette or its activity icon.
+Agent ACP is a bundled, **disabled-by-default** extension that runs agents
+speaking the [Agent Client Protocol](https://agentclientprotocol.com). Open
+**Extensions → Agent ACP → Enable**, then use **Agent ACP: Open Agent ACP** in the
+command palette, its activity icon, or the **Agent** tab on a phone.
 Enabling and disabling persist across reloads, including workspaces created
 before this extension was added. Enabling alone does not launch or install an
 agent.
 
-Connect Oxbit to a runtime workspace, grant workspace tool trust, choose a
-provider, and select **Connect**. Browser and desktop use the same extension.
-Only the runtime owner can launch and control agents; shared workspace grants
-do not gain agent access. Browser-only workspaces show runtime connection guidance.
+Connect Oxbit to a runtime workspace and grant workspace tool trust. Browser,
+desktop and iOS use the same extension. Only the runtime owner can launch and
+control agents; shared workspace grants do not gain agent access. Browser-only
+workspaces show runtime connection guidance.
+
+## Starting an agent
+
+A new conversation shows an agent picker. Choose an agent and select **Start**,
+or type a message and send it: the panel starts the chosen agent and sends the
+message once the session is ready. The choice is saved as `agentACP.provider`.
+
+- **Built-in agents** are listed below.
+- **More agents…** browses the [ACP Registry](https://agentclientprotocol.com/get-started/registry)
+  through the runtime, with search by name, ID or description. Agents the runtime cannot
+  launch stay listed with the reason: no build for its platform, no published checksum,
+  or an archive format Oxbit cannot extract.
+- **Custom agent…** runs any ACP executable. Enter the name, executable, and
+  arguments as a shell-style line; quotes group words. They are saved as
+  `agentACP.custom.name`, `agentACP.custom.command`, and `agentACP.custom.args`.
+
+Runtimes before 0.8.0 accept only Codex, Cursor and Amp. Starting another agent on
+such a runtime shows "This runtime does not support … Update Oxbit on the runtime host."
 
 ## Providers
 
 | Provider | Default executable and arguments | Setup |
 | --- | --- | --- |
 | Codex ACP | `npx -y @agentclientprotocol/codex-acp@2.2.2` | Existing Codex credentials, or an advertised sign-in method |
+| Claude Agent | `npx -y @agentclientprotocol/claude-agent-acp@0.89.1` | Existing Claude Code sign-in |
+| Gemini CLI | `npx -y @google/gemini-cli@0.63.0 --acp` | Sign in with the Gemini CLI or set `GEMINI_API_KEY` |
+| GitHub Copilot | `npx -y @github/copilot@1.0.95 --acp` | Sign in with GitHub through the Copilot CLI |
 | Cursor ACP | `agent acp` | Install Cursor CLI and run `agent login` |
 | Amp Agent ACP | `npx -y amp-acp@0.10.0` | Install Amp CLI and run `amp login` |
 
 Codex uses the [maintained ACP adapter](https://github.com/agentclientprotocol/codex-acp),
 which bundles a compatible Codex dependency. Cursor uses its
 [native ACP interface](https://cursor.com/docs/cli/acp). Amp uses the
-[community Amp ACP adapter](https://github.com/tao12345666333/amp-acp).
+[community Amp ACP adapter](https://github.com/tao12345666333/amp-acp). The Claude,
+Gemini and Copilot versions match the ACP Registry entries fetched on 2026-10-10.
 
-**Setup** exposes the executable and a JSON array of arguments. These are also
-available in Settings under Agent ACP, together with the default provider.
-Commands launch directly without shell interpolation. For a local adapter,
-replace `npx` with its absolute executable path and set arguments to `[]`.
-If Cursor is installed as `cursor-agent`, use that executable with `["acp"]`.
+**Agent setup** in the panel's **More agent actions** menu exposes the executable
+and arguments. These are also available in Settings under Agent ACP, together with
+the default agent. Commands launch directly without shell interpolation. For a
+local adapter, replace `npx` with its absolute executable path and clear the
+arguments. If Cursor is installed as `cursor-agent`, use that executable with `acp`.
 The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
+
+### ACP Registry agents
+
+The runtime fetches the registry when **More agents…** opens, when the chosen
+agent is a registry agent, or when a registry agent starts. It caches the listing in its data directory for 5 minutes. When a
+fetch fails, the cached listing is shown with the error.
+
+- `npx` and `uvx` agents run `npx -y <package>` or `uvx <package>` with the
+  registry's arguments and environment.
+- Binary agents download once per version into `<dataDir>/acp-agents/<id>/<version>`.
+  The runtime requires the registry's SHA-256 checksum, rejects archives over
+  512 MiB, extracts `.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz` and `.zip` with the
+  system `tar` or `unzip`, and launches the command only if it resolves inside the
+  install directory.
 
 Agents inherit the runtime environment and existing CLI credentials. Supply API
 keys or `AMP_CLI_PATH` through that environment; the extension has no credential
 fields. After a session reports an authentication error, use an advertised sign-in
 button or sign in using the provider CLI, then retry the conversation.
+
+## Composer
+
+- **Enter** sends and **Shift+Enter** adds a new line. With
+  `agentACP.useModifierToSend`, Enter adds a new line and **Ctrl/Cmd+Enter** sends.
+  On touch screens the Return key adds a new line and the send button sends.
+  Ctrl/Cmd+Enter sends in every mode. **Escape** stops the running turn.
+- Type `@` to mention a workspace file. The file is attached as a snapshot.
+- Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
+  the agent advertises image prompts. An image over about 165 KB is scaled down
+  and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
+- **/** opens the agent's slash commands. Messages sent during a turn are queued
+  and can be edited or removed.
+- Tool calls show an icon for their kind and their status. A **Working** row
+  shows the elapsed time of the current turn. Permission requests that edit
+  files show the proposed diff.
+
+## Attention and placement
+
+- On desktop the panel opens in the right dock in new layouts. On phones,
+  **Agent** has its own tab in the bottom bar.
+- The Agent button shows a count while requests wait for an answer, and a dot
+  when a turn ends while the panel is hidden. The status bar shows the agent
+  state; selecting it opens the panel.
+- When a turn ends or a request arrives while the panel is hidden, a toast
+  offers **Open Agent**. When Oxbit is in the background, the browser shows a
+  system notification if notification permission was granted. Set
+  `agentACP.notifications` to `never` to turn these off.
+- Native macOS and iOS notifications, checkpoints, parallel threads, voice input
+  and a context-usage meter are not supported yet.
 
 ## In-app tools
 
@@ -245,13 +312,13 @@ Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) docu
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):
 
 ```sh
-bunx playwright test tests/browser/agent-acp.spec.ts tests/browser/agent-acp-workflows.spec.ts tests/browser/agent-acp-subagents.spec.ts --reporter=list
+bunx playwright test tests/browser/agent-acp*.spec.ts --reporter=list
 ```
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,
