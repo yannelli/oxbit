@@ -38,6 +38,7 @@ async function boot(page: Page, pairingCode: string) {
     await z.kernel.configuration.set("agentACP.codex.args", JSON.stringify([fixture]), "user");
     z.workbench.set({ sidebarWidth: 460 });
     z.workbench.run("agentACP.open");
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
   }, { command: process.execPath, fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs") });
   return {
     panel: page.locator(".acp-panel:not(.acp-review-editor)"),

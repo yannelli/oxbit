@@ -26,6 +26,8 @@ for (const width of [1440, 390]) test.describe(`slash commands at ${width}px`, (
         await app.kernel.configuration.set("agentACP.codex.args", JSON.stringify([fixture]), "user");
         app.workbench.set({ sidebarWidth: 420 });
         app.workbench.run("agentACP.open");
+        // Settle after the panel's first commit; Chromium can drop the evaluate result during that render.
+        await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       }, { command: process.execPath,
         fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs") });
       await page.getByRole("button", { name: "Connect", exact: true }).click();

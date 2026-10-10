@@ -56,6 +56,8 @@ test("dispatched subagents share a tree, child approvals, results and historical
         z.workbench.set({ sidebarWidth: 460 });
         await z.workbench.openFile("hello.txt", { preview: false });
         z.workbench.run("agentACP.open");
+        // Settle after the panel's first commit; Chromium can drop the evaluate result during that render.
+        await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       },
       {
         executable: process.execPath,
