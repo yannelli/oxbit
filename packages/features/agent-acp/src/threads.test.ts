@@ -27,7 +27,7 @@ function setup() {
     filesystem: { id: "fs" },
     documents: {},
     workbench,
-    kernel: { configuration: { get: () => undefined } },
+    kernel: { configuration: { get: () => undefined }, services: { optional: () => undefined } },
   } as unknown as FeatureOptions;
   const agent = new AgentController(options);
   agent.connection = { id: "first", root: "/w", provider: "codex", sessionId: "s1", authMethods: [] };

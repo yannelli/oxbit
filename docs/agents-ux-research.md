@@ -76,4 +76,4 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% |
 | Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts |
-| Live Activities | Codex, GitHub, Cursor | Blocked: iOS suspends the app's WebView in the background, and Oxbit has no push relay to update an activity |
+| Live Activities | Codex, GitHub, Cursor | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs; no push updates while iOS suspends it |

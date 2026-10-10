@@ -170,6 +170,25 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
 - iOS suspends the app shortly after it leaves the foreground. A turn that ends
   while the app is suspended posts no notification; that needs a push relay.
 
+### Live Activity
+
+Added 2026-10-10.
+
+- In the iOS app a connected agent thread shows a Live Activity on the Lock Screen
+  and in the Dynamic Island: **Working** with the elapsed time and the latest tool
+  call, **Needs input** with the number of waiting requests, then **Finished** or
+  **Failed**. A finished or failed activity is dismissed 15 minutes after the turn
+  ends. Disconnecting the thread, disabling Agent ACP or closing the workspace ends
+  it at once.
+- The app updates the activity itself. Once iOS suspends Oxbit, the activity keeps
+  its last state and is marked stale 15 minutes after the last update. Updates
+  while suspended need push delivery through a relay, which Oxbit does not have.
+- The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in
+  `@oxbit/sdk`) on each state change. The iOS app registers it per workspace
+  (`apps/ios/src/main.tsx`); other hosts register none, so nothing is sent.
+- The widget extension `OxbitLiveActivity` (`com.yannelli.oxbit.LiveActivity`) is
+  signed with its own App Store profile; see [docs/release.md](release.md).
+
 ### Dictation
 
 Checked 2026-10-10.

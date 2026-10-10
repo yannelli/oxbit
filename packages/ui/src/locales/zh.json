@@ -997,5 +997,7 @@
   "No microphone is available": "没有可用的麦克风",
   "Dictation needs a network connection": "语音输入需要网络连接",
   "Dictation does not support this language": "语音输入不支持此语言",
-  "No speech was detected": "未检测到语音"
+  "No speech was detected": "未检测到语音",
+  "1 request needs an answer": "1 个请求等待回复",
+  "{0} requests need an answer": "{0} 个请求等待回复"
 }

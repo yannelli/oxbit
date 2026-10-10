@@ -38,7 +38,7 @@ function setup(document?: any, persistence?: any) {
       save: vi.fn(async () => {}),
     },
     workbench: { openFile: vi.fn(), refreshFiles: vi.fn(), persistence },
-    kernel: {},
+    kernel: { services: { optional: () => undefined } },
   } as unknown as FeatureOptions;
   const agent = new AgentController(options);
   agent.connection = {
@@ -58,7 +58,7 @@ describe("ACP editor integration", () => {
     workbench.state = { groups: [{ tabs: [{ path: "hello.txt" }] }] };
     workbench.activePath = () => "hello.txt";
     workbench.activeEditor = () => ({ state: { selection: { main: { from: 6, to: 19, empty: false } } } });
-    (options.kernel as any).services = { get: () => ({ diagnostics: new Map([["hello.txt", [{ message: "Issue", range: { start: { line: 1, character: 2 } } }]]]) }) };
+    (options.kernel as any).services = { optional: () => undefined, get: () => ({ diagnostics: new Map([["hello.txt", [{ message: "Issue", range: { start: { line: 1, character: 2 } } }]]]) }) };
     listeners.get("acp.request")!({ id: "connection", requestId: "workspace", method: "oxbit/workspace", params: {} });
     await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
     expect(runtime.request).toHaveBeenCalledWith("acp.respond", expect.objectContaining({ result: expect.objectContaining({

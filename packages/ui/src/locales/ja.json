@@ -997,5 +997,7 @@
   "No microphone is available": "使用できるマイクがありません",
   "Dictation needs a network connection": "音声入力にはネットワーク接続が必要です",
   "Dictation does not support this language": "音声入力はこの言語に対応していません",
-  "No speech was detected": "音声が検出されませんでした"
+  "No speech was detected": "音声が検出されませんでした",
+  "1 request needs an answer": "1 件のリクエストが回答を待っています",
+  "{0} requests need an answer": "{0} 件のリクエストが回答を待っています"
 }

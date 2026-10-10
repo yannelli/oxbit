@@ -970,5 +970,7 @@
   "No microphone is available": "Kein Mikrofon verfügbar",
   "Dictation needs a network connection": "Diktieren benötigt eine Netzwerkverbindung",
   "Dictation does not support this language": "Diktieren unterstützt diese Sprache nicht",
-  "No speech was detected": "Keine Sprache erkannt"
+  "No speech was detected": "Keine Sprache erkannt",
+  "1 request needs an answer": "1 Anfrage wartet auf eine Antwort",
+  "{0} requests need an answer": "{0} Anfragen warten auf eine Antwort"
 }

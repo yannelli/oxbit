@@ -312,8 +312,18 @@ export class AgentController {
   snapshot = () => this.revision;
   changed = () => {
     this.revision++;
-    if (!this.disposed)
-      this.attention.sync(this.requests.length + backgroundRequests(this.liveSessions, this.connection?.id));
+    if (!this.disposed) {
+      const pending = this.requests.length + backgroundRequests(this.liveSessions, this.connection?.id);
+      this.attention.sync(pending, () => ({
+        agent: launchName(this.launch),
+        title: this.title,
+        connected: !!this.connection,
+        busy: this.busy,
+        startedAt: this.turnStartedAt,
+        pending,
+        tool: this.latestToolTitle(),
+      }));
+    }
     for (const listener of this.listeners) listener();
     if (
       !this.disposed &&
@@ -1645,7 +1655,13 @@ export class AgentController {
       preview: false,
     });
   }
+  private latestToolTitle() {
+    let title: string | undefined;
+    for (const call of this.tools.values()) if (typeof call.title === "string") title = call.title;
+    return title;
+  }
   dispose() {
+    this.attention.dispose();
     void this.saveConversation();
     clearTimeout(this.historyTimer);
     this.disposed = true;

@@ -1,7 +1,7 @@
 import { invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
-import type { FileEntry } from "@oxbit/sdk";
+import type { AgentActivityUpdate, FileEntry } from "@oxbit/sdk";
 
 export interface NativeError {
   code: string;
@@ -232,6 +232,8 @@ export const ssh = {
 };
 
 export const native = {
+  agentActivity: (update: AgentActivityUpdate | null) =>
+    call<{ enabled: boolean }>("plugin:oxbit-files|live_activity", { update }),
   lspMessage: (request: { workspaceId: string; sessionId: string; kind: "typescript" | "json" | "yaml" | "dockerfile" | "shell" | "python"; method: string; params: unknown }) =>
     call<{ payload: string }>("ios_lsp_message", request),
   gitCredentials: (request: GitCredentialRequest) =>

@@ -339,3 +339,30 @@ test("a system notification reports a finished turn while Oxbit is in the backgr
     await close();
   }
 });
+
+test("the agent activity service follows a turn through a request to its end", async ({ page }) => {
+  const { panel, close } = await boot(page, "acp-start-activity");
+  try {
+    await page.evaluate(() => {
+      const w = window as any;
+      w.__activity = [];
+      w.__oxbit.kernel.services.register("agentActivity", { update: async (update: unknown) => { w.__activity.push(update); } });
+    });
+    await panel.getByRole("button", { name: /^Start / }).click();
+    await expect(panel.locator(".acp-status")).toHaveText("Ready");
+    await panel.getByRole("textbox", { name: "Message agent" }).fill("permission");
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+    await panel.getByRole("button", { name: "Allow once" }).click();
+    const updates = () => page.evaluate(() => (window as any).__activity as any[]);
+    const statuses = async () => (await updates()).map((update) => update?.status ?? null)
+      .filter((status, index, all) => status !== all[index - 1]);
+    await expect.poll(statuses).toEqual(["working", "waiting", "working", "finished"]);
+    expect((await updates()).at(-1)).toMatchObject({ agent: "Codex ACP", title: "permission", pending: 0, detail: "Agent finished" });
+    expect((await updates()).find((update) => update.status === "waiting")).toMatchObject({ pending: 1, detail: "1 request needs an answer" });
+    expect((await updates())[0].startedAt).toEqual(expect.any(Number));
+    await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").disconnect());
+    await expect.poll(async () => (await updates()).at(-1)).toBeNull();
+  } finally {
+    await close();
+  }
+});

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FeatureOptions } from "@oxbit/sdk";
+import type { AgentActivityUpdate, FeatureOptions } from "@oxbit/sdk";
 import { AgentController } from "./controller.js";
+import { activityUpdate } from "./attention.js";
 
 function setup(visible: boolean | undefined) {
   const listeners = new Map<string, (params: any) => void>();
@@ -19,6 +20,7 @@ function setup(visible: boolean | undefined) {
     panelVisible: visible === undefined ? undefined : vi.fn(() => visible),
   };
   const values: Record<string, string> = {};
+  const services: Record<string, unknown> = {};
   const options = {
     runtime,
     filesystem: { id: "fs" },
@@ -31,11 +33,12 @@ function setup(visible: boolean | undefined) {
           values[id] = value;
         }),
       },
+      services: { optional: (id: string) => services[id] },
     },
   } as unknown as FeatureOptions;
   const agent = new AgentController(options);
   agent.connection = { id: "c", root: "/w", provider: "codex", sessionId: "s", authMethods: [] };
-  return { agent, listeners, workbench, runtime, values };
+  return { agent, listeners, workbench, runtime, values, services };
 }
 
 describe("agent attention", () => {
@@ -62,6 +65,39 @@ describe("agent attention", () => {
       expect(workbench.setViewBadge).not.toHaveBeenCalledWith("agent-acp", expect.objectContaining({ count: 0 }));
       agent.dispose();
     }
+  });
+});
+
+describe("agent activity", () => {
+  const thread = { agent: "Codex ACP", title: "Fix login", connected: true, busy: false, pending: 0 };
+  it("maps the thread to a Live Activity state", () => {
+    expect(activityUpdate({ ...thread, connected: false, busy: true })).toBeNull();
+    expect(activityUpdate(thread)).toBeNull();
+    expect(activityUpdate({ ...thread, busy: true, startedAt: 5, tool: "Edit hello.txt" })).toEqual(
+      { agent: "Codex ACP", title: "Fix login", pending: 0, status: "working", detail: "Edit hello.txt", startedAt: 5 });
+    expect(activityUpdate({ ...thread, busy: true, pending: 2 })).toMatchObject({ status: "waiting", detail: "2 requests need an answer" });
+    expect(activityUpdate({ ...thread, pending: 1 })).toMatchObject({ status: "waiting", detail: "1 request needs an answer" });
+    expect(activityUpdate(thread, "failed")).toMatchObject({ status: "failed", detail: "Agent turn failed" });
+  });
+  it("sends each state change once and ends the activity on dispose", async () => {
+    const { agent, listeners, services } = setup(true);
+    const updates: (AgentActivityUpdate | null)[] = [];
+    services.agentActivity = { update: vi.fn(async (update: AgentActivityUpdate | null) => { updates.push(update); }) };
+    listeners.get("acp.turnStarted")!({ id: "c", messageId: "m1", text: "Fix login" });
+    listeners.get("acp.update")!({ id: "c", sessionId: "s", update: { sessionUpdate: "tool_call", toolCallId: "t1", title: "Edit hello.txt", status: "pending" } });
+    listeners.get("acp.request")!({ id: "c", requestId: "r1", method: "session/request_permission", params: {} });
+    await vi.waitFor(() => expect(agent.requests).toHaveLength(1));
+    listeners.get("acp.turnEnded")!({ id: "c", stopReason: "end_turn" });
+    agent.changed();
+    agent.dispose();
+    expect(updates.map((update) => update && [update.status, update.detail])).toEqual([
+      ["working", "Working"],
+      ["working", "Edit hello.txt"],
+      ["waiting", "1 request needs an answer"],
+      ["finished", "Agent finished"],
+      null,
+    ]);
+    expect(updates[0]).toMatchObject({ agent: "Codex ACP", title: "Fix login", startedAt: expect.any(Number) });
   });
 });
 

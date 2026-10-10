@@ -278,3 +278,19 @@ export interface ACPCheckpointRestore {
   restored: string[];
   deleted: string[];
 }
+
+/** Kernel service id for hosts that mirror the active agent thread outside the app. */
+export const AGENT_ACTIVITY_SERVICE = "agentActivity";
+export interface AgentActivityUpdate {
+  agent: string;
+  title: string;
+  status: "working" | "waiting" | "finished" | "failed";
+  detail: string;
+  pending: number;
+  /** Milliseconds since the epoch, set while working. */
+  startedAt?: number;
+}
+/** The iOS app backs this with a Live Activity. `null` ends it. */
+export interface AgentActivityService {
+  update(update: AgentActivityUpdate | null): Promise<unknown>;
+}
