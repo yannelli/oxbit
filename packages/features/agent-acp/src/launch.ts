@@ -69,12 +69,12 @@ export const rememberAgentName = (id: string, name: string | undefined) => {
 export const rememberRegistryName = (id: string, name: string) =>
   registryNames.set(id, name);
 
-/** Label order: connection name, preset name, registry name, then the ID. */
+/** Label order: live connection name, preset name, last seen connection name, registry name, then the ID. */
 export function agentName(id: string, connection?: Pick<ACPConnection, "provider" | "name">) {
   if (connection?.provider === id && connection.name) return connection.name;
   return (
-    connectionNames.get(id) ??
     acpPreset(id)?.name ??
+    connectionNames.get(id) ??
     registryNames.get(id) ??
     id
   );

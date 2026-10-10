@@ -57,6 +57,8 @@ describe("agent naming", () => {
     expect(agentName("opencode")).toBe("OpenCode");
     rememberAgentName("opencode", "OpenCode 1.18");
     expect(agentName("opencode")).toBe("OpenCode 1.18");
+    rememberAgentName("codex", "codex-acp 2.2.2");
+    expect(agentName("codex")).toBe("Codex ACP");
   });
   it("keeps unknown providers on their own ID", () => {
     expect(providerFor("not-a-preset").name).toBe("not-a-preset");
