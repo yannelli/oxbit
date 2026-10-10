@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DocumentService } from "@oxbit/documents";
-import { BrowserFileSystem, MemoryPersistence } from "@oxbit/host-browser";
+import { DocumentService } from "../../documents/src/index.js";
+import { BrowserFileSystem, MemoryPersistence } from "../../host-browser/src/index.js";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));

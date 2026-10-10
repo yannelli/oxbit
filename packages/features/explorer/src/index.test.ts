@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { createKernel } from "@oxbit/core";
+import { createKernel } from "../../../core/src/index.js";
 import { DocumentService } from "@oxbit/documents";
-import { BrowserFileSystem, MemoryPersistence } from "@oxbit/host-browser";
+import { BrowserFileSystem, MemoryPersistence } from "../../../host-browser/src/index.js";
 import { WorkbenchController } from "@oxbit/workbench";
 import { createFeature } from "./index.js";
 
