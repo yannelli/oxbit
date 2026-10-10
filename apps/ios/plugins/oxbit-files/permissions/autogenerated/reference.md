@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, and dictate text with speech recognition.
 
 #### This default permission set includes the following:
 
@@ -15,6 +15,8 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-ssh-keys`
 - `allow-pick-files`
 - `allow-commit-signing`
+- `allow-start-dictation`
+- `allow-stop-dictation`
 
 ## Permission Table
 
@@ -307,6 +309,58 @@ Enables the ssh_keys command without any pre-configured scope.
 <td>
 
 Denies the ssh_keys command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-start-dictation`
+
+</td>
+<td>
+
+Enables the start_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-start-dictation`
+
+</td>
+<td>
+
+Denies the start_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-stop-dictation`
+
+</td>
+<td>
+
+Enables the stop_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-stop-dictation`
+
+</td>
+<td>
+
+Denies the stop_dictation command without any pre-configured scope.
 
 </td>
 </tr>

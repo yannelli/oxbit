@@ -427,10 +427,34 @@
           "markdownDescription": "Denies the ssh_keys command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`",
+          "description": "Enables the start_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-dictation",
+          "markdownDescription": "Enables the start_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-dictation",
+          "markdownDescription": "Denies the start_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the stop_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-stop-dictation",
+          "markdownDescription": "Enables the stop_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the stop_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-stop-dictation",
+          "markdownDescription": "Denies the stop_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, and dictate text with speech recognition.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`"
+          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, and dictate text with speech recognition.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`"
         }
       ]
     }

@@ -125,6 +125,9 @@ thread is opened.
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
   and can be edited or removed.
+- **Dictate** (the microphone button) appends speech to the draft as you talk.
+  Select it again to finish. Editing or sending the draft stops dictation. See
+  [Dictation](#dictation).
 - Tool calls show an icon for their kind and their status. A **Working** row
   shows the elapsed time of the current turn.
 - When the agent reports context usage, a ring below the composer shows the
@@ -144,7 +147,6 @@ thread is opened.
   Oxbit also shows a system notification once permission is granted. Use
   **Enable notifications** in **More agent actions** to grant it. Set
   `agentACP.notifications` to `never` to turn system notifications off.
-- The panel has no microphone button.
 
 ### System notifications
 
@@ -160,10 +162,37 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
   and `notification:allow-request-permission`.
 - On desktop the plugin reports permission as granted (`src/desktop.rs`). On iOS
   permission starts at "default" until **Enable notifications** asks.
+- `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
+  2026-10-10 `usernoted` logged both test notifications as delivered and presented.
+  An unbundled debug binary posts them under Terminal's name.
 - The replacement `Notification` object never fires `onclick`, so selecting a
   native notification does not open the panel.
 - iOS suspends the app shortly after it leaves the foreground. A turn that ends
   while the app is suspended posts no notification; that needs a push relay.
+
+### Dictation
+
+Checked 2026-10-10.
+
+- The composer uses the Web Speech API: `SpeechRecognition`, or
+  `webkitSpeechRecognition` when only the prefixed constructor exists
+  ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition),
+  modified 2026-08-19). It sets `continuous` and `interimResults` and uses
+  `navigator.language`. The button is hidden when the WebView has neither constructor.
+- The macOS app's WebView exposes `webkitSpeechRecognition`
+  (`tests/desktop/agent.e2e.mjs`). WebKit's recognizer uses Apple's Speech framework
+  ([WebKit bug 239816](https://bugs.webkit.org/show_bug.cgi?id=239816)), so the app
+  declares `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription` and
+  the hardened-runtime entitlement `com.apple.security.device.audio-input`. Starting
+  dictation in the macOS app needs a person to answer the permission prompts and has
+  not been run.
+- The iOS app defines `SpeechRecognition` on top of Apple's Speech framework
+  (`packages/host-ios/src/speech.ts`, `apps/ios/plugins/oxbit-files/ios/Sources/Dictation.swift`).
+  It recognizes on the device when the recognizer supports that, and declares the
+  same two usage descriptions. The Swift code compiles in the iOS cargo build;
+  permission prompts and recognition have not run on a simulator or device.
+- MDN states that Chrome sends the audio to a web service for recognition, so
+  dictation in Chrome does not work offline.
 
 ## In-app tools
 
@@ -413,6 +442,13 @@ Browser journeys (after `bun run build`):
 
 ```sh
 bunx playwright test tests/browser/agent-acp*.spec.ts --reporter=list
+```
+
+macOS app checks for system notifications and speech recognition:
+
+```sh
+bun run desktop:test:build
+bunx wdio run tests/desktop/agent.conf.mjs
 ```
 
 The deterministic fixture speaks ACP over real stdio and exercises streaming,

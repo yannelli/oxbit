@@ -75,5 +75,5 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged |
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% |
-| Voice input | Cursor, Codex, Happy | No in-app microphone button. The composer is a plain text area, so the system dictation key applies; not checked on a device |
+| Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts |
 | Live Activities | Codex, GitHub, Cursor | Blocked: iOS suspends the app's WebView in the background, and Oxbit has no push relay to update an activity |

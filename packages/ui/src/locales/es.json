@@ -989,5 +989,13 @@
   "Stop {0}": "Detener {0}",
   "Stop thread": "Detener el hilo",
   "Stop {0}? Its agent process ends on the runtime.": "¿Detener {0}? Su proceso de agente termina en el runtime.",
-  "Agent limit reached": "Se alcanzó el límite de agentes"
+  "Agent limit reached": "Se alcanzó el límite de agentes",
+  "Dictate": "Dictar",
+  "Stop dictation": "Detener dictado",
+  "Allow microphone access for Oxbit to dictate": "Permite el acceso al micrófono para Oxbit para dictar",
+  "Allow speech recognition for Oxbit to dictate": "Permite el reconocimiento de voz para Oxbit para dictar",
+  "No microphone is available": "No hay ningún micrófono disponible",
+  "Dictation needs a network connection": "El dictado necesita conexión de red",
+  "Dictation does not support this language": "El dictado no admite este idioma",
+  "No speech was detected": "No se detectó voz"
 }

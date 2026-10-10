@@ -279,3 +279,66 @@ test.describe("phone composer", () => {
     }
   });
 });
+
+test("the microphone dictates into the draft and stops when the draft changes", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__speech = [];
+    w.SpeechRecognition = class {
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      onresult: ((event: unknown) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      calls: string[] = [];
+      constructor() { w.__speech.push(this); }
+      start() { this.calls.push("start"); }
+      stop() { this.calls.push("stop"); }
+      abort() { this.calls.push("abort"); this.onend?.(); }
+      say(parts: [string, boolean][]) {
+        this.onresult?.({ resultIndex: 0, results: parts.map(([transcript, isFinal]) => Object.assign([{ transcript }], { isFinal })) });
+      }
+    };
+  });
+  const { panel, input, close } = await open(page);
+  const latest = <T>(read: (recognition: any) => T) =>
+    page.evaluate((source) => new Function("r", `return (${source})(r)`)((window as any).__speech.at(-1)), read.toString()) as Promise<T>;
+  const say = (parts: [string, boolean][]) =>
+    page.evaluate((parts) => (window as any).__speech.at(-1).say(parts), parts);
+  const dictate = panel.getByRole("button", { name: "Dictate" });
+  const stop = panel.getByRole("button", { name: "Stop dictation" });
+  try {
+    await input.fill("Fix");
+    await dictate.click();
+    await expect(stop).toHaveAttribute("aria-pressed", "true");
+    expect(await latest((r) => [r.lang, r.continuous, r.interimResults, r.calls])).toEqual(
+      [await page.evaluate(() => navigator.language), true, true, ["start"]]);
+    await say([["the login", false]]);
+    await expect(input).toHaveValue("Fix the login");
+    await say([["the login bug", true], [" in auth", false]]);
+    await expect(input).toHaveValue("Fix the login bug in auth");
+    await stop.click();
+    expect(await latest((r) => r.calls)).toEqual(["start", "stop"]);
+    await say([["the login bug", true], [" in auth.", true]]);
+    await latest((r) => r.onend());
+    await expect(input).toHaveValue("Fix the login bug in auth.");
+    await expect(dictate).toHaveAttribute("aria-pressed", "false");
+
+    await dictate.click();
+    await input.press("End");
+    await input.pressSequentially("!");
+    await expect(dictate).toHaveAttribute("aria-pressed", "false");
+    expect(await latest((r) => r.calls)).toEqual(["start", "abort"]);
+    await say([["ignored", true]]);
+    await expect(input).toHaveValue("Fix the login bug in auth.!");
+
+    await dictate.click();
+    await latest((r) => { r.onerror({ error: "not-allowed" }); r.onend(); });
+    await expect(panel.getByText("Allow microphone access for Oxbit to dictate")).toBeVisible();
+    await expect(dictate).toHaveAttribute("aria-pressed", "false");
+    await page.screenshot({ path: `${shots}/dictation-error.png` });
+  } finally {
+    await close();
+  }
+});

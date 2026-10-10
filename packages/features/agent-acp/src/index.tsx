@@ -16,6 +16,7 @@ import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
 import { AgentController, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
 import { ContextMeter } from "./context-meter.js";
+import { DictationButton } from "./dictation.js";
 import { RegistryBrowser } from "./registry-browser.js";
 import { AgentSetup } from "./setup.js";
 import { OverflowMenu, type MenuItem } from "./overflow-menu.js";
@@ -797,6 +798,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               <span aria-hidden="true">/</span>
             </button>
           )}
+          <DictationButton
+            value={agent.draft}
+            onChange={(value) => {
+              agent.draft = value;
+              agent.changed();
+            }}
+            onError={(message) => {
+              agent.error = message;
+              agent.changed();
+            }}
+          />
           <SendHint configuration={kernel.configuration} />
           {agent.busy && (
             <IconButton

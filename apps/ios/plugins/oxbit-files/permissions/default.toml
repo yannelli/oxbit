@@ -1,7 +1,7 @@
 "$schema" = "schemas/schema.json"
 
 [default]
-description = "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network."
+description = "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, and dictate text with speech recognition."
 permissions = [
   "allow-pick-folder",
   "allow-open-folder",
@@ -14,4 +14,6 @@ permissions = [
   "allow-ssh-keys",
   "allow-pick-files",
   "allow-commit-signing",
+  "allow-start-dictation",
+  "allow-stop-dictation",
 ]

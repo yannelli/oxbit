@@ -989,5 +989,13 @@
   "Stop {0}": "Stop {0}",
   "Stop thread": "Stop thread",
   "Stop {0}? Its agent process ends on the runtime.": "Stop {0}? Its agent process ends on the runtime.",
-  "Agent limit reached": "Agent limit reached"
+  "Agent limit reached": "Agent limit reached",
+  "Dictate": "Dictate",
+  "Stop dictation": "Stop dictation",
+  "Allow microphone access for Oxbit to dictate": "Allow microphone access for Oxbit to dictate",
+  "Allow speech recognition for Oxbit to dictate": "Allow speech recognition for Oxbit to dictate",
+  "No microphone is available": "No microphone is available",
+  "Dictation needs a network connection": "Dictation needs a network connection",
+  "Dictation does not support this language": "Dictation does not support this language",
+  "No speech was detected": "No speech was detected"
 }

@@ -37,3 +37,4 @@ export { IosLanguageTransport, createIosLanguageFeature, createIosLanguageFeatur
 export { discovery, DISCOVERY_POLL_MS, type DiscoveredRuntime } from "./discovery.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
 export { searchRoot, findRootFiles } from "./search.js";
+export { IosSpeechRecognition, installSpeechRecognition, type SpeechErrorCode, type SpeechErrorEvent, type SpeechResultEvent } from "./speech.js";
