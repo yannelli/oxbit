@@ -304,7 +304,9 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     });
     await ready();
     expect((await panel.locator(".acp-header").boundingBox())!.height).toBeLessThanOrEqual(48);
-    expect((await panel.locator(".acp-content").boundingBox())!.height).toBeGreaterThan(200);
+    const strip = (await panel.locator(".acp-threads").boundingBox())?.height ?? 0;
+    expect(strip).toBeLessThanOrEqual(40);
+    expect((await panel.locator(".acp-content").boundingBox())!.height + strip).toBeGreaterThan(200);
     await composer.fill("Explain the next change to hello.txt");
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeInViewport();
     await panel.screenshot({ path: "evidence/agent-acp/workflows/bottom-dark.png" });
