@@ -12,12 +12,7 @@
     "agentACP.provider": {
       "title": "Default agent",
       "type": "string",
-      "default": "codex",
-      "enum": [
-        "codex",
-        "cursor",
-        "amp"
-      ]
+      "default": "codex"
     },
     "agentACP.codex.command": {
       "title": "Codex ACP executable",
@@ -28,6 +23,36 @@
       "title": "Codex ACP arguments (JSON array)",
       "type": "string",
       "default": "[\"-y\",\"@agentclientprotocol/codex-acp@2.2.2\"]"
+    },
+    "agentACP.claude.command": {
+      "title": "Claude Agent executable",
+      "type": "string",
+      "default": "npx"
+    },
+    "agentACP.claude.args": {
+      "title": "Claude Agent arguments (JSON array)",
+      "type": "string",
+      "default": "[\"-y\",\"@agentclientprotocol/claude-agent-acp@0.89.1\"]"
+    },
+    "agentACP.gemini.command": {
+      "title": "Gemini CLI executable",
+      "type": "string",
+      "default": "npx"
+    },
+    "agentACP.gemini.args": {
+      "title": "Gemini CLI arguments (JSON array)",
+      "type": "string",
+      "default": "[\"-y\",\"@google/gemini-cli@0.63.0\",\"--acp\"]"
+    },
+    "agentACP.copilot.command": {
+      "title": "GitHub Copilot executable",
+      "type": "string",
+      "default": "npx"
+    },
+    "agentACP.copilot.args": {
+      "title": "GitHub Copilot arguments (JSON array)",
+      "type": "string",
+      "default": "[\"-y\",\"@github/copilot@1.0.95\",\"--acp\"]"
     },
     "agentACP.cursor.command": {
       "title": "Cursor ACP executable",
@@ -693,6 +718,24 @@
         },
         "agentACP.codex.args": {
           "$ref": "#/properties/agentACP.codex.args"
+        },
+        "agentACP.claude.command": {
+          "$ref": "#/properties/agentACP.claude.command"
+        },
+        "agentACP.claude.args": {
+          "$ref": "#/properties/agentACP.claude.args"
+        },
+        "agentACP.gemini.command": {
+          "$ref": "#/properties/agentACP.gemini.command"
+        },
+        "agentACP.gemini.args": {
+          "$ref": "#/properties/agentACP.gemini.args"
+        },
+        "agentACP.copilot.command": {
+          "$ref": "#/properties/agentACP.copilot.command"
+        },
+        "agentACP.copilot.args": {
+          "$ref": "#/properties/agentACP.copilot.args"
         },
         "agentACP.cursor.command": {
           "$ref": "#/properties/agentACP.cursor.command"

@@ -58,7 +58,8 @@ export class ConversationHistory {
               typeof entry.sessionId === "string" &&
               typeof entry.root === "string" &&
               typeof entry.title === "string" &&
-              ["codex", "cursor", "amp"].includes(entry.provider) &&
+              typeof entry.provider === "string" &&
+              /^[a-z0-9][a-z0-9._-]{0,63}$/.test(entry.provider) &&
               Array.isArray(entry.activity) &&
               Array.isArray(entry.tools) &&
               Array.isArray(entry.context),

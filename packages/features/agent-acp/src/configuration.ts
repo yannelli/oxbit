@@ -9,7 +9,6 @@ export const agentConfiguration: Setting[] = [
     category: "Agent ACP",
     type: "string",
     default: "codex",
-    enum: ACP_PROVIDERS.map((p) => p.id),
   },
   ...ACP_PROVIDERS.flatMap((provider) => [
     {
