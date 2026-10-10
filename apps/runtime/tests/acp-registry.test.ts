@@ -78,7 +78,7 @@ describe("ACP Registry", () => {
     expect(listing.agents).toEqual([
       { id: "npx-agent", name: "Npx Agent", version: "1.2.3", description: "Runs with npx", license: "MIT", distribution: "npx", available: true },
       { id: "codex-acp", name: "Codex", version: "9.9.9", description: "", distribution: "npx", available: true, builtin: "codex" },
-      { id: "elsewhere", name: "Elsewhere", version: "1.0.0", description: "", distribution: "binary", available: false },
+      { id: "elsewhere", name: "Elsewhere", version: "1.0.0", description: "", distribution: "binary", available: false, reason: "No build for this runtime's platform" },
     ]);
     await registry.listing();
     expect(host.hits["/registry.json"]).toBe(1);
@@ -151,6 +151,9 @@ describe("ACP Registry", () => {
     const url = `${host.base}/agent.tar.gz`;
     await expect(attempt(binaryAgent(url, "0".repeat(64)))).rejects.toThrow("does not match its sha256");
     await expect(attempt(binaryAgent(url, undefined))).rejects.toThrow("no sha256 checksum");
+    host.routes["/registry.json"] = { body: registryDocument([binaryAgent(url, undefined)]) };
+    expect((await new ACPRegistry(await temp(), `${host.base}/registry.json`).listing()).agents[0])
+      .toMatchObject({ available: false, reason: "The registry publishes no checksum for this build" });
     await expect(attempt(binaryAgent("http://localhost:1/agent.tar.gz", archive.sha256))).rejects.toThrow("require HTTPS");
     await expect(attempt(binaryAgent(`${host.base}/agent.exe`, archive.sha256))).rejects.toThrow("cannot extract agent.exe");
     await expect(attempt(binaryAgent(url, archive.sha256, "../../escape"))).rejects.toThrow("outside its install directory");

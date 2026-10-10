@@ -228,18 +228,27 @@ export class ACPRegistry {
     }
   }
   private dir(agent: RegistryEntry) { return path.join(this.installRoot, agent.id, agent.version); }
+  private unavailable(picked: Picked | undefined) {
+    if (!picked) return "No build for this runtime's platform";
+    if (picked.kind !== "binary") return undefined;
+    if (!picked.spec.sha256) return "The registry publishes no checksum for this build";
+    const file = new URL(picked.spec.archive).pathname.toLowerCase();
+    if (!ARCHIVES.some((ext) => file.endsWith(ext))) return "Oxbit cannot extract this build's archive format";
+  }
   async listing(refresh = false): Promise<ACPRegistryListing> {
     const { agents, fetchedAt, error } = await this.load(refresh);
     const listed = await Promise.all(agents.map(async (agent): Promise<ACPRegistryAgent> => {
       const picked = pickDistribution(agent, this.target), builtin = acpBuiltinForRegistry(agent.id)?.id;
       const { npx, uvx } = agent.distribution;
       const distribution: ACPRegistryDistribution = picked?.kind ?? (npx ? "npx" : uvx ? "uvx" : "binary");
+      const reason = this.unavailable(picked);
       return {
         id: agent.id, name: agent.name, version: agent.version, description: agent.description,
         ...(agent.repository ? { repository: agent.repository } : {}),
         ...(agent.website ? { website: agent.website } : {}),
         ...(agent.license ? { license: agent.license } : {}),
-        distribution, available: !!picked,
+        distribution, available: !reason,
+        ...(reason ? { reason } : {}),
         ...(picked?.kind === "binary" ? { installed: await exists(this.dir(agent)) } : {}),
         ...(builtin ? { builtin } : {}),
       };

@@ -92,8 +92,9 @@ export interface ACPRegistryAgent {
   website?: string;
   license?: string;
   distribution: ACPRegistryDistribution;
-  /** False when the registry has no distribution for the runtime's platform. */
+  /** False when the runtime cannot launch this entry; `reason` says why. */
   available: boolean;
+  reason?: string;
   /** Binary agents only: the pinned version is extracted in the runtime data directory. */
   installed?: boolean;
   /** The built-in preset that replaces this entry. */
