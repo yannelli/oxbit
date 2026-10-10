@@ -135,6 +135,29 @@ describe("ACP Registry", () => {
     expect(await fs.readdir(path.join(dataDir, "acp-agents/local-agent"))).toEqual(["0.1.0"]);
   });
 
+  it("keeps a shared install running until every caller cancels", async () => {
+    const archive = buildArchive(await temp());
+    const host = await server([]);
+    host.routes["/agent.tar.gz"] = { body: archive.data };
+    host.routes["/registry.json"] = { body: registryDocument([binaryAgent(`${host.base}/agent.tar.gz`, archive.sha256)]) };
+    const shared = await temp();
+    const registry = new ACPRegistry(shared, `${host.base}/registry.json`);
+    const cancelled = new AbortController();
+    const first = registry.resolve("local-agent", undefined, cancelled.signal);
+    const second = registry.resolve("local-agent");
+    cancelled.abort();
+    await expect(first).rejects.toThrow("Agent connection cancelled");
+    await expect(second).resolves.toMatchObject({ command: path.join(shared, "acp-agents/local-agent/0.1.0/bin/agent") });
+    expect(host.hits["/agent.tar.gz"]).toBe(1);
+
+    const alone = await temp();
+    const solo = new AbortController();
+    const only = new ACPRegistry(alone, `${host.base}/registry.json`).resolve("local-agent", undefined, solo.signal);
+    solo.abort();
+    await expect(only).rejects.toThrow("Agent connection cancelled");
+    await expect.poll(() => fs.readdir(path.join(alone, "acp-agents/local-agent")).catch(() => [])).toEqual([]);
+  });
+
   it("rejects checksum mismatches, missing checksums, insecure downloads and commands that leave the install directory", async () => {
     const outside = await temp();
     const archive = buildArchive(await temp(), { outside: agentFixture });

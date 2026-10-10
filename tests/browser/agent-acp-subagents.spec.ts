@@ -68,7 +68,7 @@ test("dispatched subagents share a tree, child approvals, results and historical
       ".acp-panel:not(.acp-agents-view):not(.acp-review-editor)",
     );
     await conversation
-      .getByRole("button", { name: "Connect", exact: true })
+      .getByRole("button", { name: /^Start / })
       .click();
     await expect(conversation.locator(".acp-status")).toHaveText("Ready");
     for (const dismiss of await page
@@ -193,7 +193,7 @@ test("dispatched subagents share a tree, child approvals, results and historical
       z.workbench.run("agentACP.open");
     });
     await expect(
-      conversation.getByRole("button", { name: "Connect", exact: true }),
+      conversation.getByRole("button", { name: /^Start / }),
     ).toBeVisible();
     await conversation
       .getByRole("button", { name: "History", exact: true })

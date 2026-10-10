@@ -89,7 +89,7 @@ test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/
     (window as any).__oxbit.workbench.run("agentACP.open"),
   );
   await expect(
-    page.getByRole("button", { name: "Connect", exact: true }),
+    page.getByRole("button", { name: /^Start / }),
   ).toBeDisabled();
   await expect(
     page.getByText("Connect to a runtime workspace to use agents."),
@@ -214,7 +214,7 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
         }
       }),
     ).toBe("FORBIDDEN");
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: /^Start / }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /^Ready$/ }),
     ).toBeVisible();
@@ -401,9 +401,9 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
       z.workbench.run("agentACP.open");
     });
     await expect(
-      page.getByRole("button", { name: "Connect", exact: true }),
+      page.getByRole("button", { name: /^Start / }),
     ).toBeEnabled();
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: /^Start / }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /^Ready$/ }),
     ).toBeVisible();

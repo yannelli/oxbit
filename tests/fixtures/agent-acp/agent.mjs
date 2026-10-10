@@ -229,6 +229,8 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
       if (text === "wait") return;
       if (text === "usage")
         update({ sessionUpdate: "usage_update", used: 1234, size: 8192 });
+      if (text === "usage-high")
+        update({ sessionUpdate: "usage_update", used: 7000, size: 8192 });
       if (text.startsWith("mcp:")) {
         const [, name, json] = /^mcp:([^:]+):([\s\S]*)$/.exec(text);
         const server = mcpServers.find((server) => server.name === "oxbit_workspace");

@@ -971,5 +971,9 @@
   "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.": "GitHub Copilot CLI を ACP モードで実行します。提示された認証方法でサインインするか、先に copilot を実行して /login を使ってください。",
   "No build for this runtime's platform": "このランタイムのプラットフォーム向けビルドはありません",
   "The registry publishes no checksum for this build": "レジストリはこのビルドのチェックサムを公開していません",
-  "Oxbit cannot extract this build's archive format": "Oxbit はこのビルドのアーカイブ形式を展開できません"
+  "Oxbit cannot extract this build's archive format": "Oxbit はこのビルドのアーカイブ形式を展開できません",
+  "Context usage": "コンテキスト使用量",
+  "{0}% of context used": "コンテキストの {0}% を使用",
+  "{0}% context": "コンテキスト {0}%",
+  "{0} tokens": "{0} トークン"
 }

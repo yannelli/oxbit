@@ -133,6 +133,16 @@ export async function installedCommand(dir: string, cmd: string) {
   if (process.platform !== "win32") await fs.chmod(real, stat.mode | 0o111);
   return real;
 }
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal) {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new Error("Agent connection cancelled"));
+  return new Promise<T>((resolve, reject) => {
+    const stop = () => reject(new Error("Agent connection cancelled"));
+    signal.addEventListener("abort", stop, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", stop));
+  });
+}
+
 async function extract(archive: string, dest: string, format: string, signal?: AbortSignal) {
   const tar: [string, string[]] = ["tar", ["-xf", archive, "-C", dest]];
   const attempts = format !== ".zip" ? [tar] : [...(process.platform === "darwin" ? [tar] : []), ["unzip", ["-q", archive, "-d", dest]] as [string, string[]]];
@@ -156,7 +166,7 @@ async function extract(archive: string, dest: string, format: string, signal?: A
 /** The runtime's copy of the ACP Registry. Nothing is downloaded until a listing or a registry launch needs it. */
 export class ACPRegistry {
   private fetching?: Promise<{ agents: RegistryEntry[]; fetchedAt: string }>;
-  private installs = new Map<string, Promise<string>>();
+  private installs = new Map<string, { promise: Promise<string>; abort: AbortController; waiters: number }>();
   readonly installRoot: string;
   constructor(
     private dataDir: string,
@@ -269,16 +279,26 @@ export class ACPRegistry {
     }
     return { ...base, command: await this.install(agent, picked.spec, signal), args: picked.spec.args };
   }
-  install(agent: RegistryEntry, spec: RegistryBinary, signal?: AbortSignal) {
+  /** Concurrent callers share one download, which stops only after every caller has cancelled. */
+  async install(agent: RegistryEntry, spec: RegistryBinary, signal?: AbortSignal) {
     const key = `${agent.id}@${agent.version}`;
-    let pending = this.installs.get(key);
-    if (!pending) {
-      pending = this.installOnce(agent, spec, signal).finally(() => this.installs.delete(key));
-      this.installs.set(key, pending);
+    let shared = this.installs.get(key);
+    if (!shared) {
+      const abort = new AbortController();
+      const promise = this.installOnce(agent, spec, abort.signal).finally(() => this.installs.delete(key));
+      promise.catch(() => {});
+      shared = { promise, abort, waiters: 0 };
+      this.installs.set(key, shared);
     }
-    return pending;
+    const install = shared;
+    install.waiters++;
+    try {
+      return await untilAborted(install.promise, signal);
+    } finally {
+      if (--install.waiters === 0 && signal?.aborted) install.abort.abort();
+    }
   }
-  private async installOnce(agent: RegistryEntry, spec: RegistryBinary, signal?: AbortSignal) {
+  private async installOnce(agent: RegistryEntry, spec: RegistryBinary, signal: AbortSignal) {
     const dir = this.dir(agent);
     if (await exists(dir)) return installedCommand(dir, spec.cmd);
     if (!spec.sha256) throw new RpcError("INVALID_PARAMS", `${agent.name} has no sha256 checksum in the ACP Registry, so Oxbit does not install it`);
@@ -290,10 +310,10 @@ export class ACPRegistry {
     try {
       const archive = path.join(temp, `archive${format}`), files = path.join(temp, "files");
       const hash = createHash("sha256");
-      const body = await this.open(spec.archive, signal ?? new AbortController().signal, MAX_ARCHIVE, `The ${agent.name} archive`);
+      const body = await this.open(spec.archive, signal, MAX_ARCHIVE, `The ${agent.name} archive`);
       await pipeline(async function* () {
         for await (const chunk of body) { hash.update(chunk); yield chunk; }
-      }, createWriteStream(archive, { mode: 0o600 }), signal ? { signal } : {});
+      }, createWriteStream(archive, { mode: 0o600 }), { signal });
       if (hash.digest("hex") !== spec.sha256)
         throw new RpcError("INVALID_PARAMS", `The ${agent.name} archive does not match its sha256 checksum`);
       await extract(archive, files, format, signal);

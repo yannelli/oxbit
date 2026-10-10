@@ -128,7 +128,7 @@ test("the registry browser filters, selects, and maps the old runtime error", as
     await expect(picker.getByRole("radio", { name: "OpenCode" })).toHaveAttribute("aria-checked", "true");
     expect(await setting(page, "agentACP.provider")).toBe("opencode");
     expect(await selection(page)).toEqual({ provider: "opencode", registry: { id: "opencode" } });
-    await panel.getByRole("button", { name: "Connect", exact: true }).click();
+    await panel.getByRole("button", { name: /^Start / }).click();
     await expect(panel.getByRole("alert")).toHaveText(
       "This runtime does not support OpenCode. Update Oxbit on the runtime host.",
     );
@@ -166,7 +166,7 @@ test("a custom agent stores parsed arguments as the JSON setting", async ({ page
     await expect(panel.locator(".acp-header").getByRole("textbox", { name: "Agent arguments" })).toHaveValue(
       'acp --label "two words" its',
     );
-    await panel.getByRole("button", { name: "Connect", exact: true }).click();
+    await panel.getByRole("button", { name: /^Start / }).click();
     await expect(panel.getByRole("alert")).toHaveText(
       "This runtime does not support Fixture agent. Update Oxbit on the runtime host.",
     );
@@ -180,7 +180,7 @@ test("the status item and a toast report a turn that ends while the panel is hid
   try {
     const item = page.locator(".statusbar .acp-status-item");
     await expect(item).toHaveCount(0);
-    await panel.getByRole("button", { name: "Connect", exact: true }).click();
+    await panel.getByRole("button", { name: /^Start / }).click();
     await expect(panel.locator(".acp-status")).toHaveText("Ready");
     await expect(item).toHaveText("Agent ready");
     for (const dismiss of await page.getByRole("button", { name: "Dismiss notification" }).all()) await dismiss.click();
@@ -263,5 +263,72 @@ test("a registry binary agent installs through the runtime and its request badge
     await close();
     await host.close();
     await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("starting an agent without a build for the runtime and an unreachable registry show their reasons", async ({ page }) => {
+  const target = platformTarget()!;
+  const other = target === "linux-x86_64" ? "windows-x86_64" : "linux-x86_64";
+  const host = await serve({
+    "/registry.json": () => ({
+      headers: { "content-type": "application/json" },
+      body: registryDocument([{
+        id: "elsewhere", name: "Elsewhere Agent", version: "1.0.0", description: "Builds for another platform",
+        distribution: { binary: { [other]: { archive: "https://example.com/agent.tar.gz", cmd: "./agent", sha256: "0".repeat(64) } } },
+      }]),
+    }),
+  });
+  const first = await boot(page, "acp-start-elsewhere", `${host.base}/registry.json`);
+  try {
+    await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.provider", "elsewhere", "user"));
+    await first.panel.getByRole("button", { name: "Start Elsewhere Agent" }).click();
+    await expect(first.panel.getByRole("alert")).toHaveText(`Elsewhere Agent has no ACP Registry build for ${target}`);
+  } finally {
+    await first.close();
+    await host.close();
+  }
+  const unreachable = await boot(await page.context().newPage(), "acp-start-offline", `${host.base}/registry.json`);
+  try {
+    await unreachable.panel.getByRole("button", { name: /More agents…/ }).click();
+    await expect(unreachable.panel.getByRole("alert")).toContainText("Could not reach the ACP Registry");
+  } finally {
+    await unreachable.close();
+  }
+});
+
+test("a system notification reports a finished turn while Oxbit is in the background", async ({ page }) => {
+  const { panel, close } = await boot(page, "acp-start-notify");
+  try {
+    await panel.getByRole("button", { name: /^Start / }).click();
+    await expect(panel.locator(".acp-status")).toHaveText("Ready");
+    await page.evaluate(() => {
+      const w = window as any;
+      w.__notifications = [];
+      w.Notification = class {
+        static permission = "granted";
+        onclick: (() => void) | null = null;
+        closed = false;
+        constructor(public title: string, public options: NotificationOptions) { w.__notifications.push(this); }
+        close() { this.closed = true; }
+      };
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    });
+    const notifications = () => page.evaluate(() =>
+      (window as any).__notifications.map((n: any) => ({ title: n.title, tag: n.options.tag, closed: n.closed })));
+    await panel.getByRole("textbox", { name: "Message agent" }).fill("hello");
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+    await expect.poll(notifications).toEqual([{ title: "Agent finished", tag: "oxbit-agent-acp", closed: false }]);
+    await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp-agents"));
+    await expect(panel).toBeHidden();
+    await page.evaluate(() => (window as any).__notifications[0].onclick());
+    await expect(panel).toBeVisible();
+    expect((await notifications())[0].closed).toBe(true);
+    await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.notifications", "never", "user"));
+    await panel.getByRole("textbox", { name: "Message agent" }).fill("again");
+    await panel.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" }).first()).toBeVisible();
+    expect(await notifications()).toHaveLength(1);
+  } finally {
+    await close();
   }
 });

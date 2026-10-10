@@ -69,11 +69,11 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | `@` mentions | All | Workspace files only |
 | Image paste and drop | All | Yes, when the agent advertises image prompts |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification only; native macOS and iOS notifications need a Tauri plugin |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | Browser Notification when the app is in the background. Native macOS and iOS notifications need the Tauri notification plugin, a new dependency awaiting approval |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes |
 | Checkpoints and restore | Zed, VS Code, Cursor | Not yet; reviewed edits have per-edit undo |
 | Parallel threads in tabs | Zed, VS Code, Cursor | Not yet; Runtime sessions lists up to 3 agents per device |
-| Context-usage meter | Zed, VS Code, JetBrains, Cursor | Not yet |
-| Voice input | Cursor, Codex, Happy | Not yet |
-| Live Activities | Codex, GitHub, Cursor | Not yet |
+| Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% |
+| Voice input | Cursor, Codex, Happy | System dictation in the composer (iOS keyboard, macOS Dictation); no in-app microphone button |
+| Live Activities | Codex, GitHub, Cursor | Blocked: iOS suspends the app's WebView in the background, and Oxbit has no push relay to update an activity |

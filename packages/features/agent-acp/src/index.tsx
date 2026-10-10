@@ -15,6 +15,7 @@ import {
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
 import { AgentController, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
+import { ContextMeter } from "./context-meter.js";
 import { RegistryBrowser } from "./registry-browser.js";
 import { AgentSetup } from "./setup.js";
 import { OverflowMenu, type MenuItem } from "./overflow-menu.js";
@@ -426,7 +427,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             <span className={agent.busy ? "acp-dot working" : "acp-dot"} data-state={status} />
             <span className="acp-status-text">{tr(agent.status)}</span>
           </div>
-          {!connection && (
+          {!connection && (agent.messages.length > 0 || agent.archived) && (
             <button
               className="button acp-connect"
               data-tooltip={tr("Start {0}", { 0: agent.displayName })}
@@ -806,10 +807,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </div>
       </form>
       <div className="acp-footer">
-        {agent.usage && <div className="acp-usage" role="status" aria-label={tr("Context usage")}>
-          {tr("Context")} {agent.usage.used.toLocaleString()}/{agent.usage.size.toLocaleString()}
-          {agent.usage.cost && ` · ${agent.usage.cost.amount.toLocaleString()} ${agent.usage.cost.currency}`}
-        </div>}
+        {agent.usage && <ContextMeter usage={agent.usage} />}
         {connection ? (
           <div className="acp-provider" title={agent.displayName}>
             <Icon name="agent" size={14} />

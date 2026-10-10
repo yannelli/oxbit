@@ -56,6 +56,23 @@ const paste = (page: Page, base64: string, type = "image/png") =>
     input.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
   }, { base64, type });
 
+/** Drops a PNG of random pixels, which compresses poorly, so it exceeds the image transport budget. */
+const dropNoise = (page: Page, size: number) =>
+  page.locator(".acp-composer").evaluate(async (form, size) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const context = canvas.getContext("2d")!;
+    const pixels = context.createImageData(size, size);
+    for (let i = 0; i < pixels.data.length; i += 65536) crypto.getRandomValues(pixels.data.subarray(i, i + 65536));
+    for (let i = 3; i < pixels.data.length; i += 4) pixels.data[i] = 255;
+    context.putImageData(pixels, 0, 0);
+    const blob = await new Promise<Blob>((resolve) => canvas.toBlob((png) => resolve(png!), "image/png"));
+    const data = new DataTransfer();
+    data.items.add(new File([blob], "noise.png", { type: "image/png" }));
+    form.dispatchEvent(new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+    return blob.size;
+  }, size);
+
 test("composer sends before connect, sends on Enter, mentions files, pastes images and shows tool activity", async ({ page }) => {
   const app = await open(page);
   const { panel, input, log, ready } = app;
@@ -161,6 +178,13 @@ test("composer sends before connect, sends on Enter, mentions files, pastes imag
     await page.screenshot({ path: `${shots}/desktop-permission.png` });
     await approval.getByRole("button", { name: "Allow once" }).click();
     await expect(log).toContainText("allow-once");
+    await ready();
+
+    expect(await dropNoise(page, 600)).toBeGreaterThan(400_000);
+    await expect(panel.locator(".acp-attachments .acp-image-item")).toContainText("noise.png");
+    await input.fill("Dropped image");
+    await input.press("Enter");
+    await expect(log).toContainText("Received image image/webp");
     await ready();
 
     await page.evaluate(async ({ command, args }) => {

@@ -17,7 +17,8 @@ workspaces show runtime connection guidance.
 
 ## Starting an agent
 
-A new conversation shows an agent picker. Choose an agent and select **Start**,
+A new conversation shows an agent picker. Choose an agent and select **Start**
+(the panel's only start control until the conversation has messages),
 or type a message and send it: the panel starts the chosen agent and sends the
 message once the session is ready. The choice is saved as `agentACP.provider`.
 
@@ -90,7 +91,10 @@ button or sign in using the provider CLI, then retry the conversation.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
   and can be edited or removed.
 - Tool calls show an icon for their kind and their status. A **Working** row
-  shows the elapsed time of the current turn. Permission requests that edit
+  shows the elapsed time of the current turn.
+- When the agent reports context usage, a ring below the composer shows the
+  percent of the context window in use, with token counts. It turns to the
+  warning color from 85%. Permission requests that edit
   files show the proposed diff.
 
 ## Attention and placement
@@ -104,8 +108,8 @@ button or sign in using the provider CLI, then retry the conversation.
   offers **Open Agent**. When Oxbit is in the background, the browser shows a
   system notification if notification permission was granted. Set
   `agentACP.notifications` to `never` to turn these off.
-- Native macOS and iOS notifications, checkpoints, parallel threads, voice input
-  and a context-usage meter are not supported yet.
+- Native macOS and iOS notifications need the Tauri notification plugin, which
+  Oxbit does not include. On iOS and macOS, system dictation works in the composer.
 
 ## In-app tools
 

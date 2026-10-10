@@ -971,5 +971,9 @@
   "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.": "以 ACP 模式运行 GitHub Copilot CLI。通过提供的认证方式登录，或先运行 copilot 并使用 /login。",
   "No build for this runtime's platform": "没有适用于此运行时平台的构建",
   "The registry publishes no checksum for this build": "注册表未发布此构建的校验和",
-  "Oxbit cannot extract this build's archive format": "Oxbit 无法解压此构建的归档格式"
+  "Oxbit cannot extract this build's archive format": "Oxbit 无法解压此构建的归档格式",
+  "Context usage": "上下文用量",
+  "{0}% of context used": "已使用 {0}% 上下文",
+  "{0}% context": "上下文 {0}%",
+  "{0} tokens": "{0} 个令牌"
 }

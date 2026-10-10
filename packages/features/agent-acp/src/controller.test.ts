@@ -216,6 +216,17 @@ describe("ACP session lifecycle", () => {
     expect(agent.requests.map(request => request.requestId)).toEqual(["next-approval"]);
     agent.dispose();
   });
+  it("keeps the turn start time until the turn ends", () => {
+    const { agent } = setup();
+    const now = vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(5000);
+    agent.busy = true;
+    agent.busy = true;
+    expect(agent.turnStartedAt).toBe(1000);
+    agent.busy = false;
+    expect(agent.turnStartedAt).toBeUndefined();
+    now.mockRestore();
+    agent.dispose();
+  });
   it("keeps newer queue events and draft edits during enqueue and interrupt", async () => {
     const { agent, runtime, listeners } = setup();
     const enqueue = deferred();

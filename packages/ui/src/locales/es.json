@@ -971,5 +971,9 @@
   "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.": "Ejecuta GitHub Copilot CLI en modo ACP. Inicia sesión con un método de autenticación disponible o ejecuta copilot y usa /login primero.",
   "No build for this runtime's platform": "No hay compilación para la plataforma de este runtime",
   "The registry publishes no checksum for this build": "El registro no publica una suma de comprobación para esta compilación",
-  "Oxbit cannot extract this build's archive format": "Oxbit no puede extraer el formato de archivo de esta compilación"
+  "Oxbit cannot extract this build's archive format": "Oxbit no puede extraer el formato de archivo de esta compilación",
+  "Context usage": "Uso del contexto",
+  "{0}% of context used": "{0} % del contexto usado",
+  "{0}% context": "{0} % de contexto",
+  "{0} tokens": "{0} tokens"
 }

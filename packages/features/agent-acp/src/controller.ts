@@ -107,7 +107,16 @@ export class AgentController {
   selection?: ACPLaunch;
   registry?: ACPRegistryListing;
   registryLoading = false;
-  busy = false;
+  private busyValue = false;
+  /** When the current turn started; the Working row reads it so remounts keep the elapsed time. */
+  turnStartedAt?: number;
+  get busy() {
+    return this.busyValue;
+  }
+  set busy(value: boolean) {
+    if (value !== this.busyValue) this.turnStartedAt = value ? Date.now() : undefined;
+    this.busyValue = value;
+  }
   connecting = false;
   cancelling = false;
   updatingSettings = false;

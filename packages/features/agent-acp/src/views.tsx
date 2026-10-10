@@ -247,7 +247,7 @@ function WorkingRow({ agent }: { agent: AgentController }) {
   const busy = agent.busy;
   useEffect(() => {
     if (!busy) return setTurn(undefined);
-    const started = Date.now();
+    const started = agent.turnStartedAt ?? Date.now();
     setTurn({ started, now: started });
     const node = row.current;
     let visible = true;

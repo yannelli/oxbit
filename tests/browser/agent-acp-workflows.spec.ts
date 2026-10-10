@@ -76,7 +76,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await expect(panel.getByRole("textbox", { name: "Agent executable" })).toBeVisible();
     await panel.screenshot({ path: "evidence/agent-acp/workflows/setup-dark.png" });
     await menu("Agent setup");
-    await panel.getByRole("button", { name: "Connect", exact: true }).click();
+    await panel.getByRole("button", { name: /^Start / }).click();
     await ready();
     await composer.fill("wait");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
@@ -114,7 +114,13 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await ready();
     expect(await fs.readFile(path.join(root, "hello.txt"), "utf8")).toBe("hello from disk\n");
     await send("usage");
-    await expect(panel.getByRole("status", { name: "Context usage" })).toContainText("1,234/8,192");
+    const usage = panel.getByRole("meter", { name: "Context usage" });
+    await expect(usage).toContainText("1,234/8,192");
+    await expect(usage).toHaveAttribute("aria-valuetext", "15% of context used");
+    await expect(usage).not.toHaveAttribute("data-level", "high");
+    await send("usage-high");
+    await expect(usage).toHaveAttribute("aria-valuetext", "85% of context used");
+    await expect(usage).toHaveAttribute("data-level", "high");
     for (const dismiss of await page.getByRole("button", { name: "Dismiss notification" }).all()) await dismiss.click();
     expect((await panel.locator(".acp-header").boundingBox())!.height).toBeLessThanOrEqual(48);
     expect((await panel.locator(".acp-composer").boundingBox())!.height).toBeLessThanOrEqual(180);
@@ -243,7 +249,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
       z.workbench.run("agentACP.open");
     });
     await expect(
-      panel.getByRole("button", { name: "Connect", exact: true }),
+      panel.getByRole("button", { name: /^Start / }),
     ).toBeVisible();
     await panel.getByRole("button", { name: "History", exact: true }).click();
     await panel
