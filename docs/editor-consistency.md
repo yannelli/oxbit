@@ -84,10 +84,12 @@ when an intentional retry needs the same ID. An unknown retired ID returns
 `OPERATION_RESULT_EXPIRED`. Neither response executes the operation again.
 Recovery checks status instead of automatically retrying mutations.
 
-Known legacy IDs remain queryable while retained. New opaque IDs are accepted
-until legacy admission closes at rotation or migration compaction. Updated
-clients should use generated epoch-qualified IDs. Running requests retain their
-records until completion; restart-interrupted operations remain unreplayable.
+Clients before 0.6.2 send plain IDs without an epoch. The runtime keeps
+accepting them. Each rotation keeps the newest 128 finished records, so plain-ID
+records stay bounded with the epoch-qualified ones. A plain ID whose record was
+dropped reads as unknown, and a retry with it executes again. Updated clients
+should use generated epoch-qualified IDs. Running requests retain their records
+until completion; restart-interrupted operations remain unreplayable.
 
 [Stripe's idempotency contract](https://docs.stripe.com/api/idempotent_requests)
 documents both retention and the behavior of reused expired keys. Oxbit rejects

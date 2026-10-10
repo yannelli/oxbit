@@ -70,16 +70,26 @@ describe("bounded operation history", () => {
     }
   });
 
-  it("compacts legacy history and closes opaque IDs before discarding their records", () => {
+  it("compacts legacy history and keeps admitting plain IDs from older clients", () => {
     const legacy: Operation[] = Array.from({ length: MAX_RETAINED_OPERATIONS + 1 }, (_, index) => ({
       id: `legacy-${index}`, owner: "owner", method: "git.commit", status: "completed", startedAt: index, result: { commit: String(index) },
     }));
     const history = new OperationHistory(undefined, legacy);
     expect([...history.values()]).toHaveLength(OPERATIONS_PER_EPOCH);
-    expect(history.status("owner", legacy[0].id).status).toBe("expired");
+    expect(history.status("owner", legacy[0].id).status).toBe("unknown");
     expect(history.get("owner", legacy.at(-1)!.id)?.result).toEqual({ commit: String(MAX_RETAINED_OPERATIONS) });
-    expect(() => history.begin("owner", legacy[0].id, "git.commit")).toThrow(/expired/);
-    expect(() => history.begin("owner", "another-opaque-id", "git.commit")).toThrow(/expired/);
-    expect(complete(history).status).toBe("completed");
+    expect(() => history.begin("owner", "op:malformed", "git.commit")).toThrow(/expired/);
+    const plain = history.begin("owner", randomUUID(), "git.commit");
+    history.complete(plain, { commit: "plain" });
+    for (let count = 1; count < OPERATIONS_PER_EPOCH; count++) {
+      if (count % 2) complete(history);
+      else history.complete(history.begin("owner", randomUUID(), "fs.mkdir"), { ok: true });
+      expect([...history.values()].length).toBeLessThanOrEqual(MAX_RETAINED_OPERATIONS);
+    }
+    expect(history.get("owner", plain.id)?.result).toEqual({ commit: "plain" });
+    expect(() => history.begin("owner", plain.id, "git.commit")).toThrow(/already exists/);
+    for (let count = 0; count < OPERATIONS_PER_EPOCH; count++) history.complete(history.begin("owner", randomUUID(), "fs.mkdir"), { ok: true });
+    expect(history.status("owner", plain.id).status).toBe("unknown");
+    expect(restore(history).begin("owner", randomUUID(), "git.commit").status).toBe("running");
   });
 });

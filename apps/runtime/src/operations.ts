@@ -5,7 +5,6 @@ export const OPERATIONS_PER_EPOCH = 128;
 export const MAX_RETAINED_OPERATIONS = OPERATIONS_PER_EPOCH * 2;
 export const MAX_RUNNING_OPERATIONS = 64;
 export const MAX_OPERATION_RESULT_BYTES = 1024 * 1024;
-const legacyEpoch = "legacy";
 
 export interface Operation {
   id: string;
@@ -27,7 +26,7 @@ export class OperationHistory {
   private records = new Map<string, Operation>();
   private state: OperationHistoryState;
   constructor(state?: OperationHistoryState, records: Operation[] = []) {
-    this.state = state ? { ...state } : { epoch: randomUUID(), previousEpoch: legacyEpoch, admitted: 0 };
+    this.state = state ? { ...state } : { epoch: randomUUID(), admitted: 0 };
     for (const record of records) {
       const operation = { ...record };
       if (operation.status === "running") {
@@ -49,8 +48,9 @@ export class OperationHistory {
   private key(owner: string, id: string) { return `${owner}:${id}`; }
   get(owner: string, id: string) { return this.records.get(this.key(owner, id)); }
   private accepts(id: string) {
-    const epoch = operationEpoch(id) ?? (id.startsWith("op:") ? undefined : legacyEpoch);
-    return epoch !== undefined && (epoch === this.state.epoch || epoch === this.state.previousEpoch);
+    const epoch = operationEpoch(id);
+    // Clients before 0.6.2 send plain IDs; they stay accepted, and lose duplicate detection once their record is dropped.
+    return epoch === undefined ? !id.startsWith("op:") : epoch === this.state.epoch || epoch === this.state.previousEpoch;
   }
   status(owner: string, id: string) {
     return this.get(owner, id) ?? (this.accepts(id)
@@ -66,7 +66,9 @@ export class OperationHistory {
     this.records.set(this.key(owner, id), operation);
     if (++this.state.admitted >= OPERATIONS_PER_EPOCH) {
       this.state = { epoch: randomUUID(), previousEpoch: this.state.epoch, admitted: 0 };
-      for (const [key, record] of this.records) if (record.status !== "running" && !this.accepts(record.id)) this.records.delete(key);
+      let retained = 0;
+      for (const [key, record] of [...this.records].reverse())
+        if (record.status !== "running" && (!this.accepts(record.id) || ++retained > OPERATIONS_PER_EPOCH)) this.records.delete(key);
     }
     return operation;
   }
