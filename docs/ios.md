@@ -1,7 +1,7 @@
 # Oxbit for iOS and iPadOS
 
 Created: 2026-09-09
-Last updated: 2026-10-09
+Last updated: 2026-10-10
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
@@ -145,10 +145,12 @@ once `tauri-runtime-wry` takes tao 0.36 or later.
 
 `bun run ios:adhoc` passes `--export-method release-testing`, which is Xcode's current name for Ad Hoc. The build signs with `Apple Distribution: Ryan Yannelli (2P58V89SR7)` and only installs on the device UDIDs listed in the profile, so a new phone needs the profile regenerated in the Developer Portal with that device added.
 
-Install the profile once, then build and install with the device connected and trusted:
+The Live Activity extension `com.yannelli.oxbit.LiveActivity` needs its own ad hoc profile (`ios-iphone-oxbit-live-activity`) with the same devices; `ios:adhoc` archives the extension with it and restores the Xcode project afterwards.
+
+Install both profiles once, then build and install with the device connected and trusted:
 
 ```sh
-cp ios-iphone-oxbit.mobileprovision "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"
+cp ios-iphone-oxbit.mobileprovision ios-iphone-oxbit-live-activity.mobileprovision "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"
 bun run ios:adhoc
 xcrun devicectl list devices
 xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/apple/build/arm64/Oxbit.ipa
@@ -156,7 +158,7 @@ xcrun devicectl device install app --device <identifier> apps/ios/src-tauri/gen/
 
 ## TestFlight
 
-`bun run ios:build` archives with automatic signing for team `2P58V89SR7` and exports an IPA for App Store Connect. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; see [export compliance](release.md#export-compliance). `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
+`bun run ios:build` needs the release workflow's `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, `IOS_MOBILE_PROVISION` and `IOS_LIVE_ACTIVITY_PROVISION`. It signs the app and the `OxbitLiveActivity` extension with their App Store profiles and exports an IPA for App Store Connect; `bun run release` skips the IPA without these variables. `.github/workflows/ios.yml` builds and checks every pull request on `macos-26`. On `v*` tags, `.github/workflows/release.yml` signs with the same variables, then uploads to TestFlight with `APPLE_API_KEY`, `APPLE_API_ISSUER`, and `APPLE_API_KEY_BASE64`; see [signed releases](release.md). `Info.ios.plist` sets `ITSAppUsesNonExemptEncryption` to false; see [export compliance](release.md#export-compliance). `scripts/ios/build-number.mjs` picks the build number from App Store Connect.
 
 Each release needs `docs/testflight/<full-package-version>.md` with iPhone and iPad
 tester instructions. The tag workflow validates that file before building, fills

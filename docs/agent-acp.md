@@ -180,9 +180,12 @@ Added 2026-10-10.
   **Failed**. A finished or failed activity is dismissed 15 minutes after the turn
   ends. Disconnecting the thread, disabling Agent ACP or closing the workspace ends
   it at once.
-- The app updates the activity itself. Once iOS suspends Oxbit, the activity keeps
-  its last state and is marked stale 15 minutes after the last update. Updates
-  while suspended need push delivery through a relay, which Oxbit does not have.
+- The app updates the activity itself and re-sends a working or waiting state
+  every 5 minutes while it runs. Once iOS suspends Oxbit, the activity keeps its
+  last state and shows **Open Oxbit to refresh** 15 minutes after the last update.
+  Updates while suspended need push delivery through a relay, which Oxbit does not have.
+- The `OxbitLiveActivity` widget extension (`com.yannelli.oxbit.LiveActivity`)
+  draws the activity; `docs/release.md` covers its signing profile.
 - The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in
   `@oxbit/sdk`) on each state change. The iOS app registers it per workspace
   (`apps/ios/src/main.tsx`); other hosts register none, so nothing is sent.

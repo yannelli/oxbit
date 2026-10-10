@@ -1,6 +1,6 @@
 # Signed releases
 
-Created: 2026-10-02. Last updated: 2026-10-09.
+Created: 2026-10-02. Last updated: 2026-10-10.
 
 `.github/workflows/release.yml` builds, signs, and publishes a release when a
 `v<version>` tag is pushed. The tag must match the root `package.json` version.
@@ -118,6 +118,7 @@ to true, and add the approved code as `ITSEncryptionExportComplianceCode`.
 | `APPLE_API_KEY`, `APPLE_API_ISSUER`, `APPLE_API_KEY_BASE64` | App Store Connect API key ID, issuer ID, base64 `.p8` |
 | `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD` | Base64 `.p12` of an Apple Distribution identity and its password |
 | `IOS_MOBILE_PROVISION` | Base64 App Store provisioning profile for `com.yannelli.oxbit` |
+| `IOS_LIVE_ACTIVITY_PROVISION` | Base64 App Store provisioning profile for the Live Activity extension `com.yannelli.oxbit.LiveActivity` |
 
 Repository variable `OXBIT_UPDATER_PUBLIC_KEY` holds the updater public key.
 
@@ -133,9 +134,13 @@ Repository variable `OXBIT_UPDATER_PUBLIC_KEY` holds the updater public key.
   rejects Xcode-managed profiles for manual signing, so the profile is a
   manually created `IOS_APP_STORE` profile ("Oxbit CI App Store"). The CI
   distribution certificate and profile both expire on 2027-10-02.
+- The Live Activity extension signs with its own `IOS_APP_STORE` profile
+  ("Oxbit CI Live Activity App Store", same certificate), which
+  `scripts/ios/run.mjs build` installs from `IOS_LIVE_ACTIVITY_PROVISION` and
+  names in its export options next to the app's profile (2026-10-10).
 - Renewing the iOS pair: create a CSR with `openssl req -new`, `POST /v1/certificates`
   with `certificateType: DISTRIBUTION`, then `POST /v1/profiles` with
-  `profileType: IOS_APP_STORE` for that certificate, and replace the three `IOS_*`
+  `profileType: IOS_APP_STORE` for that certificate once per bundle ID, and replace the four `IOS_*`
   secrets.
 
 ## References

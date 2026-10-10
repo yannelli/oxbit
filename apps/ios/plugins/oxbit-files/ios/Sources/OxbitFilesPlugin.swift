@@ -31,6 +31,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let signing = CommitSigning()
   private let runtimeDownload = RuntimeDownload()
   private let dictation = Dictation()
+  private let liveActivity = LiveActivity()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -89,6 +90,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func stopDictation(_ invoke: Invoke) {
     dictation.stop(invoke)
+  }
+
+  @objc public func liveActivity(_ invoke: Invoke) {
+    liveActivity.handle(invoke)
   }
 
   @objc public func pickFolder(_ invoke: Invoke) {

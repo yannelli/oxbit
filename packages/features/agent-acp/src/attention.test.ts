@@ -99,6 +99,28 @@ describe("agent activity", () => {
     ]);
     expect(updates[0]).toMatchObject({ agent: "Codex ACP", title: "Fix login", startedAt: expect.any(Number) });
   });
+  it("re-sends a working state every 5 minutes until the turn ends", () => {
+    vi.useFakeTimers();
+    try {
+      const { agent, listeners, services } = setup(true);
+      const updates: (AgentActivityUpdate | null)[] = [];
+      services.agentActivity = { update: vi.fn(async (update: AgentActivityUpdate | null) => { updates.push(update); }) };
+      listeners.get("acp.turnStarted")!({ id: "c", messageId: "m1", text: "Fix login" });
+      vi.advanceTimersByTime(10 * 60_000);
+      expect(updates.map((update) => update?.status)).toEqual(["working", "working", "working"]);
+      expect(updates[2]).toEqual(updates[0]);
+      listeners.get("acp.turnEnded")!({ id: "c", stopReason: "end_turn" });
+      agent.changed();
+      vi.advanceTimersByTime(10 * 60_000);
+      expect(updates.map((update) => update?.status)).toEqual(["working", "working", "working", "finished"]);
+      agent.dispose();
+      vi.advanceTimersByTime(10 * 60_000);
+      expect(updates.at(-1)).toBeNull();
+      expect(updates).toHaveLength(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("agent selection and resume", () => {

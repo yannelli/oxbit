@@ -12,6 +12,7 @@ const COMMANDS: &[&str] = &[
     "commit_signing",
     "start_dictation",
     "stop_dictation",
+    "live_activity",
 ];
 
 fn main() {

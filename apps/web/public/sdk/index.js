@@ -1393,6 +1393,7 @@ var ACP_CUSTOM_PROVIDER = "custom";
 var ACP_REGISTRY_URL = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
 var acpPreset = (id) => ACP_PROVIDERS.find((provider) => provider.id === id);
 var acpBuiltinForRegistry = (registryId) => ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
+var AGENT_ACTIVITY_SERVICE = "agentActivity";
 
 // packages/sdk/src/tasks.ts
 var taskPhases = [
@@ -1450,6 +1451,7 @@ export {
   ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
   ACP_REGISTRY_URL,
+  AGENT_ACTIVITY_SERVICE,
   SDK_VERSION,
   SETTINGS_SCHEMA_URI,
   acpBuiltinForRegistry,

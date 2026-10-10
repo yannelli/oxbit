@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, and dictate text with speech recognition.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, and show agent turns as a Live Activity.
 
 #### This default permission set includes the following:
 
@@ -17,6 +17,7 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-commit-signing`
 - `allow-start-dictation`
 - `allow-stop-dictation`
+- `allow-live-activity`
 
 ## Permission Table
 
@@ -153,6 +154,32 @@ Enables the git_credentials command without any pre-configured scope.
 <td>
 
 Denies the git_credentials command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-live-activity`
+
+</td>
+<td>
+
+Enables the live_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-live-activity`
+
+</td>
+<td>
+
+Denies the live_activity command without any pre-configured scope.
 
 </td>
 </tr>

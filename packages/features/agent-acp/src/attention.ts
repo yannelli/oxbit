@@ -2,6 +2,8 @@ import { AGENT_ACTIVITY_SERVICE, type AgentActivityService, type AgentActivityUp
 import { translate as tr } from "@oxbit/ui";
 
 export const AGENT_VIEW = "agent-acp";
+// LiveActivity.swift marks the activity stale 15 minutes after its last update.
+const ACTIVITY_REFRESH_MS = 5 * 60_000;
 type Badge = { count: number; label: string; tone?: "attention" | "info" };
 type Outcome = "finished" | "failed";
 export interface ThreadState {
@@ -34,6 +36,7 @@ export class Attention {
   private badge = "null";
   private outcome?: Outcome;
   private activity = "null";
+  private refresh?: ReturnType<typeof setTimeout>;
   constructor(private options: FeatureOptions) {}
   private panelHidden() {
     return this.options.workbench.panelVisible?.(AGENT_VIEW) === false;
@@ -69,6 +72,7 @@ export class Attention {
   }
   dispose() {
     if (this.activity !== "null") this.send(null);
+    clearTimeout(this.refresh);
   }
   /** Mirrors the active thread to the host's agent activity service, such as an iOS Live Activity. */
   private mirror(thread: () => ThreadState) {
@@ -81,7 +85,11 @@ export class Attention {
     this.activity = key;
     this.send(update);
   }
+  /** Re-sends a working or waiting state while the app runs, so its stale date passes only after suspension. */
   private send(update: AgentActivityUpdate | null) {
+    clearTimeout(this.refresh);
+    if (update?.status === "working" || update?.status === "waiting")
+      this.refresh = setTimeout(() => this.send(update), ACTIVITY_REFRESH_MS);
     const service = this.options.kernel.services.optional<AgentActivityService>(AGENT_ACTIVITY_SERVICE);
     service?.update(update).catch((error: unknown) => console.warn("Agent activity update failed", error));
   }
