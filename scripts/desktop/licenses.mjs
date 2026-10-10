@@ -42,7 +42,8 @@ async function visit(directory) {
   const require = createRequire(path.join(directory, "package.json"));
   for (const name of Object.keys(pkg.dependencies || {})) {
     let resolved;
-    for (const candidate of require.resolve.paths(name) || []) {
+    // Core module names such as buffer and util return no search paths, so resolve the package manifest.
+    for (const candidate of require.resolve.paths(`${name}/package.json`) || []) {
       try {
         resolved = await fs.realpath(path.join(candidate, name));
         break;
