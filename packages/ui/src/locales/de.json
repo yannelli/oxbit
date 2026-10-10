@@ -894,6 +894,8 @@
   "Attach the active file's diagnostics": "Diagnosen der aktiven Datei anhängen",
   "Working": "Arbeitet",
   "Waiting for your approval": "Wartet auf Ihre Genehmigung",
+  "Restore checkpoint": "Checkpoint wiederherstellen",
+  "Restored files to before “{message}”": "Dateien auf den Stand vor „{message}“ zurückgesetzt",
   "Execute": "Ausführen",
   "Think": "Denken",
   "Switch mode": "Modus wechseln",

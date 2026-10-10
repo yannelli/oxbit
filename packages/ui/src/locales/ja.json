@@ -921,6 +921,8 @@
   "Attach the active file's diagnostics": "アクティブなファイルの診断を添付",
   "Working": "作業中",
   "Waiting for your approval": "承認を待っています",
+  "Restore checkpoint": "チェックポイントを復元",
+  "Restored files to before “{message}”": "「{message}」の前の状態にファイルを復元しました",
   "Execute": "実行",
   "Think": "思考",
   "Switch mode": "モード切り替え",

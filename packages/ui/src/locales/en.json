@@ -921,6 +921,8 @@
   "Attach the active file's diagnostics": "Attach the active file's diagnostics",
   "Working": "Working",
   "Waiting for your approval": "Waiting for your approval",
+  "Restore checkpoint": "Restore checkpoint",
+  "Restored files to before “{message}”": "Restored files to before “{message}”",
   "Execute": "Execute",
   "Think": "Think",
   "Switch mode": "Switch mode",

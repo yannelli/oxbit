@@ -21,8 +21,13 @@ function setup(document?: any, persistence?: any) {
     })),
     write: vi.fn(async () => ({})),
   };
+  const checkpoint = vi.fn<(...args: any[]) => Promise<any>>(async () => ({ unavailable: "not-repository" }));
   const options = {
-    runtime,
+    runtime: {
+      ...runtime,
+      request: (method: string, ...rest: any[]) =>
+        (method.startsWith("acp.checkpoint.") ? checkpoint : runtime.request)(method, ...rest),
+    },
     filesystem,
     documents: {
       get: () => document,
@@ -43,7 +48,7 @@ function setup(document?: any, persistence?: any) {
     sessionId: "session",
     authMethods: [],
   };
-  return { agent, runtime, filesystem, listeners, options };
+  return { agent, runtime, checkpoint, filesystem, listeners, options };
 }
 describe("ACP editor integration", () => {
   it("answers native workspace context from the open editor", async () => {
@@ -399,6 +404,7 @@ describe("ACP session lifecycle", () => {
       runtime.request.mockReturnValueOnce(old.promise);
       agent.draft = "Old prompt";
       const first = agent.action(() => agent.send());
+      await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
       await agent.disconnect();
       agent.connection = {
         id: "new",
@@ -702,6 +708,7 @@ describe("dispatched subagents in the editor", () => {
     );
     agent.draft = "Delegate";
     const turn = agent.send();
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
     receive(listeners, child());
     receive(listeners, child("b", "a"), 2);
     agent.selectSubagent("b");
@@ -892,6 +899,47 @@ describe("dispatched subagents in the editor", () => {
       { kind: "subagent", id: "identified" },
       { kind: "notice", text: "After dispatch" },
     ]);
+    agent.dispose();
+  });
+});
+describe("ACP checkpoints", () => {
+  const before = "a".repeat(40), after = "b".repeat(40);
+  it("stores a checkpoint on each sent message and still sends when creation fails", async () => {
+    const { agent, runtime, checkpoint } = setup();
+    checkpoint.mockResolvedValueOnce({ tree: before });
+    agent.draft = "First";
+    await agent.send();
+    expect(agent.messages[0].checkpoint).toBe(before);
+    checkpoint.mockRejectedValueOnce(new Error("Checkpoint failed"));
+    agent.draft = "Second";
+    await agent.send();
+    expect(agent.messages[1].checkpoint).toBeUndefined();
+    expect(runtime.request.mock.calls.filter((call) => call[1]?.method === "session/prompt")).toHaveLength(2);
+    agent.dispose();
+  });
+  it("restores after checking unsaved edits and notes the restore in the conversation", async () => {
+    const document = { dirty: true };
+    const { agent, checkpoint, options } = setup(document);
+    const message = { id: "m", role: "user" as const, text: "Rewrite hello", checkpoint: before };
+    agent.messages.push(message);
+    agent.activity.push({ kind: "message", message });
+    checkpoint.mockImplementation(async (method: string) =>
+      method === "acp.checkpoint.diff"
+        ? { tree: after, changes: [{ status: "M", path: "hello.txt" }] }
+        : { restored: ["hello.txt"], deleted: [] });
+    agent.busy = true;
+    await expect(agent.restoreCheckpoint(message)).rejects.toThrow("Wait for the agent");
+    agent.busy = false;
+    await expect(agent.restoreCheckpoint(message)).rejects.toThrow("unsaved edits in hello.txt");
+    expect(checkpoint).not.toHaveBeenCalledWith("acp.checkpoint.restore", expect.anything());
+    document.dirty = false;
+    await agent.restoreCheckpoint(message);
+    expect(checkpoint).toHaveBeenCalledWith("acp.checkpoint.restore", { tree: before, paths: ["hello.txt"] });
+    expect(agent.activity.at(-1)).toEqual({
+      kind: "notice", text: "Restored files to before “{message}”", values: { message: "Rewrite hello" },
+    });
+    expect(agent.checkpoints.current).toBe(before);
+    expect(options.workbench.refreshFiles).toHaveBeenCalled();
     agent.dispose();
   });
 });

@@ -258,3 +258,23 @@ export interface ACPSubagentEvent {
   removedIds: string[];
   truncated: boolean;
 }
+/** Why a git checkpoint was not taken or cannot be compared. */
+export type ACPCheckpointUnavailable = {
+  unavailable: "not-repository" | "subdirectory" | "missing" | "timeout" | "failed";
+};
+/** `acp.checkpoint.create` result: the workspace tree, written without refs. */
+export type ACPCheckpoint = { tree: string } | ACPCheckpointUnavailable;
+/** A path that differs between the current files and a checkpoint. Restore deletes `D` paths. */
+export interface ACPCheckpointChange {
+  status: "A" | "M" | "D" | "T";
+  path: string;
+}
+/** `acp.checkpoint.diff` result. `tree` is the current workspace tree. */
+export type ACPCheckpointDiff =
+  | { tree: string; changes: ACPCheckpointChange[] }
+  | ACPCheckpointUnavailable;
+/** `acp.checkpoint.restore` result. */
+export interface ACPCheckpointRestore {
+  restored: string[];
+  deleted: string[];
+}
