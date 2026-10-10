@@ -919,5 +919,10 @@
   "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.": "Runs Taplo through the Oxbit runtime. Enable state and file types map to languageServers.taplo.enabled and languageServers.taplo.selectors.",
   "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.": "Runs Laravel through the Oxbit runtime. Enable state and file types map to languageServers.laravel.enabled and languageServers.laravel.selectors.",
   "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.": "Runs Intelephense through the Oxbit runtime. Enable state and file types map to languageServers.intelephense.enabled and languageServers.intelephense.selectors.",
-  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors."
+  "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.": "Runs LemMinX through the Oxbit runtime. Enable state and file types map to languageServers.lemminx.enabled and languageServers.lemminx.selectors.",
+  "Theme Packs": "Theme Packs",
+  "Import and remove theme packs.": "Import and remove theme packs.",
+  "Git Accounts and Commit Author": "Git Accounts and Commit Author",
+  "Sign in to Git hosts and set the name and email used for commits.": "Sign in to Git hosts and set the name and email used for commits.",
+  "Manage Git Accounts…": "Manage Git Accounts…"
 }

@@ -48,6 +48,7 @@ export { configurePanelWindows, type PanelWindowHost } from "./panel-windows.js"
 import { AboutDialog } from "./about.js";
 import { KeyBar } from "./key-bar.js";
 import { coarsePointer, installLongPress } from "./long-press.js";
+import { installEdgeSwipe } from "./edge-swipe.js";
 import { symbolKind, useDocumentSymbols } from "./symbols.js";
 export { symbolKind, useDocumentSymbols } from "./symbols.js";
 export { currentTheme, themeTypography, themeMode, themeVariables } from "./contributions.js";
@@ -417,8 +418,13 @@ export function Workbench({
   useEffect(() => {
     const root = rootRef.current;
     if (!root || !coarsePointer()) return;
-    return installLongPress(root);
-  }, []);
+    const removeLongPress = installLongPress(root);
+    const removeEdgeSwipe = installEdgeSwipe(root, side => workbench.openDock(side));
+    return () => {
+      removeLongPress();
+      removeEdgeSwipe();
+    };
+  }, [workbench]);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
   const theme = themeMode(kernel);
   const locale = String(
@@ -605,7 +611,7 @@ export function Workbench({
                 onClick={command("view.toggleLeftPanels")}
               />
               <IconButton
-                icon="layoutSide"
+                icon="layoutSideRight"
                 label={tr("Toggle right panels")}
                 aria-pressed={s.panelLayout.docks.right.visible}
                 onClick={command("view.toggleRightPanels")}
