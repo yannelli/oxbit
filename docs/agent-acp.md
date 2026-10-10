@@ -144,7 +144,7 @@ thread is opened.
   system notification if notification permission was granted. Set
   `agentACP.notifications` to `never` to turn these off.
 - Native macOS and iOS notifications need the Tauri notification plugin, which
-  Oxbit does not include. On iOS and macOS, system dictation works in the composer.
+  Oxbit does not include. The panel has no microphone button.
 
 ## In-app tools
 
