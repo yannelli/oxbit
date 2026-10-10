@@ -40,7 +40,7 @@ pub fn join(root: &str, relative: &str) -> String {
     }
 }
 
-fn parent(path: &str) -> &str {
+pub(super) fn parent(path: &str) -> &str {
     match path.rfind('/') {
         Some(0) => "/",
         Some(index) => &path[..index],

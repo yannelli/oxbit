@@ -17,7 +17,7 @@ use tauri::{
     AppHandle, Emitter, State,
 };
 
-fn absolute(home: &str, requested: &str) -> Result<String> {
+pub(super) fn absolute(home: &str, requested: &str) -> Result<String> {
     let requested = requested.trim();
     if requested.contains('\0') || requested.len() > 4096 {
         return Err(Error::invalid("Invalid remote folder"));

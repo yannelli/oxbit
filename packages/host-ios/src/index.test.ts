@@ -159,4 +159,14 @@ describe("recents", () => {
     expect(capped[0]!.id).toBe("fresh");
     expect(capped.some((item) => item.id === "w0")).toBe(false);
   });
+
+  it("keeps one entry per server folder when its id changes", async () => {
+    const existing = [
+      { id: "sshRuntime:old", kind: "sshRuntime" as const, name: "Build box: project", hostId: "host-1", remotePath: "/home/dev/project", lastOpened: 2 },
+      { id: "ssh:files", kind: "ssh" as const, name: "Build box: project", hostId: "host-1", remotePath: "/home/dev/project", lastOpened: 1 },
+    ];
+    invoke.mockResolvedValueOnce(existing).mockResolvedValueOnce(undefined);
+    const next = await rememberWorkspace({ id: "sshRuntime:new", kind: "sshRuntime", name: "Build box: project", hostId: "host-1", remotePath: "/home/dev/project" });
+    expect(next.map((item) => item.id)).toEqual(["sshRuntime:new", "ssh:files"]);
+  });
 });

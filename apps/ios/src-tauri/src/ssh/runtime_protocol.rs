@@ -187,3 +187,22 @@ pub fn remote_root(path: &str) -> Result<String> {
         format!("/~/{relative}")
     })
 }
+
+/// The workspace key's root for a resolved folder: under home it takes the `/~` form `remote_root`
+/// gives, so earlier keys stay the same and every spelling of one folder shares a key.
+pub fn key_root(home: &str, folder: &str) -> String {
+    let home = home.trim_end_matches('/');
+    if home.is_empty() {
+        return folder.to_string();
+    }
+    if folder == home {
+        return "/~".into();
+    }
+    match folder
+        .strip_prefix(home)
+        .and_then(|rest| rest.strip_prefix('/'))
+    {
+        Some(rest) if !rest.is_empty() => format!("/~/{}", rest.trim_end_matches('/')),
+        _ => folder.to_string(),
+    }
+}

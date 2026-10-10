@@ -23,7 +23,8 @@ export async function loadRecents(): Promise<RecentWorkspace[]> {
 }
 export async function rememberWorkspace(entry: Omit<RecentWorkspace, "lastOpened">): Promise<RecentWorkspace[]> {
   const replaced = (item: RecentWorkspace) =>
-    item.id === entry.id || (entry.runtimeId !== undefined && item.runtimeId === entry.runtimeId);
+    item.id === entry.id || (entry.runtimeId !== undefined && item.runtimeId === entry.runtimeId) ||
+    (entry.hostId !== undefined && item.kind === entry.kind && item.hostId === entry.hostId && item.remotePath === entry.remotePath);
   const next = [{ ...entry, lastOpened: Date.now() }, ...(await loadRecents()).filter((item) => !replaced(item))]
     .sort((a, b) => b.lastOpened - a.lastOpened)
     .slice(0, RECENTS_LIMIT);

@@ -40,7 +40,9 @@ function describe(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-type SshDialog = { preset?: SshTarget; mode?: "files" | "runtime" };
+type SshDialog = { preset?: SshTarget; mode?: "files" | "runtime"; browse?: boolean };
+
+const RECONNECT = { title: "Reconnect", command: "ssh.runtime.reconnect" };
 
 function sshTarget(recent?: RecentWorkspace, mode?: SshDialog["mode"]): SshDialog {
   return recent?.hostId ? { preset: { hostId: recent.hostId, path: recent.remotePath ?? "~" }, mode } : { mode };
@@ -114,14 +116,18 @@ function App() {
       return;
     }
     const workbench = current.current?.session.workbench;
-    if (event.state === "failed") workbench?.notify(event.message, "error");
-    else if (event.state === "running") workbench?.notify("Reconnected to the remote workspace.", "info");
-    else workbench?.notify(event.message, "info");
+    if (!workbench) return;
+    if (event.state === "failed" || event.state === "running")
+      workbench.set({ notifications: workbench.state.notifications.filter(notice => !notice.actions?.some(action => action.command === RECONNECT.command)) });
+    if (event.state === "failed") workbench.notify(event.message, "error", { ttl: 0, actions: [RECONNECT] });
+    else if (event.state === "running") workbench.notify("Reconnected to the remote workspace.", "info");
+    else workbench.notify(event.message, "info");
   }, []);
 
+  /** A failure arrives as a `failed` event, whose notice offers Reconnect. */
   const resume = useCallback(() => {
-    const remote = current.current?.remote;
-    if (remote) void ssh.runtimeResume(remote.id).catch(() => {});
+    const active = current.current;
+    if (active?.remote) void ssh.runtimeResume(active.remote.id).then(() => active.session.runtime?.reconnect()).catch(() => {});
   }, []);
 
   const open = useCallback(async (request: OpenRequest) => {
@@ -130,7 +136,7 @@ function App() {
     if (request.kind === "sshRuntime" && active?.remote && active.recent.hostId === request.hostId) {
       if (active.recent.remotePath === request.path) {
         setSheet(false);
-        return;
+        return runtimeConnector.restart().then(() => undefined, describe);
       }
       // The new runtime cannot take the folder lock while the previous one holds it.
       await close();
@@ -237,6 +243,9 @@ function App() {
       ["ssh.connect", "Connect with SSH…", () => setSshConnect({})],
       ["ssh.runtime", "Start Oxbit on This Server…", () => setSshConnect({ mode: "runtime" })],
       ...workspace.remote ? [["ssh.runtime.reconnect", "Reconnect to Server", resume]] as const : [],
+      ...workspace.recent.hostId ? [["ssh.folder.switch", "Switch Folder…", () => setSshConnect({
+        ...sshTarget(workspace.recent, workspace.remote ? "runtime" : "files"), browse: true,
+      })]] as const : [],
       ...filesystem ? [
         ["ssh.upload", "Upload Files Here…", () => setTransfer({ kind: "upload", filesystem, directory: selectedDirectory(session) })],
         ["ssh.download", "Download to Device…", () =>
@@ -252,7 +261,7 @@ function App() {
     return () => {
       for (const disposable of disposables) disposable.dispose();
     };
-  }, [workspace?.session, workspace?.recent.kind, workspace?.remote, open, close, resume]);
+  }, [workspace?.session, workspace?.recent, workspace?.remote, open, close, resume]);
 
   const start = (
     <StartScreen
@@ -286,7 +295,7 @@ function App() {
       {gitSettings && <GitSettings repository={workspace?.git} onClose={() => setGitSettings(false)} />}
       {cloning && <CloneRepository baseGit={workspace?.recent.id === DOCUMENTS_ID ? workspace.git : undefined}
         onOpen={directory => open({ kind: "documents", directory })} onClose={() => setCloning(false)} />}
-      {sshConnect && <SshConnect preset={sshConnect.preset} mode={sshConnect.mode} progress={remoteProgress} lastFolders={lastFolders(recents)}
+      {sshConnect && <SshConnect preset={sshConnect.preset} mode={sshConnect.mode} browse={sshConnect.browse} progress={remoteProgress} lastFolders={lastFolders(recents)}
         onOpen={target => open({ kind: sshConnect.mode === "runtime" ? "sshRuntime" : "ssh", ...target })}
         onManage={() => { setSshConnect(undefined); setSshSettings(true); }} onClose={() => setSshConnect(undefined)} />}
       {sshSettings && <SshSettings onClose={() => setSshSettings(false)} />}
