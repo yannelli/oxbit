@@ -64,7 +64,9 @@ export function Settings({
     { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
     ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
   ];
-  const servers = owner || searching ? [] : records.filter(record => record.manifest.configuration?.some(setting => setting.category?.startsWith(SERVER_PREFIX)));
+  const servers = owner || modified ? [] : records
+    .filter(record => record.manifest.configuration?.some(setting => setting.category?.startsWith(SERVER_PREFIX)))
+    .filter(record => matchesQuery([record.manifest.name, record.manifest.id], query));
   const placeFields = (category?: string) => {
     const { page, section } = splitCategory(category);
     return [tr(page), page, section, section && sectionLabel(category!, section)];
@@ -109,7 +111,7 @@ export function Settings({
           <div className="search-input">
             <Icon name="search" />
             <input aria-label={tr("Search settings")} placeholder={tr("Search settings")} value={query} onChange={(e) => setQuery(e.target.value)} />
-            <span className="muted">{count} {tr("settings")}</span>
+            {!pageList && <span className="muted">{count} {tr("settings")}</span>}
           </div>
           <Select label={tr("Language override")} value={language} onChange={setLanguage}
             options={[{ value: "", label: tr("All languages") }, ...languageIds.map(value => ({ value, label: value }))]} />

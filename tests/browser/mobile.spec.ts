@@ -698,6 +698,7 @@ test("phone settings open on a page list, drill into a page, and return", async 
   for (const box of await pages.getByRole("button").evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect())))
     expect(box.height).toBeGreaterThanOrEqual(44);
   await expect(page.locator(".setting-row")).toHaveCount(0);
+  await expect(page.locator(".search-input .muted")).toHaveCount(0);
   await page.screenshot({ path: "evidence/settings-ui/phone-pages.png", animations: "disabled" });
 
   await pages.getByRole("button", { name: "Editor", exact: true }).click();
@@ -705,6 +706,7 @@ test("phone settings open on a page list, drill into a page, and return", async 
   await expect(page.getByRole("heading", { name: "Editor", level: 2 })).toBeVisible();
   await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation"]);
   await expect(search).toBeVisible();
+  await expect(page.locator(".search-input .muted")).not.toHaveText(/^0 /);
   const minimap = page.locator('[data-setting-id="editor.minimap"]');
   const text = await minimap.locator(".setting-title").boundingBox(), toggle = await minimap.getByRole("switch", { name: "Minimap" }).boundingBox();
   expect(toggle!.x).toBeGreaterThan(text!.x + text!.width - 1);

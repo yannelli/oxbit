@@ -902,11 +902,11 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .setting-field.stacked>.setting-control>.custom-select{width:min(100%,360px)}
 .setting-control>textarea{display:block;box-sizing:border-box;width:100%;min-height:0;resize:vertical;font-family:var(--font-mono);line-height:1.5}
 .setting-control>textarea[aria-invalid=true]{border-color:var(--err)}
-input[type=checkbox][role=switch]{box-sizing:border-box;width:32px;min-width:32px;height:18px;min-height:18px;margin:0;padding:0 2px;border-radius:9px;place-content:center start;background:var(--bg-input);cursor:pointer;transition:background-color 120ms}
-input[type=checkbox][role=switch]::after,input[type=checkbox][role=switch]:checked::after{content:"";width:12px;height:12px;border:0;border-radius:50%;background:var(--fg-3);transform:none;transition:transform 120ms}
-input[type=checkbox][role=switch]:checked{background:var(--accent);border-color:var(--accent)}
-input[type=checkbox][role=switch]:checked::after{background:var(--accent-fg);transform:translateX(14px)}
-.workbench[data-rm="1"] input[type=checkbox][role=switch],.workbench[data-rm="1"] input[type=checkbox][role=switch]::after{transition:none}
+input[type=checkbox][role=switch].setting-switch{box-sizing:border-box;width:32px;min-width:32px;height:18px;min-height:18px;margin:0;padding:0 2px;border-radius:9px;place-content:center start;background:var(--bg-input);cursor:pointer;transition:background-color 120ms}
+input[type=checkbox][role=switch].setting-switch::after,input[type=checkbox][role=switch].setting-switch:checked::after{content:"";width:12px;height:12px;border:0;border-radius:50%;background:var(--fg-3);transform:none;transition:transform 120ms}
+input[type=checkbox][role=switch].setting-switch:checked{background:var(--accent);border-color:var(--accent)}
+input[type=checkbox][role=switch].setting-switch:checked::after{background:var(--accent-fg);transform:translateX(14px)}
+.workbench[data-rm="1"] input[type=checkbox][role=switch].setting-switch,.workbench[data-rm="1"] input[type=checkbox][role=switch].setting-switch::after{transition:none}
 .setting-chips{display:flex;flex-direction:column;gap:8px;width:100%}
 .setting-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
 .setting-chip-item{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:24px;padding:0 2px 0 9px;border:1px solid var(--bd-strong);border-radius:12px;background:var(--bg-raised);font-family:var(--font-mono);font-size:calc(var(--font-mono-font-size) * 0.92)}
@@ -954,9 +954,9 @@ input[type=checkbox][role=switch]:checked::after{background:var(--accent-fg);tra
   .setting-control .select-trigger,.setting-control>.button{min-height:44px}
   .setting-title{min-height:36px}
   .setting-actions .icon-button{width:36px;height:36px}
-  input[type=checkbox][role=switch]{width:44px;min-width:44px;height:26px;min-height:26px;border-radius:13px;padding:0 3px}
-  input[type=checkbox][role=switch]::after,input[type=checkbox][role=switch]:checked::after{width:18px;height:18px}
-  input[type=checkbox][role=switch]:checked::after{transform:translateX(18px)}
+  input[type=checkbox][role=switch].setting-switch{width:44px;min-width:44px;height:26px;min-height:26px;border-radius:13px;padding:0 3px}
+  input[type=checkbox][role=switch].setting-switch::after,input[type=checkbox][role=switch].setting-switch:checked::after{width:18px;height:18px}
+  input[type=checkbox][role=switch].setting-switch:checked::after{transform:translateX(18px)}
   .setting-chip-item{min-height:36px;border-radius:18px}
   .setting-chip-item .icon-button{width:32px;height:32px;border-radius:16px}
   .setting-chip-add>input{min-height:44px;max-width:none}

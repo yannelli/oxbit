@@ -139,6 +139,9 @@ test("the Language Servers page lists each server with a switch and a Configure 
   await expect(page.locator(".settings-section-title")).toContainText(["YAML"]);
   await expect(page.locator('[data-setting-id="languageServer.yaml.fileTypes"]')).toBeVisible();
   await expect(page.locator(".server-row")).toHaveCount(0);
+  await search.fill("yaml language");
+  await expect(page.locator(".server-row .setting-title")).toHaveText([name]);
+  await expect(toggle).toBeChecked();
   await search.fill("");
   await page.getByRole("button", { name: `Configure ${name}` }).click();
   await expect(page.getByRole("heading", { name: `${name} Settings` })).toBeVisible();

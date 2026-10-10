@@ -42,7 +42,7 @@ The Theme Packs and Git Accounts action rows use the same layout with a button a
 
 ### Language Servers
 
-Each language server is its own extension (`oxbit.language-<id>` on the runtime and on iOS), and its settings use the category `Language Servers · <name>`. With no search and no Modified filter, the Language Servers page shows one row per extension from `kernel.extensions.list()` whose configuration has such a category, so disabled servers still appear. Each row has a switch that enables or disables the extension and writes `extension-enabled` and `extension-disabled` like the Extensions page, plus a Configure button that runs `settings.open` with `{ extension }`. The per-extension page groups that extension's settings by section, and omits the page heading when all settings share one page and the section heading when there is one section.
+Each language server is its own extension (`oxbit.language-<id>` on the runtime and on iOS), and its settings use the category `Language Servers · <name>`. Without the Modified filter, the Language Servers page shows one row per extension from `kernel.extensions.list()` whose configuration has such a category, so disabled servers still appear. A search keeps the rows whose extension name or id matches. Each row has a switch that enables or disables the extension and writes `extension-enabled` and `extension-disabled` like the Extensions page, plus a Configure button that runs `settings.open` with `{ extension }`. The per-extension page groups that extension's settings by section, and omits the page heading when all settings share one page and the section heading when there is one section.
 
 ### Chip editor
 
@@ -50,7 +50,7 @@ Each language server is its own extension (`oxbit.language-<id>` on the runtime 
 
 ### Phone
 
-Below 600px (`usePhone`, a `matchMedia("(max-width: 599px)")` hook), the content area opens on a page list with 44px rows. Choosing a page shows it with a back button labelled "All settings". A search or the Modified filter replaces the list with grouped results. The search box stays in the header on every view. Switches, enum selects, and number inputs (the `compact` variant) sit on the title line, right-aligned, with the description below at full width; the select is at most 45% of the viewport width. Text inputs, string lists, JSON textareas, and the theme pickers stack below the text.
+Below 600px (`usePhone`, a `matchMedia("(max-width: 599px)")` hook), the content area opens on a page list with 44px rows and no settings count. Choosing a page shows it with a back button labelled "All settings". A search or the Modified filter replaces the list with grouped results. The search box stays in the header on every view. Switches, enum selects, and number inputs (the `compact` variant) sit on the title line, right-aligned, with the description below at full width; the select is at most 45% of the viewport width. Text inputs, string lists, JSON textareas, and the theme pickers stack below the text.
 
 ### Edit as JSON
 
