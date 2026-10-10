@@ -56,6 +56,8 @@ test("dispatched subagents share a tree, child approvals, results and historical
         z.workbench.set({ sidebarWidth: 460 });
         await z.workbench.openFile("hello.txt", { preview: false });
         z.workbench.run("agentACP.open");
+        // Settle after the panel's first commit; Chromium can drop the evaluate result during that render.
+        await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       },
       {
         executable: process.execPath,
@@ -66,7 +68,7 @@ test("dispatched subagents share a tree, child approvals, results and historical
       ".acp-panel:not(.acp-agents-view):not(.acp-review-editor)",
     );
     await conversation
-      .getByRole("button", { name: "Connect", exact: true })
+      .getByRole("button", { name: /^Start / })
       .click();
     await expect(conversation.locator(".acp-status")).toHaveText("Ready");
     for (const dismiss of await page
@@ -118,7 +120,10 @@ test("dispatched subagents share a tree, child approvals, results and historical
     });
     await conversation
       .locator(".acp-header")
-      .getByRole("button", { name: "Open Agents", exact: true })
+      .getByRole("button", { name: "More agent actions", exact: true })
+      .click();
+    await conversation
+      .getByRole("menuitem", { name: "Open Agents", exact: true })
       .click();
     const agents = page.locator(".acp-agents-view");
     await expect(agents).toBeVisible();
@@ -188,7 +193,7 @@ test("dispatched subagents share a tree, child approvals, results and historical
       z.workbench.run("agentACP.open");
     });
     await expect(
-      conversation.getByRole("button", { name: "Connect", exact: true }),
+      conversation.getByRole("button", { name: /^Start / }),
     ).toBeVisible();
     await conversation
       .getByRole("button", { name: "History", exact: true })

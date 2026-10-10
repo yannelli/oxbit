@@ -115,8 +115,9 @@ App Store screenshots, and promo exports with Apple's design and size references
 
 ## Extensions
 
-Enable **Agent ACP** in Extensions to use Codex ACP, Cursor ACP, or Amp Agent ACP
-in a trusted runtime workspace. It includes conversation history, editor context,
+Enable **Agent ACP** in Extensions to run Codex, Claude Agent, Gemini CLI, GitHub
+Copilot, Cursor, Amp, agents from the ACP Registry, or a custom ACP executable in a
+trusted runtime workspace. It includes conversation history, editor context,
 permission controls, diff review, subagent tracking, and native workspace MCP tools.
 The runtime keeps agents running across client disconnects and supports reattach.
 It is disabled by default. See [Agent ACP](docs/agent-acp.md) for setup, hosting,

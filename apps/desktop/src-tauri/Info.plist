@@ -8,4 +8,6 @@
     <key>LSItemContentTypes</key><array><string>public.folder</string><string>public.text</string><string>public.source-code</string></array>
   </dict></array>
   <key>LSMinimumSystemVersion</key><string>26.0</string>
+  <key>NSMicrophoneUsageDescription</key><string>Dictate messages to coding agents.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>Turn your speech into text for messages to coding agents.</string>
 </dict></plist>

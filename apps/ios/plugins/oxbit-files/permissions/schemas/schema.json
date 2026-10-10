@@ -355,6 +355,42 @@
           "markdownDescription": "Denies the git_credentials command without any pre-configured scope."
         },
         {
+          "description": "Enables the live_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-live-activity",
+          "markdownDescription": "Enables the live_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the live_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-live-activity",
+          "markdownDescription": "Denies the live_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the notification_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-notification-permission",
+          "markdownDescription": "Enables the notification_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the notification_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-notification-permission",
+          "markdownDescription": "Denies the notification_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the notify command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-notify",
+          "markdownDescription": "Enables the notify command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the notify command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-notify",
+          "markdownDescription": "Denies the notify command without any pre-configured scope."
+        },
+        {
           "description": "Enables the open_folder command without any pre-configured scope.",
           "type": "string",
           "const": "allow-open-folder",
@@ -389,6 +425,18 @@
           "type": "string",
           "const": "deny-pick-folder",
           "markdownDescription": "Denies the pick_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the request_notification_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-request-notification-permission",
+          "markdownDescription": "Enables the request_notification_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the request_notification_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-request-notification-permission",
+          "markdownDescription": "Denies the request_notification_permission command without any pre-configured scope."
         },
         {
           "description": "Enables the runtime_credentials command without any pre-configured scope.",
@@ -427,10 +475,58 @@
           "markdownDescription": "Denies the ssh_keys command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`",
+          "description": "Enables the start_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-dictation",
+          "markdownDescription": "Enables the start_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-dictation",
+          "markdownDescription": "Denies the start_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the stop_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-stop-dictation",
+          "markdownDescription": "Enables the stop_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the stop_dictation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-stop-dictation",
+          "markdownDescription": "Denies the stop_dictation command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the unwatch_notification_taps command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unwatch-notification-taps",
+          "markdownDescription": "Enables the unwatch_notification_taps command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unwatch_notification_taps command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unwatch-notification-taps",
+          "markdownDescription": "Denies the unwatch_notification_taps command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the watch_notification_taps command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-watch-notification-taps",
+          "markdownDescription": "Enables the watch_notification_taps command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the watch_notification_taps command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-watch-notification-taps",
+          "markdownDescription": "Denies the watch_notification_taps command without any pre-configured scope."
+        },
+        {
+          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`"
+          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`"
         }
       ]
     }

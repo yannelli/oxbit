@@ -40,10 +40,13 @@ import { JsonSchemas } from "./json-schemas.js";
 import os from "node:os";
 import { Collaboration } from "./collaboration.js";
 import { AgentACP } from "./agent-acp.js";
+import { ACPRegistry } from "./acp-registry.js";
+import { ACPCheckpoints } from "./acp-checkpoints.js";
 import type { ACPLaunch } from "@oxbit/sdk";
 import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
 import { lanOrigins, wildcardHost } from "./lan.js";
+import { loginShellEnvironment } from "./shell-environment.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -67,6 +70,8 @@ export interface RuntimeOptions {
   pingIntervalMs?: number;
   /** Desktop has a private parent channel and never serves frontend assets or pairs over HTTP. */
   desktop?: { token: string; workspaceKey: string; rgPath: string; gitPath?: string };
+  /** ACP Registry document URL; defaults to ACP_REGISTRY_URL. */
+  acpRegistryUrl?: string;
 }
 interface Session {
   id: string;
@@ -247,10 +252,11 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
+  const acpRegistry = new ACPRegistry(dataDir, options.acpRegistryUrl);
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
     if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
-  }, () => updateIdle());
+  }, () => updateIdle(), acpRegistry);
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -260,7 +266,7 @@ export async function createRuntime(options: RuntimeOptions) {
   };
   const processes = new Processes(root, processEvent);
   const taskStore = await TaskConfigStore.create(root, { home: options.tasksHome ?? setting("TASKS_HOME"), gitPath: options.desktop?.gitPath });
-  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort);
+  const tasks = new TaskRunner(taskStore, processEvent, options.forwardTaskPort, loginShellEnvironment);
   const worktrees = new TaskWorktrees(taskStore, tasks);
   let projectChanged = () => {};
   const project = await new ProjectStore(files, options.projectsDir ?? setting("PROJECTS_DIR") ?? path.join(os.homedir(), ".oxbit", "projects"), () => projectChanged()).initialize();
@@ -313,6 +319,7 @@ export async function createRuntime(options: RuntimeOptions) {
     },
   );
   const git = new Git(files, options.desktop?.gitPath);
+  const checkpoints = new ACPCheckpoints(files.root, options.desktop?.gitPath);
   const extensions = new RuntimeExtensions(files, {
     "runtime.git": {
       status: (signal?: AbortSignal) => git.status(signal),
@@ -670,7 +677,7 @@ export async function createRuntime(options: RuntimeOptions) {
       session = authorized(connection, required.cap, required.trust);
     if (method.startsWith("acp.")) {
       owner(connection);
-      if (!["acp.start", "acp.list", "acp.attach", "acp.disconnect"].includes(method))
+      if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method) && !method.startsWith("acp.checkpoint."))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
     if (method.startsWith("project.")) owner(connection);
@@ -697,6 +704,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.start(session.id, params as unknown as ACPLaunch, signal, connection.id);
       case "acp.list":
         return agents.list(session.id);
+      case "acp.registry":
+        return acpRegistry.listing(params.refresh === true);
       case "acp.attach":
         return agents.attach(session.id, requireString(params, "id"), connection.id, (params.clientCapabilities as ACPLaunch["clientCapabilities"])?.editorTools === true);
       case "acp.enqueue":
@@ -714,9 +723,20 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.cancel(session.id, requireString(params, "id"));
       case "acp.stop":
         return agents.stop(session.id, requireString(params, "id"));
+      case "acp.detach":
+        agents.detach(connection.id);
+        return {};
       case "acp.disconnect":
         agents.disconnect(session.id, connection.id);
         return {};
+      case "acp.checkpoint.create":
+        return checkpoints.create(signal);
+      case "acp.checkpoint.diff":
+        return checkpoints.diff(params.tree, signal);
+      case "acp.checkpoint.restore":
+        if (agents.list(session.id).sessions.some((agent) => agent.busy || agent.pendingRequests))
+          throw new RpcError("BUSY", "Wait for the agent to finish before restoring a checkpoint");
+        return checkpoints.restore(params.tree, params.paths, signal);
       case "workspace.info":
         return sessionInfo(session);
       case "workspace.trust":

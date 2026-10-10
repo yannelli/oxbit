@@ -18,6 +18,7 @@ async function fixture(
   tasks: Record<string, TaskDefinition>,
   env: Record<string, string> = {},
   forwardPort?: (host: string, port: number) => Promise<number>,
+  shellEnvironment?: (cwd: string) => Promise<NodeJS.ProcessEnv>,
 ) {
   const root = await fs.mkdtemp(
     path.join(await fs.realpath(os.tmpdir()), "oxbit-task-runner-"),
@@ -33,6 +34,7 @@ async function fixture(
     store,
     (event, owner) => events.push({ ...event, owner }),
     forwardPort,
+    shellEnvironment,
   );
   fixtures.push({ root, runner });
   const catalog = await store.catalog();
@@ -139,6 +141,26 @@ describe("supervised task execution", () => {
     expect(
       (await until(runner, api.id, (t) => t.exitCode !== undefined)).state,
     ).toBe("stopped");
+  });
+  it("starts tasks from the terminal shell's environment, resolved once", async () => {
+    const roots: string[] = [];
+    const { root, runner, id } = await fixture(
+      { shell: { command: "echo node=$NODE_FROM_PROFILE" } },
+      {},
+      undefined,
+      async (cwd) => {
+        roots.push(cwd);
+        return { ...process.env, NODE_FROM_PROFILE: "20.18.0" };
+      },
+    );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const run = await runner.start("owner", id("shell"));
+      await until(runner, run.id, (t) => t.exitCode !== undefined);
+      expect(
+        runner.attach(run.id, "owner").chunks.map((c) => c.data).join(""),
+      ).toContain("node=20.18.0");
+    }
+    expect(roots).toEqual([root]);
   });
   it("keeps process arguments literal while expanding variables, and detects environment cycles", async () => {
     const { runner, id } = await fixture({

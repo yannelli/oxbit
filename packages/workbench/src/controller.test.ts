@@ -528,3 +528,29 @@ describe("workbench document and contribution lifecycle", () => {
     expect(workbench.state.activeGroup).toBe("g1");
   });
 });
+describe("view badges and preferred docks", () => {
+  it("sets, normalizes, and clears view badges", async () => {
+    const { workbench } = await setup();
+    const revision = workbench.state.revision;
+    workbench.setViewBadge("agent", { count: 2.7, label: "2 pending", tone: "attention" });
+    expect(workbench.state.viewBadges.agent).toEqual({ count: 2, label: "2 pending", tone: "attention" });
+    expect(workbench.state.revision).toBeGreaterThan(revision);
+    workbench.setViewBadge("agent", { count: -1, label: "Working" });
+    expect(workbench.state.viewBadges.agent).toEqual({ count: 0, label: "Working" });
+    workbench.setViewBadge("agent");
+    expect(workbench.state.viewBadges).toEqual({});
+  });
+  it("opens and resets a right-dock view in its preferred dock", async () => {
+    const { workbench, kernel } = await setup();
+    kernel.contributions.register({
+      id: "agent", kind: "activityView", title: "Agent", component: () => null, data: { dock: "right" },
+    });
+    workbench.openPanel("agent");
+    expect(workbench.getPanelLayout().docks.right.root).toMatchObject({ panels: ["agent"] });
+    expect(workbench.panelVisible("agent")).toBe(true);
+    workbench.movePanel("agent", { container: "left" });
+    workbench.resetPanelLayout();
+    expect(workbench.getPanelLayout().docks.right.root).toMatchObject({ panels: ["agent"] });
+  });
+});
+

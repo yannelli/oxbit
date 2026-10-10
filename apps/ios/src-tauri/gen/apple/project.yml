@@ -82,6 +82,8 @@ targets:
       - sdk: WebKit.framework
       - sdk: libiconv.tbd
       - sdk: libz.tbd
+      - target: OxbitLiveActivity
+        embed: true
     preBuildScripts:
       - script: bun run tauri -- ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
         name: Build Rust Code
@@ -89,3 +91,45 @@ targets:
         outputFiles:
           - $(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a
           - $(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a
+  OxbitLiveActivity:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: OxbitLiveActivity
+      - path: ../../../plugins/oxbit-files/ios/Sources/AgentActivityAttributes.swift
+    info:
+      path: OxbitLiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: Oxbit
+        CFBundleShortVersionString: 0.1.1
+        CFBundleVersion: "0.1.1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+      - sdk: ActivityKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: WidgetKit.framework
+    settings:
+      base:
+        PRODUCT_NAME: OxbitLiveActivity
+        PRODUCT_BUNDLE_IDENTIFIER: com.yannelli.oxbit.LiveActivity
+        DEVELOPMENT_TEAM: 2P58V89SR7
+      configs:
+        release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY[sdk=iphoneos*]: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]: Oxbit CI Live Activity App Store
+    postBuildScripts:
+      # Tauri writes the app version into the app's Info.plist only; App Store validation needs the same values here.
+      - script: |
+          set -e
+          for key in CFBundleShortVersionString CFBundleVersion; do
+            value=$(/usr/libexec/PlistBuddy -c "Print :$key" "$SRCROOT/oxbit-ios_iOS/Info.plist")
+            /usr/libexec/PlistBuddy -c "Set :$key $value" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          done
+        name: Match App Version
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(SRCROOT)/oxbit-ios_iOS/Info.plist
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)

@@ -126,6 +126,46 @@ test("phone panels open on the first tap and closing the overlay preserves deskt
   await expect(page.locator('[data-dock="left"]')).toBeVisible();
 });
 
+test("a right-dock view opens on the right and shows badges on its activity and More buttons", async ({
+  page,
+}) => {
+  await ready(page);
+  const register = (fillers: number) =>
+    page.evaluate((fillers) => {
+      const win = window as any, React = win.__OXBIT_REACT__;
+      win.testAgent?.dispose();
+      for (let i = 0; i < fillers; i++)
+        win.__oxbit.kernel.contributions.register({
+          id: `filler-${i}`, kind: "activityView", title: `Filler ${i}`, component: () => null,
+        });
+      win.testAgent = win.__oxbit.kernel.contributions.register({
+        id: "test-agent", kind: "activityView", title: "Test agent panel",
+        data: { dock: "right", phoneBar: true, phoneLabel: "Agent" },
+        component: () => React.createElement("p", null, "Agent body"),
+      });
+      win.__oxbit.workbench.setViewBadge("test-agent", { count: 3, label: "3 updates", tone: "attention" });
+    }, fillers);
+  await register(0);
+  const bar = page.getByRole("navigation", { name: "Primary views" });
+  const agent = bar.getByRole("button", { name: "Test agent panel, 3 updates", exact: true });
+  await expect(agent.locator(".badge.badge-attention")).toHaveText("3");
+  await expect(page.locator('[data-dock="right"]')).toHaveCount(0);
+  await agent.click();
+  await expect(page.locator('[data-dock="right"]').getByText("Agent body")).toBeVisible();
+  await expect(page.locator('[data-dock="left"]')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("test-agent"))).toBe(true);
+  await page.screenshot({ path: "/tmp/oxbit-agents/workbench/desktop-right-dock.png" });
+  await page.evaluate(() => (window as any).__oxbit.workbench.setViewBadge("test-agent", { count: 0, label: "Working" }));
+  await expect(bar.getByRole("button", { name: "Test agent panel, Working", exact: true }).locator(".badge.badge-dot")).toBeVisible();
+  await page.evaluate(() => (window as any).__oxbit.workbench.setViewBadge("test-agent"));
+  await expect(bar.getByRole("button", { name: "Test agent panel", exact: true }).locator(".badge")).toHaveCount(0);
+  await register(3);
+  const more = bar.getByRole("button", { name: "More views, 3 updates", exact: true });
+  await expect(more.locator(".badge")).toHaveText("3");
+  await expect(bar.locator('[data-view="test-agent"]')).toHaveCount(0);
+  await page.screenshot({ path: "/tmp/oxbit-agents/workbench/desktop-more-badge.png" });
+});
+
 test("drag and drop moves a panel and keeps its mounted state", async ({
   page,
 }) => {

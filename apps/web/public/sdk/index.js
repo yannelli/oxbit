@@ -151,12 +151,24 @@ var settings_schema_default = {
     },
     "agentACP.provider": {
       title: "Default agent",
+      description: "A built-in agent ID, an ACP Registry agent ID, or custom.",
       type: "string",
-      default: "codex",
+      default: "codex"
+    },
+    "agentACP.useModifierToSend": {
+      title: "Send with Ctrl/Cmd+Enter only",
+      description: "Enter inserts a new line and Ctrl/Cmd+Enter sends the message.",
+      type: "boolean",
+      default: false
+    },
+    "agentACP.notifications": {
+      title: "Agent desktop notifications",
+      description: "Show a system notification when the agent needs input or finishes while Oxbit is in the background.",
+      type: "string",
+      default: "whenHidden",
       enum: [
-        "codex",
-        "cursor",
-        "amp"
+        "whenHidden",
+        "never"
       ]
     },
     "agentACP.codex.command": {
@@ -168,6 +180,36 @@ var settings_schema_default = {
       title: "Codex ACP arguments (JSON array)",
       type: "string",
       default: '["-y","@agentclientprotocol/codex-acp@2.2.2"]'
+    },
+    "agentACP.claude.command": {
+      title: "Claude Agent executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.claude.args": {
+      title: "Claude Agent arguments (JSON array)",
+      type: "string",
+      default: '["-y","@agentclientprotocol/claude-agent-acp@0.89.1"]'
+    },
+    "agentACP.gemini.command": {
+      title: "Gemini CLI executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.gemini.args": {
+      title: "Gemini CLI arguments (JSON array)",
+      type: "string",
+      default: '["-y","@google/gemini-cli@0.63.0","--acp"]'
+    },
+    "agentACP.copilot.command": {
+      title: "GitHub Copilot executable",
+      type: "string",
+      default: "npx"
+    },
+    "agentACP.copilot.args": {
+      title: "GitHub Copilot arguments (JSON array)",
+      type: "string",
+      default: '["-y","@github/copilot@1.0.95","--acp"]'
     },
     "agentACP.cursor.command": {
       title: "Cursor ACP executable",
@@ -188,6 +230,21 @@ var settings_schema_default = {
       title: "Amp Agent ACP arguments (JSON array)",
       type: "string",
       default: '["-y","amp-acp@0.10.0"]'
+    },
+    "agentACP.custom.name": {
+      title: "Custom agent name",
+      type: "string",
+      default: ""
+    },
+    "agentACP.custom.command": {
+      title: "Custom agent executable",
+      type: "string",
+      default: ""
+    },
+    "agentACP.custom.args": {
+      title: "Custom agent arguments (JSON array)",
+      type: "string",
+      default: "[]"
     },
     "workbench.keymap": {
       title: "Keymap",
@@ -828,11 +885,35 @@ var settings_schema_default = {
         "agentACP.provider": {
           $ref: "#/properties/agentACP.provider"
         },
+        "agentACP.useModifierToSend": {
+          $ref: "#/properties/agentACP.useModifierToSend"
+        },
+        "agentACP.notifications": {
+          $ref: "#/properties/agentACP.notifications"
+        },
         "agentACP.codex.command": {
           $ref: "#/properties/agentACP.codex.command"
         },
         "agentACP.codex.args": {
           $ref: "#/properties/agentACP.codex.args"
+        },
+        "agentACP.claude.command": {
+          $ref: "#/properties/agentACP.claude.command"
+        },
+        "agentACP.claude.args": {
+          $ref: "#/properties/agentACP.claude.args"
+        },
+        "agentACP.gemini.command": {
+          $ref: "#/properties/agentACP.gemini.command"
+        },
+        "agentACP.gemini.args": {
+          $ref: "#/properties/agentACP.gemini.args"
+        },
+        "agentACP.copilot.command": {
+          $ref: "#/properties/agentACP.copilot.command"
+        },
+        "agentACP.copilot.args": {
+          $ref: "#/properties/agentACP.copilot.args"
         },
         "agentACP.cursor.command": {
           $ref: "#/properties/agentACP.cursor.command"
@@ -845,6 +926,15 @@ var settings_schema_default = {
         },
         "agentACP.amp.args": {
           $ref: "#/properties/agentACP.amp.args"
+        },
+        "agentACP.custom.name": {
+          $ref: "#/properties/agentACP.custom.name"
+        },
+        "agentACP.custom.command": {
+          $ref: "#/properties/agentACP.custom.command"
+        },
+        "agentACP.custom.args": {
+          $ref: "#/properties/agentACP.custom.args"
         },
         "workbench.keymap": {
           $ref: "#/properties/workbench.keymap"
@@ -1250,7 +1340,35 @@ var ACP_PROVIDERS = [
     command: "npx",
     args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     setup: "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
-    url: "https://github.com/agentclientprotocol/codex-acp"
+    url: "https://github.com/agentclientprotocol/codex-acp",
+    registryId: "codex-acp"
+  },
+  {
+    id: "claude",
+    name: "Claude Agent",
+    command: "npx",
+    args: ["-y", "@agentclientprotocol/claude-agent-acp@0.89.1"],
+    setup: "Uses the Claude Agent ACP adapter. Sign in through an advertised authentication method, or use your existing Claude Code credentials.",
+    url: "https://github.com/agentclientprotocol/claude-agent-acp",
+    registryId: "claude-acp"
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    command: "npx",
+    args: ["-y", "@google/gemini-cli@0.63.0", "--acp"],
+    setup: "Runs Gemini CLI in ACP mode. Sign in through an advertised authentication method, or set GEMINI_API_KEY in the runtime environment.",
+    url: "https://github.com/google-gemini/gemini-cli",
+    registryId: "gemini"
+  },
+  {
+    id: "copilot",
+    name: "GitHub Copilot",
+    command: "npx",
+    args: ["-y", "@github/copilot@1.0.95", "--acp"],
+    setup: "Runs GitHub Copilot CLI in ACP mode. Sign in through an advertised authentication method, or run copilot and use /login first.",
+    url: "https://github.com/github/copilot-cli",
+    registryId: "github-copilot-cli"
   },
   {
     id: "cursor",
@@ -1258,7 +1376,8 @@ var ACP_PROVIDERS = [
     command: "agent",
     args: ["acp"],
     setup: "Install Cursor CLI and run agent login first. If your executable is cursor-agent, change the command below.",
-    url: "https://cursor.com/docs/cli/acp"
+    url: "https://cursor.com/docs/cli/acp",
+    registryId: "cursor"
   },
   {
     id: "amp",
@@ -1266,9 +1385,15 @@ var ACP_PROVIDERS = [
     command: "npx",
     args: ["-y", "amp-acp@0.10.0"],
     setup: "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",
-    url: "https://github.com/tao12345666333/amp-acp"
+    url: "https://github.com/tao12345666333/amp-acp",
+    registryId: "amp-acp"
   }
 ];
+var ACP_CUSTOM_PROVIDER = "custom";
+var ACP_REGISTRY_URL = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
+var acpPreset = (id) => ACP_PROVIDERS.find((provider) => provider.id === id);
+var acpBuiltinForRegistry = (registryId) => ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
+var AGENT_ACTIVITY_SERVICE = "agentActivity";
 
 // packages/sdk/src/tasks.ts
 var taskPhases = [
@@ -1323,9 +1448,14 @@ function settingsChanges(before, after) {
 // packages/sdk/src/index.ts
 var SDK_VERSION = "1.0.0";
 export {
+  ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
+  ACP_REGISTRY_URL,
+  AGENT_ACTIVITY_SERVICE,
   SDK_VERSION,
   SETTINGS_SCHEMA_URI,
+  acpBuiltinForRegistry,
+  acpPreset,
   canonicalLanguageId,
   effectiveCapabilities,
   fileTypesToSelectors,

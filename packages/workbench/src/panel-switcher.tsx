@@ -2,17 +2,20 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, Icon, translate as tr } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
-import { useWorkbench, viewIcon } from "./index.js";
+import type { ViewBadge } from "./controller.js";
+import { badgeLabel, useWorkbench, ViewBadgeMark, viewIcon } from "./index.js";
 
 const panelIcons: Record<string, string> = {
   terminal: "terminal", problems: "warning", output: "menu", tasks: "tasks",
 };
 const panelOrder = ["explorer", "search", "scm", "extensions", "terminal", "problems", "output", "tasks"];
 
-export function PanelSwitcher({ workbench, title, navigation = false }: {
+export function PanelSwitcher({ workbench, title, navigation = false, barViews, badge }: {
   workbench: WorkbenchController;
   title?: string;
   navigation?: boolean;
+  barViews?: string[];
+  badge?: ViewBadge;
 }) {
   useWorkbench(workbench);
   const [open, setOpen] = useState(false);
@@ -34,19 +37,19 @@ export function PanelSwitcher({ workbench, title, navigation = false }: {
     return (aIndex < 0 ? panelOrder.length : aIndex) - (bIndex < 0 ? panelOrder.length : bIndex);
   });
   const active = panels.filter(item => workbench.panelVisible(item.id));
-  const primaryViews = iosPhone ? ["explorer", "scm"] : ["explorer", "search", "scm", "extensions"];
+  const primaryViews = (barViews ?? ["explorer", "search", "scm", "extensions"]).filter(id => !iosPhone || !["search", "extensions"].includes(id));
   const extraActive = active.some(item => !primaryViews.includes(item.id));
   return <>
     <button
       ref={trigger}
       type="button"
       className={navigation ? `panel-switcher-nav ${open || extraActive ? "active" : ""}` : "panel-switcher-trigger"}
-      aria-label={tr(navigation ? "More" : "Switch panel")}
+      aria-label={badgeLabel(tr(navigation ? "More" : "Switch panel"), badge)}
       aria-haspopup="dialog"
       aria-expanded={open}
       onClick={event => { event.currentTarget.focus({ preventScroll: true }); setOpen(true); }}
     >
-      {navigation ? <><Icon name="more" /><span className="phone-label">{tr("More view")}</span></>
+      {navigation ? <><Icon name="more" /><ViewBadgeMark badge={badge} /><span className="phone-label">{tr("More view")}</span></>
         : <><span className="truncate">{title}</span><Icon name="chevD" size={14} /></>}
     </button>
     {open && createPortal(<Dialog title={tr("Panels")} className="panel-switcher-dialog" onClose={() => setOpen(false)}>

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,48 +12,101 @@ const tauri = (...args) =>
   run("bun", ["run", "--cwd", "apps/ios", "tauri", "--", ...args]);
 const buildDir = fileURLToPath(new URL("../../apps/ios/src-tauri/gen/apple/build/", import.meta.url));
 const profileDir = `${process.env.HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles`;
+const config = JSON.parse(readFileSync(new URL("../../apps/ios/src-tauri/tauri.conf.json", import.meta.url)));
+const liveActivity = `${config.identifier}.LiveActivity`;
+const pbxproj = new URL("../../apps/ios/src-tauri/gen/apple/oxbit-ios.xcodeproj/project.pbxproj", import.meta.url);
+const extensionProfile = (name) => `"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "${name}";`;
+
+function readProfile(path) {
+  let plist;
+  try {
+    plist = execFileSync("security", ["cms", "-D", "-i", path], { stdio: ["ignore", "pipe", "ignore"] }).toString();
+  } catch {
+    return undefined;
+  }
+  const read = (key) => {
+    try {
+      return execFileSync("/usr/libexec/PlistBuddy", ["-c", `Print ${key}`, "/dev/stdin"], { input: plist, stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+    } catch {
+      return undefined;
+    }
+  };
+  const devices = read(":ProvisionedDevices");
+  return {
+    name: read(":Name"),
+    uuid: read(":UUID"),
+    appId: read(":Entitlements:application-identifier"),
+    getTaskAllow: read(":Entitlements:get-task-allow"),
+    devices: devices ? devices.split("\n").length - 2 : 0,
+    expires: new Date(read(":ExpirationDate")),
+  };
+}
 
 // Ad hoc profiles carry a device list and get-task-allow false; development profiles set it true.
 function adHocProfile(identifier) {
   if (!existsSync(profileDir)) return undefined;
-  const found = [];
-  for (const file of readdirSync(profileDir).filter((name) => name.endsWith(".mobileprovision"))) {
-    const path = `${profileDir}/${file}`;
-    let plist;
-    try {
-      plist = execFileSync("security", ["cms", "-D", "-i", path], { stdio: ["ignore", "pipe", "ignore"] }).toString();
-    } catch {
-      continue;
-    }
-    const read = (key) => {
-      try {
-        return execFileSync("/usr/libexec/PlistBuddy", ["-c", `Print ${key}`, "/dev/stdin"], { input: plist, stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
-      } catch {
-        return undefined;
-      }
-    };
-    const appId = read(":Entitlements:application-identifier");
-    if (!appId?.endsWith(`.${identifier}`)) continue;
-    if (read(":Entitlements:get-task-allow") !== "false") continue;
-    const devices = read(":ProvisionedDevices");
-    if (!devices) continue;
-    const expires = new Date(read(":ExpirationDate"));
-    if (expires < new Date()) continue;
-    found.push({ name: read(":Name"), expires, devices: devices.split("\n").length - 2 });
-  }
-  return found.sort((a, b) => b.expires - a.expires)[0];
+  return readdirSync(profileDir)
+    .filter((name) => name.endsWith(".mobileprovision"))
+    .map((file) => readProfile(`${profileDir}/${file}`))
+    .filter((profile) => profile?.appId?.endsWith(`.${identifier}`) && profile.getTaskAllow === "false" && profile.devices && profile.expires >= new Date())
+    .sort((a, b) => b.expires - a.expires)[0];
 }
 
-function exportOptions(identifier, profile) {
+// Decodes a base64 profile from the environment and installs it where Xcode looks for profiles.
+function installProfile(variable, identifier) {
+  if (!process.env[variable]) throw new Error(`Set ${variable} to the base64 App Store profile for ${identifier}`);
+  const data = Buffer.from(process.env[variable], "base64");
+  const directory = mkdtempSync(join(tmpdir(), "oxbit-profile-"));
+  writeFileSync(join(directory, "profile.mobileprovision"), data);
+  const profile = readProfile(join(directory, "profile.mobileprovision"));
+  rmSync(directory, { recursive: true, force: true });
+  if (!profile?.uuid || !profile.appId?.endsWith(`.${identifier}`))
+    throw new Error(`${variable} is not a provisioning profile for ${identifier}`);
+  mkdirSync(profileDir, { recursive: true });
+  writeFileSync(`${profileDir}/${profile.uuid}.mobileprovision`, data);
+  return profile;
+}
+
+// The Tauri CLI deletes the keychain it imports IOS_CERTIFICATE into when it exits, so the export
+// imports the identity again. Without IOS_CERTIFICATE the export uses the login keychain.
+function withSigningKeychain(callback) {
+  if (!process.env.IOS_CERTIFICATE) return callback();
+  const quiet = (args) => execFileSync("security", args, { stdio: ["ignore", "ignore", "inherit"] });
+  const directory = mkdtempSync(join(tmpdir(), "oxbit-signing-"));
+  const keychain = join(directory, "signing.keychain-db");
+  const certificate = join(directory, "certificate.p12");
+  const password = randomBytes(16).toString("hex");
+  const searchList = execFileSync("security", ["list-keychains", "-d", "user"]).toString()
+    .split("\n").map((line) => line.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  writeFileSync(certificate, Buffer.from(process.env.IOS_CERTIFICATE, "base64"));
+  try {
+    quiet(["create-keychain", "-p", password, keychain]);
+    quiet(["set-keychain-settings", "-t", "3600", "-u", keychain]);
+    quiet(["unlock-keychain", "-p", password, keychain]);
+    quiet(["import", certificate, "-k", keychain, "-P", process.env.IOS_CERTIFICATE_PASSWORD ?? "", "-T", "/usr/bin/codesign"]);
+    quiet(["set-key-partition-list", "-S", "apple-tool:,apple:,codesign:", "-s", "-k", password, keychain]);
+    quiet(["list-keychains", "-d", "user", "-s", keychain, ...searchList]);
+    return callback();
+  } finally {
+    quiet(["list-keychains", "-d", "user", "-s", ...searchList]);
+    if (existsSync(keychain)) quiet(["delete-keychain", keychain]);
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function exportOptions(method, profiles) {
   const entries = {
-    method: "release-testing",
-    teamID: process.env.APPLE_TEAM_ID ?? "",
+    method,
+    teamID: process.env.APPLE_TEAM_ID ?? config.bundle.iOS.developmentTeam,
     signingStyle: "manual",
     signingCertificate: "Apple Distribution",
   };
   const strings = Object.entries(entries)
     .filter(([, value]) => value)
     .map(([key, value]) => `  <key>${key}</key><string>${value}</string>`)
+    .join("\n");
+  const profileEntries = Object.entries(profiles)
+    .map(([identifier, profile]) => `    <key>${identifier}</key><string>${profile}</string>`)
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -61,14 +115,22 @@ function exportOptions(identifier, profile) {
 ${strings}
   <key>provisioningProfiles</key>
   <dict>
-    <key>${identifier}</key><string>${profile}</string>
+${profileEntries}
   </dict>
   <key>stripSwiftSymbols</key><true/>
-  <key>uploadSymbols</key><false/>
+  <key>uploadSymbols</key><${method === "app-store-connect"}/>
   <key>manageAppVersionAndBuildNumber</key><false/>
 </dict>
 </plist>
 `;
+}
+
+// The CLI's ExportOptions map names only the app's profile, so it cannot sign the Live Activity
+// extension. Export from the archive with a profile for each bundle.
+function exportArchive(method, profiles, file) {
+  const options = join(buildDir, file);
+  writeFileSync(options, exportOptions(method, profiles));
+  run("xcodebuild", ["-exportArchive", "-archivePath", "oxbit-ios_iOS.xcarchive", "-exportOptionsPlist", options, "-exportPath", "./arm64"], buildDir);
 }
 
 const mode = process.argv[2];
@@ -88,19 +150,33 @@ process.env.PATH = fileURLToPath(new URL("./xcode-shim", import.meta.url)) + ":"
 if (mode === "init") tauri("ios", "init", ...extra);
 if (["dev", "build", "adhoc", "simulator"].includes(mode)) run("bun", ["run", "build:example"]);
 if (mode === "dev") tauri("ios", "dev", ...extra);
-const exportMethod = extra.includes("--export-method") ? [] : ["--export-method", "app-store-connect"];
-if (mode === "build") tauri("ios", "build", ...exportMethod, ...extra);
-if (mode === "adhoc") {
-  const identifier = JSON.parse(readFileSync(new URL("../../apps/ios/src-tauri/tauri.conf.json", import.meta.url))).identifier;
-  const profile = adHocProfile(identifier);
-  if (!profile) throw new Error(`Install an ad hoc profile for ${identifier} under ${profileDir}`);
+if (mode === "build") {
+  const app = installProfile("IOS_MOBILE_PROVISION", config.identifier);
+  const extension = installProfile("IOS_LIVE_ACTIVITY_PROVISION", liveActivity);
   tauri("ios", "build", "--archive-only", ...extra);
-  // The CLI writes signingStyle "manual" for release-testing without a provisioningProfiles map,
-  // so its own export step cannot resolve a profile. Export from the archive instead.
-  const options = new URL("../../apps/ios/src-tauri/gen/apple/build/AdHocExportOptions.plist", import.meta.url);
-  writeFileSync(options, exportOptions(identifier, profile.name));
-  run("xcodebuild", ["-exportArchive", "-archivePath", "oxbit-ios_iOS.xcarchive", "-exportOptionsPlist", fileURLToPath(options), "-exportPath", "./arm64"], buildDir);
-  console.log(`Exported with profile "${profile.name}" covering ${profile.devices} device(s)`);
+  withSigningKeychain(() =>
+    exportArchive("app-store-connect", { [config.identifier]: app.uuid, [liveActivity]: extension.uuid }, "AppStoreExportOptions.plist"),
+  );
+  console.log(`Exported with profiles "${app.name}" and "${extension.name}"`);
+}
+if (mode === "adhoc") {
+  const profile = adHocProfile(config.identifier);
+  if (!profile) throw new Error(`Install an ad hoc profile for ${config.identifier} under ${profileDir}`);
+  const extension = adHocProfile(liveActivity);
+  if (!extension) throw new Error(`Install an ad hoc profile for ${liveActivity} under ${profileDir}`);
+  // The extension's release configuration names the App Store profile, whose certificate is the CI
+  // identity. Archive the extension with its ad hoc profile, then restore the project file.
+  const project = readFileSync(pbxproj, "utf8");
+  const appStore = extensionProfile("Oxbit CI Live Activity App Store");
+  if (!project.includes(appStore)) throw new Error(`The Xcode project has no ${appStore}`);
+  writeFileSync(pbxproj, project.replace(appStore, extensionProfile(extension.name)));
+  try {
+    tauri("ios", "build", "--archive-only", ...extra);
+  } finally {
+    writeFileSync(pbxproj, project);
+  }
+  exportArchive("release-testing", { [config.identifier]: profile.name, [liveActivity]: extension.name }, "AdHocExportOptions.plist");
+  console.log(`Exported with profiles "${profile.name}" and "${extension.name}" covering ${profile.devices} device(s)`);
 }
 if (mode === "simulator") {
   // The CLI moves the archive product into place and fails when a previous build is still there.

@@ -89,18 +89,15 @@ test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/
     (window as any).__oxbit.workbench.run("agentACP.open"),
   );
   await expect(
-    page.getByRole("button", { name: "Connect", exact: true }),
+    page.getByRole("button", { name: /^Start / }),
   ).toBeDisabled();
   await expect(
     page.getByText("Connect to a runtime workspace to use agents."),
   ).toBeVisible();
-  await page.getByRole("combobox", { name: "ACP provider" }).click();
-  await expect(page.getByRole("option", { name: "Codex ACP" })).toBeVisible();
-  await expect(page.getByRole("option", { name: "Cursor ACP" })).toBeVisible();
-  await expect(
-    page.getByRole("option", { name: "Amp Agent ACP" }),
-  ).toBeVisible();
-  await page.keyboard.press("Escape");
+  const picker = page.getByRole("radiogroup", { name: "Agent", exact: true });
+  for (const name of ["Codex ACP", "Claude Agent", "Cursor ACP", "Amp Agent ACP"])
+    await expect(picker.getByRole("radio", { name })).toBeVisible();
+  await expect(picker.getByRole("radio", { name: "Codex ACP" })).toHaveAttribute("aria-checked", "true");
   await fs.mkdir("evidence/agent-acp", { recursive: true });
   await page.screenshot({ path: "evidence/agent-acp/desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -217,7 +214,7 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
         }
       }),
     ).toBe("FORBIDDEN");
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: /^Start / }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /^Ready$/ }),
     ).toBeVisible();
@@ -404,9 +401,9 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
       z.workbench.run("agentACP.open");
     });
     await expect(
-      page.getByRole("button", { name: "Connect", exact: true }),
+      page.getByRole("button", { name: /^Start / }),
     ).toBeEnabled();
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: /^Start / }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /^Ready$/ }),
     ).toBeVisible();

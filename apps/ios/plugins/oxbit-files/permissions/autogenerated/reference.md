@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, and find Oxbit runtimes on the local network.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.
 
 #### This default permission set includes the following:
 
@@ -15,6 +15,14 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-ssh-keys`
 - `allow-pick-files`
 - `allow-commit-signing`
+- `allow-start-dictation`
+- `allow-stop-dictation`
+- `allow-live-activity`
+- `allow-notification-permission`
+- `allow-request-notification-permission`
+- `allow-notify`
+- `allow-watch-notification-taps`
+- `allow-unwatch-notification-taps`
 
 ## Permission Table
 
@@ -158,6 +166,84 @@ Denies the git_credentials command without any pre-configured scope.
 <tr>
 <td>
 
+`oxbit-files:allow-live-activity`
+
+</td>
+<td>
+
+Enables the live_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-live-activity`
+
+</td>
+<td>
+
+Denies the live_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-notification-permission`
+
+</td>
+<td>
+
+Enables the notification_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-notification-permission`
+
+</td>
+<td>
+
+Denies the notification_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-notify`
+
+</td>
+<td>
+
+Enables the notify command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-notify`
+
+</td>
+<td>
+
+Denies the notify command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `oxbit-files:allow-open-folder`
 
 </td>
@@ -236,6 +322,32 @@ Denies the pick_folder command without any pre-configured scope.
 <tr>
 <td>
 
+`oxbit-files:allow-request-notification-permission`
+
+</td>
+<td>
+
+Enables the request_notification_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-request-notification-permission`
+
+</td>
+<td>
+
+Denies the request_notification_permission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `oxbit-files:allow-runtime-credentials`
 
 </td>
@@ -307,6 +419,110 @@ Enables the ssh_keys command without any pre-configured scope.
 <td>
 
 Denies the ssh_keys command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-start-dictation`
+
+</td>
+<td>
+
+Enables the start_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-start-dictation`
+
+</td>
+<td>
+
+Denies the start_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-stop-dictation`
+
+</td>
+<td>
+
+Enables the stop_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-stop-dictation`
+
+</td>
+<td>
+
+Denies the stop_dictation command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-unwatch-notification-taps`
+
+</td>
+<td>
+
+Enables the unwatch_notification_taps command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-unwatch-notification-taps`
+
+</td>
+<td>
+
+Denies the unwatch_notification_taps command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-watch-notification-taps`
+
+</td>
+<td>
+
+Enables the watch_notification_taps command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-watch-notification-taps`
+
+</td>
+<td>
+
+Denies the watch_notification_taps command without any pre-configured scope.
 
 </td>
 </tr>

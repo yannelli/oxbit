@@ -1,0 +1,17 @@
+.acp-threads { display:flex; align-items:center; gap:6px; flex:none; padding:4px 12px; border-bottom:1px solid var(--bd); overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; }
+.acp-thread-chip { display:flex; align-items:center; flex:none; max-width:min(280px,75%); min-height:28px; border:1px solid var(--bd); border-radius:8px; }
+.acp-thread-chip[data-current] { border-color:var(--accent); background:var(--bg-selected); }
+.acp-thread-select { display:flex; align-items:center; gap:8px; flex:1; min-width:0; min-height:26px; padding:2px 4px 2px 9px; border:0; border-radius:8px 0 0 8px; background:none; color:var(--fg); text-align:left; cursor:pointer; }
+.acp-thread-select[aria-current] { cursor:default; }
+.acp-thread-text { display:flex; align-items:baseline; gap:6px; min-width:0; }
+.acp-thread-text strong,.acp-thread-text small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acp-thread-text small { color:var(--fg-3); font-size:var(--font-small-font-size); }
+.acp-panel .acp-threads .acp-thread-new { flex:none; }
+@media(hover:hover) { .acp-thread-select:not([aria-current]):hover { background:var(--bg-hover); } }
+@container(max-width:480px) { .acp-threads { padding-inline:8px; } }
+@media(max-width:599px),(pointer:coarse) {
+  .acp-threads { padding-block:6px; }
+  .acp-thread-chip,.acp-thread-select { min-height:44px; }
+  .acp-thread-text { display:grid; gap:0; }
+  .acp-panel .acp-threads .icon-button { width:44px; height:44px; min-width:44px; min-height:44px; }
+}

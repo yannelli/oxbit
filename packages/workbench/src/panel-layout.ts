@@ -253,7 +253,7 @@ export function resizePanelSplit(
 }
 export function reconcilePanels(
   layout: PanelLayout,
-  panels: { id: string; kind: string }[],
+  panels: { id: string; kind: string; dock?: DockSide }[],
   primary: DockSide,
 ): PanelLayout {
   const next = structuredClone(layout),
@@ -278,7 +278,14 @@ export function reconcilePanels(
     );
   for (const panel of panels) {
     if (seen.has(panel.id)) continue;
-    const dock = next.docks[panel.kind === "activityView" ? primary : "bottom"];
+    const dock =
+      next.docks[
+        panel.kind !== "activityView"
+          ? "bottom"
+          : panel.dock && dockSides.includes(panel.dock)
+            ? panel.dock
+            : primary
+      ];
     const group = panelGroups(dock.root)[0];
     if (group) group.panels.push(panel.id);
     else dock.root = panelGroup([panel.id]);

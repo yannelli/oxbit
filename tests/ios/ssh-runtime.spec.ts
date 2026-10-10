@@ -138,6 +138,38 @@ test("Relaunching the app reopens the remote runtime with the same workspace key
   expect(after.filter(recent => recent.kind === "sshRuntime").map(recent => recent.id)).toEqual([last]);
 });
 
+test("Tapping an agent notification that relaunched the app opens the agent panel in the reopened runtime", async ({ page, context }) => {
+  await start(page);
+  await startProject(page);
+  const [first] = await starts(page);
+  const recents = await stored(page, "session:recents");
+  const last = await stored(page, "session:last-workspace");
+  await page.close();
+
+  const relaunched = await context.newPage();
+  await installBridge(relaunched, {
+    notificationTapped: true,
+    stored: { "session:recents": recents, "session:last-workspace": last, [`ios:${first!.workspaceKey}:extension-enabled`]: ["oxbit.agent-acp"] },
+  });
+  await installSshBridge(relaunched, seed);
+  await mockRuntime(relaunched);
+  await relaunched.goto("/");
+  await release(relaunched);
+  await expect(relaunched.locator(".workspace-title")).toHaveText("Build box: project");
+  // The mock runtime answers agent requests with empty results, so only the opened view is checked.
+  const agent = relaunched.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agent ACP" });
+  const view = relaunched.getByRole("tabpanel", { name: "agent-acp" });
+  await expect(agent).toHaveAttribute("aria-pressed", "true");
+  await expect(view).toBeVisible();
+  await shoot(relaunched, "notification-tap-agent");
+
+  await relaunched.getByRole("button", { name: "Close sidebar" }).last().click();
+  await expect(view).toBeHidden();
+  await relaunched.evaluate(() => (window as any).__iosTest.tapNotification());
+  await expect(agent).toHaveAttribute("aria-pressed", "true");
+  await expect(view).toBeVisible();
+});
+
 test("A dropped remote runtime offers Reconnect", async ({ page }) => {
   await start(page);
   await startProject(page);
@@ -215,4 +247,32 @@ test("Browse Folders picks a folder, sets the home folder, and Switch Folder mov
   await page.locator(".workspace-title").click();
   await openDialog(page);
   await expect(page.getByRole("textbox", { name: "Remote folder" })).toHaveValue("/home/dev/project");
+});
+
+test("Long server paths truncate inside the start screen", async ({ page }) => {
+  const remotePath = "/home/ubuntu/workspace/lighthouse-app/packages/marketing-site-preview";
+  await installBridge(page, {
+    stored: { "session:recents": [
+      { id: "sshRuntime:long", kind: "sshRuntime", name: "devbox: lighthouse-app", hostId: "host-1", remotePath, lastOpened: 2 },
+      { id: "ssh:long", kind: "ssh", name: "devbox: lighthouse-app", hostId: "host-1", remotePath, lastOpened: 1 },
+    ] },
+  });
+  await installSshBridge(page, seed);
+  await page.goto("/");
+  const start = page.getByRole("dialog", { name: "Workspaces" });
+  await expect(start.getByRole("region", { name: "On a server" })).toContainText("Oxbit runtime · /home/ubuntu");
+  for (const width of [393, 320]) {
+    await page.setViewportSize({ width, height: 852 });
+    const layout = await start.evaluate(element => ({
+      overflow: element.parentElement!.scrollWidth - element.parentElement!.clientWidth,
+      forget: [...element.querySelectorAll("[aria-label^='Forget devbox']")].map(button => Math.round(button.getBoundingClientRect().right)),
+    }));
+    expect(layout.overflow).toBe(0);
+    expect(layout.forget).toHaveLength(2);
+    for (const right of layout.forget) expect(right).toBeLessThanOrEqual(width);
+    expect(new Set(layout.forget).size).toBe(1);
+  }
+  await page.setViewportSize({ width: 393, height: 852 });
+  await start.getByRole("region", { name: "On a server" }).scrollIntoViewIfNeeded();
+  await shoot(page, "start-long-paths");
 });

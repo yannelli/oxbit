@@ -51,10 +51,12 @@ export class TaskRunner {
   private ports: TaskPorts;
   private publicPorts = new Map<string, Map<number, number>>();
   private closed = false;
+  private environment?: Promise<NodeJS.ProcessEnv>;
   constructor(
     readonly store: TaskConfigStore,
     private emit: Emit,
     private forwardPort?: (host: string, port: number) => Promise<number>,
+    private shellEnvironment: (cwd: string) => Promise<NodeJS.ProcessEnv> = async () => process.env,
   ) {
     this.ports = new TaskPorts(store.root);
   }
@@ -381,12 +383,14 @@ export class TaskRunner {
   }
   private async spawnAttempt(run: InternalRun) {
     const generation = ++run.generation;
+    const base = await (this.environment ??= this.shellEnvironment(this.store.root));
     const { env, variables } = taskEnvironment(
       this.store,
       run.task,
       this.ports,
       run.catalog,
       run.context,
+      base,
     );
     await fs.mkdir(variables.OXBIT_PREINIT_DIR, {
       recursive: true,

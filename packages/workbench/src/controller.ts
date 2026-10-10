@@ -53,7 +53,13 @@ export interface Notification {
   actions?: NotifyOptions["actions"];
   source?: string;
 }
+export interface ViewBadge {
+  count: number;
+  label: string;
+  tone?: "attention" | "info";
+}
 export interface WorkbenchState {
+  viewBadges: Record<string, ViewBadge>;
   groups: Group[];
   activeGroup: string;
   panelLayout: PanelLayout;
@@ -98,6 +104,7 @@ export interface WorkbenchState {
   };
 }
 const initial = (): WorkbenchState => ({
+  viewBadges: {},
   groups: [{ id: "g1", tabs: [] }],
   activeGroup: "g1",
   panelLayout: emptyPanelLayout(),
@@ -298,7 +305,7 @@ export class WorkbenchController {
       };
     });
     groups = this.normalizeGroups(groups);
-    const toolPanels = contributions.filter(item => ["activityView", "panel"].includes(item.kind));
+    const toolPanels = this.toolPanels(contributions);
     const starting = this.state.panelLayout;
     if (this.primaryDock === "right" && !panelContainers(starting).some(c => c.root)) {
       this.set({ panelLayout: { ...starting, docks: { ...starting.docks, left: { ...starting.docks.left, visible: false }, right: { ...starting.docks.right, visible: true } }, activeDock: "right" } });
@@ -464,7 +471,7 @@ export class WorkbenchController {
         panelLayout.docks.bottom.size = Math.max(100, Math.min(800, saved.panelHeight || 220));
         if (saved.panelId) panelLayout.docks.bottom.root = panelGroup([saved.panelId]);
       }
-      panelLayout = reconcilePanels(panelLayout, this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind)), this.primaryDock);
+      panelLayout = reconcilePanels(panelLayout, this.toolPanels(), this.primaryDock);
       this.set({
         ...saved,
         panelLayout,
@@ -763,6 +770,16 @@ export class WorkbenchController {
       ),
     });
   }
+  toolPanels(contributions = this.kernel.contributions.list()) {
+    return contributions
+      .filter(c => ["activityView", "panel"].includes(c.kind))
+      .map(c => ({ ...c, dock: c.kind === "activityView" ? (c.data as { dock?: DockSide } | undefined)?.dock : undefined }));
+  }
+  setViewBadge(id: string, badge?: ViewBadge) {
+    const { [id]: _previous, ...viewBadges } = this.state.viewBadges;
+    if (badge) viewBadges[id] = { count: Math.max(0, Math.floor(badge.count) || 0), label: badge.label, ...(badge.tone ? { tone: badge.tone } : {}) };
+    this.set({ viewBadges });
+  }
   get primaryDock(): DockSide {
     return this.kernel.configuration.get<string>("workbench.sidebarLocation") === "right" ? "right" : "left";
   }
@@ -778,7 +795,7 @@ export class WorkbenchController {
   openPanel(id: string) {
     const reveal = () => {
       if (this.disposed) return;
-      const panels = this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind));
+      const panels = this.toolPanels();
       const layout = revealPanel(reconcilePanels(this.state.panelLayout, panels, this.primaryDock), id);
       if (!panelLocation(layout, id)) { this.set({ panel: true, panelId: id }); return; }
       this.set({ panelLayout: layout, panelOverlay: true });
@@ -832,7 +849,7 @@ export class WorkbenchController {
   detachPanel(id: string) { return this.panelWindows.detach(id); }
   redockPanel(id: string) { this.set({ panelLayout: redockPanel(this.state.panelLayout, id) }); }
   resetPanelLayout() {
-    const panelLayout = reconcilePanels(emptyPanelLayout(), this.kernel.contributions.list().filter(c => ["activityView", "panel"].includes(c.kind)), this.primaryDock);
+    const panelLayout = reconcilePanels(emptyPanelLayout(), this.toolPanels(), this.primaryDock);
     panelLayout.docks.left.visible = this.primaryDock === "left";
     panelLayout.docks.right.visible = this.primaryDock === "right";
     this.set({ panelLayout });

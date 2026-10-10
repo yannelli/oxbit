@@ -8,7 +8,8 @@ test("technical text stays literal in fields, editors and floating panels", asyn
     await z.kernel.extensions.activate("oxbit.agent-acp");
     z.workbench.run("agentACP.open");
   });
-  await page.getByRole("button", { name: "Setup", exact: true }).click();
+  await page.getByRole("button", { name: "More agent actions" }).click();
+  await page.getByRole("menuitem", { name: "Agent setup" }).click();
   const args = page.getByRole("textbox", { name: "Agent arguments" });
   for (const [name, value] of Object.entries({
     spellcheck: "false",
@@ -51,8 +52,11 @@ test("technical text stays literal in fields, editors and floating panels", asyn
   const popup = await popupPromise;
   const popupComposer = popup.getByRole("textbox", { name: "Message agent" });
   await expect(popupComposer).toHaveValue('"quoted" -- flags ... teh');
-  await popup.getByRole("button", { name: "Setup", exact: true }).click();
-  await popup.getByRole("button", { name: "Setup", exact: true }).click();
+  // The detached panel keeps setup open from the main window, so the first toggle hides it.
+  for (let toggle = 0; toggle < 2; toggle++) {
+    await popup.getByRole("button", { name: "More agent actions" }).click();
+    await popup.getByRole("menuitem", { name: "Agent setup" }).click();
+  }
   const popupArgs = popup.getByRole("textbox", { name: "Agent arguments" });
   await expect(popupArgs).toHaveAttribute("autocorrect", "off");
   await expect(popupArgs).toHaveAttribute("writingsuggestions", "false");

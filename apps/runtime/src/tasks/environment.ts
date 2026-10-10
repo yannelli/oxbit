@@ -36,6 +36,7 @@ export function taskEnvironment(
     preinitDir?: string;
     branch?: string;
   } = {},
+  base: NodeJS.ProcessEnv = process.env,
 ) {
   const root = context.projectDir ?? context.root ?? store.root,
     plan = ports.get(task.id);
@@ -70,7 +71,7 @@ export function taskEnvironment(
     for (const [name, port] of Object.entries(plan.ports))
       variables[`OXBIT_${name.toUpperCase()}_PORT`] = String(port);
   }
-  const env: NodeJS.ProcessEnv = { ...process.env, ...variables };
+  const env: NodeJS.ProcessEnv = { ...base, ...variables };
   // Paseo imports keep working without rewriting the user's shell expressions.
   env.PASEO_SOURCE_CHECKOUT_PATH = variables.OXBIT_SOURCE_DIR;
   env.PASEO_WORKTREE_PATH = root;
