@@ -186,6 +186,8 @@ export class LocalAgent {
       } catch (error) {
         if (!signal.aborted) throw modelError(error);
       } finally {
+        // Calls from an unfinished response never run and lack the API's reasoning items.
+        if (!stop) calls.length = 0;
         if (turn.text || calls.length) session.turns.push(turn);
       }
       const context = { root: this.host.root, sessionId: session.id, filesystem: this.host.filesystem, signal,

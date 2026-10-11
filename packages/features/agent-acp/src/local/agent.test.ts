@@ -45,20 +45,28 @@ describe("LocalAgent", () => {
       { role: "tool", tool_call_id: "call_1", content: "text of /root/a.ts" },
     ]);
   });
-  it("ends a cancelled turn when the host stream ignores the signal, keeps partial text and continues the conversation", async () => {
+  it("ends a cancelled turn when the host stream ignores the signal and drops calls from the unfinished response", async () => {
+    const event = (value: Record<string, unknown>) => `event: ${value.type}\ndata: ${JSON.stringify(value)}\n\n`;
+    const call = { id: "fc_1", type: "function_call", call_id: "call_1", name: "list_files", arguments: "{}" };
     const ignoresSignal = async function* () {
-      yield* chatText("Partial").slice(0, 1);
+      yield event({ type: "response.output_text.delta", output_index: 0, delta: "Partial" });
+      yield event({ type: "response.output_item.done", output_index: 1, item: call });
       await new Promise(() => {});
     };
-    const { agent, updates, requests } = setup([ignoresSignal, chatText("Next")]);
+    const next = [event({ type: "response.output_text.delta", delta: "Next" }), event({ type: "response.completed", response: {} })];
+    const { agent, updates, requests } = setup([ignoresSignal, next], { "agentACP.oxbit.api": "openai" });
     const { sessionId } = await agent.newSession();
     const turn = agent.prompt(sessionId, [{ type: "text", text: "Go" }]);
     await expect.poll(() => updates.length).toBe(1);
     agent.cancel(sessionId);
     expect(await turn).toEqual({ stopReason: "cancelled" });
     expect(await agent.prompt(sessionId, [{ type: "text", text: "Again" }])).toEqual({ stopReason: "end_turn" });
-    expect((requests.at(-1)!.body as any).messages.slice(1).map((message: any) => [message.role, message.content]))
-      .toEqual([["user", "Go"], ["assistant", "Partial"], ["user", "Again"]]);
+    expect(kinds(updates)).toEqual(["agent_message_chunk", "agent_message_chunk"]);
+    expect((requests.at(-1)!.body as any).input).toEqual([
+      { type: "message", role: "user", content: [{ type: "input_text", text: "Go" }] },
+      { type: "message", role: "assistant", content: "Partial" },
+      { type: "message", role: "user", content: [{ type: "input_text", text: "Again" }] },
+    ]);
   });
   it("reports API errors and drops the failed user turn", async () => {
     const failing = () => ({ [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(Object.assign(new Error("HTTP"), { status: 401, body: "{\"error\":{\"message\":\"bad key\"}}" })) }) });
