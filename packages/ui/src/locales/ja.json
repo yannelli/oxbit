@@ -1011,5 +1011,12 @@
   "Origin and path prefix of a Chat Completions API.": "Chat Completions API のオリジンとパスのプレフィックス。",
   "API key": "API キー",
   "Key saved": "キーを保存済み",
-  "No key saved": "キーは保存されていません"
+  "No key saved": "キーは保存されていません",
+  "Pending file changes": "保留中のファイル変更",
+  "{0} file changes": "{0} 件のファイル変更",
+  "Apply all": "すべて適用",
+  "Reject all": "すべて拒否",
+  "Undo all": "すべて元に戻す",
+  "Move queued message up": "キュー内のメッセージを上へ移動",
+  "Move queued message down": "キュー内のメッセージを下へ移動"
 }

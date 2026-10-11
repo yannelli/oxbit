@@ -1011,5 +1011,12 @@
   "Origin and path prefix of a Chat Completions API.": "Origin and path prefix of a Chat Completions API.",
   "API key": "API key",
   "Key saved": "Key saved",
-  "No key saved": "No key saved"
+  "No key saved": "No key saved",
+  "Pending file changes": "Pending file changes",
+  "{0} file changes": "{0} file changes",
+  "Apply all": "Apply all",
+  "Reject all": "Reject all",
+  "Undo all": "Undo all",
+  "Move queued message up": "Move queued message up",
+  "Move queued message down": "Move queued message down"
 }
