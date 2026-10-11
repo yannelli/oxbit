@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { FileEntry, FileSystem } from "@oxbit/sdk";
-import { insertMention, mentionQuery, rankFiles, searchFiles, searchSymbols, type WorkspaceSymbolSource } from "./mentions.js";
+import type { Conversation } from "./history.js";
+import {
+  insertMention, mentionQuery, rankFiles, searchFiles, searchSymbols, searchThreads, threadTranscript, type WorkspaceSymbolSource,
+} from "./mentions.js";
+
+const conversation = (id: string, title: string, extra: Partial<Conversation> = {}): Conversation => ({
+  id, sessionId: id, root: "/workspace", provider: "codex", title, updatedAt: "2026-10-10T12:00:00.000Z",
+  draft: "", context: [], activity: [], tools: [], ...extra,
+});
 
 describe("mentions", () => {
   it("finds the @ token that ends at the caret", () => {
@@ -61,5 +69,40 @@ describe("mentions", () => {
     expect(await searchSymbols(language, "handle", signal, 1)).toHaveLength(1);
     expect(await searchSymbols(language, "h", signal)).toEqual([]);
     expect(await searchSymbols(undefined, "handle", signal)).toEqual([]);
+  });
+  it("finds saved threads by title in the connected root, newest first, without the open one", () => {
+    const entries = [
+      conversation("open", "Fix login redirect"),
+      conversation("newer", "Login form copy", { name: "Claude Agent" }),
+      conversation("other-root", "Login elsewhere", { root: "/other" }),
+      conversation("older", "Refactor LOGIN service"),
+      conversation("unrelated", "Update docs"),
+    ];
+    expect(searchThreads(entries, "login", { exclude: "open", root: "/workspace" })).toEqual([
+      { kind: "thread", id: "newer", title: "Login form copy", agent: "Claude Agent", updatedAt: "2026-10-10T12:00:00.000Z" },
+      { kind: "thread", id: "older", title: "Refactor LOGIN service", agent: "Codex ACP", updatedAt: "2026-10-10T12:00:00.000Z" },
+    ]);
+    expect(searchThreads(entries, "login").map((thread) => thread.id)).toEqual(["open", "newer", "other-root", "older"]);
+    expect(searchThreads(entries, "login", {}, 1)).toHaveLength(1);
+    expect(searchThreads(entries, " ")).toEqual([]);
+  });
+  it("formats a thread's user and agent messages and keeps the latest text within the limit", () => {
+    const entry = conversation("thread", "Fix login", {
+      activity: [
+        { kind: "message", message: { role: "user", text: "Why does login fail?" } },
+        { kind: "message", message: { role: "thought", text: "private reasoning" } },
+        { kind: "tool", id: "read-1" },
+        { kind: "message", message: { role: "agent", text: "The token expired. " } },
+        { kind: "notice", text: "Disconnected" },
+      ],
+    });
+    expect(threadTranscript(entry)).toBe(
+      "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
+    );
+    const trimmed = threadTranscript(entry, 70);
+    expect(trimmed).toHaveLength(70);
+    expect(trimmed.startsWith("Earlier conversation with Codex ACP: Fix login\n\n")).toBe(true);
+    expect(trimmed.endsWith("The token expired.")).toBe(true);
+    expect(threadTranscript(conversation("empty", "Nothing"))).toBe("");
   });
 });

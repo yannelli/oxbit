@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { Icon, translate as tr } from "@oxbit/ui";
-import { insertMention, mentionQuery, type Mention, type SymbolMention } from "./mentions.js";
+import { insertMention, mentionQuery, type Mention, type SymbolMention, type ThreadMention } from "./mentions.js";
 import { imageFiles } from "./images.js";
 import { sendHint, sendsOnKey, useSendMode } from "./send-keys.js";
 import type { ConfigurationService } from "@oxbit/sdk";
@@ -30,7 +30,7 @@ function slashQuery(value: string, caret: number) {
 }
 
 export function ComposerInput({
-  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles, findSymbols,
+  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles, findSymbols, findThreads,
 }: {
   value: string;
   commands: readonly { name: string; description: string }[];
@@ -45,6 +45,7 @@ export function ComposerInput({
   onImages: (files: File[]) => void;
   findFiles: (query: string, signal: AbortSignal) => Promise<string[]>;
   findSymbols: (query: string, signal: AbortSignal) => Promise<SymbolMention[]>;
+  findThreads: (query: string) => ThreadMention[];
 }) {
   const id = useId();
   const mode = useSendMode(configuration);
@@ -116,7 +117,13 @@ export function ComposerInput({
         label: <strong><Icon name="symbol" size={14} /> {symbol.name}</strong>,
         detail: `${symbol.path}:${symbol.line}`,
         choose: () => pick(symbol),
-      })) : []);
+      })) : [])
+      .concat(findThreads(mention.query).map((thread) => ({
+        key: `thread:${thread.id}`,
+        label: <strong><Icon name="clock" size={14} /> {thread.title}</strong>,
+        detail: `${thread.agent} · ${new Date(thread.updatedAt).toLocaleDateString()}`,
+        choose: () => pick(thread),
+      })));
   }
   const mentionTerm = mention?.query;
   const search = useRef({ findFiles, findSymbols });

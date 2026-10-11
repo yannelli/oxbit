@@ -129,11 +129,16 @@ thread is opened.
 - After two characters, `@` also lists up to 10 workspace symbols from running
   language servers that support `workspace/symbol`. A symbol is attached as the
   lines of its range, like a selection.
+- `@` also lists up to 5 saved conversations whose title contains the text after
+  `@`, from the connected workspace root, without the open conversation. Choosing
+  one attaches its user and agent messages as **Thread: <title>**, without thoughts
+  or tool calls, keeping the latest 200,000 characters.
 - Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
-  and can be edited or removed.
+  and can be edited or removed. **Send queued message now** stops the running turn
+  and sends that message next.
 - **Dictate** (the microphone button) appends speech to the draft as you talk.
   Select it again to finish. Editing or sending the draft stops dictation. See
   [Dictation](#dictation).

@@ -268,6 +268,49 @@ test("@ attaches a workspace symbol's lines from a running language server", asy
   }
 });
 
+test("@ attaches an earlier thread's messages", async ({ page }) => {
+  const app = await open(page);
+  try {
+    await app.input.fill("remember the blue door");
+    await app.input.press("Enter");
+    await expect(app.log).toContainText("Done.");
+    await app.ready();
+    await app.panel.getByRole("button", { name: "New conversation" }).click();
+    await app.ready();
+    await expect(app.log).not.toContainText("remember the blue door");
+    await app.input.fill("context-inspect @blue");
+    const option = page.getByRole("listbox", { name: "Mention files and context" }).getByRole("option", { name: /remember the blue door/ });
+    await option.click();
+    await expect(app.input).toHaveValue("context-inspect ");
+    await expect(app.panel.getByRole("button", { name: "Remove attachment Thread: remember the blue door" })).toBeVisible();
+    await app.input.press("Enter");
+    await expect(app.log).toContainText("User: remember the blue door");
+  } finally {
+    await app.close();
+  }
+});
+
+test("Send queued message now stops the turn and runs that message next", async ({ page }) => {
+  const app = await open(page);
+  try {
+    await app.input.fill("wait");
+    await app.input.press("Enter");
+    await expect(app.panel.locator(".acp-status")).toHaveText("Working…");
+    for (const text of ["queued first", "queued second"]) {
+      await app.input.fill(text);
+      await app.panel.getByRole("button", { name: "Queue message" }).click();
+    }
+    const queue = app.panel.getByRole("region", { name: "Queued messages" });
+    await queue.locator(".acp-queue-item").filter({ hasText: "queued second" })
+      .getByRole("button", { name: "Send queued message now" }).click();
+    await expect(app.log.locator(".acp-user-text")).toHaveText(["wait", "queued second", "queued first"]);
+    await app.ready();
+    await expect(queue).toBeHidden();
+  } finally {
+    await app.close();
+  }
+});
+
 test.describe("phone composer", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
   test("coarse pointers send with the button and stack approval actions", async ({ page }) => {

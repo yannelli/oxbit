@@ -288,6 +288,31 @@ describe("ACP session lifecycle", () => {
     expect(agent.queue).toEqual([]);
     agent.dispose();
   });
+  it("sends a queued prompt now by interrupting the turn and queues it again when that fails", async () => {
+    const { agent, runtime } = setup();
+    agent.busy = true;
+    const later = { id: "later", text: "Later", context: [{ path: "a.ts", text: "a" }] };
+    const message = { id: "connection", text: "Later", context: later.context, messageId: "later" };
+    agent.queue = [{ id: "first", text: "First" }, later];
+    await agent.sendQueuedNow("later");
+    expect(runtime.request.mock.calls).toEqual([
+      ["acp.dequeue", { id: "connection", promptId: "later" }],
+      ["acp.interrupt", message],
+    ]);
+    expect(agent.queue.map((prompt) => prompt.id)).toEqual(["first"]);
+    expect(agent.status).toBe("Stopping…");
+    agent.cancelling = false;
+    agent.status = "Working…";
+    agent.queue = [later];
+    runtime.request.mockClear();
+    runtime.request.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("Agent is busy"));
+    await expect(agent.sendQueuedNow("later")).rejects.toThrow("Agent is busy");
+    expect(runtime.request.mock.calls.map(([method]) => method)).toEqual(["acp.dequeue", "acp.interrupt", "acp.enqueue"]);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.enqueue", message);
+    expect(agent.cancelling).toBe(false);
+    expect(agent.status).toBe("Working…");
+    agent.dispose();
+  });
   it("keeps queued prompts when a conversation change is requested", async () => {
     const { agent, runtime } = setup();
     agent.queue = [{ id: "pending", text: "Keep queued" }];
@@ -677,6 +702,27 @@ describe("ACP conversation workflows", () => {
   });
 });
 
+describe("ACP thread mentions", () => {
+  it("attaches an earlier thread's transcript once and lists threads from the connected root", () => {
+    const { agent } = setup();
+    const entry = (id: string, root: string) => ({
+      id, sessionId: id, root, provider: "codex", title: `Login ${id}`, updatedAt: "2026-10-10T12:00:00.000Z",
+      draft: "", context: [], tools: [], activity: [{ kind: "message", message: { role: "user", text: `Question ${id}` } }],
+    }) as any;
+    agent.history.entries = [entry("here", "/workspace"), entry("there", "/other")];
+    expect(agent.mentionThreads("login").map((thread) => thread.id)).toEqual(["here"]);
+    agent.attachMention({ kind: "thread", id: "here", title: "Login here", agent: "Codex", updatedAt: "" });
+    agent.attachThread("here");
+    expect(agent.context).toEqual([{
+      path: ".", kind: "thread", label: "Thread: Login here",
+      text: "Earlier conversation with Codex ACP: Login here\n\nUser: Question here",
+    }]);
+    expect(() => agent.attachThread("missing")).toThrow("This conversation is no longer in history");
+    agent.history.entries = [{ ...entry("empty", "/workspace"), activity: [] }];
+    expect(() => agent.attachThread("empty")).toThrow("This conversation has no messages");
+    agent.dispose();
+  });
+});
 describe("dispatched subagents in the editor", () => {
   const child = (id = "a", parentId?: string): any => ({
     id,

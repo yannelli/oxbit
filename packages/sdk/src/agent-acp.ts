@@ -164,7 +164,8 @@ export interface ACPContext {
   line?: number;
   endLine?: number;
   version?: number;
-  kind?: "file" | "selection" | "diagnostics" | "changes" | "image";
+  /** `thread`: the transcript of an earlier conversation. */
+  kind?: "file" | "selection" | "diagnostics" | "changes" | "thread" | "image";
   /** Images only: png, jpeg, gif or webp. */
   mimeType?: string;
   /** Images only: base64 bytes. Saved transcripts omit it. */
