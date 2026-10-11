@@ -364,6 +364,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     if (trigger?.isConnected && document.activeElement === document.body)
       trigger.focus();
   }, [settingsDisabled]);
+  const connectionId = connection?.id;
+  useEffect(() => {
+    if (connectionId) setShowSetup(false);
+  }, [connectionId]);
   useEffect(() => {
     if (follow.current && transcript.current && agent.messages.length)
       transcript.current.scrollTop = transcript.current.scrollHeight;
