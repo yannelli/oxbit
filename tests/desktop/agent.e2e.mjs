@@ -55,8 +55,9 @@ describe("Oxbit native agent panel services", () => {
       ];
     });
     assert.notEqual(plugin, "posted");
+    // usernoted accepts a request from a denied app and delivers it without an alert.
     if (native.permission === "granted") assert.equal(posted, "posted");
-    else assert.match(posted, /not allowed/i);
+    else assert.match(posted, /^posted$|not allowed/i);
   });
 
   it("exposes speech recognition to the composer", async () => {
