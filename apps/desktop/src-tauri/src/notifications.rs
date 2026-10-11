@@ -42,6 +42,7 @@ static CLICKS: Mutex<Clicks> = Mutex::new(Clicks {
 define_class!(
     // SAFETY: NSObject has no subclassing requirements and `Delegate` does not implement Drop.
     #[unsafe(super = NSObject)]
+    #[name = "OxbitNotificationDelegate"]
     struct Delegate;
 
     unsafe impl NSObjectProtocol for Delegate {}
