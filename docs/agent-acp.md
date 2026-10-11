@@ -91,7 +91,10 @@ with the user's key:
 - Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
   file write through a scripted model), `tests/ios/agent-models.spec.ts`, and
   `scripts/oxbit-agent-smoke.ts` against a local Ollama for all three APIs and against
-  OpenRouter for `openai-compatible`. No device run yet.
+  OpenRouter for `openai-compatible`. On 2026-10-11 one turn ran in the iOS 26.5
+  simulator through the Swift `AgentModels` path (OpenRouter, `openai/gpt-oss-20b`): Keychain
+  save and `has` after relaunch, three URLSession requests answered 200, and base URLs and
+  paths outside the endpoint rejected. No physical device run yet.
 
 ### ACP Registry agents
 
@@ -189,6 +192,8 @@ thread is opened.
   Oxbit also shows a system notification once permission is granted. Use
   **Enable notifications** in **More agent actions** to grant it. Set
   `agentACP.notifications` to `never` to turn system notifications off.
+- Applying an agent edit opens the file in the editor when the panel sits beside it.
+  Below 1100px the panel covers the editor, so it stays open and the file only refreshes.
 
 ### System notifications
 

@@ -117,7 +117,7 @@ test("without a model service the browser workspace keeps the runtime prompt and
   await expect(panel.getByRole("button", { name: "Start Codex ACP" })).toBeDisabled();
 });
 
-test("the Oxbit agent runs a turn in the app: it streams a reply and its file write waits for review", async ({ page }) => {
+test("the Oxbit agent runs a turn in the app: its file write waits for review and a phone keeps the panel open after Apply", async ({ page }) => {
   const panel = await open(page, true, [
     chatTool("call_1", "write_file", { path: "notes.md", content: "agent note\n" }),
     chatText("Wrote notes.md."),
@@ -141,6 +141,10 @@ test("the Oxbit agent runs a turn in the app: it streams a reply and its file wr
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.filesystem.read("notes.md").then(() => true, () => false))).toBe(false);
   await panel.getByRole("button", { name: "Apply change", exact: true }).click();
   await expect(panel.getByText("Wrote notes.md.")).toBeVisible();
+  const phone = (page.viewportSize()?.width ?? 1440) < 1100;
+  expect(await page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("agent-acp"))).toBe(true);
+  expect(await page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
+  await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" })).toHaveCount(0);
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 
   const requests = await page.evaluate(() => (window as any).__models.requests);

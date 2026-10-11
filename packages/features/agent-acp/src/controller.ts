@@ -32,7 +32,7 @@ import {
   resolveLaunch,
   runtimeSupportError,
 } from "./launch.js";
-import { Attention } from "./attention.js";
+import { AGENT_VIEW, Attention } from "./attention.js";
 import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js";
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
@@ -1593,9 +1593,10 @@ export class AgentController {
         text: `Applied change: ${request.params.path}`,
       });
       await this.respond(request, null);
-      await this.options.workbench.openFile(request.params.path, {
-        preview: false,
-      });
+      if (!this.panelCoversEditor())
+        await this.options.workbench.openFile(request.params.path, {
+          preview: false,
+        });
       await this.options.workbench.refreshFiles();
     } catch (error) {
       await this.respond(request, undefined, String(error)).catch(() => {});
@@ -1706,6 +1707,10 @@ export class AgentController {
   openAgents(id?: string) {
     if (id) this.selectSubagent(id);
     this.options.workbench.openPanel("agent-acp-agents");
+  }
+  /** Below the workbench's 1100px breakpoint the panel overlays the editor, and opening a file closes it. */
+  private panelCoversEditor() {
+    return (globalThis.innerWidth || 1440) < 1100 && this.options.workbench.panelVisible?.(AGENT_VIEW) === true;
   }
   async openLocation(absolute: string, line?: number) {
     const root = this.connection?.root ?? this.activeConversation?.root;
