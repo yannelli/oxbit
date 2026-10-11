@@ -62,6 +62,11 @@ describe("explicit workspace traversal", () => {
     const native = Object.assign(filesystem, { findFiles });
     expect(await findWorkspaceFiles(native, "ndl", new AbortController().signal)).toEqual(["closed/needle.ts"]);
   });
+  it("walks the workspace when the runtime's file finder fails", async () => {
+    const { filesystem } = fixture();
+    const findFiles = vi.fn(async () => { throw Object.assign(new Error("spawn rg ENOENT"), { code: "ENOENT" }); });
+    expect(await findWorkspaceFiles(Object.assign(filesystem, { findFiles }), "ndl", new AbortController().signal)).toEqual(["closed/needle.ts"]);
+  });
   it("exports entries in collapsed folders and empty directories", async () => {
     const { filesystem } = fixture();
     const entries = [];

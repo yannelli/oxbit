@@ -44,6 +44,8 @@ describe("mentions", () => {
     expect(await searchFiles(filesystem, " ", new AbortController().signal)).toEqual([]);
     const indexed = { findFiles: async () => ["a/zz-hello.ts", "hello.md"] } as unknown as FileSystem;
     expect(await searchFiles(indexed, "hello", new AbortController().signal)).toEqual(["hello.md", "a/zz-hello.ts"]);
+    const failing = { ...filesystem, findFiles: async () => { throw Object.assign(new Error("spawn rg ENOENT"), { code: "ENOENT" }); } } as unknown as FileSystem;
+    expect(await searchFiles(failing, "hello", new AbortController().signal)).toEqual(["hello.txt", "src/hello.ts"]);
   });
   it("maps workspace symbols to 1-based workspace lines and skips URIs outside the workspace", async () => {
     const service = {
