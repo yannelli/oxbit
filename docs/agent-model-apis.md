@@ -96,5 +96,6 @@ which serves `/v1/models`, `/v1/chat/completions`, `/v1/responses` and an Anthro
 
 On 2026-10-11 all three APIs passed against Ollama 0.24.0 with `qwen3:0.6b`: a tool call,
 the tool result and a final answer. In one of four Anthropic runs the model put its whole
-answer in thinking and the turn ended without text. No hosted OpenAI or Anthropic endpoint
-has been called.
+answer in thinking and the turn ended without text. The same day `openai-compatible` passed
+against OpenRouter (`https://openrouter.ai/api`, `openai/gpt-oss-20b`). OpenAI's and
+Anthropic's own endpoints have not been called.

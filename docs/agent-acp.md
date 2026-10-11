@@ -90,8 +90,8 @@ with the user's key:
   Keychain and request handling on iOS: [In-app agent on iOS](ios.md#in-app-agent-on-ios).
 - Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
   file write through a scripted model), `tests/ios/agent-models.spec.ts`, and
-  `scripts/oxbit-agent-smoke.ts` against a local Ollama for all three APIs. No hosted
-  API request and no device run yet.
+  `scripts/oxbit-agent-smoke.ts` against a local Ollama for all three APIs and against
+  OpenRouter for `openai-compatible`. No device run yet.
 
 ### ACP Registry agents
 
