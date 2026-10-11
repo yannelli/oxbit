@@ -275,7 +275,7 @@ describe("ACP runtime bridge", () => {
   });
   it("gates lifecycle methods by capabilities and supports resume without replay", async () => {
     const unsupported = await setup();
-    for (const method of ["session/load", "session/resume", "session/list"])
+    for (const method of ["session/load", "session/resume", "session/list", "session/fork"])
       await expect(
         unsupported.agent.call("client", unsupported.connection.id, method, {
           sessionId: "session",
@@ -295,6 +295,17 @@ describe("ACP runtime bridge", () => {
       sessionId: connection.sessionId,
     });
     expect(events.length).toBe(before);
+  });
+  it("forks the current session into a new one that keeps its context", async () => {
+    const { agent, connection, events } = await setup(["--history"]);
+    const source = connection.sessionId;
+    await agent.call("client", connection.id, "session/prompt", { text: "Remember the blue door" });
+    const forked = await agent.call("client", connection.id, "session/fork");
+    expect(forked.sessionId).toEqual(expect.any(String));
+    expect(forked.sessionId).not.toBe(source);
+    await agent.call("client", connection.id, "session/prompt", { text: "history" });
+    expect(events.some((e) => e.params.sessionId === forked.sessionId &&
+      e.params.update?.content?.text === "History: Remember the blue door | history")).toBe(true);
   });
   it.each([false, true])(
     "sends snapshot context with negotiated embedded support %s and rejects escaping paths",

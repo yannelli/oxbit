@@ -1023,5 +1023,8 @@
   "Attach this branch's changes since its base": "このブランチのベース以降の変更を添付",
   "Message actions": "メッセージの操作",
   "Fork from here": "ここから分岐",
-  "Restore files and fork": "ファイルを復元して分岐"
+  "Restore files and fork": "ファイルを復元して分岐",
+  "Fork conversation": "会話を分岐",
+  "Forked from “{title}”. The agent keeps the earlier context.": "「{title}」から分岐しました。エージェントはこれまでのコンテキストを保持しています。",
+  "Update the runtime to fork conversations": "会話を分岐するにはランタイムを更新してください"
 }

@@ -125,7 +125,7 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
           mcpCapabilities: { http: true },
           ...(historyEnabled ? {
               loadSession: !resumeOnly,
-              sessionCapabilities: { list: {}, resume: {} },
+              sessionCapabilities: { list: {}, resume: {}, fork: {} },
             } : {}),
           promptCapabilities: { embeddedContext: historyEnabled, image: images },
         },
@@ -166,6 +166,14 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
         ],
         ...(all.length > page * 2 + 2 ? { nextCursor: "next" } : {}),
       };
+    } else if (method === "session/fork") {
+      mcpServers = params.mcpServers;
+      if (!historyEnabled || !sessions[params.sessionId] || params.cwd !== process.cwd())
+        throw new Error("Session missing");
+      sessionId = randomUUID();
+      sessions[sessionId] = structuredClone(sessions[params.sessionId]);
+      remember();
+      result = { sessionId, modes, configOptions };
     } else if (method === "session/load" || method === "session/resume") {
       mcpServers = params.mcpServers;
       if (!historyEnabled || !sessions[params.sessionId])
@@ -424,7 +432,12 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
       }
       update({
         sessionUpdate: "agent_message_chunk",
-        content: { type: "text", text: text.startsWith("/") ? `Command received: ${text}` : "Done." },
+        content: {
+          type: "text",
+          text: historyEnabled && text === "history"
+            ? `History: ${sessions[sessionId].messages.filter((m) => m.role === "user").map((m) => m.text).join(" | ")}`
+            : text.startsWith("/") ? `Command received: ${text}` : "Done.",
+        },
       });
       if (historyEnabled) {
         sessions[sessionId].messages.push({ role: "agent", text: "Done." });

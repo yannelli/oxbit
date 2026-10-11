@@ -66,6 +66,20 @@ describe("agent attention", () => {
       agent.dispose();
     }
   });
+  it("treats an unfocused window as away only with a mouse", () => {
+    for (const touch of [false, true]) {
+      vi.stubGlobal("document", { hidden: false, hasFocus: () => false });
+      vi.stubGlobal("matchMedia", (query: string) => ({ matches: touch && query === "(pointer: coarse)" }));
+      try {
+        const { agent, listeners, workbench } = setup(true);
+        listeners.get("acp.turnEnded")!({ id: "c", stopReason: "end_turn" });
+        expect(workbench.notify).toHaveBeenCalledTimes(touch ? 0 : 1);
+        agent.dispose();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    }
+  });
 });
 
 describe("agent activity", () => {

@@ -996,5 +996,8 @@
   "Attach this branch's changes since its base": "Änderungen dieses Branches seit seiner Basis anhängen",
   "Message actions": "Nachrichtenaktionen",
   "Fork from here": "Ab hier abzweigen",
-  "Restore files and fork": "Dateien wiederherstellen und abzweigen"
+  "Restore files and fork": "Dateien wiederherstellen und abzweigen",
+  "Fork conversation": "Unterhaltung abzweigen",
+  "Forked from “{title}”. The agent keeps the earlier context.": "Von „{title}“ abgezweigt. Der Agent behält den bisherigen Kontext.",
+  "Update the runtime to fork conversations": "Aktualisieren Sie die Runtime, um Unterhaltungen abzuzweigen"
 }

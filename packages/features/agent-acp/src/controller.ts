@@ -45,6 +45,8 @@ import {
 import { folderText } from "./folders.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
+const FORKED_NOTICE = "Forked from “{title}”. The agent keeps the earlier context.";
+
 export type AgentRequest = {
   id: string;
   requestId: string;
@@ -560,7 +562,23 @@ export class AgentController {
     if (!this.connection) throw new Error("Connect an agent first");
     return this.request("acp.call", { id: this.connection.id, method, params });
   }
-  async newSession() {
+  /** True when the agent advertises ACP's unstable `session/fork` and the idle conversation has messages. */
+  get canForkSession() {
+    return !!this.connection?.sessionId && !!this.connection.capabilities?.sessionCapabilities?.fork && this.messages.length > 0 &&
+      !this.busy && !this.connecting && !this.sessionStarting && !this.updatingSettings && !this.discovering &&
+      !this.requests.length && !this.queue.length && !this.activeSubagentCount;
+  }
+  /** Forks the agent's session: the new conversation shows the transcript and the agent keeps its whole context. */
+  async forkSession() {
+    try {
+      await this.newSession(true);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unsupported ACP client method")
+        throw new Error("Update the runtime to fork conversations");
+      throw error;
+    }
+  }
+  async newSession(fork = false) {
     if (this.requests.length)
       throw new Error("Resolve pending requests before changing conversations");
     if (this.queue.length)
@@ -592,8 +610,14 @@ export class AgentController {
       );
       if (generation !== this.connectionGeneration) return;
       this.resetConversation();
-      const result = await this.call("session/new");
+      const result = await this.call(fork ? "session/fork" : "session/new");
       if (generation === this.connectionGeneration) {
+        if (fork && previous) {
+          this.restoreSnapshot(previous);
+          this.draft = "";
+          this.context = [];
+          this.activity.push({ kind: "notice", text: FORKED_NOTICE, values: { title: previous.title } });
+        }
         this.connection = result;
         this.activeConversation = {
           id: crypto.randomUUID(),

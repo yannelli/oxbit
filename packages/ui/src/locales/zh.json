@@ -1023,5 +1023,8 @@
   "Attach this branch's changes since its base": "附加此分支自其基准以来的更改",
   "Message actions": "消息操作",
   "Fork from here": "从此处分叉",
-  "Restore files and fork": "恢复文件并分叉"
+  "Restore files and fork": "恢复文件并分叉",
+  "Fork conversation": "分叉对话",
+  "Forked from “{title}”. The agent keeps the earlier context.": "已从“{title}”分叉。代理保留之前的上下文。",
+  "Update the runtime to fork conversations": "请更新运行时以分叉对话"
 }

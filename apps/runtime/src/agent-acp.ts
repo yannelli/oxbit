@@ -418,7 +418,7 @@ export class AgentACP {
         agent.busy = false;
       }
     }
-    if (["session/new", "session/load", "session/resume"].includes(method)) {
+    if (["session/new", "session/load", "session/resume", "session/fork"].includes(method)) {
       if (
         method === "session/load" &&
         !agent.connection.capabilities?.loadSession
@@ -429,6 +429,14 @@ export class AgentACP {
         !agent.connection.capabilities?.sessionCapabilities?.resume
       )
         throw new Error("This agent does not support resuming conversations");
+      if (
+        method === "session/fork" &&
+        !agent.connection.capabilities?.sessionCapabilities?.fork
+      )
+        throw new Error("This agent does not support forking conversations");
+      const source = agent.connection.sessionId;
+      if (method === "session/fork" && !source)
+        throw new Error("Start a conversation first");
       if (agent.subagents?.activeCount)
         throw new Error(
           "Wait for active subagents or disconnect before changing conversations",
@@ -441,7 +449,7 @@ export class AgentACP {
       const previousTitle = agent.title;
       const previousTruncated = agent.truncated;
       const target =
-        method === "session/new"
+        method === "session/new" || method === "session/fork"
           ? undefined
           : requireString(params, "sessionId");
       if (agent.approvals.size)
@@ -465,7 +473,7 @@ export class AgentACP {
         const result = await this.request(agent, method, {
           cwd: this.files.root,
           mcpServers: [await this.mcp.server(agent.connection.id, !!agent.connection.capabilities?.mcpCapabilities?.http)],
-          ...(target ? { sessionId: target } : {}),
+          ...(target ? { sessionId: target } : method === "session/fork" ? { sessionId: source } : {}),
         });
         const sessionId = target ?? result?.sessionId;
         if (typeof sessionId !== "string" || !sessionId)

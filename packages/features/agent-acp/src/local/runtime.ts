@@ -132,12 +132,14 @@ export class LocalAgentRuntime implements RpcClient {
   }
   private async call(connection: Connection, method: string, params: Params): Promise<unknown> {
     if (connection.busy) throw new Error("Wait for the current agent operation or stop it first");
-    if (method === "session/new") {
+    if (method === "session/new" || method === "session/fork") {
       if (connection.approvals.size) throw new Error("Resolve pending requests before changing conversations");
       if (connection.queue.length) throw new Error("Remove queued messages before changing conversations");
+      const source = connection.connection.sessionId;
+      if (method === "session/fork" && !source) throw new Error("Start a conversation first");
       connection.busy = true;
       try {
-        const result = await connection.agent.newSession();
+        const result = method === "session/fork" ? connection.agent.forkSession(source!) : await connection.agent.newSession();
         Object.assign(connection.connection, result);
         connection.queuePaused = false;
         return structuredClone(connection.connection);

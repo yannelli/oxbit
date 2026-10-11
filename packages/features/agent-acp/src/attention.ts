@@ -41,9 +41,11 @@ export class Attention {
   private panelHidden() {
     return this.options.workbench.panelVisible?.(AGENT_VIEW) === false;
   }
-  /** True while Oxbit's window is hidden or another app has focus. */
+  /** True while Oxbit's window is hidden or, with a mouse, another app has focus. A phone's web view can lose focus while on screen. */
   private appHidden() {
-    return typeof document !== "undefined" && (document.hidden || !document.hasFocus());
+    if (typeof document === "undefined") return false;
+    const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+    return document.hidden || (!touch && !document.hasFocus());
   }
   sync(pending: number, thread?: () => ThreadState) {
     if (thread) this.mirror(thread);
