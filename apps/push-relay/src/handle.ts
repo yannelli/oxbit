@@ -4,7 +4,8 @@ import { base64ToBytes, bytesToBase64Url, utf8 } from "./base64.js";
 export type Device = PushDeviceRequest;
 
 const IV_BYTES = 12;
-const HEX_TOKEN = /^(?:[0-9a-f]{2}){32,100}$/i;
+/** Device tokens are 32 bytes and Live Activity push tokens have been 128; APNs documents no maximum. */
+const HEX_TOKEN = /^(?:[0-9a-f]{2}){32,256}$/i;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

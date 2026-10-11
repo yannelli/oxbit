@@ -76,6 +76,19 @@ describe("POST /v1/push", () => {
     expect(payload).toEqual({ aps: { timestamp: NOW, event: "update", "content-state": state, "stale-date": NOW + 900 } });
   });
 
+  it("accepts a 128-byte Live Activity token with a handle the runtime stores", async () => {
+    const env = await relayEnv();
+    const token = "ef".repeat(128);
+    const handle = await register(env, { token, environment: "development", kind: "liveactivity" });
+    expect(handle.length).toBeLessThanOrEqual(1024);
+    const fetch = apns();
+    const response = await handleRequest(post("/v1/push", { handle, activity: { event: "update", state } }), env, deps(fetch));
+    expect(await response.json()).toEqual({ sent: true });
+    expect(sent(fetch).url).toBe(`${HOSTS.development}/3/device/${token}`);
+    const longest = await register(env, { token: "ef".repeat(256), environment: "production", kind: "liveactivity" });
+    expect(longest.length).toBeLessThanOrEqual(1024);
+  });
+
   it("sends a Live Activity end with a dismissal date", async () => {
     const env = await relayEnv();
     const handle = await register(env, { token: ACTIVITY_TOKEN, environment: "production", kind: "liveactivity" });
@@ -213,7 +226,7 @@ describe("POST /v1/devices", () => {
     const invalid = [
       { ...valid, token: `${ALERT_TOKEN}a` },
       { ...valid, token: "ab".repeat(31) },
-      { ...valid, token: "ab".repeat(101) },
+      { ...valid, token: "ab".repeat(257) },
       { ...valid, token: "zz".repeat(32) },
       { ...valid, environment: "staging" },
       { ...valid, kind: "voip" },
