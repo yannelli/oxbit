@@ -999,5 +999,17 @@
   "Dictation does not support this language": "音声入力はこの言語に対応していません",
   "No speech was detected": "音声が検出されませんでした",
   "1 request needs an answer": "1 件のリクエストが回答を待っています",
-  "{0} requests need an answer": "{0} 件のリクエストが回答を待っています"
+  "{0} requests need an answer": "{0} 件のリクエストが回答を待っています",
+  "Needs a runtime workspace": "ランタイム ワークスペースが必要です",
+  "Runs in Oxbit with your API key": "API キーを使って Oxbit 内で実行します",
+  "Add an API key in Agent setup": "エージェントの設定で API キーを追加してください",
+  "Oxbit Agent setup": "Oxbit Agent の設定",
+  "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.": "Oxbit Agent はアプリ内で動作し、あなたのキーでモデル API を呼び出します。キーはシステムのキーチェーンに保存されます。",
+  "API": "API",
+  "OpenAI-compatible": "OpenAI 互換",
+  "Base URL": "ベース URL",
+  "Origin and path prefix of a Chat Completions API.": "Chat Completions API のオリジンとパスのプレフィックス。",
+  "API key": "API キー",
+  "Key saved": "キーを保存済み",
+  "No key saved": "キーは保存されていません"
 }

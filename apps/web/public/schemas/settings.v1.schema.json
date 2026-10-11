@@ -106,6 +106,29 @@
       "type": "string",
       "default": "[]"
     },
+    "agentACP.oxbit.api": {
+      "title": "Oxbit Agent API",
+      "description": "openai uses the Responses API, anthropic the Messages API, and openai-compatible Chat Completions at the base URL.",
+      "type": "string",
+      "default": "openai",
+      "enum": [
+        "openai",
+        "anthropic",
+        "openai-compatible"
+      ]
+    },
+    "agentACP.oxbit.baseUrl": {
+      "title": "Oxbit Agent base URL",
+      "description": "Origin and path prefix for openai-compatible, for example https://openrouter.ai/api.",
+      "type": "string",
+      "default": ""
+    },
+    "agentACP.oxbit.model": {
+      "title": "Oxbit Agent model",
+      "description": "Model ID for new conversations.",
+      "type": "string",
+      "default": ""
+    },
     "workbench.keymap": {
       "title": "Keymap",
       "description": "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
@@ -795,6 +818,15 @@
         },
         "agentACP.custom.args": {
           "$ref": "#/properties/agentACP.custom.args"
+        },
+        "agentACP.oxbit.api": {
+          "$ref": "#/properties/agentACP.oxbit.api"
+        },
+        "agentACP.oxbit.baseUrl": {
+          "$ref": "#/properties/agentACP.oxbit.baseUrl"
+        },
+        "agentACP.oxbit.model": {
+          "$ref": "#/properties/agentACP.oxbit.model"
         },
         "workbench.keymap": {
           "$ref": "#/properties/workbench.keymap"
