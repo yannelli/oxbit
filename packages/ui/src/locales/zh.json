@@ -999,5 +999,17 @@
   "Dictation does not support this language": "语音输入不支持此语言",
   "No speech was detected": "未检测到语音",
   "1 request needs an answer": "1 个请求等待回复",
-  "{0} requests need an answer": "{0} 个请求等待回复"
+  "{0} requests need an answer": "{0} 个请求等待回复",
+  "Needs a runtime workspace": "需要运行时工作区",
+  "Runs in Oxbit with your API key": "使用你的 API 密钥在 Oxbit 中运行",
+  "Add an API key in Agent setup": "请在智能体设置中添加 API 密钥",
+  "Oxbit Agent setup": "Oxbit Agent 设置",
+  "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.": "Oxbit Agent 在应用内运行，并使用你的密钥调用模型 API。密钥保存在系统钥匙串中。",
+  "API": "API",
+  "OpenAI-compatible": "兼容 OpenAI",
+  "Base URL": "基础 URL",
+  "Origin and path prefix of a Chat Completions API.": "Chat Completions API 的源和路径前缀。",
+  "API key": "API 密钥",
+  "Key saved": "密钥已保存",
+  "No key saved": "未保存密钥"
 }

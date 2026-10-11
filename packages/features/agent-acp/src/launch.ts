@@ -1,5 +1,6 @@
 import {
   ACP_CUSTOM_PROVIDER,
+  OXBIT_AGENT_PROVIDER,
   acpPreset,
   type ACPConnection,
   type ACPLaunch,
@@ -69,9 +70,16 @@ export const rememberAgentName = (id: string, name: string | undefined) => {
 export const rememberRegistryName = (id: string, name: string) =>
   registryNames.set(id, name);
 
+export const OXBIT_AGENT_NAME = "Oxbit Agent";
+
+/** Without a runtime workspace only the Oxbit agent starts; a runtime workspace starts every other agent. */
+export const startable = (provider: string, local: boolean) =>
+  local === (provider === OXBIT_AGENT_PROVIDER);
+
 /** Label order: live connection name, preset name, last seen connection name, registry name, then the ID. */
 export function agentName(id: string, connection?: Pick<ACPConnection, "provider" | "name">) {
   if (connection?.provider === id && connection.name) return connection.name;
+  if (id === OXBIT_AGENT_PROVIDER) return OXBIT_AGENT_NAME;
   return (
     acpPreset(id)?.name ??
     connectionNames.get(id) ??
@@ -82,8 +90,9 @@ export function agentName(id: string, connection?: Pick<ACPConnection, "provider
 
 type Configuration = { get<T>(id: string): T | undefined } | undefined;
 
-/** Fills a launch from settings: preset command and args, custom fields, or the registry ID. */
+/** Fills a launch from settings: preset command and args, custom fields, or the registry ID. The Oxbit agent reads its own settings. */
 export function resolveLaunch(launch: ACPLaunch, config: Configuration): ACPLaunch {
+  if (launch.provider === OXBIT_AGENT_PROVIDER) return { provider: OXBIT_AGENT_PROVIDER };
   const preset = acpPreset(launch.provider);
   if (preset)
     return {
