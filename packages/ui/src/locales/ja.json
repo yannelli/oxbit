@@ -1011,5 +1011,10 @@
   "Origin and path prefix of a Chat Completions API.": "Chat Completions API のオリジンとパスのプレフィックス。",
   "API key": "API キー",
   "Key saved": "キーを保存済み",
-  "No key saved": "キーは保存されていません"
+  "No key saved": "キーは保存されていません",
+  "Branch diff": "ブランチの差分",
+  "Attach this branch's changes since its base": "このブランチのベース以降の変更を添付",
+  "Message actions": "メッセージの操作",
+  "Fork from here": "ここから分岐",
+  "Restore files and fork": "ファイルを復元して分岐"
 }

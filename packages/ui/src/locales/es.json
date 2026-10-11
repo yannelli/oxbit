@@ -1011,5 +1011,10 @@
   "Origin and path prefix of a Chat Completions API.": "Origen y prefijo de ruta de una API de Chat Completions.",
   "API key": "Clave de API",
   "Key saved": "Clave guardada",
-  "No key saved": "No hay ninguna clave guardada"
+  "No key saved": "No hay ninguna clave guardada",
+  "Branch diff": "Diff de la rama",
+  "Attach this branch's changes since its base": "Adjuntar los cambios de esta rama desde su base",
+  "Message actions": "Acciones del mensaje",
+  "Fork from here": "Bifurcar desde aquí",
+  "Restore files and fork": "Restaurar archivos y bifurcar"
 }

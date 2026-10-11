@@ -984,5 +984,10 @@
   "Origin and path prefix of a Chat Completions API.": "Ursprung und Pfadpräfix einer Chat-Completions-API.",
   "API key": "API-Schlüssel",
   "Key saved": "Schlüssel gespeichert",
-  "No key saved": "Kein Schlüssel gespeichert"
+  "No key saved": "Kein Schlüssel gespeichert",
+  "Branch diff": "Branch-Diff",
+  "Attach this branch's changes since its base": "Änderungen dieses Branches seit seiner Basis anhängen",
+  "Message actions": "Nachrichtenaktionen",
+  "Fork from here": "Ab hier abzweigen",
+  "Restore files and fork": "Dateien wiederherstellen und abzweigen"
 }

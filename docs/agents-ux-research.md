@@ -67,13 +67,13 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Install agents from the ACP Registry, plus custom agents | Zed, JetBrains | Registry browser, Claude Agent, Gemini CLI, GitHub Copilot and custom agents | `agent-acp-start`: registry browser, registry binary install, custom agent |
 | Type and send without a separate connect step | Zed, VS Code, Cursor | Sending starts the chosen agent | `agent-acp-composer`: sends before connect |
 | Enter sends, Shift+Enter adds a newline | Zed, VS Code, Cursor, Claude, ChatGPT | Yes, with `agentACP.useModifierToSend` | `agent-acp-composer`: sends on Enter |
-| `@` mentions | All | Files, workspace symbols from running language servers, selection, diagnostics, uncommitted changes and earlier threads | `agent-acp-composer`: mentions, `@Changes`, workspace symbol, earlier thread |
+| `@` mentions | All | Files, folders, workspace symbols from running language servers, selection, diagnostics, uncommitted changes, the branch diff, commits and earlier threads | `agent-acp-composer`: mentions, `@Changes`, workspace symbol, earlier thread; `agent-acp-context-fork`: branch diff, commit, folder |
 | Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
 | OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Selecting a macOS or iOS notification opens the agent panel, also when it launches Oxbit. The runtime pushes to a suspended iOS app through the Oxbit push relay; device delivery unchecked | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: plugin and native paths; `ssh-runtime` (iOS): notification tap after relaunch; `tests/ios/push.spec.ts`, `apps/runtime/tests/push.test.ts`, `apps/push-relay/tests` |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
-| Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged | `agent-acp-checkpoints` |
+| Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged. Fork from here starts a new conversation with the earlier messages attached | `agent-acp-checkpoints`; `agent-acp-context-fork`: fork |
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button | `agent-acp-threads` |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% | `agent-acp-workflows`: 85% of context used |
 | Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts | `agent-acp-composer`: microphone; `tests/desktop/agent.e2e.mjs`: speech recognition; `packages/host-ios/src/speech.test.ts` |
@@ -94,11 +94,11 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 | `@` files | Yes | Yes | – | Yes | Yes | – | – | – | Yes | Yes |
 | `@` symbols | Yes | Yes | – | – | – | – | – | – | Yes | Yes |
 | `@` earlier threads | Yes | – | – | Yes | – | – | – | – | Yes | Yes |
-| `@` diff or commits | Branch diff | Commits | – | Git diffs | – | – | – | – | Uncommitted changes | Uncommitted changes |
+| `@` diff or commits | Branch diff | Commits | – | Git diffs | – | – | – | – | Uncommitted changes, branch diff, commits | Uncommitted changes and commits; branch diff through a runtime |
 | Images | Yes | Yes | – | Yes | Yes | – | – | Yes | Yes | Yes |
 | Approve tool calls | – | Yes | Yes | – | Yes | Yes | Yes | – | Yes | Yes |
 | Review agent edits | Keep All, Reject All | Per-file revert | – | – | Diff pane | Diffs | – | Diff review | Per edit, with Undo | Per edit, with Undo |
-| Checkpoints | Yes | – | Restore and fork | – | – | – | – | – | Restore, files only | Restore, files only |
+| Checkpoints | Yes | – | Restore and fork | – | – | – | – | – | Restore, files only; fork with the earlier messages attached | Restore, files only; fork with the earlier messages attached |
 | Queued messages | Edit, remove, send now | – | – | Queue, reorder | – | – | Queue | – | Edit, remove, send now | Edit, remove, send now |
 | Parallel threads | Yes | – | Sessions list | Agents window | Session list | – | – | Agent inbox | Thread strip | Thread strip |
 | Context meter | Ring, 85% warning | Percentage | – | – | – | – | – | – | Ring, 85% warning | Ring, 85% warning |
@@ -117,7 +117,7 @@ Rows where another client documents more than Oxbit are listed under the gaps be
   the relay needs an APNs key and the app needs a TestFlight build with the push entitlement.
 - Selecting a macOS notification has not run with notifications allowed.
 - Zed keeps or rejects all of an agent's edits at once; Oxbit reviews and undoes each edit.
-- VS Code forks a conversation from a checkpoint; Oxbit restores files only.
-- Zed mentions the branch diff and JetBrains attaches commits and folders; Oxbit attaches uncommitted changes and files.
+- VS Code forks the agent session from a checkpoint; Oxbit starts a new session and attaches the earlier messages as text (`agent-acp-context-fork`).
+- In iOS device folders `@` has no branch diff, which needs a runtime (`agent-acp-context-fork`); `@` commits through the native Git client have not run on a device.
 - Cursor reorders queued messages; Oxbit does not.
 - Dictation, iOS notification taps and the Live Activity have not run on a physical device.

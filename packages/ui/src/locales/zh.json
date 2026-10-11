@@ -1011,5 +1011,10 @@
   "Origin and path prefix of a Chat Completions API.": "Chat Completions API 的源和路径前缀。",
   "API key": "API 密钥",
   "Key saved": "密钥已保存",
-  "No key saved": "未保存密钥"
+  "No key saved": "未保存密钥",
+  "Branch diff": "分支差异",
+  "Attach this branch's changes since its base": "附加此分支自其基准以来的更改",
+  "Message actions": "消息操作",
+  "Fork from here": "从此处分叉",
+  "Restore files and fork": "恢复文件并分叉"
 }

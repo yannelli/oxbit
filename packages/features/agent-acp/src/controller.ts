@@ -13,6 +13,7 @@ import {
   type ACPSubagent,
   type ACPSubagentEvent,
   type FeatureOptions,
+  type GitLog,
 } from "@oxbit/sdk";
 import type { DocumentService } from "@oxbit/documents";
 import { sessionControls, type SessionControl } from "./session-controls.js";
@@ -37,8 +38,11 @@ import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
-import { uncommittedChanges } from "./changes.js";
-import { searchThreads, threadTranscript, type Mention, type SymbolMention } from "./mentions.js";
+import { branchChanges, commitChanges, uncommittedChanges } from "./changes.js";
+import {
+  forkContext, searchCommits, searchThreads, threadTranscript, type CommitMention, type Mention, type SymbolMention,
+} from "./mentions.js";
+import { folderText } from "./folders.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
@@ -1077,6 +1081,9 @@ export class AgentController {
     if (mention.kind === "changes") return this.attachChanges();
     if (mention.kind === "symbol") return this.attachSymbol(mention);
     if (mention.kind === "thread") return this.attachThread(mention.id);
+    if (mention.kind === "branch") return this.attachBranchDiff();
+    if (mention.kind === "commit") return this.attachCommit(mention);
+    if (mention.kind === "folder") return this.attachFolder(mention.path);
     if (mention.kind !== "file")
       return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
     if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
@@ -1137,6 +1144,55 @@ export class AgentController {
       kind: "diagnostics",
       label: `Diagnostics: ${path}`,
     });
+    this.changed();
+  }
+  /** False once `git.branchDiff` is missing: an older runtime, or the in-app runtime of a device folder. */
+  branchDiffAvailable = true;
+  private branchDiffProbe?: Promise<void>;
+  /** Asks once whether the runtime serves `git.branchDiff`, with a request that diffs no files. */
+  probeBranchDiff() {
+    if (this.branchDiffProbe || !this.options.runtime?.connected) return;
+    this.branchDiffProbe = this.request("git.branchDiff", { limit: 0 }).then(() => {}, (error) => void this.branchDiffMissing(error));
+  }
+  private branchDiffMissing(error: unknown) {
+    const missing = (error as { code?: unknown } | null)?.code === "METHOD_NOT_FOUND" ||
+      (error instanceof Error && /needs a runtime workspace$/.test(error.message));
+    if (missing && this.branchDiffAvailable) {
+      this.branchDiffAvailable = false;
+      this.changed();
+    }
+    return missing;
+  }
+  async attachBranchDiff() {
+    const others = this.context.filter((item) => item.kind !== "branch");
+    if (others.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const diff = await branchChanges((method, params) => this.request(method, params ?? {})).catch((error) => {
+      throw this.branchDiffMissing(error) ? new Error("Branch diff needs a runtime workspace") : error;
+    });
+    this.context = [...others, { path: ".", kind: "branch", ...diff }];
+    this.changed();
+  }
+  /** Commits for `@` from the latest 100 whose subject, short hash or author matches. */
+  async mentionCommits(query: string) {
+    if (!query.trim()) return [];
+    return searchCommits((await this.request<GitLog>("git.log", { limit: 100 })).commits, query);
+  }
+  async attachCommit({ id, subject }: CommitMention) {
+    const label = `Commit ${id.slice(0, 7)}: ${subject.slice(0, 100)}`;
+    if (this.context.some((item) => item.kind === "commit" && item.label === label)) return;
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await commitChanges((method, params) => this.request(method, params ?? {}), id);
+    this.context.push({ path: ".", text, kind: "commit", label });
+    this.changed();
+  }
+  async attachFolder(path: string) {
+    if (this.context.some((item) => item.kind === "folder" && item.path === path)) return;
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await folderText(this.options.filesystem, path);
+    this.context.push({ path, text, kind: "folder", label: `Folder: ${path}` });
     this.changed();
   }
   async send() {
@@ -1654,15 +1710,34 @@ export class AgentController {
       this.changed();
     }
   }
-  async restoreCheckpoint(message: Message) {
-    if (!message.checkpoint || !this.connection) return;
+  /** Restores the files to before `message`; `note` adds a notice to the conversation. */
+  async restoreCheckpoint(message: Message, note = true) {
+    if (!message.checkpoint || !this.connection) return false;
     if (this.busy || this.connecting || this.requests.length || this.activeSubagentCount)
       throw new Error("Wait for the agent to finish before restoring a checkpoint");
     const paths = await this.checkpoints.restore(message.checkpoint, (path) => !!this.documents.get(path)?.dirty);
-    if (!paths) return;
-    this.activity.push(restoredNotice(message));
+    if (!paths) return false;
+    if (note) this.activity.push(restoredNotice(message));
     this.changed();
     await this.options.workbench.refreshFiles();
+    return true;
+  }
+  /** Starts a new conversation with the same agent: the messages before `message` attached as a thread, its text in the draft. */
+  async forkFrom(message: Message, restore = false) {
+    const index = this.activity.findIndex((item) => item.kind === "message" && item.message === message);
+    const conversation = this.activeConversation;
+    if (index < 0 || !conversation || !this.connection) return;
+    if (this.busy || this.connecting || this.sessionStarting || this.updatingSettings || this.discovering ||
+      this.requests.length || this.queue.length || this.activeSubagentCount)
+      throw new Error("Wait for the agent to finish before forking");
+    const thread = forkContext({ ...conversation, title: this.title, activity: this.activity }, index);
+    if (restore && !(await this.restoreCheckpoint(message, false))) return;
+    await this.newSession();
+    if (this.activeConversation?.id === conversation.id || !this.connection?.sessionId) return;
+    this.draft = message.text;
+    this.context = thread ? [thread] : [];
+    if (restore) this.activity.push(restoredNotice(message));
+    this.changed();
   }
   private isChildRequest(request: AgentRequest) {
     return (

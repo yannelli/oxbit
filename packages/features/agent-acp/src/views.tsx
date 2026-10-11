@@ -7,6 +7,7 @@ import type { ACPContext } from "@oxbit/sdk";
 import { type AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
 import { agentName, startable } from "./launch.js";
+import { OverflowMenu } from "./overflow-menu.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: true });
 export function markdownHTML(text: string) {
@@ -345,6 +346,15 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
                 >
                   {tr("Restore checkpoint")}
                 </button>
+              )}
+              {entry.message.role === "user" && agent.connection && (
+                <OverflowMenu label="Message actions" items={[
+                  { id: "fork", label: "Fork from here", icon: "agentChat", run: () => void agent.action(() => agent.forkFrom(entry.message)) },
+                  ...(entry.message.checkpoint ? [{
+                    id: "restore-fork", label: "Restore files and fork", icon: "refresh",
+                    run: () => void agent.action(() => agent.forkFrom(entry.message, true)),
+                  }] : []),
+                ]} />
               )}
               <IconButton
                 icon={copied === index ? "check" : "copy"}
