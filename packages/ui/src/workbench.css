@@ -281,6 +281,9 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-context-files .button { text-align:left; justify-content:flex-start; }
 .acp-changes { padding:10px; margin:12px 0; border:1px solid var(--bd); border-radius:6px; }
 .acp-changes > details { margin-top:8px; }
+.acp-review-heading { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.acp-review-heading > strong { flex:1 0 auto; }
+.acp-review-all { margin-bottom:12px; padding:8px 10px; border:1px solid var(--accent); border-radius:6px; }
 .acp-jump,.acp-attention { flex-shrink:0; margin:4px 12px; }
 .acp-attention { border-color:var(--accent); }
 .acp-queue { width:min(800px,calc(100% - 32px)); max-height:140px; overflow:auto; margin:6px auto 0; padding:6px 8px; border:1px solid var(--bd); border-radius:6px; font-size:var(--font-small-font-size); }
@@ -298,6 +301,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-interrupt { white-space:nowrap; }
 .acp-panel { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; font-size:var(--font-body-font-size); container-type:inline-size; }
 .acp-header { padding:6px 12px; min-height:41px; border-bottom:1px solid var(--bd); max-height:45%; overflow:auto; }
+.acp-header:has(.acp-setup) { max-height:85%; }
 .acp-connect { padding:3px 8px; font-size:var(--font-small-font-size); }
 .acp-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
 .acp-actions .button { min-height:var(--ctl,28px); }
@@ -374,6 +378,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
   .acp-approval .acp-actions { flex-direction:column; align-items:stretch; }
   .acp-approval .acp-actions .button { width:100%; min-height:44px; justify-content:center; }
   .acp-panel .acp-attention { position:sticky; bottom:0; z-index:1; margin:4px 8px; min-height:44px; font-size:var(--font-small-font-size); }
+  .acp-review-heading .button { min-height:44px; }
 }
 
 /* Source control workflows */
@@ -739,7 +744,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .acp-registry { display:flex; flex-direction:column; gap:8px; width:min(640px,100%); margin:12px auto; }
 .acp-registry-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .acp-registry-list { display:flex; flex-direction:column; gap:2px; max-height:min(420px,60vh); overflow:auto; }
-.acp-registry-entry { display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
+.acp-registry-entry { flex:none; display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
 .acp-registry-entry[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
 .acp-registry-title { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
 .acp-agent-logo { display:inline-block; flex:none; background:currentColor; -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; }

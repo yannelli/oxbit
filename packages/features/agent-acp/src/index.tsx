@@ -8,12 +8,16 @@ import {
 import {
   ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
+  AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  OXBIT_AGENT_PROVIDER,
   acpPreset,
+  type AgentModels,
   type Extension,
   type FeatureOptions,
 } from "@oxbit/sdk";
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
-import { AgentController, type AgentRequest } from "./controller.js";
+import { AgentController, FILE_REJECTED, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
 import { ContextMeter } from "./context-meter.js";
 import { DictationButton } from "./dictation.js";
@@ -33,6 +37,7 @@ import {
   ContextPicker,
   ContextItem,
   ChangeSummary,
+  ReviewAll,
 } from "./views.js";
 
 import { Subagents } from "./subagents.js";
@@ -40,6 +45,7 @@ import { ThreadStrip, useThreadRefresh } from "./thread-strip.js";
 import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 import { AgentLogo } from "./agent-logo.js";
+import { LocalAgentRuntime } from "./local/runtime.js";
 function RequestCard({
   request,
   agent,
@@ -103,22 +109,16 @@ function RequestCard({
           <div className="acp-actions">
             <button
               className="button primary"
-              disabled={busy || !agent.requests.includes(request)}
+              disabled={busy || agent.reviewingAll || !agent.requests.includes(request)}
               onClick={() => void run(() => agent.applyFile(request))}
             >
               {tr("Apply change")}
             </button>
             <button
               className="button"
-              disabled={busy || !agent.requests.includes(request)}
+              disabled={busy || agent.reviewingAll || !agent.requests.includes(request)}
               onClick={() =>
-                void run(() =>
-                  agent.respond(
-                    request,
-                    undefined,
-                    "User rejected the file change",
-                  ),
-                )
+                void run(() => agent.respond(request, undefined, FILE_REJECTED))
               }
             >
               {tr("Reject")}
@@ -319,6 +319,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const follow = useRef(true);
   const connection = agent.connection;
   const enabled = !!runtime?.connected;
+  const local = agent.local;
   const controls = sessionControls(connection);
   const settingsDisabled =
     agent.busy ||
@@ -363,6 +364,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     if (trigger?.isConnected && document.activeElement === document.body)
       trigger.focus();
   }, [settingsDisabled]);
+  const connectionId = connection?.id;
+  useEffect(() => {
+    if (connectionId) setShowSetup(false);
+  }, [connectionId]);
   useEffect(() => {
     if (follow.current && transcript.current && agent.messages.length)
       transcript.current.scrollTop = transcript.current.scrollHeight;
@@ -382,11 +387,22 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     setChooser(undefined);
     void agent.action(() => agent.detach());
   };
+  const queueList = useRef<HTMLElement>(null);
+  const moveQueued = (id: string, index: number, direction: "up" | "down") => {
+    const focused = !!queueList.current?.contains(document.activeElement);
+    void agent.action(async () => {
+      await agent.moveQueued(id, index);
+      if (focused) requestAnimationFrame(() => {
+        const item = queueList.current?.querySelector(`[data-queue-id="${CSS.escape(id)}"]`);
+        (item?.querySelector<HTMLElement>(`[data-move="${direction}"]`) ?? item?.querySelector<HTMLElement>("[data-move]"))?.focus();
+      });
+    });
+  };
   const chosen = agent.chosen.provider;
   useEffect(() => {
-    if (enabled && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER)
+    if (enabled && !local && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER && chosen !== OXBIT_AGENT_PROVIDER)
       void agent.loadRegistry().catch(() => {});
-  }, [enabled, chosen]);
+  }, [enabled, local, chosen]);
   useEffect(() => {
     if (chooser) chooserRef.current?.scrollIntoView({ block: "nearest" });
   }, [chooser]);
@@ -400,7 +416,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           ? "ready"
           : "off";
   const menu: MenuItem[] = [
-    ...(enabled
+    ...(enabled && !local
       ? [{
           id: "live", label: "Runtime sessions", icon: "agentChat",
           run: () => {
@@ -411,9 +427,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       : []),
     { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
     { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
+    ...(connection && !local ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread }] : []),
     ...(connection
-      ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread },
-         { id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
+      ? [{ id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
       : []),
     ...(permission === "default"
       ? [{
@@ -532,8 +548,15 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </section>}
         {agent.error && (
           <p role="alert" className="error-text">
-            {agent.error}
+            {agent.error === MISSING_AGENT_KEY ? tr(MISSING_AGENT_KEY) : agent.error}
           </p>
+        )}
+        {agent.error === MISSING_AGENT_KEY && !showSetup && (
+          <div className="acp-actions">
+            <button className="button" onClick={() => setShowSetup(true)}>
+              {tr("Agent setup")}
+            </button>
+          </div>
         )}
       </div>
       <div
@@ -595,6 +618,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           </details>
         ))}
         <ChangeSummary agent={agent} />
+        <ReviewAll agent={agent} />
         {agent.requests.map((request) => (
           <RequestCard
             key={request.requestId}
@@ -640,12 +664,23 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           {tr("Agent needs your input")} · {agent.requests.length}
         </button>
       )}
-      {agent.queue.length > 0 && <section className="acp-queue" aria-label={tr("Queued messages")}>
+      {agent.queue.length > 0 && <section className="acp-queue" ref={queueList} aria-label={tr("Queued messages")}>
         <div className="acp-queue-heading"><strong>{tr("Queued messages")} · {agent.queue.length}</strong>
           {agent.queuePaused && <button className="button" type="button" onClick={() => void agent.action(() => agent.resumeQueue())}>{tr("Run queue")}</button>}
         </div>
-        {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id}>
+        {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id} data-queue-id={prompt.id}
+          onKeyDown={(event) => {
+            const to = !event.altKey ? -1 : event.key === "ArrowUp" ? index - 1 : event.key === "ArrowDown" ? index + 1 : -1;
+            if (!agent.canMoveQueued || to < 0 || to >= agent.queue.length) return;
+            event.preventDefault();
+            moveQueued(prompt.id, to, to < index ? "up" : "down");
+          }}>
           <span title={prompt.text}>{index + 1}. {prompt.text}</span>
+          {agent.busy && !agent.cancelling && <IconButton icon="play" label={tr("Send queued message now")} onClick={() => void agent.action(() => agent.sendQueuedNow(prompt.id))} />}
+          {agent.canMoveQueued && index > 0 && <IconButton icon="arrowUp" label="Move queued message up" data-move="up"
+            onClick={() => moveQueued(prompt.id, index - 1, "up")} />}
+          {agent.canMoveQueued && index < agent.queue.length - 1 && <IconButton icon="arrowDown" label="Move queued message down" data-move="down"
+            onClick={() => moveQueued(prompt.id, index + 1, "down")} />}
           <IconButton icon="pencil" label={tr("Edit queued message")} onClick={() => void agent.action(() => agent.editQueued(prompt.id))} />
           <IconButton icon="x" label={tr("Remove queued message")} onClick={() => void agent.action(() => agent.removeQueued(prompt.id))} />
         </div>)}
@@ -721,7 +756,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 <IconButton
                   icon="x"
                   label={tr("Remove attachment {0}", {
-                    0: context.kind === "changes" ? tr("Uncommitted changes") : context.path,
+                    0: context.kind === "changes" ? tr("Uncommitted changes")
+                      : ["thread", "branch", "commit", "folder"].includes(context.kind!) ? (context.label ?? context.path) : context.path,
                   })}
                   onClick={() => {
                     agent.context.splice(index, 1);
@@ -770,6 +806,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           findFiles={(query, signal) => searchFiles(agent.options.filesystem, query, signal)}
           findSymbols={(query, signal) =>
             searchSymbols(agent.options.kernel.services.optional<WorkspaceSymbolSource>("language"), query, signal)}
+          findThreads={(query) => agent.mentionThreads(query)}
+          findCommits={(query) => agent.mentionCommits(query)}
+          branchDiff={agent.branchDiffAvailable}
+          onMentionOpen={() => agent.probeBranchDiff()}
         />
         <div className="acp-composer-toolbar">
           <button
@@ -844,7 +884,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       </form>
       <div className="acp-footer">
         {agent.usage && <ContextMeter usage={agent.usage} />}
-        {connection ? (
+        {connection || (local && (agent.messages.length > 0 || agent.archived)) ? (
           <div className="acp-provider" title={agent.displayName}>
             <Icon name="agent" size={14} />
             <span>{agent.displayName}</span>
@@ -953,8 +993,14 @@ export function createFeature(options: FeatureOptions): Extension {
       configuration: agentConfiguration,
     },
     activate(ctx) {
-      const agent = new AgentController(options);
+      const local = options.runtime
+        ? undefined
+        : new LocalAgentRuntime(options, () =>
+            options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE),
+          );
+      const agent = new AgentController({ ...options, runtime: options.runtime ?? local });
       ctx.own(agent);
+      if (local) ctx.own(local);
       ctx.own(watchThreads(agent, () => options.workbench.panelVisible?.(AGENT_VIEW) === true));
       ctx.own(ctx.services.register("agentACP", agent));
       ctx.own(

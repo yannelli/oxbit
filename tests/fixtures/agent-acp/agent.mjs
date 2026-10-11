@@ -330,6 +330,9 @@ readline.createInterface({ input: process.stdin }).on("line", async (line) => {
           sessionUpdate: "agent_message_chunk",
           content: { type: "text", text: file.content },
         });
+      } else if (text.startsWith("writes:")) {
+        await Promise.allSettled(text.slice(7).split(",").map((file) =>
+          call("fs/write_text_file", { path: file, content: `agent edit ${path.basename(file)}\n` })));
       } else if (text.startsWith("write:")) {
         await call("fs/write_text_file", {
           path: text.slice(6),

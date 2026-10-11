@@ -33,6 +33,8 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let dictation = Dictation()
   private let liveActivity = LiveActivity()
   private let notifications = Notifications()
+  private let remoteNotifications = RemoteNotifications()
+  private let agentModels = AgentModels()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -97,6 +99,18 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
     liveActivity.handle(invoke)
   }
 
+  @objc public func watchLiveActivityTokens(_ invoke: Invoke) {
+    liveActivity.watchTokens(invoke)
+  }
+
+  @objc public func unwatchLiveActivityTokens(_ invoke: Invoke) {
+    liveActivity.unwatchTokens(invoke)
+  }
+
+  @objc public func registerRemoteNotifications(_ invoke: Invoke) {
+    remoteNotifications.register(invoke)
+  }
+
   @objc public func notificationPermission(_ invoke: Invoke) {
     notifications.permission(invoke)
   }
@@ -115,6 +129,18 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func unwatchNotificationTaps(_ invoke: Invoke) {
     notifications.unwatchTaps(invoke)
+  }
+
+  @objc public func agentModelsStream(_ invoke: Invoke) {
+    agentModels.stream(invoke)
+  }
+
+  @objc public func agentModelsCancel(_ invoke: Invoke) {
+    agentModels.cancel(invoke)
+  }
+
+  @objc public func agentModelsKey(_ invoke: Invoke) {
+    agentModels.key(invoke)
   }
 
   @objc public func pickFolder(_ invoke: Invoke) {

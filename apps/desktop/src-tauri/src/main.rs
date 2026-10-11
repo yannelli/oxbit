@@ -6,6 +6,8 @@ mod commands;
 mod environment;
 mod icon_packs;
 mod model;
+#[cfg(target_os = "macos")]
+mod notifications;
 #[cfg(all(feature = "native-test", target_os = "macos"))]
 mod panel_test_delegate;
 mod supervisor;
@@ -455,6 +457,10 @@ fn open_arguments(app: &AppHandle, arguments: Vec<String>, cwd: &str) {
 }
 
 fn main() {
+    #[cfg(target_os = "macos")]
+    let native_notifications = notifications::install();
+    #[cfg(not(target_os = "macos"))]
+    let native_notifications = false;
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             open_arguments(app, argv, &cwd)
@@ -462,12 +468,17 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_updater::Builder::new()
                 .pubkey(option_env!("OXBIT_UPDATER_PUBLIC_KEY").unwrap_or(""))
                 .build(),
         );
+    // The plugin's init script defines window.Notification, which the desktop shim replaces.
+    let builder = if native_notifications {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_notification::init())
+    };
     #[cfg(all(feature = "native-test", target_os = "macos"))]
     let builder = builder.plugin(panel_test_delegate::hook(false));
     #[cfg(feature = "native-test")]
@@ -503,6 +514,16 @@ fn main() {
             closing::desktop_close_finished,
             updates::desktop_check_update,
             updates::desktop_download_update,
+            #[cfg(target_os = "macos")]
+            notifications::desktop_notification_permission,
+            #[cfg(target_os = "macos")]
+            notifications::desktop_notification_request_permission,
+            #[cfg(target_os = "macos")]
+            notifications::desktop_notify,
+            #[cfg(target_os = "macos")]
+            notifications::desktop_notification_watch,
+            #[cfg(target_os = "macos")]
+            notifications::desktop_notification_unwatch,
         ])
         .setup(|app| {
             let directory = app.path().app_data_dir()?;

@@ -70,8 +70,6 @@ test("Restore checkpoint puts files back to before the message", async ({ page }
       await panel.getByRole("button", { name: "Apply change" }).click();
       await expect.poll(() => contents(file)).toBe("agent edit\n");
       await expect(status).toHaveText("Ready");
-      // Applying opens the file; on phones that replaces the agent panel.
-      await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
     };
     const restore = panel.getByRole("button", { name: "Restore checkpoint" });
     const note = panel.locator(".acp-turn-note", { hasText: "Restored files to before" });
@@ -104,6 +102,49 @@ test("Restore checkpoint puts files back to before the message", async ({ page }
     await page.screenshot({ path: `${shots}/phone-restored-note.png` });
     expect(head()).toBe(base);
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: root }).toString()).toBe("");
+  } finally {
+    await close();
+  }
+});
+
+test("Restore files and fork restores the files and opens a fork with the earlier messages", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const { root, head, panel, close } = await boot(page, "acp-checkpoints-fork");
+  try {
+    const base = head();
+    const status = panel.locator(".acp-status");
+    const composer = panel.getByRole("textbox", { name: "Message agent" });
+    await panel.getByRole("button", { name: /^Start / }).click();
+    await expect(status).toHaveText("Ready");
+    for (const file of ["hello.txt", "created.txt"]) {
+      await composer.fill(`write:${path.join(root, file)}`);
+      await panel.getByRole("button", { name: "Send", exact: true }).click();
+      await panel.getByRole("button", { name: "Apply change" }).click();
+      await expect.poll(() => contents(path.join(root, file))).toBe("agent edit\n");
+      await expect(status).toHaveText("Ready");
+    }
+    const conversation = () => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").activeConversation.id);
+    const original = await conversation();
+
+    const message = panel.locator("article.acp-message.user").nth(1);
+    await message.hover();
+    await message.getByRole("button", { name: "Message actions" }).click();
+    await page.getByRole("menu", { name: "Message actions" }).getByRole("menuitem", { name: "Restore files and fork" }).click();
+
+    await expect.poll(() => contents(path.join(root, "created.txt"))).toBeUndefined();
+    expect(await contents(path.join(root, "hello.txt"))).toBe("agent edit\n");
+    await expect(composer).toHaveValue(`write:${path.join(root, "created.txt")}`);
+    await expect(panel.locator("article.acp-message.user")).toHaveCount(0);
+    await expect(panel.getByRole("button", { name: /^Remove attachment Thread: write:/ })).toBeVisible();
+    await expect(panel.locator(".acp-turn-note", { hasText: "Restored files to before" })).toHaveCount(1);
+    await fs.mkdir(shots, { recursive: true });
+    await page.screenshot({ path: `${shots}/desktop-restore-and-fork.png` });
+    expect(await conversation()).not.toBe(original);
+    const kept = await page.evaluate((id) => (window as any).__oxbit.kernel.services.get("agentACP").history.entries
+      .find((entry: any) => entry.id === id)?.activity, original);
+    expect(kept.filter((item: any) => item.kind === "message" && item.message.role === "user")).toHaveLength(2);
+    expect(kept.filter((item: any) => item.kind === "notice" && item.values?.message)).toEqual([]);
+    expect(head()).toBe(base);
   } finally {
     await close();
   }

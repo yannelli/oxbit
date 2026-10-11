@@ -51,7 +51,7 @@ async function boot(page: Page, pairingCode: string, acpRegistryUrl?: string) {
     },
   };
 }
-const mockRuntime = (page: Page) =>
+const mockRuntime = (page: Page, registry = listing) =>
   page.evaluate((registry) => {
     const z = (window as any).__oxbit;
     const original = z.runtime.request.bind(z.runtime);
@@ -64,7 +64,7 @@ const mockRuntime = (page: Page) =>
       }
       return original(method, params, options);
     };
-  }, listing);
+  }, registry);
 const setting = (page: Page, id: string) =>
   page.evaluate((id) => (window as any).__oxbit.kernel.configuration.get(id), id);
 const selection = (page: Page) =>
@@ -374,4 +374,29 @@ test("the agent activity service follows a turn through a request to its end", a
   } finally {
     await close();
   }
+});
+
+test.describe("phone registry", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("a long registry list keeps each description's lines whole", async ({ page }) => {
+    const { panel, close } = await boot(page, "acp-start-phone-registry");
+    try {
+      const description = "Local-first coding agent. Runs entirely on your machine with optional cloud models";
+      await mockRuntime(page, {
+        ...listing,
+        agents: Array.from({ length: 14 }, (_, index) => ({
+          id: `agent-${index}`, name: `Agent ${index}`, version: "1.0.0", description, distribution: "npx", available: true,
+        })),
+      });
+      await panel.getByRole("button", { name: /More agents…/ }).click();
+      const descriptions = panel.getByRole("region", { name: "ACP Registry" }).locator(".acp-registry-description");
+      await expect(descriptions).toHaveCount(14);
+      const lines = await descriptions.evaluateAll((elements) => elements.map((element) =>
+        element.clientHeight / parseFloat(getComputedStyle(element).lineHeight)));
+      for (const count of lines) expect(count).toBeCloseTo(2, 1);
+    } finally {
+      await close();
+    }
+  });
 });

@@ -1,7 +1,7 @@
 import { Channel, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
-import type { AgentActivityUpdate, FileEntry } from "@oxbit/sdk";
+import type { AgentActivityUpdate, AgentModelApi, FileEntry, PushEnvironment } from "@oxbit/sdk";
 
 export interface NativeError {
   code: string;
@@ -77,6 +77,11 @@ export type GitSshPrompt =
   | { status: "hostUnknown"; hostKey: SshHostKey }
   | { status: "hostChanged"; hostKey: SshHostKey; known: KnownHostKey[] }
   | { status: "keyRequired"; hostname: string; port: number; username: string };
+/** Hex APNs device token and the APNs environment it belongs to. */
+export interface RemoteNotificationRegistration {
+  token: string;
+  environment: PushEnvironment;
+}
 export interface PickedFile {
   name: string;
   path: string;
@@ -104,6 +109,27 @@ export interface RuntimeCredentialRequest {
   runtimeId?: string;
   code?: string;
 }
+/** `body` is JSON text. Events for the request arrive on `channel`. */
+export type AgentModelStreamArgs = {
+  id: string;
+  api: AgentModelApi;
+  baseUrl?: string;
+  method: "GET" | "POST";
+  path: string;
+  body?: string;
+  channel: Channel<AgentModelStreamEvent>;
+};
+/** `chunk` carries base64 response bytes; `end` carries the status and, for non-2xx, the capped body. */
+export type AgentModelStreamEvent =
+  | { type: "chunk"; data: string }
+  | { type: "end"; status: number; body?: string }
+  | { type: "failed"; message: string };
+export type AgentModelKeyRequest = {
+  operation: "has" | "save" | "remove";
+  api: AgentModelApi;
+  baseUrl?: string;
+  key?: string;
+};
 /** Workspace storage key holding the account ID that native Git uses for the workspace root. */
 export const GIT_ACCOUNT_KEY = "git-account";
 /** Workspace storage key holding the SSH key ID that native Git uses for SSH remotes. */
@@ -234,6 +260,20 @@ export const ssh = {
 export const native = {
   agentActivity: (update: AgentActivityUpdate | null) =>
     call<{ enabled: boolean }>("plugin:oxbit-files|live_activity", { update }),
+  /** Runs `listener` with each Live Activity push token in hex; a new listener receives the latest token first. */
+  onLiveActivityToken: async (listener: (token: string) => void) => {
+    const channel = new Channel<{ token: string }>((message) => listener(message.token));
+    await call<void>("plugin:oxbit-files|watch_live_activity_tokens", { channel });
+    return { unregister: () => call<void>("plugin:oxbit-files|unwatch_live_activity_tokens", { id: channel.id }) };
+  },
+  /** Swift adds the endpoint's Keychain key and keeps the request on the endpoint's origin. */
+  agentModelsStream: (args: AgentModelStreamArgs) => call<void>("plugin:oxbit-files|agent_models_stream", args),
+  /** Resolves for finished and unknown requests. */
+  agentModelsCancel: (id: string) => call<void>("plugin:oxbit-files|agent_models_cancel", { id }),
+  agentModelsKey: (request: AgentModelKeyRequest) =>
+    call<{ saved: boolean } | null>("plugin:oxbit-files|agent_models_key", request),
+  registerRemoteNotifications: () =>
+    call<RemoteNotificationRegistration>("plugin:oxbit-files|register_remote_notifications"),
   /** Runs `listener` for each tap on a posted notification, including the tap that launched the app. */
   onNotificationTap: async (listener: () => void) => {
     const channel = new Channel<unknown>(() => listener());

@@ -1,7 +1,23 @@
-import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, type Setting } from "@oxbit/sdk";
+import {
+  ACP_CUSTOM_PROVIDER,
+  ACP_PROVIDERS,
+  OXBIT_AGENT_SETTINGS,
+  type AgentModelApi,
+  type AgentModelEndpoint,
+  type Setting,
+} from "@oxbit/sdk";
 
 export const settingId = (provider: string, key: string) =>
   `agentACP.${provider}.${key}`;
+
+type Configuration = { get<T>(id: string): T | undefined } | undefined;
+
+/** The Oxbit agent's endpoint from settings. `baseUrl` applies to `openai-compatible` only. */
+export function oxbitEndpoint(config: Configuration): AgentModelEndpoint {
+  const api = config?.get<AgentModelApi>(OXBIT_AGENT_SETTINGS.api) || "openai";
+  if (api !== "openai-compatible") return { api };
+  return { api, baseUrl: config?.get<string>(OXBIT_AGENT_SETTINGS.baseUrl)?.trim() ?? "" };
+}
 export const agentConfiguration: Setting[] = [
   {
     id: "agentACP.provider",
@@ -64,5 +80,30 @@ export const agentConfiguration: Setting[] = [
     category: "Agent ACP",
     type: "string",
     default: "[]",
+  },
+  {
+    id: OXBIT_AGENT_SETTINGS.api,
+    title: "Oxbit Agent API",
+    description: "openai uses the Responses API, anthropic the Messages API, and openai-compatible Chat Completions at the base URL.",
+    category: "Agent ACP",
+    type: "string",
+    enum: ["openai", "anthropic", "openai-compatible"],
+    default: "openai",
+  },
+  {
+    id: OXBIT_AGENT_SETTINGS.baseUrl,
+    title: "Oxbit Agent base URL",
+    description: "Origin and path prefix for openai-compatible, for example https://openrouter.ai/api.",
+    category: "Agent ACP",
+    type: "string",
+    default: "",
+  },
+  {
+    id: OXBIT_AGENT_SETTINGS.model,
+    title: "Oxbit Agent model",
+    description: "Model ID for new conversations.",
+    category: "Agent ACP",
+    type: "string",
+    default: "",
   },
 ];

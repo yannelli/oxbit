@@ -3,7 +3,14 @@ import { AgentController, type AgentRequest } from "./controller.js";
 import { sessionControls } from "./session-controls.js";
 import { createFeature } from "./index.js";
 import { createKernel } from "../../../core/src/index.js";
-import type { FeatureOptions } from "@oxbit/sdk";
+import {
+  AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  OXBIT_AGENT_PROVIDER,
+  OXBIT_AGENT_SETTINGS,
+  type AgentModels,
+  type FeatureOptions,
+} from "@oxbit/sdk";
 function setup(document?: any, persistence?: any) {
   const listeners = new Map<string, (params: any) => void>();
   const runtime = {
@@ -286,6 +293,31 @@ describe("ACP session lifecycle", () => {
     await agent.editQueued("queued");
     expect(agent.draft).toBe("Follow up");
     expect(agent.queue).toEqual([]);
+    agent.dispose();
+  });
+  it("sends a queued prompt now by interrupting the turn and queues it again when that fails", async () => {
+    const { agent, runtime } = setup();
+    agent.busy = true;
+    const later = { id: "later", text: "Later", context: [{ path: "a.ts", text: "a" }] };
+    const message = { id: "connection", text: "Later", context: later.context, messageId: "later" };
+    agent.queue = [{ id: "first", text: "First" }, later];
+    await agent.sendQueuedNow("later");
+    expect(runtime.request.mock.calls).toEqual([
+      ["acp.dequeue", { id: "connection", promptId: "later" }],
+      ["acp.interrupt", message],
+    ]);
+    expect(agent.queue.map((prompt) => prompt.id)).toEqual(["first"]);
+    expect(agent.status).toBe("Stopping…");
+    agent.cancelling = false;
+    agent.status = "Working…";
+    agent.queue = [later];
+    runtime.request.mockClear();
+    runtime.request.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("Agent is busy"));
+    await expect(agent.sendQueuedNow("later")).rejects.toThrow("Agent is busy");
+    expect(runtime.request.mock.calls.map(([method]) => method)).toEqual(["acp.dequeue", "acp.interrupt", "acp.enqueue"]);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.enqueue", message);
+    expect(agent.cancelling).toBe(false);
+    expect(agent.status).toBe("Working…");
     agent.dispose();
   });
   it("keeps queued prompts when a conversation change is requested", async () => {
@@ -677,6 +709,123 @@ describe("ACP conversation workflows", () => {
   });
 });
 
+describe("ACP bulk review and queue order", () => {
+  async function pendingWrites(paths = ["a.txt", "b.txt", "c.txt"]) {
+    const context = setup();
+    const docs = new Map(paths.map((path) => {
+      let text = `${path} before`;
+      const doc = { path, dirty: false, state: "ready", version: 1, savedRevision: `${path}@1`,
+        text: { toString: () => text }, replace: (value: string) => { text = value; } };
+      return [path, doc];
+    }));
+    const saves: string[] = [];
+    const save = vi.fn(async (path: string) => {
+      saves.push(path);
+      docs.get(path)!.savedRevision = `${path}@${saves.length + 1}`;
+    });
+    Object.assign(context.options.documents, { get: (path: string) => docs.get(path), open: async (path: string) => docs.get(path), save });
+    context.filesystem.read.mockImplementation((async (path: string) => ({ text: docs.get(path)!.text.toString(), revision: docs.get(path)!.savedRevision })) as any);
+    for (const path of paths)
+      context.listeners.get("acp.request")!({ id: "connection", requestId: path, method: "fs/write_text_file", params: { path, content: `${path} after` } });
+    await expect.poll(() => context.agent.requests.length).toBe(paths.length);
+    const answers = () => context.runtime.request.mock.calls.filter(([method]) => method === "acp.respond").map(([, params]) => [params.requestId, params.error ?? params.result]);
+    return { ...context, docs, saves, save, answers };
+  }
+  it("applies pending writes in order and stops at the first conflict or failed save", async () => {
+    const conflict = await pendingWrites();
+    conflict.docs.get("b.txt")!.dirty = true;
+    await expect(conflict.agent.applyAllFiles()).rejects.toThrow("File changed during review: b.txt");
+    expect(conflict.saves).toEqual(["a.txt"]);
+    expect(conflict.answers()).toEqual([["a.txt", null], ["b.txt", "File changed during review. Read the latest content and retry."]]);
+    expect(conflict.agent.requests.map((request) => request.requestId)).toEqual(["c.txt"]);
+    expect(conflict.agent.reviewingAll).toBe(false);
+    conflict.agent.dispose();
+
+    const failure = await pendingWrites();
+    failure.save.mockImplementation(async (path: string) => {
+      failure.saves.push(path);
+      if (path === "b.txt") throw new Error("Disk full");
+    });
+    await expect(failure.agent.applyAllFiles()).rejects.toThrow("Disk full");
+    expect(failure.saves).toEqual(["a.txt", "b.txt"]);
+    expect(failure.answers()).toEqual([["a.txt", null], ["b.txt", "Error: Disk full"]]);
+    expect(failure.agent.changes.map((change) => change.path)).toEqual(["a.txt"]);
+    expect(failure.agent.requests.map((request) => request.requestId)).toEqual(["c.txt"]);
+    failure.agent.dispose();
+  });
+  it("rejects every pending write with the Reject answer and keeps unconfirmed ones pending", async () => {
+    const { agent, runtime, answers, saves } = await pendingWrites();
+    runtime.request.mockImplementation(async (method: string, params: any) => {
+      if (method === "acp.respond" && params.requestId === "b.txt") throw new Error("Runtime disconnected");
+      return {};
+    });
+    await expect(agent.rejectAllFiles()).rejects.toThrow("Runtime disconnected");
+    expect(agent.requests.map((request) => request.requestId)).toEqual(["b.txt", "c.txt"]);
+    runtime.request.mockImplementation(async () => ({}));
+    await agent.rejectAllFiles();
+    expect(answers()).toEqual(["a.txt", "b.txt", "b.txt", "c.txt"].map((id) => [id, "User rejected the file change"]));
+    expect(agent.requests).toEqual([]);
+    expect(saves).toEqual([]);
+    agent.dispose();
+  });
+  it("undoes applied edits newest first and stops at the first that cannot be undone", async () => {
+    const { agent, docs, saves } = await pendingWrites();
+    await agent.applyAllFiles();
+    expect(agent.undoableChanges.map((change) => change.path)).toEqual(["a.txt", "b.txt", "c.txt"]);
+    saves.length = 0;
+    docs.get("b.txt")!.dirty = true;
+    await expect(agent.undoAllChanges()).rejects.toThrow("changed after the agent edit");
+    expect(saves).toEqual(["c.txt"]);
+    expect(agent.changes.map((change) => !!change.undone)).toEqual([false, false, true]);
+    docs.get("b.txt")!.dirty = false;
+    await agent.undoAllChanges();
+    expect(saves).toEqual(["c.txt", "b.txt", "a.txt"]);
+    expect([...docs.values()].map((doc) => doc.text.toString())).toEqual(["a.txt before", "b.txt before", "c.txt before"]);
+    expect(agent.undoableChanges).toEqual([]);
+    agent.dispose();
+  });
+  it("moves a queued prompt and hides moves for a connection whose runtime lacks the method", async () => {
+    const { agent, runtime } = setup();
+    agent.queue = [{ id: "a", text: "A" }, { id: "b", text: "B" }];
+    runtime.request.mockResolvedValueOnce({ queue: [{ id: "b", text: "B" }, { id: "a", text: "A" }], paused: false });
+    await agent.moveQueued("b", 0);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.moveQueued", { id: "connection", promptId: "b", index: 0 });
+    expect(agent.queue.map((prompt) => prompt.id)).toEqual(["b", "a"]);
+    runtime.request.mockRejectedValueOnce(new Error("The queued message has already started or was removed"));
+    await expect(agent.moveQueued("b", 1)).rejects.toThrow("already started");
+    expect(agent.canMoveQueued).toBe(true);
+    runtime.request.mockRejectedValueOnce(Object.assign(new Error("Unknown runtime method acp.moveQueued"), { code: "METHOD_NOT_FOUND" }));
+    await expect(agent.moveQueued("a", 0)).rejects.toThrow("Update the runtime to reorder queued messages");
+    expect(agent.canMoveQueued).toBe(false);
+    const calls = runtime.request.mock.calls.length;
+    await agent.moveQueued("a", 0);
+    expect(runtime.request.mock.calls.length).toBe(calls);
+    agent.connection = { ...agent.connection!, id: "other" };
+    expect(agent.canMoveQueued).toBe(true);
+    agent.dispose();
+  });
+});
+describe("ACP thread mentions", () => {
+  it("attaches an earlier thread's transcript once and lists threads from the connected root", () => {
+    const { agent } = setup();
+    const entry = (id: string, root: string) => ({
+      id, sessionId: id, root, provider: "codex", title: `Login ${id}`, updatedAt: "2026-10-10T12:00:00.000Z",
+      draft: "", context: [], tools: [], activity: [{ kind: "message", message: { role: "user", text: `Question ${id}` } }],
+    }) as any;
+    agent.history.entries = [entry("here", "/workspace"), entry("there", "/other")];
+    expect(agent.mentionThreads("login").map((thread) => thread.id)).toEqual(["here"]);
+    agent.attachMention({ kind: "thread", id: "here", title: "Login here", agent: "Codex", updatedAt: "" });
+    agent.attachThread("here");
+    expect(agent.context).toEqual([{
+      path: ".", kind: "thread", label: "Thread: Login here",
+      text: "Earlier conversation with Codex ACP: Login here\n\nUser: Question here",
+    }]);
+    expect(() => agent.attachThread("missing")).toThrow("This conversation is no longer in history");
+    agent.history.entries = [{ ...entry("empty", "/workspace"), activity: [] }];
+    expect(() => agent.attachThread("empty")).toThrow("This conversation has no messages");
+    agent.dispose();
+  });
+});
 describe("dispatched subagents in the editor", () => {
   const child = (id = "a", parentId?: string): any => ({
     id,
@@ -951,6 +1100,204 @@ describe("ACP checkpoints", () => {
     });
     expect(agent.checkpoints.current).toBe(before);
     expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    agent.dispose();
+  });
+});
+
+describe("ACP branch, commit and folder mentions", () => {
+  it("attaches the branch diff once and hides it when the runtime lacks git.branchDiff", async () => {
+    const { agent, runtime } = setup();
+    runtime.request.mockImplementation(async (method: string) => method === "git.branchDiff"
+      ? { base: "main", head: "feature", truncated: false, files: [{ path: "a.ts", diff: "+a", binary: false }] }
+      : {});
+    agent.probeBranchDiff();
+    agent.probeBranchDiff();
+    expect(runtime.request.mock.calls.filter(([method]) => method === "git.branchDiff")).toEqual([["git.branchDiff", { limit: 0 }]]);
+    await agent.attachMention({ kind: "branch" });
+    await agent.attachMention({ kind: "branch" });
+    expect(agent.context).toEqual([{
+      path: ".", kind: "branch", label: "Branch diff: main...feature",
+      text: "Changes on feature since its merge base with main, including uncommitted changes\n\n+a",
+    }]);
+    expect(agent.branchDiffAvailable).toBe(true);
+    agent.dispose();
+
+    const older = setup();
+    older.runtime.request.mockRejectedValue(Object.assign(new Error("Unknown runtime method git.branchDiff"), { code: "METHOD_NOT_FOUND" }));
+    older.agent.probeBranchDiff();
+    await expect.poll(() => older.agent.branchDiffAvailable).toBe(false);
+    older.agent.dispose();
+
+    const device = setup();
+    device.runtime.request.mockRejectedValue(new Error("git.branchDiff needs a runtime workspace"));
+    await expect(device.agent.attachBranchDiff()).rejects.toThrow("Branch diff needs a runtime workspace");
+    expect(device.agent.branchDiffAvailable).toBe(false);
+    device.agent.dispose();
+
+    const unrelated = setup();
+    unrelated.runtime.request.mockRejectedValue(Object.assign(new Error("No base branch"), { code: "NOT_FOUND" }));
+    await expect(unrelated.agent.attachBranchDiff()).rejects.toThrow("No base branch");
+    expect(unrelated.agent.branchDiffAvailable).toBe(true);
+    unrelated.agent.dispose();
+  });
+  it("lists matching commits and attaches one commit's message and diff", async () => {
+    const { agent, runtime } = setup();
+    const commit = { id: "abc1234def", parents: [], author: "Ada", date: "2026-10-10", subject: "Fix login", body: "", refs: "" };
+    runtime.request.mockImplementation(async (method: string) => {
+      if (method === "git.log") return { commits: [{ ...commit, id: "fff0000", subject: "Docs" }, commit], hasMore: false };
+      if (method === "git.show") return { commit, files: [{ path: "a.ts", status: "M" }] };
+      if (method === "git.commitDiff") return { diff: "+fixed", after: "", binary: false };
+      return {};
+    });
+    const found = await agent.mentionCommits("login");
+    expect(found.map((item) => item.id)).toEqual(["abc1234def"]);
+    expect(runtime.request).toHaveBeenCalledWith("git.log", { limit: 100 });
+    await agent.attachMention(found[0]);
+    await agent.attachMention(found[0]);
+    expect(agent.context).toEqual([{
+      path: ".", kind: "commit", label: "Commit abc1234: Fix login",
+      text: "commit abc1234def\nAuthor: Ada\nDate: 2026-10-10\n\nFix login\n\n+fixed",
+    }]);
+    expect(await agent.mentionCommits(" ")).toEqual([]);
+    agent.dispose();
+  });
+  it("attaches a folder's files once", async () => {
+    const { agent, options } = setup();
+    (options.filesystem as any).list = async (path: string) =>
+      path === "src" ? [{ path: "src/a.ts", name: "a.ts", kind: "file" }] : [];
+    await agent.attachMention({ kind: "folder", path: "src" });
+    await agent.attachMention({ kind: "folder", path: "src" });
+    expect(agent.context).toEqual([{
+      path: "src", kind: "folder", label: "Folder: src",
+      text: "Folder src: 1 file, 1 with their text below\n\nsrc/a.ts\n\n--- src/a.ts\ndisk\nsecond\nthird",
+    }]);
+    agent.dispose();
+  });
+});
+describe("Fork from here", () => {
+  const tree = "a".repeat(40);
+  async function conversation(document?: any) {
+    const context = setup(document);
+    context.runtime.request.mockImplementation(async (method: string, params: any) =>
+      method === "acp.call" && params.method === "session/new"
+        ? { id: "connection", root: "/workspace", provider: "codex", sessionId: `session-${crypto.randomUUID()}`, authMethods: [] }
+        : {});
+    await context.agent.newSession();
+    const first = { id: "1", role: "user" as const, text: "Why does login fail?" };
+    const second = { id: "3", role: "user" as const, text: "Refresh it", checkpoint: tree };
+    for (const message of [first, { id: "2", role: "agent" as const, text: "Token expired." }, second]) {
+      context.agent.messages.push(message);
+      context.agent.activity.push({ kind: "message", message });
+    }
+    context.agent.title = "Fix login";
+    context.agent.draft = "unsent";
+    return { ...context, first, second, original: (context.agent as any).activeConversation.id as string };
+  }
+  it("opens a new conversation with the earlier messages attached and the message drafted", async () => {
+    const { agent, first, second, original } = await conversation();
+    await agent.forkFrom(second);
+    expect((agent as any).activeConversation.id).not.toBe(original);
+    expect(agent.activity).toEqual([]);
+    expect(agent.title).toBe("New conversation");
+    expect(agent.draft).toBe("Refresh it");
+    expect(agent.context).toEqual([{
+      path: ".", kind: "thread", label: "Thread: Fix login",
+      text: "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: Token expired.",
+    }]);
+    const saved = agent.history.entries.find((entry) => entry.id === original)!;
+    expect(saved.activity).toHaveLength(3);
+    expect(saved.draft).toBe("unsent");
+    await agent.forkFrom(first);
+    expect(agent.draft).toBe("Refresh it");
+    agent.dispose();
+
+    const again = await conversation();
+    await again.agent.forkFrom(again.first);
+    expect(again.agent.draft).toBe("Why does login fail?");
+    expect(again.agent.context).toEqual([]);
+    again.agent.dispose();
+  });
+  it("restores the checkpoint first and notes the restore in the fork only", async () => {
+    const { agent, checkpoint, options, second, original } = await conversation({ dirty: false });
+    checkpoint.mockImplementation(async (method: string) =>
+      method === "acp.checkpoint.diff"
+        ? { tree: "b".repeat(40), changes: [{ status: "M", path: "hello.txt" }] }
+        : { restored: ["hello.txt"], deleted: [] });
+    await agent.forkFrom(second, true);
+    expect(checkpoint).toHaveBeenCalledWith("acp.checkpoint.restore", { tree, paths: ["hello.txt"] });
+    expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    expect(agent.draft).toBe("Refresh it");
+    expect(agent.activity).toEqual([{
+      kind: "notice", text: "Restored files to before “{message}”", values: { message: "Refresh it" },
+    }]);
+    expect(agent.history.entries.find((entry) => entry.id === original)!.activity).toHaveLength(3);
+    agent.dispose();
+  });
+  it("refuses while the agent works and keeps the conversation when restore fails", async () => {
+    const { agent, checkpoint, second, original } = await conversation({ dirty: true });
+    agent.busy = true;
+    await expect(agent.forkFrom(second)).rejects.toThrow("Wait for the agent to finish before forking");
+    agent.busy = false;
+    checkpoint.mockResolvedValue({ tree: "b".repeat(40), changes: [{ status: "M", path: "hello.txt" }] });
+    await expect(agent.forkFrom(second, true)).rejects.toThrow("unsaved edits in hello.txt");
+    expect((agent as any).activeConversation.id).toBe(original);
+    expect(agent.draft).toBe("unsent");
+    agent.dispose();
+  });
+});
+
+describe("Oxbit agent without a runtime workspace", () => {
+  async function activate(models?: AgentModels, saved = "claude") {
+    const { options } = setup();
+    const kernel = createKernel({ environment: "browser" });
+    Object.assign(options, { kernel, runtime: undefined });
+    if (models) kernel.services.register(AGENT_MODELS_SERVICE, models);
+    const extension = createFeature(options);
+    kernel.extensions.register(extension);
+    await kernel.extensions.activate(extension.manifest.id);
+    await kernel.configuration.set("agentACP.provider", saved, "user");
+    return { kernel, agent: kernel.services.get<AgentController>("agentACP") };
+  }
+  const fakeModels = (has = false) => ({
+    stream: vi.fn(),
+    keys: { has: vi.fn(async () => has), save: vi.fn(), remove: vi.fn() },
+  }) as unknown as AgentModels & { keys: { has: ReturnType<typeof vi.fn> } };
+  it("defaults a local workspace to the Oxbit agent and keeps the saved choice", async () => {
+    const { kernel, agent } = await activate(fakeModels());
+    expect(agent.local).toBe(true);
+    expect(agent.chosen).toEqual({ provider: OXBIT_AGENT_PROVIDER });
+    expect(agent.displayName).toBe("Oxbit Agent");
+    await agent.select({ provider: OXBIT_AGENT_PROVIDER });
+    expect(kernel.configuration.get("agentACP.provider")).toBe("claude");
+    await expect(agent.listLiveSessions()).resolves.toBeUndefined();
+    kernel.dispose();
+  });
+  it("keeps today's runtime prompt when the host has no model service", async () => {
+    const { kernel, agent } = await activate();
+    expect(agent.local).toBe(false);
+    expect(agent.chosen).toEqual({ provider: "claude" });
+    await expect(agent.connectSelected()).rejects.toThrow("Connect to a runtime workspace first");
+    kernel.dispose();
+  });
+  it("rejects Start with the setup error until the endpoint has a key", async () => {
+    const models = fakeModels();
+    const { kernel, agent } = await activate(models);
+    await kernel.configuration.set(OXBIT_AGENT_SETTINGS.api, "openai-compatible", "user");
+    await kernel.configuration.set(OXBIT_AGENT_SETTINGS.baseUrl, "https://openrouter.ai/api", "user");
+    await agent.action(() => agent.connectSelected());
+    expect(agent.error).toBe(MISSING_AGENT_KEY);
+    expect(agent.status).toBe("Connection failed");
+    expect(models.keys.has).toHaveBeenCalledWith({ api: "openai-compatible", baseUrl: "https://openrouter.ai/api" });
+    kernel.dispose();
+  });
+  it("falls back from a saved Oxbit choice in a runtime workspace", () => {
+    const { agent, options } = setup();
+    const set = vi.fn();
+    (options.kernel as any).configuration = { get: () => OXBIT_AGENT_PROVIDER, set };
+    expect(agent.local).toBe(false);
+    expect(agent.chosen).toEqual({ provider: "codex" });
+    agent.selection = { provider: "opencode", registry: { id: "opencode" } };
+    expect(agent.chosen.provider).toBe("opencode");
     agent.dispose();
   });
 });

@@ -8,6 +8,7 @@ import type {
   GitCommitFile,
   GitStash,
   GitDiff,
+  GitBranchDiff,
 } from "@oxbit/sdk";
 import * as fs from "node:fs/promises";
 import { RpcError, MAX_MESSAGE_BYTES } from "@oxbit/protocol";
@@ -24,6 +25,8 @@ function bounded<T>(value: T): T {
     );
   return value;
 }
+const BRANCH_DIFF_FILES = 50;
+const BRANCH_DIFF_TEXT = 200_000;
 const conflicted = (index: string, working: string) =>
   ["DD", "AU", "UD", "UA", "DU", "AA", "UU"].includes(index + working);
 const digest = (value: string) =>
@@ -524,6 +527,93 @@ export class Git {
         )
       ).stdout,
     });
+  }
+  /** The upstream remote's default branch, then `origin/HEAD`, then local `main` or `master`. */
+  private async baseBranch(branch: string, signal?: AbortSignal) {
+    const remote = branch
+      ? (await this.optional(["config", "--get", `branch.${branch}.remote`], signal)).stdout.trim()
+      : "";
+    const candidates = [
+      ...(remote && remote !== "." ? [`refs/remotes/${remote}/HEAD`] : []),
+      "refs/remotes/origin/HEAD",
+      "refs/heads/main",
+      "refs/heads/master",
+    ];
+    for (const ref of candidates) {
+      const commit = await this.optional(
+        ["rev-parse", "--verify", "--quiet", "--end-of-options", `${ref}^{commit}`],
+        signal,
+      );
+      if (commit.exitCode) continue;
+      const name = await this.optional(["rev-parse", "--abbrev-ref", ref], signal);
+      return { name: name.stdout.trim() || ref, commit: commit.stdout.trim() };
+    }
+    return undefined;
+  }
+  private async untrackedPatch(relative: string, signal?: AbortSignal) {
+    const result = await this.run(
+      ["diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--src-prefix=a/", "--dst-prefix=b/", "--", "/dev/null", relative],
+      signal,
+      this.files.root,
+      undefined,
+      true,
+    );
+    if (result.exitCode > 1)
+      throw new RpcError("GIT_FAILED", result.stderr.trim() || `Git exited ${result.exitCode}`);
+    return result.stdout;
+  }
+  /** Committed, staged, unstaged and untracked changes since the merge base with the base branch. */
+  async branchDiff(params: Record<string, unknown>, signal?: AbortSignal): Promise<GitBranchDiff> {
+    const limit = Number(params.limit ?? BRANCH_DIFF_FILES);
+    if (!Number.isInteger(limit) || limit < 0 || limit > BRANCH_DIFF_FILES)
+      throw new RpcError("INVALID_PARAMS", "Invalid file limit");
+    const inside = await this.optional(["rev-parse", "--is-inside-work-tree"], signal);
+    if (inside.exitCode || inside.stdout.trim() !== "true") {
+      if (inside.exitCode && !inside.stderr.includes("not a git repository"))
+        throw new RpcError("GIT_FAILED", inside.stderr.trim());
+      return { repository: false };
+    }
+    const head = await this.head(signal);
+    if (!head) throw new RpcError("NOT_FOUND", "This branch has no commits yet");
+    const branch = (await this.optional(["symbolic-ref", "-q", "--short", "HEAD"], signal)).stdout.trim();
+    const base = await this.baseBranch(branch, signal);
+    if (!base) throw new RpcError("NOT_FOUND", "No base branch: origin/HEAD, main and master are missing");
+    const mergeBase = await this.optional(["merge-base", base.commit, head], signal);
+    if (mergeBase.exitCode)
+      throw new RpcError("NOT_FOUND", `${branch || "HEAD"} has no common history with ${base.name}`);
+    const from = mergeBase.stdout.trim();
+    const names = async (args: string[]) => (await this.run(args, signal)).stdout.split("\0").filter(Boolean);
+    const tracked = await names(["diff", "--name-only", "--relative", "-z", from, "--"]);
+    const untracked = await names(["ls-files", "--others", "--exclude-standard", "-z", "--"]);
+    const files: { path: string; diff: string; binary: boolean }[] = [];
+    let size = 0,
+      truncated = false;
+    for (const [index, relative] of [...tracked, ...untracked].entries()) {
+      if (files.length >= limit || size >= BRANCH_DIFF_TEXT) {
+        truncated = true;
+        break;
+      }
+      let diff = "";
+      try {
+        diff = index < tracked.length
+          ? (await this.run(
+            ["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--relative", "--src-prefix=a/", "--dst-prefix=b/", from, "--", relative],
+            signal,
+          )).stdout
+          : await this.untrackedPatch(relative, signal);
+      } catch (error) {
+        if ((error as RpcError).code !== "OUTPUT_LIMIT") throw error;
+        truncated = true;
+      }
+      const binary = /^Binary files /m.test(diff);
+      if (size + diff.length > BRANCH_DIFF_TEXT) {
+        diff = diff.slice(0, BRANCH_DIFF_TEXT - size);
+        truncated = true;
+      }
+      size += diff.length;
+      files.push({ path: relative, diff, binary });
+    }
+    return bounded({ base: base.name, head: branch || head.slice(0, 7), files, truncated });
   }
   async action(
     method: string,

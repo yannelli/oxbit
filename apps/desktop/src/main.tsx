@@ -4,8 +4,10 @@ import { createRoot } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
+  installNotifications,
   native,
   ProjectSessionManager,
+  watchNotificationClicks,
   type CloseRequest,
   type ToolStatus,
   type UpdateStatus,
@@ -22,6 +24,7 @@ import { splitRuntimeError } from "@oxbit/protocol";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);
+const nativeNotifications = installNotifications();
 if (import.meta.env.VITE_DESKTOP_TEST === "1")
   await import("@wdio/tauri-plugin");
 const manager = new ProjectSessionManager();
@@ -387,6 +390,11 @@ function App() {
         }));
       }
     }
+    // A click that launched Oxbit has no Notification instance to call; open the agent panel.
+    const clicks = nativeNotifications.then((installed) => installed ? watchNotificationClicks(() => {
+      if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");
+    }) : undefined).catch(() => undefined);
+    disposables.push({ dispose: () => void clicks.then((watch) => watch?.unregister()) });
     session.workbench.touch();
     if (import.meta.env.VITE_DESKTOP_TEST === "1")
       (globalThis as any).__oxbit = {

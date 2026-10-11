@@ -24,6 +24,8 @@ export {
   type SshConnectOutcome,
   type GitSshPrompt,
   type PickedFile,
+  type RemoteNotificationRegistration,
+  type AgentModelStreamEvent,
   type TransferProgress,
   type TransferSummary,
   type RemoteRuntimeStarted,
@@ -37,5 +39,7 @@ export { IosLanguageTransport, createIosLanguageFeature, createIosLanguageFeatur
 export { discovery, DISCOVERY_POLL_MS, type DiscoveredRuntime } from "./discovery.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
 export { searchRoot, findRootFiles } from "./search.js";
-export { IosNotification, installNotifications, type NotificationPermission } from "./notifications.js";
+export { IosNotification, installNotifications, notificationPermission, onNotificationGrant, type NotificationPermission } from "./notifications.js";
+export { IosPush, PUSH_DEVICE_KEY, PUSH_HANDLES_KEY } from "./push.js";
+export { IosAgentModels } from "./agent-models.js";
 export { IosSpeechRecognition, installSpeechRecognition, type SpeechErrorCode, type SpeechErrorEvent, type SpeechResultEvent } from "./speech.js";

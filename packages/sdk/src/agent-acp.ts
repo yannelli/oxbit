@@ -164,7 +164,9 @@ export interface ACPContext {
   line?: number;
   endLine?: number;
   version?: number;
-  kind?: "file" | "selection" | "diagnostics" | "changes" | "image";
+  /** `thread`: an earlier conversation's transcript. `branch`: changes since the merge base with the base branch, uncommitted ones included.
+   * `commit`: a commit's message and diff. `folder`: a folder's file list and the text of its files. */
+  kind?: "file" | "selection" | "diagnostics" | "changes" | "thread" | "branch" | "commit" | "folder" | "image";
   /** Images only: png, jpeg, gif or webp. */
   mimeType?: string;
   /** Images only: base64 bytes. Saved transcripts omit it. */

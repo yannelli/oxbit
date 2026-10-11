@@ -47,6 +47,7 @@ import { RuntimeExtensions } from "./extensions.js";
 import { runtimeVersion } from "./version.js";
 import { lanOrigins, wildcardHost } from "./lan.js";
 import { loginShellEnvironment } from "./shell-environment.js";
+import { PushDevices } from "./push.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -253,10 +254,11 @@ export async function createRuntime(options: RuntimeOptions) {
     return session;
   };
   const acpRegistry = new ACPRegistry(dataDir, options.acpRegistryUrl);
+  const pushDevices = await PushDevices.open(dataDir);
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
     if (connection?.session && !connection.session.revoked && trusted) event(connection, name, params);
-  }, () => updateIdle(), acpRegistry);
+  }, () => updateIdle(), acpRegistry, (status) => void pushDevices.notify(status));
   const processEvent = ({ event: name, params, stream, seq }: import("./processes.js").ProcessEvent, ownerId?: string) => {
     const cap = name.startsWith("terminal.") ? "terminal" : "tasks";
     for (const c of connections.values()) {
@@ -639,7 +641,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
     if (method.startsWith("tasks.")) return { cap: "tasks", trust: !["tasks.catalog", "tasks.list", "tasks.attach", "tasks.worktrees"].includes(method) };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
-    if (method.startsWith("acp.")) return { cap: "extensions", trust: true };
+    if (method.startsWith("acp.") || method.startsWith("push.")) return { cap: "extensions", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
     if (method.startsWith("extensions."))
@@ -680,6 +682,7 @@ export async function createRuntime(options: RuntimeOptions) {
       if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method) && !method.startsWith("acp.checkpoint."))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
+    if (method.startsWith("push.")) owner(connection);
     if (method.startsWith("project.")) owner(connection);
     if (method.startsWith("settings.")) owner(connection);
     switch (method) {
@@ -713,6 +716,9 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.enqueue(session.id, requireString(params, "id"), params, method === "acp.interrupt");
       case "acp.dequeue":
         return agents.dequeue(session.id, requireString(params, "id"), requireString(params, "promptId"));
+      case "acp.moveQueued":
+        if (!Number.isInteger(params.index)) throw new RpcError("INVALID_PARAMS", "index must be an integer");
+        return agents.moveQueued(session.id, requireString(params, "id"), requireString(params, "promptId"), params.index as number);
       case "acp.resumeQueue":
         return agents.resumeQueue(session.id, requireString(params, "id"));
       case "acp.call":
@@ -729,6 +735,12 @@ export async function createRuntime(options: RuntimeOptions) {
       case "acp.disconnect":
         agents.disconnect(session.id, connection.id);
         return {};
+      case "push.register":
+        return pushDevices.register(session.id, connection.id, params);
+      case "push.state":
+        return pushDevices.state(session.id, connection.id, params);
+      case "push.unregister":
+        return pushDevices.unregister(session.id, params);
       case "acp.checkpoint.create":
         return checkpoints.create(signal);
       case "acp.checkpoint.diff":
@@ -907,6 +919,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return git.show(params.ref, signal);
       case "git.commitDiff":
         return git.commitDiff(params, signal);
+      case "git.branchDiff":
+        return git.branchDiff(params, signal);
       case "git.stashes":
         return git.stashes(signal);
       case "git.stashDiff":
@@ -1339,6 +1353,7 @@ export async function createRuntime(options: RuntimeOptions) {
       clearTimeout(authDeadline);
       agents.detach(connection.id);
       lsp.detach(connection.id);
+      pushDevices.disconnect(connection.id);
       connections.delete(connection.id);
       updateIdle();
       for (const pending of connection.edits.values()) {pending.cleanup();pending.resolve({applied:false,failureReason:"Document client disconnected"});} connection.edits.clear();
@@ -1508,6 +1523,7 @@ export async function createRuntime(options: RuntimeOptions) {
       await Promise.allSettled([...inflight.values()]);
       await collaboration.close();
       await persistence;
+      await pushDevices.flush();
       await new Promise<void>((resolve) => websocket.close(() => resolve()));
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

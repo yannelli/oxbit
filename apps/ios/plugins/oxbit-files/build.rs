@@ -13,11 +13,17 @@ const COMMANDS: &[&str] = &[
     "start_dictation",
     "stop_dictation",
     "live_activity",
+    "watch_live_activity_tokens",
+    "unwatch_live_activity_tokens",
     "notification_permission",
     "request_notification_permission",
     "notify",
     "watch_notification_taps",
     "unwatch_notification_taps",
+    "register_remote_notifications",
+    "agent_models_stream",
+    "agent_models_cancel",
+    "agent_models_key",
 ];
 
 fn main() {

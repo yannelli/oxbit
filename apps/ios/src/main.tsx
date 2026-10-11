@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
-import { AGENT_ACTIVITY_SERVICE } from "@oxbit/sdk";
-import { IosGitClient, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
+import { AGENT_ACTIVITY_SERVICE, AGENT_MODELS_SERVICE, type AgentActivityUpdate } from "@oxbit/sdk";
+import { IosAgentModels, IosGitClient, IosPush, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -38,6 +38,9 @@ document.addEventListener("click", (event) => {
     void native.external(anchor.href);
   }
 });
+
+const push = new IosPush();
+const agentModels = new IosAgentModels();
 
 function describe(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -260,13 +263,24 @@ function App() {
       if (id === "ssh.upload" || id === "ssh.download")
         disposables.push(session.kernel.contributions.register({ id: `ios.${id}.explorer`, kind: "menu", location: "explorer", command: id, title }));
     }
-    disposables.push(session.kernel.services.register(AGENT_ACTIVITY_SERVICE, { update: native.agentActivity }));
+    let activity: AgentActivityUpdate | null = null;
+    disposables.push(session.kernel.services.register(AGENT_ACTIVITY_SERVICE, {
+      update: (update: AgentActivityUpdate | null) => {
+        activity = update;
+        return native.agentActivity(update);
+      },
+    }));
+    if (session.runtime) disposables.push(push.attach(session.runtime, () => activity));
+    if (!session.runtime && (workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark"))
+      disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, agentModels));
     // Agent ACP posts the app's notifications.
     const tap = native.onNotificationTap(() => {
       if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");
     }).catch(() => undefined);
     disposables.push({ dispose: () => void tap.then((listener) => listener?.unregister()) });
     session.workbench.touch();
+    // Playwright specs under tests/ios reach the session through the dev server build.
+    if (import.meta.env.DEV) (globalThis as any).__oxbit = { ...session, ready: true };
     return () => {
       for (const disposable of disposables) disposable.dispose();
     };

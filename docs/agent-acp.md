@@ -1,6 +1,6 @@
 # Agent ACP
 
-Created: 2026-10-10. Last updated: 2026-10-10.
+Created: 2026-10-10. Last updated: 2026-10-11.
 
 Agent ACP is a bundled, **disabled-by-default** extension that runs agents
 speaking the [Agent Client Protocol](https://agentclientprotocol.com). Open
@@ -64,6 +64,38 @@ local adapter, replace `npx` with its absolute executable path and clear the
 arguments. If Cursor is installed as `cursor-agent`, use that executable with `acp`.
 The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
+
+### Oxbit Agent without a runtime
+
+Added 2026-10-11. In iOS device folders, which have no runtime, the picker offers
+**Oxbit Agent** and marks the other agents "Needs a runtime workspace". The agent
+runs in the app (`packages/features/agent-acp/src/local/`) and calls a model API
+with the user's key:
+
+| `agentACP.oxbit.api` | API |
+| --- | --- |
+| `openai` (default) | OpenAI Responses |
+| `anthropic` | Anthropic Messages |
+| `openai-compatible` | Chat Completions at `agentACP.oxbit.baseUrl` |
+
+- **Agent setup** saves the key in the iOS Keychain; settings hold only the API,
+  base URL and model. Start without a key shows "Add an API key in Agent setup".
+- The model list comes from `GET /v1/models`; the model and reasoning controls are
+  session settings, and the chosen model is saved to `agentACP.oxbit.model`.
+- Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
+  and edits open the same review card as other agents. There is no shell.
+- **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
+  `@` commits use `git.log`, `git.show` and `git.commitDiff` from the same client.
+- The registry, runtime sessions, checkpoints and `@` **Branch diff** need a runtime workspace.
+- API details: [Model APIs for the built-in Oxbit agent](agent-model-apis.md).
+  Keychain and request handling on iOS: [In-app agent on iOS](ios.md#in-app-agent-on-ios).
+- Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
+  file write through a scripted model), `tests/ios/agent-models.spec.ts`, and
+  `scripts/oxbit-agent-smoke.ts` against a local Ollama for all three APIs and against
+  OpenRouter for `openai-compatible`. On 2026-10-11 one turn ran in the iOS 26.5
+  simulator through the Swift `AgentModels` path (OpenRouter, `openai/gpt-oss-20b`): Keychain
+  save and `has` after relaunch, three URLSession requests answered 200, and base URLs and
+  paths outside the endpoint rejected. No physical device run yet.
 
 ### ACP Registry agents
 
@@ -129,11 +161,33 @@ thread is opened.
 - After two characters, `@` also lists up to 10 workspace symbols from running
   language servers that support `workspace/symbol`. A symbol is attached as the
   lines of its range, like a selection.
+- `@` also lists up to 5 saved conversations whose title contains the text after
+  `@`, from the connected workspace root, without the open conversation. Choosing
+  one attaches its user and agent messages as **Thread: <title>**, without thoughts
+  or tool calls, keeping the latest 200,000 characters.
+- `@` **Branch diff** attaches **Branch diff: <base>...<head>**: the committed, staged,
+  unstaged and untracked changes since the merge base of `HEAD` and the base branch,
+  up to 50 files and 200,000 characters. The base is the upstream remote's default
+  branch (`refs/remotes/<remote>/HEAD`), then `origin/HEAD`, then `main`, then `master`.
+  The item is hidden after `git.branchDiff` fails with `METHOD_NOT_FOUND` (an older
+  runtime) or "needs a runtime workspace" (the in-app Oxbit Agent). The panel asks once,
+  with `{ limit: 0 }`, when `@` first opens the list.
+- `@` also lists up to 5 of the latest 100 commits whose subject or author contains the
+  text after `@`, or whose hash starts with it. Choosing one attaches
+  **Commit <short hash>: <subject>** with the message and the diff of up to 50 files,
+  up to 200,000 characters.
+- `@` also lists up to 5 folders above the matched files. Choosing one inserts
+  `@<folder>/` and attaches **Folder: <path>**: up to 500 file paths, then the text of
+  each file that fits in 200,000 characters. Binary files, `.git` and `node_modules`
+  are skipped.
 - Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
-  and can be edited or removed.
+  and can be edited, removed or moved. **Send queued message now** stops the running
+  turn and sends that message next. **Move queued message up** and **down**, or
+  Alt+Up and Alt+Down while one of a queued message's buttons has focus, change
+  the order in which queued messages run.
 - **Dictate** (the microphone button) appends speech to the draft as you talk.
   Select it again to finish. Editing or sending the draft stops dictation. See
   [Dictation](#dictation).
@@ -156,6 +210,8 @@ thread is opened.
   Oxbit also shows a system notification once permission is granted. Use
   **Enable notifications** in **More agent actions** to grant it. Set
   `agentACP.notifications` to `never` to turn system notifications off.
+- Applying an agent edit opens the file in the editor when the panel sits beside it.
+  Below 1100px the panel covers the editor, so it stays open and the file only refreshes.
 
 ### System notifications
 
@@ -164,17 +220,20 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
 [crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)) and Apple's
 [UNUserNotificationCenterDelegate](https://developer.apple.com/documentation/usernotifications/unusernotificationcenterdelegate).
 
-- The desktop app registers `tauri-plugin-notification` `=2.4.0`. Versions 2.5.0
-  and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
-- On desktop the plugin's init script replaces `window.Notification` in the
-  WebView, so the panel's Web Notification calls post native notifications. The
-  capability grants only `notification:allow-notify`,
-  `notification:allow-is-permission-granted` and `notification:allow-request-permission`.
-  The plugin reports permission as granted (`src/desktop.rs`) and reports no
-  actions, so selecting a macOS notification does not open the panel.
-- `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
-  2026-10-10 `usernoted` logged both test notifications as delivered and presented.
-  An unbundled debug binary posts them under Terminal's name.
+- The bundled macOS app posts through `UNUserNotificationCenter`
+  (`apps/desktop/src-tauri/src/notifications.rs`, `objc2-user-notifications` `=0.3.2`)
+  and is the center's delegate. `installNotifications`
+  (`packages/host-desktop/src/notifications.ts`) installs the `Notification` the
+  panel uses. Selecting a notification opens the agent panel in the window that
+  posted it; a selection that launches Oxbit runs `agentACP.open` once the workspace loads.
+- Builds without a bundle id (`bun run desktop:dev`, the WDIO debug binary) register
+  `tauri-plugin-notification` `=2.4.0` instead. Versions 2.5.0 and later require
+  `tauri` 2.12; Oxbit pins `tauri` 2.11.5. The plugin reports no actions, so
+  selecting its notification does nothing.
+- `tests/desktop/agent.e2e.mjs` checks the plugin path in the debug binary and the
+  native path in a bundled app. On 2026-10-11 `usernoted` logged the bundled test
+  app's notifications as delivered with authorization denied, so no banner showed
+  and the selection handler has not run.
 - The iOS app does not use the plugin: its 2.4.0 iOS code force-unwraps an
   in-memory map when a notification is tapped, so a tap after iOS terminated the
   app crashes it ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533)),
@@ -190,8 +249,35 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
   workspace session runs `agentACP.open` on a tap when Agent ACP is enabled
   there; `tests/ios/ssh-runtime.spec.ts` covers a tap that relaunched the app and
   a later tap.
-- iOS suspends the app shortly after it leaves the foreground. A turn that ends
-  while the app is suspended posts no notification; that needs a push relay.
+- iOS suspends the app shortly after it leaves the foreground. Turns that end
+  while it is suspended arrive as push notifications (see below).
+
+### Push to a suspended phone
+
+Added 2026-10-11. Built and unit tested; push delivery has not run on a device
+because the relay has no APNs key yet.
+
+- The iOS app registers for remote notifications and for a Live Activity push
+  token, sends each token to the relay's `POST /v1/devices`, and passes the
+  returned handles to the runtime with `push.register` on every connection. It
+  reports `push.state` with `active: false` when it leaves the foreground.
+- The runtime (`apps/runtime/src/push.ts`) keeps up to 16 devices in
+  `push-devices.json` for 30 days. Each device belongs to the session that
+  registered it. When that session's agent finishes, fails or needs input while
+  the device is inactive or disconnected, the runtime sends an alert, and it
+  updates or ends the Live Activity, through `POST /v1/push`.
+- The relay (`apps/push-relay`, Cloudflare Worker `oxbit-push`) seals tokens into
+  AES-GCM handles and holds the APNs key. Pushes use the collapse id
+  `oxbit-agent-acp`. A gone token answers `{gone: true}` and the runtime drops it;
+  without the APNs secrets the relay answers 503 `RelayNotConfigured`.
+- Runtimes without `push.*` answer `METHOD_NOT_FOUND`; the app then skips push
+  for that connection. `OXBIT_PUSH_RELAY` points the runtime at another relay.
+- Apple references: [registering with APNs](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns),
+  [sending requests](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns),
+  [token-based connection](https://developer.apple.com/documentation/usernotifications/establishing-a-token-based-connection-to-apns),
+  [APNs responses](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns),
+  [Live Activity push](https://developer.apple.com/documentation/activitykit/starting-and-updating-live-activities-with-activitykit-push-notifications).
+  Relay secrets and deploy: `apps/push-relay/README.md`.
 
 ### Live Activity
 
@@ -206,7 +292,7 @@ Added 2026-10-10.
 - The app updates the activity itself and re-sends a working or waiting state
   every 5 minutes while it runs. Once iOS suspends Oxbit, the activity keeps its
   last state and shows **Open Oxbit to refresh** 15 minutes after the last update.
-  Updates while suspended need push delivery through a relay, which Oxbit does not have.
+  While suspended, the runtime updates it through the push relay.
 - The `OxbitLiveActivity` widget extension (`com.yannelli.oxbit.LiveActivity`)
   draws the activity; `docs/release.md` covers its signing profile.
 - The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in
@@ -272,10 +358,16 @@ Checked 2026-10-10.
   fresh read and proposal. Disk saves check the original file revision.
   Apply and Undo save the reviewed snapshot exactly, bypassing formatting hooks;
   ordinary editor saves retain their configured hooks.
+- With two or more file changes pending, **Apply all** and **Reject all** sit above
+  the reviews. Apply all applies each change in order with the same checks as
+  **Apply change**. It stops at the first change that fails, shows its error and
+  leaves the rest pending. Reject all sends each change the same answer as **Reject**.
 - **Reviewed agent edits** records client-API edits for the current conversation.
   **Undo this edit** restores an existing file only when its buffer and disk
   still match the applied edit. Undo is unavailable during agent work or pending
   approvals. New files and files changed again belong in Source Control review.
+  With two or more edits to undo, **Undo all** undoes them newest first through
+  Undo this edit and stops at the first edit it cannot undo.
 - Tool file locations open in the editor. **Review changes** opens source control.
 - Agent terminal commands run in the workspace, show bounded output, and support
   output, wait, kill, and release through ACP.
@@ -331,7 +423,12 @@ policy; the Oxbit review applies to proposed edits through the Oxbit client.
 Messages sent during a turn enter a queue of at most 16 messages and 1 MiB.
 They run in order after a successful turn. A stopped or failed turn pauses the
 queue. **Interrupt and send** cancels the current turn and sends the correction
-after cancellation is acknowledged. Providers report plans and token usage only
+after cancellation is acknowledged. `acp.moveQueued {id, promptId, index}` moves a
+message that has not started to `index`, clamped to the queue, and publishes
+`acp.queue`; a message that started or was removed is rejected. The runtime and
+the Oxbit Agent both serve it. A runtime from before this method answers
+`METHOD_NOT_FOUND`; the panel then shows the error once and hides the move
+buttons for that connection. Providers report plans and token usage only
 when they expose those events.
 
 Agents execute with the trusted runtime user's privileges. The workspace path
@@ -467,10 +564,24 @@ write git objects and no refs. Unreferenced objects follow git's `gc.pruneExpire
 window (two weeks by default), after which `git gc` deletes them and restore
 reports that the checkpoint is no longer available.
 
+**Message actions** (the **…** button on a user message) offers **Fork from here**:
+it starts a new conversation with the same agent, attaches the earlier messages as
+**Thread: <title>** (the forked message excluded) and puts that message's text in the
+draft. On a message with a checkpoint, **Restore files and fork** restores the
+checkpoint first, then forks; the fork starts with the restore note. The original
+conversation stays in history unchanged. Forking needs a connected agent and is
+refused while the agent is working or has pending requests or queued messages.
+
 Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
 `{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and
 the changed paths; `acp.checkpoint.restore` `{ tree, paths }` restores and refuses
 when files outside `paths` changed since the diff.
+
+`git.branchDiff` `{ limit? }` (0 to 50 files, default 50) returns
+`{ base, head, files: [{ path, diff, binary }], truncated }` or `{ repository: false }`.
+`diff` is empty for a file whose diff exceeds the 2 MiB output limit. It fails with
+`NOT_FOUND` when `HEAD` has no commits, no base branch exists, or the histories share no
+commit.
 
 ## Protocol references
 
@@ -483,7 +594,7 @@ Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) docu
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts apps/runtime/tests/git-branch-diff.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):

@@ -9,7 +9,9 @@ import {
   type RefObject,
 } from "react";
 import { Icon, translate as tr } from "@oxbit/ui";
-import { insertMention, mentionQuery, type Mention, type SymbolMention } from "./mentions.js";
+import {
+  insertMention, mentionQuery, searchFolders, type CommitMention, type Mention, type SymbolMention, type ThreadMention,
+} from "./mentions.js";
 import { imageFiles } from "./images.js";
 import { sendHint, sendsOnKey, useSendMode } from "./send-keys.js";
 import type { ConfigurationService } from "@oxbit/sdk";
@@ -30,7 +32,8 @@ function slashQuery(value: string, caret: number) {
 }
 
 export function ComposerInput({
-  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles, findSymbols,
+  value, commands, inputRef, actionsRef, configuration, onChange, onSend, onEscape, onMention, onImages, findFiles, findSymbols, findThreads,
+  findCommits, branchDiff, onMentionOpen,
 }: {
   value: string;
   commands: readonly { name: string; description: string }[];
@@ -45,6 +48,11 @@ export function ComposerInput({
   onImages: (files: File[]) => void;
   findFiles: (query: string, signal: AbortSignal) => Promise<string[]>;
   findSymbols: (query: string, signal: AbortSignal) => Promise<SymbolMention[]>;
+  findThreads: (query: string) => ThreadMention[];
+  findCommits: (query: string, signal: AbortSignal) => Promise<CommitMention[]>;
+  /** Shows Branch diff; false when the runtime lacks `git.branchDiff`. */
+  branchDiff: boolean;
+  onMentionOpen?: () => void;
 }) {
   const id = useId();
   const mode = useSendMode(configuration);
@@ -53,7 +61,8 @@ export function ComposerInput({
   const [dismissed, setDismissed] = useState(false);
   const [caret, setCaret] = useState(0);
   const [selected, setSelected] = useState(0);
-  const [found, setFound] = useState<{ query: string; paths: string[]; symbols: SymbolMention[] }>({ query: "", paths: [], symbols: [] });
+  const [found, setFound] = useState<{ query: string; paths: string[]; symbols: SymbolMention[]; commits: CommitMention[] }>(
+    { query: "", paths: [], symbols: [], commits: [] });
   const place = (next: string, at: number) => {
     onChange(next);
     setCaret(at);
@@ -82,8 +91,9 @@ export function ComposerInput({
       }));
   else if (mention) {
     const pick = (chosen: Mention) => {
-      if (chosen.kind === "file" || chosen.kind === "symbol") {
-        const next = insertMention(value, mention.start, caret, chosen.kind === "file" ? chosen.path : chosen.name);
+      if (chosen.kind === "file" || chosen.kind === "symbol" || chosen.kind === "folder") {
+        const text = chosen.kind === "symbol" ? chosen.name : chosen.kind === "folder" ? `${chosen.path}/` : chosen.path;
+        const next = insertMention(value, mention.start, caret, text);
         place(next.value, next.caret);
       } else {
         const end = mention.start + mention.query.length + 1;
@@ -93,11 +103,14 @@ export function ComposerInput({
       onMention(chosen);
     };
     const term = mention.query.toLowerCase();
+    const current = found.query === mention.query;
     items = ([
       ["selection", "Selection", "focus", "Attach the editor selection"],
       ["diagnostics", "Diagnostics", "warning", "Attach the active file's diagnostics"],
       ["changes", "Changes", "git", "Attach uncommitted changes"],
+      ["branch", "Branch diff", "git", "Attach this branch's changes since its base"],
     ] as const)
+      .filter(([kind]) => kind !== "branch" || branchDiff)
       .filter(([, label]) => tr(label).toLowerCase().includes(term) || label.toLowerCase().includes(term))
       .map(([kind, label, icon, detail]): Item => ({
         key: kind,
@@ -105,22 +118,44 @@ export function ComposerInput({
         detail: tr(detail),
         choose: () => pick({ kind }),
       }))
-      .concat(found.query === mention.query ? found.paths.map((path) => ({
+      .concat(current ? searchFolders(found.paths, mention.query).map((path) => ({
+        key: `folder:${path}`,
+        label: <strong><Icon name="folder" size={14} /> {path.slice(path.lastIndexOf("/") + 1)}</strong>,
+        detail: `${path}/`,
+        choose: () => pick({ kind: "folder", path }),
+      })) : [])
+      .concat(current ? found.paths.map((path) => ({
         key: path,
         label: <strong>{path.slice(path.lastIndexOf("/") + 1)}</strong>,
         detail: path,
         choose: () => pick({ kind: "file", path }),
       })) : [])
-      .concat(found.query === mention.query ? found.symbols.map((symbol) => ({
+      .concat(current ? found.symbols.map((symbol) => ({
         key: `${symbol.path}:${symbol.line}:${symbol.name}`,
         label: <strong><Icon name="symbol" size={14} /> {symbol.name}</strong>,
         detail: `${symbol.path}:${symbol.line}`,
         choose: () => pick(symbol),
-      })) : []);
+      })) : [])
+      .concat(current ? found.commits.map((commit) => ({
+        key: `commit:${commit.id}`,
+        label: <strong><Icon name="git" size={14} /> {commit.subject}</strong>,
+        detail: `${commit.id.slice(0, 7)} · ${commit.author} · ${new Date(commit.date).toLocaleDateString()}`,
+        choose: () => pick(commit),
+      })) : [])
+      .concat(findThreads(mention.query).map((thread) => ({
+        key: `thread:${thread.id}`,
+        label: <strong><Icon name="clock" size={14} /> {thread.title}</strong>,
+        detail: `${thread.agent} · ${new Date(thread.updatedAt).toLocaleDateString()}`,
+        choose: () => pick(thread),
+      })));
   }
   const mentionTerm = mention?.query;
-  const search = useRef({ findFiles, findSymbols });
-  search.current = { findFiles, findSymbols };
+  const search = useRef({ findFiles, findSymbols, findCommits, onMentionOpen });
+  search.current = { findFiles, findSymbols, findCommits, onMentionOpen };
+  const mentioning = mention !== undefined;
+  useEffect(() => {
+    if (mentioning) search.current.onMentionOpen?.();
+  }, [mentioning]);
   useEffect(() => {
     if (!mentionTerm) return;
     const abort = new AbortController();
@@ -128,8 +163,9 @@ export function ComposerInput({
       Promise.all([
         search.current.findFiles(mentionTerm, abort.signal),
         search.current.findSymbols(mentionTerm, abort.signal).catch((): SymbolMention[] => []),
+        search.current.findCommits(mentionTerm, abort.signal).catch((): CommitMention[] => []),
       ]).then(
-        ([paths, symbols]) => { if (!abort.signal.aborted) setFound({ query: mentionTerm, paths, symbols }); },
+        ([paths, symbols, commits]) => { if (!abort.signal.aborted) setFound({ query: mentionTerm, paths, symbols, commits }); },
         () => {},
       );
     }, 120);

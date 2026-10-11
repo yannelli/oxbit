@@ -1,17 +1,18 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-10.
+Created: 2026-10-02. Last updated: 2026-10-11.
 
 | Guide | Use when |
 | --- | --- |
-| [Agent ACP](agent-acp.md) | Changing agent providers, the agent picker, ACP Registry installs, the composer, badges and notifications, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
+| [Agent ACP](agent-acp.md) | Changing agent providers, the in-app Oxbit Agent for device folders, the agent picker, ACP Registry installs, the composer, badges and notifications, push to a suspended phone through the `oxbit-push` relay, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
+| [Model APIs for the built-in Oxbit agent](agent-model-apis.md) | Changing the in-app Oxbit agent's OpenAI Responses, Chat Completions, or Anthropic Messages adapters, the SSE parser, model lists, reasoning replay, or its ACP updates; official API, OpenRouter, DeepSeek, and ACP references. |
 | [Agent panel research (2026)](agents-ux-research.md) | Comparing the agent panel with Zed, JetBrains, VS Code, Cursor and mobile agent clients; the ACP Registry schema and listed agents; which shared patterns Oxbit adopted or deferred. |
 | [Editor consistency contracts](editor-consistency.md) | Changing document lifecycle, file operations, tab navigation, replacement semantics, Settings resolution, and runtime operation retention; Zed, ECMAScript, and idempotency references. |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
 | [npm packages](npm.md) | Publishing `@oxbit/sdk` and `@oxbit/cli`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |
 | [Remote workspaces over SSH](remote-ssh.md) | Building SSH runtime payloads for `darwin-arm64`, `linux-x64`, and `linux-arm64`; the release's `remote-runtime-*` assets and the manifest pinned into the iOS build; the remote runtime lease and `runtime.keepAlive`; running the SSH live harnesses against an arm64 container; Node, ripgrep, node-pty, GitHub arm runner, and Docker multi-platform references. |
 | [Oxbit desktop](desktop.md) | Building, testing, and packaging the Tauri app for macOS arm64 and Ubuntu 24.04 x64/arm64; Linux bundle helper pins; updater manifest platforms; release checks. |
-| [iOS setup](ios.md) | Building the iOS app, connecting to a computer runtime, Bonjour discovery of `oxbit --lan` runtimes, and keep-alive for SSH-started runtimes; NWBrowser, NSBonjourServices, RFC 6762/6763 and Tauri mobile plugin references. |
+| [iOS setup](ios.md) | Building the iOS app, connecting to a computer runtime, Bonjour discovery of `oxbit --lan` runtimes, keep-alive for SSH-started runtimes, and the in-app agent's model API requests from Swift with Keychain keys and origin pinning; NWBrowser, NSBonjourServices, RFC 6762/6763, URLSession redirect, Keychain accessibility, Anthropic and OpenAI authentication, and Tauri mobile plugin references. |
 | [iOS release artwork](ios-release-assets.md) | Rendering app icon exports, native App Store screenshots, promo banners, and listing drafts; includes Apple design, asset specifications, and app privacy references. |
 | [Withdrawn v0.3.1 audit](release-audit-0.3.1.md) | Comparing alpha.5 with the withdrawn release, confirmed corrections, and unresolved CI failures. |
 | [iOS language servers](ios-language-servers.md) | Changing device-local LSPs, the per-server language extensions, the JavaScriptCore runtime, bundled Wasm, or the shared schema cache; includes Apple and Tauri API references. |

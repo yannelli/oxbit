@@ -246,6 +246,29 @@ var settings_schema_default = {
       type: "string",
       default: "[]"
     },
+    "agentACP.oxbit.api": {
+      title: "Oxbit Agent API",
+      description: "openai uses the Responses API, anthropic the Messages API, and openai-compatible Chat Completions at the base URL.",
+      type: "string",
+      default: "openai",
+      enum: [
+        "openai",
+        "anthropic",
+        "openai-compatible"
+      ]
+    },
+    "agentACP.oxbit.baseUrl": {
+      title: "Oxbit Agent base URL",
+      description: "Origin and path prefix for openai-compatible, for example https://openrouter.ai/api.",
+      type: "string",
+      default: ""
+    },
+    "agentACP.oxbit.model": {
+      title: "Oxbit Agent model",
+      description: "Model ID for new conversations.",
+      type: "string",
+      default: ""
+    },
     "workbench.keymap": {
       title: "Keymap",
       description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
@@ -936,6 +959,15 @@ var settings_schema_default = {
         "agentACP.custom.args": {
           $ref: "#/properties/agentACP.custom.args"
         },
+        "agentACP.oxbit.api": {
+          $ref: "#/properties/agentACP.oxbit.api"
+        },
+        "agentACP.oxbit.baseUrl": {
+          $ref: "#/properties/agentACP.oxbit.baseUrl"
+        },
+        "agentACP.oxbit.model": {
+          $ref: "#/properties/agentACP.oxbit.model"
+        },
         "workbench.keymap": {
           $ref: "#/properties/workbench.keymap"
         },
@@ -1395,6 +1427,20 @@ var acpPreset = (id) => ACP_PROVIDERS.find((provider) => provider.id === id);
 var acpBuiltinForRegistry = (registryId) => ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
 var AGENT_ACTIVITY_SERVICE = "agentActivity";
 
+// packages/sdk/src/agent-models.ts
+var OXBIT_AGENT_PROVIDER = "oxbit";
+var AGENT_MODELS_SERVICE = "agentModels";
+var MISSING_AGENT_KEY = "Add an API key in Agent setup";
+var OXBIT_AGENT_SETTINGS = {
+  api: "agentACP.oxbit.api",
+  baseUrl: "agentACP.oxbit.baseUrl",
+  model: "agentACP.oxbit.model"
+};
+
+// packages/sdk/src/push.ts
+var PUSH_RELAY_URL = "https://oxbit-push.ryanyannelli.workers.dev";
+var PUSH_COLLAPSE_ID = "oxbit-agent-acp";
+
 // packages/sdk/src/tasks.ts
 var taskPhases = [
   "preinit",
@@ -1452,6 +1498,12 @@ export {
   ACP_PROVIDERS,
   ACP_REGISTRY_URL,
   AGENT_ACTIVITY_SERVICE,
+  AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  OXBIT_AGENT_PROVIDER,
+  OXBIT_AGENT_SETTINGS,
+  PUSH_COLLAPSE_ID,
+  PUSH_RELAY_URL,
   SDK_VERSION,
   SETTINGS_SCHEMA_URI,
   acpBuiltinForRegistry,

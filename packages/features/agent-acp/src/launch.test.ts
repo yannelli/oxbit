@@ -7,6 +7,7 @@ import {
   rememberRegistryName,
   resolveLaunch,
   runtimeSupportError,
+  startable,
   storedArgs,
 } from "./launch.js";
 import { providerFor } from "./controller.js";
@@ -95,6 +96,18 @@ describe("launch resolution", () => {
         }),
       ),
     ).toEqual({ provider: "custom", name: "Mine", command: "/bin/agent", args: ["--acp", "two words"] });
+  });
+  it("launches the Oxbit agent by provider only", () => {
+    expect(resolveLaunch({ provider: "oxbit", registry: { id: "oxbit" } }, config({}))).toEqual({ provider: "oxbit" });
+    expect(agentName("oxbit")).toBe("Oxbit Agent");
+  });
+  it("starts the Oxbit agent only without a runtime workspace", () => {
+    expect(startable("oxbit", true)).toBe(true);
+    for (const provider of ["codex", "opencode", "custom"]) {
+      expect(startable(provider, true)).toBe(false);
+      expect(startable(provider, false)).toBe(true);
+    }
+    expect(startable("oxbit", false)).toBe(false);
   });
   it("maps the old runtime provider error", () => {
     const mapped = runtimeSupportError(new Error("Choose Codex, Cursor, or Amp"), "OpenCode");

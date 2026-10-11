@@ -2,10 +2,26 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type NotificationPermission = "default" | "denied" | "granted";
 
+const grantListeners = new Set<() => void>();
+
 function permission(command: "notification_permission" | "request_notification_permission") {
-  return invoke<{ permission: NotificationPermission }>(`plugin:oxbit-files|${command}`).then(
-    (result) => (IosNotification.permission = result.permission),
-  );
+  return invoke<{ permission: NotificationPermission }>(`plugin:oxbit-files|${command}`).then((result) => {
+    const previous = IosNotification.permission;
+    IosNotification.permission = result.permission;
+    if (result.permission === "granted" && previous !== "granted") for (const listener of grantListeners) listener();
+    return result.permission;
+  });
+}
+
+/** Reads the permission from iOS. */
+export function notificationPermission(): Promise<NotificationPermission> {
+  return permission("notification_permission");
+}
+
+/** Runs `listener` each time the permission turns `granted`, from a request or from Settings. */
+export function onNotificationGrant(listener: () => void): () => void {
+  grantListeners.add(listener);
+  return () => grantListeners.delete(listener);
 }
 
 /** Web `Notification` backed by the oxbit-files plugin. Taps reach `native.onNotificationTap`. */
