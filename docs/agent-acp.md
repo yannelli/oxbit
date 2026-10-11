@@ -586,6 +586,12 @@ capability do not show the item, and a runtime older than this feature answers
 from an earlier message still uses **Fork from here**. Schema checked 2026-10-11 at
 [schema.unstable.json](https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/main/schema/v1/schema.unstable.json).
 
+Checked 2026-10-11: Claude Agent ACP 0.55.0, Codex ACP 1.10.0 and OpenCode 1.18.18
+advertise `fork` in `initialize`. OpenCode 1.18.18 with Ollama `qwen3:0.6b` forked
+through the panel on desktop Chrome and the phone profile, and the fork answered
+with a word that only the original session had seen. The fork with Claude Agent
+and Codex has not run, because it needs their accounts.
+
 Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
 `{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and
 the changed paths; `acp.checkpoint.restore` `{ tree, paths }` restores and refuses
