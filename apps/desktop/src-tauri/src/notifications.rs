@@ -17,7 +17,7 @@ use objc2_user_notifications::{
 use std::{
     collections::BTreeMap,
     ptr::NonNull,
-    sync::{mpsc, Mutex},
+    sync::{mpsc, Mutex, OnceLock},
 };
 use tauri::{ipc::Channel, WebviewWindow};
 
@@ -85,10 +85,11 @@ impl Delegate {
     }
 }
 
-/// UNUserNotificationCenter raises an exception in a process without a bundle identifier,
-/// such as `cargo tauri dev` or the unbundled native-test binary.
-pub fn available() -> bool {
-    NSBundle::mainBundle().bundleIdentifier().is_some()
+/// UNUserNotificationCenter raises an exception in a process without a bundle identifier, such
+/// as the unbundled native-test binary. The notification plugin later swizzles that identifier.
+fn available() -> bool {
+    static AVAILABLE: OnceLock<bool> = OnceLock::new();
+    *AVAILABLE.get_or_init(|| NSBundle::mainBundle().bundleIdentifier().is_some())
 }
 
 /// Sets the click delegate before launch finishes, so the click that launched Oxbit arrives.
