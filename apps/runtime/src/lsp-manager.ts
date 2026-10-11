@@ -148,7 +148,10 @@ export class LanguageServerManager {
         instance.server.closeDocument(file);
       }
       if (!instance.attachments.size && !instance.idle) {
-        instance.idle = setTimeout(() => { instance.idle = undefined; void this.stop(false, instance.id); }, this.idleMs);
+        instance.idle = setTimeout(() => {
+          instance.idle = undefined;
+          if (this.instances.get(instance.id) === instance) void this.stop(false, instance.id);
+        }, this.idleMs);
         instance.idle.unref();
       }
     }

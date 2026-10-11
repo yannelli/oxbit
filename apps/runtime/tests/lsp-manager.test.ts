@@ -59,6 +59,14 @@ describe("project language instances", () => {
     await expect(manager.projectRoot("escape/file.ts", ["package.json"])).rejects.toThrow();
     await expect(manager.attach("main.ts", "one", { typescript: { enabled: false } })).rejects.toThrow("No enabled");
   });
+  it("ignores the idle timer of an instance that dispose removed", async () => {
+    const { manager } = await setup(50);
+    await manager.attach("main.ts", "one");
+    const disposing = manager.dispose();
+    manager.detach("one");
+    await disposing;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
   it("retains manual Stop across detach and reconnect", async () => {
     const { manager } = await setup();
     const a = await manager.attach("main.ts", "one");
