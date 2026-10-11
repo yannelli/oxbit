@@ -21,6 +21,9 @@ const COMMANDS: &[&str] = &[
     "watch_notification_taps",
     "unwatch_notification_taps",
     "register_remote_notifications",
+    "agent_models_stream",
+    "agent_models_cancel",
+    "agent_models_key",
 ];
 
 fn main() {
