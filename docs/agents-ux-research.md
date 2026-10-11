@@ -89,7 +89,7 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 
 | Capability | Zed | JetBrains | VS Code | Cursor | Claude Code phone | Codex phone | GitHub Mobile | Cursor iOS | Oxbit desktop | Oxbit iOS |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Agents | ACP Registry, custom | ACP Registry, custom | Copilot, Claude, Codex, Cloud | Cursor | Claude Code | Codex | Copilot CLI | Cursor | ACP Registry, custom | ACP Registry, custom |
+| Agents | ACP Registry, custom | ACP Registry, custom | Copilot, Claude, Codex, Cloud | Cursor | Claude Code | Codex | Copilot CLI | Cursor | ACP Registry, custom | ACP Registry, custom through a runtime; Oxbit Agent in device folders |
 | Send without a connect step | Yes | – | Yes | Yes | – | – | – | – | Yes | Yes |
 | `@` files | Yes | Yes | – | Yes | Yes | – | – | – | Yes | Yes |
 | `@` symbols | Yes | Yes | – | – | – | – | – | – | Yes | Yes |

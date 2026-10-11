@@ -6,7 +6,7 @@ import { Icon, IconButton, translate as tr } from "@oxbit/ui";
 import type { ACPContext } from "@oxbit/sdk";
 import { type AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
-import { agentName } from "./launch.js";
+import { agentName, startable } from "./launch.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: true });
 export function markdownHTML(text: string) {
@@ -427,7 +427,7 @@ export function ConversationBrowser({ agent }: { agent: AgentController }) {
             </button>
             <button
               className="button"
-              disabled={disabled || !agent.options.runtime?.connected}
+              disabled={disabled || !agent.options.runtime?.connected || !startable(entry.provider, agent.local)}
               onClick={() => void agent.action(() => agent.resumeSaved(entry))}
             >
               {tr("Resume")}

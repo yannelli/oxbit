@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, acpPreset } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, OXBIT_AGENT_PROVIDER, acpPreset } from "@oxbit/sdk";
 import { Icon, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
 import { settingId } from "./configuration.js";
-import { formatArgs, parseArgs, storedArgs } from "./launch.js";
+import { formatArgs, OXBIT_AGENT_NAME, parseArgs, startable, storedArgs } from "./launch.js";
 
 const HINTS: Record<string, string> = {
   codex: "Runs with npx. Uses your Codex sign-in.",
@@ -15,8 +15,9 @@ const HINTS: Record<string, string> = {
   amp: "Needs Amp CLI and amp login.",
 };
 export type Chooser = "registry" | "custom";
+const NEEDS_RUNTIME = "Needs a runtime workspace";
 
-/** Built-in agents, the current registry or custom choice, and entries for more agents. */
+/** Built-in agents, the current registry or custom choice, and entries for more agents. Without a runtime workspace, the Oxbit agent leads and the others are disabled. */
 export function AgentPicker({
   agent,
   enabled,
@@ -27,30 +28,35 @@ export function AgentPicker({
   onChoose(chooser: Chooser): void;
 }) {
   const current = agent.chosen.provider;
+  const local = agent.local;
   const select = (provider: string) =>
     void agent.action(() => agent.select({ provider }));
-  const row = (id: string, name: string, hint: string, title = hint) => (
-    <button
-      key={id}
-      type="button"
-      role="radio"
-      aria-checked={current === id}
-      className="acp-agent-option"
-      disabled={agent.connecting}
-      onClick={() => select(id)}
-    >
-      <AgentLogo provider={id} />
-      <span>
-        <strong>{name}</strong>
-        <small title={title}>{hint}</small>
-      </span>
-    </button>
-  );
-  const extra = !acpPreset(current);
+  const row = (id: string, name: string, hint: string, title = hint) => {
+    const available = startable(id, local);
+    return (
+      <button
+        key={id}
+        type="button"
+        role="radio"
+        aria-checked={current === id}
+        className="acp-agent-option"
+        disabled={agent.connecting || !available}
+        onClick={() => select(id)}
+      >
+        <AgentLogo provider={id} />
+        <span>
+          <strong>{name}</strong>
+          <small title={available ? title : tr(NEEDS_RUNTIME)}>{available ? hint : tr(NEEDS_RUNTIME)}</small>
+        </span>
+      </button>
+    );
+  };
+  const extra = !acpPreset(current) && current !== OXBIT_AGENT_PROVIDER;
   return (
     <section className="acp-agent-picker" aria-label={tr("Choose an agent")}>
       <h2>{tr("Choose an agent")}</h2>
       <div role="radiogroup" aria-label={tr("Agent")}>
+        {local && row(OXBIT_AGENT_PROVIDER, OXBIT_AGENT_NAME, tr("Runs in Oxbit with your API key"))}
         {ACP_PROVIDERS.map((preset) =>
           row(preset.id, preset.name, tr(HINTS[preset.id] ?? preset.setup), tr(preset.setup)),
         )}
@@ -62,13 +68,13 @@ export function AgentPicker({
           )}
       </div>
       <div className="acp-agent-more">
-        <button type="button" className="acp-agent-option" onClick={() => onChoose("registry")}>
+        <button type="button" className="acp-agent-option" disabled={local} onClick={() => onChoose("registry")}>
           <Icon name="package" size={14} />
-          <span><strong>{tr("More agents…")}</strong><small>{tr("Browse the ACP Registry")}</small></span>
+          <span><strong>{tr("More agents…")}</strong><small>{tr(local ? NEEDS_RUNTIME : "Browse the ACP Registry")}</small></span>
         </button>
-        <button type="button" className="acp-agent-option" onClick={() => onChoose("custom")}>
+        <button type="button" className="acp-agent-option" disabled={local} onClick={() => onChoose("custom")}>
           <Icon name="pencil" size={14} />
-          <span><strong>{tr("Custom agent…")}</strong><small>{tr("Run any ACP executable")}</small></span>
+          <span><strong>{tr("Custom agent…")}</strong><small>{tr(local ? NEEDS_RUNTIME : "Run any ACP executable")}</small></span>
         </button>
       </div>
       <button

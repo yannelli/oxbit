@@ -8,7 +8,11 @@ import {
 import {
   ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
+  AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  OXBIT_AGENT_PROVIDER,
   acpPreset,
+  type AgentModels,
   type Extension,
   type FeatureOptions,
 } from "@oxbit/sdk";
@@ -40,6 +44,7 @@ import { ThreadStrip, useThreadRefresh } from "./thread-strip.js";
 import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 import { AgentLogo } from "./agent-logo.js";
+import { LocalAgentRuntime } from "./local/runtime.js";
 function RequestCard({
   request,
   agent,
@@ -319,6 +324,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const follow = useRef(true);
   const connection = agent.connection;
   const enabled = !!runtime?.connected;
+  const local = agent.local;
   const controls = sessionControls(connection);
   const settingsDisabled =
     agent.busy ||
@@ -384,9 +390,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   };
   const chosen = agent.chosen.provider;
   useEffect(() => {
-    if (enabled && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER)
+    if (enabled && !local && !agent.registry && !acpPreset(chosen) && chosen !== ACP_CUSTOM_PROVIDER && chosen !== OXBIT_AGENT_PROVIDER)
       void agent.loadRegistry().catch(() => {});
-  }, [enabled, chosen]);
+  }, [enabled, local, chosen]);
   useEffect(() => {
     if (chooser) chooserRef.current?.scrollIntoView({ block: "nearest" });
   }, [chooser]);
@@ -400,7 +406,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           ? "ready"
           : "off";
   const menu: MenuItem[] = [
-    ...(enabled
+    ...(enabled && !local
       ? [{
           id: "live", label: "Runtime sessions", icon: "agentChat",
           run: () => {
@@ -411,9 +417,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       : []),
     { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
     { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
+    ...(connection && !local ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread }] : []),
     ...(connection
-      ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread },
-         { id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
+      ? [{ id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
       : []),
     ...(permission === "default"
       ? [{
@@ -532,8 +538,15 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </section>}
         {agent.error && (
           <p role="alert" className="error-text">
-            {agent.error}
+            {agent.error === MISSING_AGENT_KEY ? tr(MISSING_AGENT_KEY) : agent.error}
           </p>
+        )}
+        {agent.error === MISSING_AGENT_KEY && !showSetup && (
+          <div className="acp-actions">
+            <button className="button" onClick={() => setShowSetup(true)}>
+              {tr("Agent setup")}
+            </button>
+          </div>
         )}
       </div>
       <div
@@ -847,7 +860,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       </form>
       <div className="acp-footer">
         {agent.usage && <ContextMeter usage={agent.usage} />}
-        {connection ? (
+        {connection || (local && (agent.messages.length > 0 || agent.archived)) ? (
           <div className="acp-provider" title={agent.displayName}>
             <Icon name="agent" size={14} />
             <span>{agent.displayName}</span>
@@ -956,8 +969,14 @@ export function createFeature(options: FeatureOptions): Extension {
       configuration: agentConfiguration,
     },
     activate(ctx) {
-      const agent = new AgentController(options);
+      const local = options.runtime
+        ? undefined
+        : new LocalAgentRuntime(options, () =>
+            options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE),
+          );
+      const agent = new AgentController({ ...options, runtime: options.runtime ?? local });
       ctx.own(agent);
+      if (local) ctx.own(local);
       ctx.own(watchThreads(agent, () => options.workbench.panelVisible?.(AGENT_VIEW) === true));
       ctx.own(ctx.services.register("agentACP", agent));
       ctx.own(

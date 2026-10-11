@@ -3,7 +3,14 @@ import { AgentController, type AgentRequest } from "./controller.js";
 import { sessionControls } from "./session-controls.js";
 import { createFeature } from "./index.js";
 import { createKernel } from "../../../core/src/index.js";
-import type { FeatureOptions } from "@oxbit/sdk";
+import {
+  AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  OXBIT_AGENT_PROVIDER,
+  OXBIT_AGENT_SETTINGS,
+  type AgentModels,
+  type FeatureOptions,
+} from "@oxbit/sdk";
 function setup(document?: any, persistence?: any) {
   const listeners = new Map<string, (params: any) => void>();
   const runtime = {
@@ -997,6 +1004,62 @@ describe("ACP checkpoints", () => {
     });
     expect(agent.checkpoints.current).toBe(before);
     expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    agent.dispose();
+  });
+});
+
+describe("Oxbit agent without a runtime workspace", () => {
+  async function activate(models?: AgentModels, saved = "claude") {
+    const { options } = setup();
+    const kernel = createKernel({ environment: "browser" });
+    Object.assign(options, { kernel, runtime: undefined });
+    if (models) kernel.services.register(AGENT_MODELS_SERVICE, models);
+    const extension = createFeature(options);
+    kernel.extensions.register(extension);
+    await kernel.extensions.activate(extension.manifest.id);
+    await kernel.configuration.set("agentACP.provider", saved, "user");
+    return { kernel, agent: kernel.services.get<AgentController>("agentACP") };
+  }
+  const fakeModels = (has = false) => ({
+    stream: vi.fn(),
+    keys: { has: vi.fn(async () => has), save: vi.fn(), remove: vi.fn() },
+  }) as unknown as AgentModels & { keys: { has: ReturnType<typeof vi.fn> } };
+  it("defaults a local workspace to the Oxbit agent and keeps the saved choice", async () => {
+    const { kernel, agent } = await activate(fakeModels());
+    expect(agent.local).toBe(true);
+    expect(agent.chosen).toEqual({ provider: OXBIT_AGENT_PROVIDER });
+    expect(agent.displayName).toBe("Oxbit Agent");
+    await agent.select({ provider: OXBIT_AGENT_PROVIDER });
+    expect(kernel.configuration.get("agentACP.provider")).toBe("claude");
+    await expect(agent.listLiveSessions()).resolves.toBeUndefined();
+    kernel.dispose();
+  });
+  it("keeps today's runtime prompt when the host has no model service", async () => {
+    const { kernel, agent } = await activate();
+    expect(agent.local).toBe(false);
+    expect(agent.chosen).toEqual({ provider: "claude" });
+    await expect(agent.connectSelected()).rejects.toThrow("Connect to a runtime workspace first");
+    kernel.dispose();
+  });
+  it("rejects Start with the setup error until the endpoint has a key", async () => {
+    const models = fakeModels();
+    const { kernel, agent } = await activate(models);
+    await kernel.configuration.set(OXBIT_AGENT_SETTINGS.api, "openai-compatible", "user");
+    await kernel.configuration.set(OXBIT_AGENT_SETTINGS.baseUrl, "https://openrouter.ai/api", "user");
+    await agent.action(() => agent.connectSelected());
+    expect(agent.error).toBe(MISSING_AGENT_KEY);
+    expect(agent.status).toBe("Connection failed");
+    expect(models.keys.has).toHaveBeenCalledWith({ api: "openai-compatible", baseUrl: "https://openrouter.ai/api" });
+    kernel.dispose();
+  });
+  it("falls back from a saved Oxbit choice in a runtime workspace", () => {
+    const { agent, options } = setup();
+    const set = vi.fn();
+    (options.kernel as any).configuration = { get: () => OXBIT_AGENT_PROVIDER, set };
+    expect(agent.local).toBe(false);
+    expect(agent.chosen).toEqual({ provider: "codex" });
+    agent.selection = { provider: "opencode", registry: { id: "opencode" } };
+    expect(agent.chosen.provider).toBe("opencode");
     agent.dispose();
   });
 });

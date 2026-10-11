@@ -1,5 +1,6 @@
 import {
   ACP_CUSTOM_PROVIDER,
+  OXBIT_AGENT_PROVIDER,
   acpPreset,
   type ACPConnection,
   type ACPRegistryListing,
@@ -31,7 +32,7 @@ import {
   resolveLaunch,
   runtimeSupportError,
 } from "./launch.js";
-import { Attention } from "./attention.js";
+import { AGENT_VIEW, Attention } from "./attention.js";
 import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js";
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
@@ -53,6 +54,11 @@ export type AgentRequest = {
   version?: number;
   error?: string;
 };
+const missingFile = (error: unknown) =>
+  ["ENOENT", "NOT_FOUND"].includes((error as { code?: unknown } | null)?.code as string) ||
+  (error instanceof DOMException && error.name === "NotFoundError") ||
+  (error instanceof Error && /^File not found:/.test(error.message));
+
 export class AgentController {
   private listeners = new Set<() => void>();
   private revision = 0;
@@ -451,7 +457,7 @@ export class AgentController {
     const abort = new AbortController();
     this.startAbort = abort;
     try {
-      if (!this.options.runtime)
+      if (!this.options.runtime || (this.localRuntime && !this.local))
         throw new Error("Connect to a runtime workspace first");
       const connection = await this.options.runtime.request<ACPConnection>(
         "acp.start",
@@ -488,11 +494,20 @@ export class AgentController {
   async connectSelected() {
     await this.connect(resolveLaunch(this.chosen, this.options.kernel.configuration));
   }
-  /** The selection, or the persisted default agent. */
+  private get localRuntime() {
+    return (this.options.runtime as { local?: boolean } | undefined)?.local === true;
+  }
+  /** True when the session has no runtime workspace and the host provides the Oxbit agent's model service. */
+  get local() {
+    return this.localRuntime && !!this.options.runtime?.connected;
+  }
+  /** The selection, or the persisted default agent. The Oxbit agent serves local workspaces only. */
   get chosen(): ACPLaunch {
-    return this.selection ?? {
+    if (this.local) return { provider: OXBIT_AGENT_PROVIDER };
+    const chosen = this.selection ?? {
       provider: this.options.kernel.configuration?.get<string>("agentACP.provider") || "codex",
     };
+    return chosen.provider === OXBIT_AGENT_PROVIDER ? { provider: "codex" } : chosen;
   }
   /** Label for the live connection, or for the agent Connect would start. */
   get displayName() {
@@ -507,7 +522,8 @@ export class AgentController {
       await config.set(settingId(ACP_CUSTOM_PROVIDER, "command"), launch.command ?? "", "user");
       await config.set(settingId(ACP_CUSTOM_PROVIDER, "args"), JSON.stringify(launch.args ?? []), "user");
     }
-    await config.set("agentACP.provider", launch.provider, "user");
+    if (launch.provider !== OXBIT_AGENT_PROVIDER)
+      await config.set("agentACP.provider", launch.provider, "user");
     this.selection = launch;
     this.changed();
   }
@@ -531,7 +547,7 @@ export class AgentController {
   private savedLaunch(launch: ACPLaunch): SavedLaunch | undefined {
     if (launch.provider === ACP_CUSTOM_PROVIDER)
       return { name: launch.name, command: launch.command, args: launch.args };
-    if (!acpPreset(launch.provider))
+    if (!acpPreset(launch.provider) && launch.provider !== OXBIT_AGENT_PROVIDER)
       return { registry: launch.registry ?? { id: launch.provider } };
     return undefined;
   }
@@ -659,7 +675,7 @@ export class AgentController {
     await released;
   }
   async listLiveSessions() {
-    if (!this.options.runtime?.connected) return;
+    if (!this.options.runtime?.connected || this.local) return;
     const result = await this.request<{ sessions: ACPLiveSession[] }>("acp.list");
     if (JSON.stringify(result.sessions) === JSON.stringify(this.liveSessions)) return;
     this.liveSessions = result.sessions;
@@ -1486,11 +1502,7 @@ export class AgentController {
         try {
           document = await this.documents.open(request.params.path);
         } catch (error) {
-          if (
-            (error as any)?.code !== "ENOENT" &&
-            (error as any)?.code !== "NOT_FOUND"
-          )
-            throw error;
+          if (!missingFile(error)) throw error;
         }
         if (document?.dirty)
           throw new Error(
@@ -1581,9 +1593,10 @@ export class AgentController {
         text: `Applied change: ${request.params.path}`,
       });
       await this.respond(request, null);
-      await this.options.workbench.openFile(request.params.path, {
-        preview: false,
-      });
+      if (!this.panelCoversEditor())
+        await this.options.workbench.openFile(request.params.path, {
+          preview: false,
+        });
       await this.options.workbench.refreshFiles();
     } catch (error) {
       await this.respond(request, undefined, String(error)).catch(() => {});
@@ -1694,6 +1707,10 @@ export class AgentController {
   openAgents(id?: string) {
     if (id) this.selectSubagent(id);
     this.options.workbench.openPanel("agent-acp-agents");
+  }
+  /** Below the workbench's 1100px breakpoint the panel overlays the editor, and opening a file closes it. */
+  private panelCoversEditor() {
+    return (globalThis.innerWidth || 1440) < 1100 && this.options.workbench.panelVisible?.(AGENT_VIEW) === true;
   }
   async openLocation(absolute: string, line?: number) {
     const root = this.connection?.root ?? this.activeConversation?.root;

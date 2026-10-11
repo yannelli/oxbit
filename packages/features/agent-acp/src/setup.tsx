@@ -1,8 +1,17 @@
-import { useState } from "react";
-import { ACP_CUSTOM_PROVIDER, acpPreset } from "@oxbit/sdk";
-import { translate as tr } from "@oxbit/ui";
+import { useEffect, useState } from "react";
+import {
+  ACP_CUSTOM_PROVIDER,
+  AGENT_MODELS_SERVICE,
+  OXBIT_AGENT_PROVIDER,
+  OXBIT_AGENT_SETTINGS,
+  acpPreset,
+  type AgentModelApi,
+  type AgentModelEndpoint,
+  type AgentModels,
+} from "@oxbit/sdk";
+import { Select, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
-import { settingId } from "./configuration.js";
+import { oxbitEndpoint, settingId } from "./configuration.js";
 import { formatArgs, parseArgs, storedArgs } from "./launch.js";
 import { ArgumentsField, CustomAgentForm } from "./agent-picker.js";
 
@@ -19,6 +28,7 @@ export function AgentSetup({ agent }: { agent: AgentController }) {
     formatArgs(storedArgs(config.get<string>(settingId(provider, "args"))) ?? [...(preset?.args ?? [])]),
   );
   const [argsError, setArgsError] = useState("");
+  if (provider === OXBIT_AGENT_PROVIDER) return <OxbitSetup agent={agent} />;
   const note = (
     <p className="muted">
       {tr(
@@ -90,5 +100,118 @@ export function AgentSetup({ agent }: { agent: AgentController }) {
       {argsError && <p className="error-text" role="alert">{argsError}</p>}
       {note}
     </div>
+  );
+}
+
+/** API, base URL, and key for the Oxbit agent. Save hands the key to the host's keychain and clears the field. */
+function OxbitSetup({ agent }: { agent: AgentController }) {
+  const config = agent.options.kernel.configuration;
+  const models = agent.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
+  const locked = !!agent.connection || agent.connecting;
+  const [api, setApi] = useState(() => oxbitEndpoint(config).api);
+  const [baseUrl, setBaseUrl] = useState(() => config.get<string>(OXBIT_AGENT_SETTINGS.baseUrl) ?? "");
+  const [key, setKey] = useState("");
+  const [saved, setSaved] = useState<boolean>();
+  const [busy, setBusy] = useState(false);
+  const endpoint: AgentModelEndpoint = api === "openai-compatible" ? { api, baseUrl: baseUrl.trim() } : { api };
+  const missingUrl = api === "openai-compatible" && !baseUrl.trim();
+  const endpointId = JSON.stringify(endpoint);
+  const check = () => (models && !missingUrl ? models.keys.has(endpoint) : Promise.resolve(false));
+  useEffect(() => {
+    let current = true;
+    setSaved(undefined);
+    check().then((value) => current && setSaved(value), () => current && setSaved(false));
+    return () => {
+      current = false;
+    };
+  }, [models, endpointId]);
+  const run = (change: (models: AgentModels) => Promise<void>) =>
+    void agent.action(async () => {
+      if (!models) return;
+      setBusy(true);
+      try {
+        await change(models);
+        setSaved(await check());
+      } finally {
+        setBusy(false);
+      }
+    });
+  return (
+    <form
+      className="acp-setup"
+      aria-label={tr("Oxbit Agent setup")}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!key.trim() || missingUrl) return;
+        run(async (models) => {
+          await models.keys.save(endpoint, key.trim());
+          setKey("");
+        });
+      }}
+    >
+      <p>{tr("Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.")}</p>
+      <div className="acp-setting">
+        <span className="acp-setting-label">{tr("API")}</span>
+        <Select
+          label={tr("API")}
+          value={api}
+          options={[
+            { value: "openai", label: "OpenAI" },
+            { value: "anthropic", label: "Anthropic" },
+            { value: "openai-compatible", label: tr("OpenAI-compatible") },
+          ]}
+          disabled={locked}
+          onChange={(value) => {
+            setApi(value as AgentModelApi);
+            void config.set(OXBIT_AGENT_SETTINGS.api, value, "user");
+          }}
+        />
+      </div>
+      {api === "openai-compatible" && (
+        <label>
+          {tr("Base URL")}
+          <input
+            aria-label={tr("Base URL")}
+            value={baseUrl}
+            disabled={locked}
+            spellCheck={false}
+            inputMode="url"
+            placeholder="https://openrouter.ai/api"
+            onChange={(event) => {
+              setBaseUrl(event.target.value);
+              void config.set(OXBIT_AGENT_SETTINGS.baseUrl, event.target.value.trim(), "user");
+            }}
+          />
+          <small className="muted">{tr("Origin and path prefix of a Chat Completions API.")}</small>
+        </label>
+      )}
+      <label>
+        {tr("API key")}
+        <input
+          type="password"
+          aria-label={tr("API key")}
+          value={key}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(event) => setKey(event.target.value)}
+        />
+        <small className="muted" aria-live="polite">
+          {saved === undefined ? "" : tr(saved ? "Key saved" : "No key saved")}
+        </small>
+      </label>
+      <div className="acp-actions">
+        <button type="submit" className="button primary" disabled={busy || !key.trim() || missingUrl}>
+          {tr("Save")}
+        </button>
+        <button
+          type="button"
+          className="button"
+          disabled={busy || !saved}
+          onClick={() => run((models) => models.keys.remove(endpoint))}
+        >
+          {tr("Remove")}
+        </button>
+      </div>
+    </form>
   );
 }

@@ -999,5 +999,17 @@
   "Dictation does not support this language": "Dictation does not support this language",
   "No speech was detected": "No speech was detected",
   "1 request needs an answer": "1 request needs an answer",
-  "{0} requests need an answer": "{0} requests need an answer"
+  "{0} requests need an answer": "{0} requests need an answer",
+  "Needs a runtime workspace": "Needs a runtime workspace",
+  "Runs in Oxbit with your API key": "Runs in Oxbit with your API key",
+  "Add an API key in Agent setup": "Add an API key in Agent setup",
+  "Oxbit Agent setup": "Oxbit Agent setup",
+  "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.": "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.",
+  "API": "API",
+  "OpenAI-compatible": "OpenAI-compatible",
+  "Base URL": "Base URL",
+  "Origin and path prefix of a Chat Completions API.": "Origin and path prefix of a Chat Completions API.",
+  "API key": "API key",
+  "Key saved": "Key saved",
+  "No key saved": "No key saved"
 }

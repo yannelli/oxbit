@@ -1,0 +1,79 @@
+import { describe, expect, it, vi } from "vitest";
+import { relativePath, resolvePath, runTool, type ToolContext } from "./tools.js";
+
+const call = (name: string, args: unknown) => ({ id: `call-${name}`, name, arguments: JSON.stringify(args) });
+function context(files: Record<string, string> = {}) {
+  const updates: any[] = [];
+  const request = vi.fn(async (method: string, params: any) => {
+    const path = params.path?.slice("/root/".length);
+    if (method === "fs/read_text_file") {
+      if (!(path in files)) throw new Error("Missing");
+      return { content: files[path] };
+    }
+    if (method === "fs/write_text_file") {
+      files[path] = params.content;
+      return null;
+    }
+    return { diagnostics: [{ path: "a.ts", line: 2, character: 3, message: "Bad", source: "ts" }] };
+  });
+  const value: ToolContext = {
+    root: "/root", sessionId: "session", signal: new AbortController().signal, request, update: (update) => updates.push(update),
+    filesystem: { list: vi.fn(async () => [{ path: "src", name: "src", kind: "directory" }, { path: "a.ts", name: "a.ts", kind: "file" }]) } as any,
+  };
+  return { context: value, updates, request, files };
+}
+
+describe("workspace paths", () => {
+  it("resolves relative paths under the root and rejects escapes", () => {
+    expect(resolvePath("/root", "src/./a/../b.ts")).toEqual({ relative: "src/b.ts", absolute: "/root/src/b.ts" });
+    expect(resolvePath("/root", undefined)).toEqual({ relative: "", absolute: "/root" });
+    for (const path of ["../x", "a/../../x", "/etc/passwd", "a\\b", "a\0b", 3])
+      expect(() => resolvePath("/root", path)).toThrow();
+    expect(relativePath("/root", "/root/a/b.ts")).toBe("a/b.ts");
+    for (const path of ["/rootx/a", "/other", "/root/../x", "/root", "a"])
+      expect(() => relativePath("/root", path)).toThrow();
+  });
+  it("fails a tool call whose path leaves the workspace without a client request", async () => {
+    const { context: tools, request, updates } = context();
+    const result = await runTool(call("read_file", { path: "../secret" }), tools);
+    expect(result).toEqual(expect.objectContaining({ error: true, output: expect.stringContaining("outside the workspace") }));
+    expect(request).not.toHaveBeenCalled();
+    expect(updates.map((update) => [update.sessionUpdate, update.status])).toEqual([["tool_call", "in_progress"], ["tool_call_update", "failed"]]);
+  });
+});
+
+describe("tools", () => {
+  it("reads through the client with absolute paths and 0-based locations", async () => {
+    const { context: tools, request, updates } = context({ "a.ts": "one\ntwo" });
+    expect((await runTool(call("read_file", { path: "a.ts", line: 2, limit: 1 }), tools)).output).toBe("one\ntwo");
+    expect(request).toHaveBeenCalledWith("fs/read_text_file", expect.objectContaining({ path: "/root/a.ts", line: 2, limit: 1, sessionId: "session" }));
+    expect(updates[0]).toEqual(expect.objectContaining({ kind: "read", locations: [{ path: "/root/a.ts", line: 1 }] }));
+  });
+  it("replaces one exact string and reports a diff before the write review", async () => {
+    const { context: tools, request, updates, files } = context({ "a.ts": "const a = 1;\nconst b = 1;\n" });
+    const result = await runTool(call("edit_file", { path: "a.ts", old_string: "a = 1", new_string: "a = 2" }), tools);
+    expect(result.error).toBeUndefined();
+    expect(files["a.ts"]).toBe("const a = 2;\nconst b = 1;\n");
+    expect(updates[1]).toEqual(expect.objectContaining({ content: [{ type: "diff", path: "/root/a.ts", oldText: "const a = 1;\nconst b = 1;\n", newText: files["a.ts"] }] }));
+    expect(request.mock.calls.map(([method]) => method)).toEqual(["fs/read_text_file", "fs/write_text_file"]);
+    const ambiguous = await runTool(call("edit_file", { path: "a.ts", old_string: "= ", new_string: "=" }), tools);
+    expect(ambiguous).toEqual(expect.objectContaining({ error: true, output: expect.stringContaining("matches 2 times") }));
+  });
+  it("writes a new file with an empty old text and returns a rejected review to the model", async () => {
+    const { context: tools, updates, request } = context();
+    await runTool(call("write_file", { path: "new.ts", content: "x" }), tools);
+    expect(updates[1].content[0]).toEqual({ type: "diff", path: "/root/new.ts", oldText: null, newText: "x" });
+    request.mockRejectedValueOnce(new Error("Missing")).mockRejectedValueOnce(new Error("Error: The user rejected this change"));
+    expect((await runTool(call("write_file", { path: "new.ts", content: "y" }), tools)).output).toContain("rejected");
+  });
+  it("lists directories, reads diagnostics, updates the plan and rejects bad arguments", async () => {
+    const { context: tools, updates, request } = context();
+    expect((await runTool(call("list_files", {}), tools)).output).toBe("src/\na.ts");
+    expect((await runTool(call("diagnostics", { path: "a.ts" }), tools)).output).toBe("a.ts:2:3 [ts] Bad");
+    expect(request).toHaveBeenLastCalledWith("oxbit/diagnostics", expect.objectContaining({ path: "a.ts" }));
+    await runTool(call("update_plan", { entries: [{ content: "Do it", status: "pending" }] }), tools);
+    expect(updates).toContainEqual({ sessionUpdate: "plan", entries: [{ content: "Do it", status: "pending", priority: "medium" }] });
+    expect((await runTool({ id: "x", name: "read_file", arguments: "{" }, tools)).output).toBe("Tool arguments are not valid JSON");
+    expect((await runTool(call("search", { query: "a" }), tools)).output).toBe("Search is unavailable in this workspace");
+  });
+});

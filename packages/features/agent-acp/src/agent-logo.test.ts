@@ -8,6 +8,9 @@ describe("agent logos", () => {
     expect(agentLogoMask("copilot")).toContain(encodeURIComponent(AGENT_LOGOS["github-copilot-cli"]!));
     expect(agentLogoMask("opencode")).toContain(encodeURIComponent(AGENT_LOGOS.opencode!));
   });
+  it("uses the Oxbit mark for the Oxbit agent", () => {
+    expect(agentLogoMask("oxbit")).toBe('url("/brand/oxbit-mark.svg")');
+  });
   it("has no icon for custom, unknown, or prototype names", () => {
     for (const provider of ["custom", "mystery-agent", "constructor", "__proto__"])
       expect(agentLogoMask(provider)).toBeUndefined();

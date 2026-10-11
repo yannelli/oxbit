@@ -1,0 +1,116 @@
+import { expect, test, type Page } from "@playwright/test";
+import { AGENT_MODELS_SERVICE } from "../../packages/sdk/src/agent-models.js";
+import { installBridge } from "./bridge.js";
+
+const SSE = ["event: response.created\ndata: {\"n\":1}\n\n", "event: response.output_text.delta\ndata: {\"delta\":\"héllo\"}\n\n", "event: response.completed\ndata: {\"n\":3}\n\n"];
+const SLOW = Array.from({ length: 8 }, (_, index) => `data: ${index}\n\n`);
+
+async function openDocuments(page: Page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Oxbit Files app" }).click();
+  await expect(page.locator(".cm-content")).toContainText("/device/Documents");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+}
+
+const bridge = (page: Page) => page.evaluate(() => {
+  const test = (window as any).__iosTest;
+  return { keys: [...test.agentKeys.entries()], requests: test.agentRequests, cancels: test.agentCancels };
+});
+
+test("a device folder registers the agent models service, which saves, checks and removes keys through the bridge", async ({ page }) => {
+  await installBridge(page);
+  await openDocuments(page);
+  const result = await page.evaluate(async (service) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    const openai = { api: "openai" };
+    const router = { api: "openai-compatible", baseUrl: "https://openrouter.ai/api" };
+    const before = await models.keys.has(openai);
+    await models.keys.save(openai, "sk-openai");
+    await models.keys.save(router, "sk-router");
+    const saved = [await models.keys.has(openai), await models.keys.has(router), await models.keys.has({ api: "anthropic" })];
+    await models.keys.remove(openai);
+    return { before, saved, after: await models.keys.has(openai) };
+  }, AGENT_MODELS_SERVICE);
+  expect(result).toEqual({ before: false, saved: [true, true, false], after: false });
+  expect((await bridge(page)).keys).toEqual([["openai-compatible https://openrouter.ai", "sk-router"]]);
+});
+
+test("a streamed response arrives in order, a non-2xx answer throws its status and body, and a missing key rejects", async ({ page }) => {
+  const denied = JSON.stringify({ type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } });
+  await installBridge(page, {
+    agentKeys: ["openai https://api.openai.com", "anthropic https://api.anthropic.com"],
+    agentResponses: { "/v1/responses": { chunks: SSE }, "/v1/messages": { status: 401, body: denied } },
+  });
+  await openDocuments(page);
+  const result = await page.evaluate(async (service) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    const chunks: string[] = [];
+    for await (const text of models.stream({ api: "openai", method: "POST", path: "/v1/responses", body: { model: "gpt-5", stream: true } }))
+      chunks.push(text);
+    const failure = async (request: unknown) => {
+      try {
+        for await (const _ of models.stream(request)) void _;
+        return null;
+      } catch (error: any) {
+        return { name: error.name, message: error.message, status: error.status, body: error.body };
+      }
+    };
+    return {
+      chunks,
+      denied: await failure({ api: "anthropic", method: "POST", path: "/v1/messages", body: {} }),
+      missing: await failure({ api: "openai-compatible", baseUrl: "https://openrouter.ai/api", method: "GET", path: "/v1/models" }),
+    };
+  }, AGENT_MODELS_SERVICE);
+  expect(result.chunks).toEqual(SSE);
+  expect(result.denied).toEqual({ name: "AgentModelError", message: "The model API answered 401: invalid x-api-key", status: 401, body: denied });
+  expect(result.missing).toMatchObject({ message: "Add an API key in Agent setup" });
+  const { requests, cancels } = await bridge(page);
+  expect(requests.map(({ id: _, ...request }: { id: string }) => request)).toEqual([
+    { api: "openai", method: "POST", path: "/v1/responses", body: { model: "gpt-5", stream: true } },
+    { api: "anthropic", method: "POST", path: "/v1/messages", body: {} },
+  ]);
+  expect(cancels).toEqual([]);
+});
+
+test("aborting a stream cancels the native request and stops its chunks", async ({ page }) => {
+  await installBridge(page, { agentKeys: ["openai https://api.openai.com"], agentResponses: { "/v1/responses": { chunks: SLOW, delay: 60 } } });
+  await openDocuments(page);
+  const result = await page.evaluate(async (service) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    const controller = new AbortController();
+    const chunks: string[] = [];
+    let error = "";
+    try {
+      for await (const text of models.stream({ api: "openai", method: "POST", path: "/v1/responses", body: {} }, controller.signal)) {
+        chunks.push(text);
+        if (chunks.length === 2) controller.abort();
+      }
+    } catch (caught: any) {
+      error = caught.name;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return { chunks, error };
+  }, AGENT_MODELS_SERVICE);
+  expect(result).toEqual({ chunks: SLOW.slice(0, 2), error: "AbortError" });
+  const { requests, cancels } = await bridge(page);
+  expect(cancels).toEqual([requests[0].id]);
+});
+
+test("a runtime workspace does not register the agent models service", async ({ page }) => {
+  const url = "http://127.0.0.1:2";
+  const recent = { id: "runtime:laptop", kind: "runtime", name: "laptop", url, runtimeId: "abc12345-0000-4000-8000-000000000002", lastOpened: 1 };
+  await installBridge(page, { stored: { "session:recents": [recent], "session:last-workspace": recent.id } });
+  await page.routeWebSocket(url.replace("http", "ws") + "/ws", socket => {
+    socket.onMessage(message => {
+      const request = JSON.parse(String(message)) as { id: string; method: string };
+      const result = request.method === "auth.authenticate"
+        ? { workspaceId: "default", capabilities: ["files"], trusted: false, owner: true, workspaceKey: "b".repeat(64), workspaceName: "project" }
+        : request.method.endsWith(".list") ? [] : {};
+      socket.send(JSON.stringify({ v: 1, type: "response", id: request.id, result }));
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator(".workspace-title")).toHaveText("project");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  expect(await page.evaluate((service) => (window as any).__oxbit.kernel.services.optional(service) === undefined, AGENT_MODELS_SERVICE)).toBe(true);
+});
