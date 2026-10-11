@@ -739,7 +739,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .acp-registry { display:flex; flex-direction:column; gap:8px; width:min(640px,100%); margin:12px auto; }
 .acp-registry-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .acp-registry-list { display:flex; flex-direction:column; gap:2px; max-height:min(420px,60vh); overflow:auto; }
-.acp-registry-entry { display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
+.acp-registry-entry { flex:none; display:flex; flex-direction:column; align-items:stretch; gap:2px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; border:1px solid transparent; }
 .acp-registry-entry[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
 .acp-registry-title { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
 .acp-agent-logo { display:inline-block; flex:none; background:currentColor; -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; }
