@@ -753,7 +753,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                   icon="x"
                   label={tr("Remove attachment {0}", {
                     0: context.kind === "changes" ? tr("Uncommitted changes")
-                      : context.kind === "thread" ? (context.label ?? context.path) : context.path,
+                      : ["thread", "branch", "commit", "folder"].includes(context.kind!) ? (context.label ?? context.path) : context.path,
                   })}
                   onClick={() => {
                     agent.context.splice(index, 1);
@@ -803,6 +803,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           findSymbols={(query, signal) =>
             searchSymbols(agent.options.kernel.services.optional<WorkspaceSymbolSource>("language"), query, signal)}
           findThreads={(query) => agent.mentionThreads(query)}
+          findCommits={(query) => agent.mentionCommits(query)}
+          branchDiff={agent.branchDiffAvailable}
+          onMentionOpen={() => agent.probeBranchDiff()}
         />
         <div className="acp-composer-toolbar">
           <button

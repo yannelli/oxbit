@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { FileEntry, FileSystem } from "@oxbit/sdk";
 import type { Conversation } from "./history.js";
 import {
-  insertMention, mentionQuery, rankFiles, searchFiles, searchSymbols, searchThreads, threadTranscript, type WorkspaceSymbolSource,
+  forkContext, insertMention, mentionQuery, rankFiles, searchCommits, searchFiles, searchFolders, searchSymbols, searchThreads,
+  threadTranscript, type WorkspaceSymbolSource,
 } from "./mentions.js";
 
 const conversation = (id: string, title: string, extra: Partial<Conversation> = {}): Conversation => ({
@@ -104,5 +105,37 @@ describe("mentions", () => {
     expect(trimmed.startsWith("Earlier conversation with Codex ACP: Fix login\n\n")).toBe(true);
     expect(trimmed.endsWith("The token expired.")).toBe(true);
     expect(threadTranscript(conversation("empty", "Nothing"))).toBe("");
+  });
+  it("forks before a message: earlier user and agent messages become a thread context", () => {
+    const entry = conversation("thread", "Fix login", {
+      activity: [
+        { kind: "message", message: { role: "user", text: "Why does login fail?" } },
+        { kind: "message", message: { role: "agent", text: "The token expired." } },
+        { kind: "notice", text: "Turn ended" },
+        { kind: "message", message: { role: "user", text: "Refresh it" } },
+        { kind: "message", message: { role: "agent", text: "Done." } },
+      ],
+    });
+    expect(forkContext(entry, 3)).toEqual({
+      path: ".", kind: "thread", label: "Thread: Fix login",
+      text: "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
+    });
+    expect(forkContext(entry, 0)).toBeUndefined();
+    expect(entry.activity).toHaveLength(5);
+  });
+  it("finds commits by subject, author or hash prefix", () => {
+    const commit = (id: string, subject: string, author = "Ada") => ({ id, parents: [], author, date: "2026-10-10", subject, body: "", refs: "" });
+    const commits = [commit("aaa111", "Fix login"), commit("bbb222", "Docs", "Grace"), commit("ccc333", "Login copy"), commit("ddd444", "Other")];
+    expect(searchCommits(commits, "LOGIN").map((item) => item.id)).toEqual(["aaa111", "ccc333"]);
+    expect(searchCommits(commits, "grace").map((item) => item.id)).toEqual(["bbb222"]);
+    expect(searchCommits(commits, "ddd4")).toEqual([{ kind: "commit", id: "ddd444", subject: "Other", author: "Ada", date: "2026-10-10" }]);
+    expect(searchCommits(commits, "a", 1)).toHaveLength(1);
+    expect(searchCommits(commits, " ")).toEqual([]);
+  });
+  it("derives matching folders from file search results", () => {
+    const paths = ["src/components/button.tsx", "src/components/form/input.tsx", "docs/components.md", "src/main.ts"];
+    expect(searchFolders(paths, "comp")).toEqual(["src/components", "src/components/form"]);
+    expect(searchFolders(paths, "src")).toEqual(["src", "src/components", "src/components/form"]);
+    expect(searchFolders(paths, "main")).toEqual([]);
   });
 });

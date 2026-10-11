@@ -991,5 +991,10 @@
   "Reject all": "Alle ablehnen",
   "Undo all": "Alle rückgängig machen",
   "Move queued message up": "Nachricht in der Warteschlange nach oben verschieben",
-  "Move queued message down": "Nachricht in der Warteschlange nach unten verschieben"
+  "Move queued message down": "Nachricht in der Warteschlange nach unten verschieben",
+  "Branch diff": "Branch-Diff",
+  "Attach this branch's changes since its base": "Änderungen dieses Branches seit seiner Basis anhängen",
+  "Message actions": "Nachrichtenaktionen",
+  "Fork from here": "Ab hier abzweigen",
+  "Restore files and fork": "Dateien wiederherstellen und abzweigen"
 }

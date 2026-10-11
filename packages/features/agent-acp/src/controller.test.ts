@@ -1104,6 +1104,148 @@ describe("ACP checkpoints", () => {
   });
 });
 
+describe("ACP branch, commit and folder mentions", () => {
+  it("attaches the branch diff once and hides it when the runtime lacks git.branchDiff", async () => {
+    const { agent, runtime } = setup();
+    runtime.request.mockImplementation(async (method: string) => method === "git.branchDiff"
+      ? { base: "main", head: "feature", truncated: false, files: [{ path: "a.ts", diff: "+a", binary: false }] }
+      : {});
+    agent.probeBranchDiff();
+    agent.probeBranchDiff();
+    expect(runtime.request.mock.calls.filter(([method]) => method === "git.branchDiff")).toEqual([["git.branchDiff", { limit: 0 }]]);
+    await agent.attachMention({ kind: "branch" });
+    await agent.attachMention({ kind: "branch" });
+    expect(agent.context).toEqual([{
+      path: ".", kind: "branch", label: "Branch diff: main...feature",
+      text: "Changes on feature since its merge base with main, including uncommitted changes\n\n+a",
+    }]);
+    expect(agent.branchDiffAvailable).toBe(true);
+    agent.dispose();
+
+    const older = setup();
+    older.runtime.request.mockRejectedValue(Object.assign(new Error("Unknown runtime method git.branchDiff"), { code: "METHOD_NOT_FOUND" }));
+    older.agent.probeBranchDiff();
+    await expect.poll(() => older.agent.branchDiffAvailable).toBe(false);
+    older.agent.dispose();
+
+    const device = setup();
+    device.runtime.request.mockRejectedValue(new Error("git.branchDiff needs a runtime workspace"));
+    await expect(device.agent.attachBranchDiff()).rejects.toThrow("Branch diff needs a runtime workspace");
+    expect(device.agent.branchDiffAvailable).toBe(false);
+    device.agent.dispose();
+
+    const unrelated = setup();
+    unrelated.runtime.request.mockRejectedValue(Object.assign(new Error("No base branch"), { code: "NOT_FOUND" }));
+    await expect(unrelated.agent.attachBranchDiff()).rejects.toThrow("No base branch");
+    expect(unrelated.agent.branchDiffAvailable).toBe(true);
+    unrelated.agent.dispose();
+  });
+  it("lists matching commits and attaches one commit's message and diff", async () => {
+    const { agent, runtime } = setup();
+    const commit = { id: "abc1234def", parents: [], author: "Ada", date: "2026-10-10", subject: "Fix login", body: "", refs: "" };
+    runtime.request.mockImplementation(async (method: string) => {
+      if (method === "git.log") return { commits: [{ ...commit, id: "fff0000", subject: "Docs" }, commit], hasMore: false };
+      if (method === "git.show") return { commit, files: [{ path: "a.ts", status: "M" }] };
+      if (method === "git.commitDiff") return { diff: "+fixed", after: "", binary: false };
+      return {};
+    });
+    const found = await agent.mentionCommits("login");
+    expect(found.map((item) => item.id)).toEqual(["abc1234def"]);
+    expect(runtime.request).toHaveBeenCalledWith("git.log", { limit: 100 });
+    await agent.attachMention(found[0]);
+    await agent.attachMention(found[0]);
+    expect(agent.context).toEqual([{
+      path: ".", kind: "commit", label: "Commit abc1234: Fix login",
+      text: "commit abc1234def\nAuthor: Ada\nDate: 2026-10-10\n\nFix login\n\n+fixed",
+    }]);
+    expect(await agent.mentionCommits(" ")).toEqual([]);
+    agent.dispose();
+  });
+  it("attaches a folder's files once", async () => {
+    const { agent, options } = setup();
+    (options.filesystem as any).list = async (path: string) =>
+      path === "src" ? [{ path: "src/a.ts", name: "a.ts", kind: "file" }] : [];
+    await agent.attachMention({ kind: "folder", path: "src" });
+    await agent.attachMention({ kind: "folder", path: "src" });
+    expect(agent.context).toEqual([{
+      path: "src", kind: "folder", label: "Folder: src",
+      text: "Folder src: 1 file, 1 with their text below\n\nsrc/a.ts\n\n--- src/a.ts\ndisk\nsecond\nthird",
+    }]);
+    agent.dispose();
+  });
+});
+describe("Fork from here", () => {
+  const tree = "a".repeat(40);
+  async function conversation(document?: any) {
+    const context = setup(document);
+    context.runtime.request.mockImplementation(async (method: string, params: any) =>
+      method === "acp.call" && params.method === "session/new"
+        ? { id: "connection", root: "/workspace", provider: "codex", sessionId: `session-${crypto.randomUUID()}`, authMethods: [] }
+        : {});
+    await context.agent.newSession();
+    const first = { id: "1", role: "user" as const, text: "Why does login fail?" };
+    const second = { id: "3", role: "user" as const, text: "Refresh it", checkpoint: tree };
+    for (const message of [first, { id: "2", role: "agent" as const, text: "Token expired." }, second]) {
+      context.agent.messages.push(message);
+      context.agent.activity.push({ kind: "message", message });
+    }
+    context.agent.title = "Fix login";
+    context.agent.draft = "unsent";
+    return { ...context, first, second, original: (context.agent as any).activeConversation.id as string };
+  }
+  it("opens a new conversation with the earlier messages attached and the message drafted", async () => {
+    const { agent, first, second, original } = await conversation();
+    await agent.forkFrom(second);
+    expect((agent as any).activeConversation.id).not.toBe(original);
+    expect(agent.activity).toEqual([]);
+    expect(agent.title).toBe("New conversation");
+    expect(agent.draft).toBe("Refresh it");
+    expect(agent.context).toEqual([{
+      path: ".", kind: "thread", label: "Thread: Fix login",
+      text: "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: Token expired.",
+    }]);
+    const saved = agent.history.entries.find((entry) => entry.id === original)!;
+    expect(saved.activity).toHaveLength(3);
+    expect(saved.draft).toBe("unsent");
+    await agent.forkFrom(first);
+    expect(agent.draft).toBe("Refresh it");
+    agent.dispose();
+
+    const again = await conversation();
+    await again.agent.forkFrom(again.first);
+    expect(again.agent.draft).toBe("Why does login fail?");
+    expect(again.agent.context).toEqual([]);
+    again.agent.dispose();
+  });
+  it("restores the checkpoint first and notes the restore in the fork only", async () => {
+    const { agent, checkpoint, options, second, original } = await conversation({ dirty: false });
+    checkpoint.mockImplementation(async (method: string) =>
+      method === "acp.checkpoint.diff"
+        ? { tree: "b".repeat(40), changes: [{ status: "M", path: "hello.txt" }] }
+        : { restored: ["hello.txt"], deleted: [] });
+    await agent.forkFrom(second, true);
+    expect(checkpoint).toHaveBeenCalledWith("acp.checkpoint.restore", { tree, paths: ["hello.txt"] });
+    expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    expect(agent.draft).toBe("Refresh it");
+    expect(agent.activity).toEqual([{
+      kind: "notice", text: "Restored files to before “{message}”", values: { message: "Refresh it" },
+    }]);
+    expect(agent.history.entries.find((entry) => entry.id === original)!.activity).toHaveLength(3);
+    agent.dispose();
+  });
+  it("refuses while the agent works and keeps the conversation when restore fails", async () => {
+    const { agent, checkpoint, second, original } = await conversation({ dirty: true });
+    agent.busy = true;
+    await expect(agent.forkFrom(second)).rejects.toThrow("Wait for the agent to finish before forking");
+    agent.busy = false;
+    checkpoint.mockResolvedValue({ tree: "b".repeat(40), changes: [{ status: "M", path: "hello.txt" }] });
+    await expect(agent.forkFrom(second, true)).rejects.toThrow("unsaved edits in hello.txt");
+    expect((agent as any).activeConversation.id).toBe(original);
+    expect(agent.draft).toBe("unsent");
+    agent.dispose();
+  });
+});
+
 describe("Oxbit agent without a runtime workspace", () => {
   async function activate(models?: AgentModels, saved = "claude") {
     const { options } = setup();

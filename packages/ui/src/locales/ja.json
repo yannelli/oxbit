@@ -1018,5 +1018,10 @@
   "Reject all": "すべて拒否",
   "Undo all": "すべて元に戻す",
   "Move queued message up": "キュー内のメッセージを上へ移動",
-  "Move queued message down": "キュー内のメッセージを下へ移動"
+  "Move queued message down": "キュー内のメッセージを下へ移動",
+  "Branch diff": "ブランチの差分",
+  "Attach this branch's changes since its base": "このブランチのベース以降の変更を添付",
+  "Message actions": "メッセージの操作",
+  "Fork from here": "ここから分岐",
+  "Restore files and fork": "ファイルを復元して分岐"
 }

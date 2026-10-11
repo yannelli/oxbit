@@ -41,6 +41,8 @@ describe("LocalAgentRuntime", () => {
     const runtime = new LocalAgentRuntime(options, () => fakeModels([]).models);
     expect(await runtime.request("git.status", { path: "." })).toEqual({ files: [] });
     expect(git.request).toHaveBeenCalledWith("git.status", { path: "." }, {});
+    await expect(runtime.request("git.branchDiff", { limit: 0 })).rejects.toThrow("git.branchDiff needs a runtime workspace");
+    expect(git.request).toHaveBeenCalledTimes(1);
     await expect(setup().runtime.request("git.diff", { path: "a.ts" })).rejects.toThrow("git.diff needs a runtime workspace");
   });
   it("starts an Oxbit connection and tags turn events with its id, a rising seq and the prompt's messageId", async () => {

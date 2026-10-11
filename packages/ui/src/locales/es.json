@@ -1018,5 +1018,10 @@
   "Reject all": "Rechazar todo",
   "Undo all": "Deshacer todo",
   "Move queued message up": "Subir el mensaje en cola",
-  "Move queued message down": "Bajar el mensaje en cola"
+  "Move queued message down": "Bajar el mensaje en cola",
+  "Branch diff": "Diff de la rama",
+  "Attach this branch's changes since its base": "Adjuntar los cambios de esta rama desde su base",
+  "Message actions": "Acciones del mensaje",
+  "Fork from here": "Bifurcar desde aquí",
+  "Restore files and fork": "Restaurar archivos y bifurcar"
 }

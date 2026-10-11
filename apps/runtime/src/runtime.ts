@@ -919,6 +919,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return git.show(params.ref, signal);
       case "git.commitDiff":
         return git.commitDiff(params, signal);
+      case "git.branchDiff":
+        return git.branchDiff(params, signal);
       case "git.stashes":
         return git.stashes(signal);
       case "git.stashDiff":

@@ -52,7 +52,8 @@ export class LocalAgentRuntime implements RpcClient {
     return () => listeners.delete(listener);
   }
   async request<T>(method: string, params: Record<string, unknown> = {}, options: { signal?: AbortSignal; id?: string } = {}): Promise<T> {
-    if (method.startsWith("git.") && this.options.git) return this.options.git.request<T>(method, params, options);
+    // The device git client has no branch diff; outside a repository it would report that instead of a missing method.
+    if (method.startsWith("git.") && method !== "git.branchDiff" && this.options.git) return this.options.git.request<T>(method, params, options);
     return (await this.handle(method, params as Params, options.signal)) as T;
   }
   private async handle(method: string, params: Params, signal?: AbortSignal) {

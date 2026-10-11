@@ -68,3 +68,7 @@ export interface GitDiff {
   fingerprint?: string;
   hunks?: { index: number; header: string; patch: string }[];
 }
+/** `git.branchDiff`: the work tree against the merge base of `HEAD` and `base`. An empty `diff` exceeded the output limit. */
+export type GitBranchDiff =
+  | { repository: false }
+  | { base: string; head: string; files: { path: string; diff: string; binary: boolean }[]; truncated: boolean };
