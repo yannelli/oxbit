@@ -1,6 +1,6 @@
 # Agent ACP
 
-Created: 2026-10-10. Last updated: 2026-10-10.
+Created: 2026-10-10. Last updated: 2026-10-11.
 
 Agent ACP is a bundled, **disabled-by-default** extension that runs agents
 speaking the [Agent Client Protocol](https://agentclientprotocol.com). Open
@@ -169,17 +169,20 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
 [crate](https://crates.io/crates/tauri-plugin-notification/2.4.0)) and Apple's
 [UNUserNotificationCenterDelegate](https://developer.apple.com/documentation/usernotifications/unusernotificationcenterdelegate).
 
-- The desktop app registers `tauri-plugin-notification` `=2.4.0`. Versions 2.5.0
-  and later require `tauri` 2.12; Oxbit pins `tauri` 2.11.5.
-- On desktop the plugin's init script replaces `window.Notification` in the
-  WebView, so the panel's Web Notification calls post native notifications. The
-  capability grants only `notification:allow-notify`,
-  `notification:allow-is-permission-granted` and `notification:allow-request-permission`.
-  The plugin reports permission as granted (`src/desktop.rs`) and reports no
-  actions, so selecting a macOS notification does not open the panel.
-- `tests/desktop/agent.e2e.mjs` posts through the plugin in the macOS app. On
-  2026-10-10 `usernoted` logged both test notifications as delivered and presented.
-  An unbundled debug binary posts them under Terminal's name.
+- The bundled macOS app posts through `UNUserNotificationCenter`
+  (`apps/desktop/src-tauri/src/notifications.rs`, `objc2-user-notifications` `=0.3.2`)
+  and is the center's delegate. `installNotifications`
+  (`packages/host-desktop/src/notifications.ts`) installs the `Notification` the
+  panel uses. Selecting a notification opens the agent panel in the window that
+  posted it; a selection that launches Oxbit runs `agentACP.open` once the workspace loads.
+- Builds without a bundle id (`bun run desktop:dev`, the WDIO debug binary) register
+  `tauri-plugin-notification` `=2.4.0` instead. Versions 2.5.0 and later require
+  `tauri` 2.12; Oxbit pins `tauri` 2.11.5. The plugin reports no actions, so
+  selecting its notification does nothing.
+- `tests/desktop/agent.e2e.mjs` checks the plugin path in the debug binary and the
+  native path in a bundled app. On 2026-10-11 `usernoted` logged the bundled test
+  app's notifications as delivered with authorization denied, so no banner showed
+  and the selection handler has not run.
 - The iOS app does not use the plugin: its 2.4.0 iOS code force-unwraps an
   in-memory map when a notification is tapped, so a tap after iOS terminated the
   app crashes it ([plugins-workspace#3533](https://github.com/tauri-apps/plugins-workspace/issues/3533)),
@@ -195,8 +198,35 @@ Checked 2026-10-10 against `tauri-plugin-notification` 2.4.0
   workspace session runs `agentACP.open` on a tap when Agent ACP is enabled
   there; `tests/ios/ssh-runtime.spec.ts` covers a tap that relaunched the app and
   a later tap.
-- iOS suspends the app shortly after it leaves the foreground. A turn that ends
-  while the app is suspended posts no notification; that needs a push relay.
+- iOS suspends the app shortly after it leaves the foreground. Turns that end
+  while it is suspended arrive as push notifications (see below).
+
+### Push to a suspended phone
+
+Added 2026-10-11. Built and unit tested; push delivery has not run on a device
+because the relay has no APNs key yet.
+
+- The iOS app registers for remote notifications and for a Live Activity push
+  token, sends each token to the relay's `POST /v1/devices`, and passes the
+  returned handles to the runtime with `push.register` on every connection. It
+  reports `push.state` with `active: false` when it leaves the foreground.
+- The runtime (`apps/runtime/src/push.ts`) keeps up to 16 devices in
+  `push-devices.json` for 30 days. Each device belongs to the session that
+  registered it. When that session's agent finishes, fails or needs input while
+  the device is inactive or disconnected, the runtime sends an alert, and it
+  updates or ends the Live Activity, through `POST /v1/push`.
+- The relay (`apps/push-relay`, Cloudflare Worker `oxbit-push`) seals tokens into
+  AES-GCM handles and holds the APNs key. Pushes use the collapse id
+  `oxbit-agent-acp`. A gone token answers `{gone: true}` and the runtime drops it;
+  without the APNs secrets the relay answers 503 `RelayNotConfigured`.
+- Runtimes without `push.*` answer `METHOD_NOT_FOUND`; the app then skips push
+  for that connection. `OXBIT_PUSH_RELAY` points the runtime at another relay.
+- Apple references: [registering with APNs](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns),
+  [sending requests](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns),
+  [token-based connection](https://developer.apple.com/documentation/usernotifications/establishing-a-token-based-connection-to-apns),
+  [APNs responses](https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns),
+  [Live Activity push](https://developer.apple.com/documentation/activitykit/starting-and-updating-live-activities-with-activitykit-push-notifications).
+  Relay secrets and deploy: `apps/push-relay/README.md`.
 
 ### Live Activity
 
@@ -211,7 +241,7 @@ Added 2026-10-10.
 - The app updates the activity itself and re-sends a working or waiting state
   every 5 minutes while it runs. Once iOS suspends Oxbit, the activity keeps its
   last state and shows **Open Oxbit to refresh** 15 minutes after the last update.
-  Updates while suspended need push delivery through a relay, which Oxbit does not have.
+  While suspended, the runtime updates it through the push relay.
 - The `OxbitLiveActivity` widget extension (`com.yannelli.oxbit.LiveActivity`)
   draws the activity; `docs/release.md` covers its signing profile.
 - The panel calls the `agentActivity` kernel service (`AGENT_ACTIVITY_SERVICE` in

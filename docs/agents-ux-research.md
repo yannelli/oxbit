@@ -1,6 +1,6 @@
 # Agent panel research (2026)
 
-Created: 2026-10-10. Last updated: 2026-10-10.
+Created: 2026-10-10. Last updated: 2026-10-11.
 
 This survey compares Oxbit's Agent ACP panel with other editors and mobile
 agent clients. It records the patterns Oxbit adopted and the ones it defers.
@@ -70,14 +70,14 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | `@` mentions | All | Files, workspace symbols from running language servers, selection, diagnostics, uncommitted changes and earlier threads | `agent-acp-composer`: mentions, `@Changes`, workspace symbol, earlier thread |
 | Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Tapping an iOS notification opens the agent panel, also when the tap relaunches Oxbit. No push to a suspended iOS app | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: notification plugin; `ssh-runtime` (iOS): notification tap after relaunch |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Selecting a macOS or iOS notification opens the agent panel, also when it launches Oxbit. The runtime pushes to a suspended iOS app through the Oxbit push relay; device delivery unchecked | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: plugin and native paths; `ssh-runtime` (iOS): notification tap after relaunch; `tests/ios/push.spec.ts`, `apps/runtime/tests/push.test.ts`, `apps/push-relay/tests` |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged | `agent-acp-checkpoints` |
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button | `agent-acp-threads` |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% | `agent-acp-workflows`: 85% of context used |
 | Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts | `agent-acp-composer`: microphone; `tests/desktop/agent.e2e.mjs`: speech recognition; `packages/host-ios/src/speech.test.ts` |
-| Live Activities | Codex, GitHub | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs; no push updates while iOS suspends it | `agent-acp-start`: activity service; `attention.test.ts`: 5-minute refresh |
+| Live Activities | Codex, GitHub | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs and by push while iOS suspends it; push delivery unchecked on a device | `agent-acp-start`: activity service; `attention.test.ts`: 5-minute refresh; `apps/runtime/tests/push.test.ts`: activity pushes |
 | Agent icons from the ACP Registry | Paseo | Picker, registry browser, header, thread chips, runtime sessions and history | `agent-acp-start`: picker and registry icons |
 
 ## Side by side
@@ -104,18 +104,18 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 | Context meter | Ring, 85% warning | Percentage | – | – | – | – | – | – | Ring, 85% warning | Ring, 85% warning |
 | Badges for waiting agents | – | – | Yes | – | – | – | – | – | Yes | Yes |
 | OS notification while the app runs | Setting | – | Yes | Yes | – | – | – | – | Yes | Yes |
-| Selecting the notification opens the agent | – | – | – | – | – | Yes | – | – | No | Yes |
-| Push while the phone app is suspended | n/a | n/a | n/a | n/a | Yes | Yes | Yes | Yes | n/a | No |
+| Selecting the notification opens the agent | – | – | – | – | – | Yes | – | – | macOS app (selection unchecked) | Yes |
+| Push while the phone app is suspended | n/a | n/a | n/a | n/a | Yes | Yes | Yes | Yes | n/a | Built; device delivery unchecked |
 | Voice input | – | – | – | – | – | Yes | – | Yes | Yes | Yes |
-| Live Activity | n/a | n/a | n/a | n/a | – | Yes | Yes | – | n/a | While the app runs |
+| Live Activity | n/a | n/a | n/a | n/a | – | Yes | Yes | – | n/a | Yes; push updates unchecked on a device |
 
 Rows where another client documents more than Oxbit are listed under the gaps below.
 
 ## Gaps against other tools
 
-- Codex, GitHub Mobile, Cursor and Claude push to a suspended phone. Oxbit's iOS app
-  posts notifications and updates its Live Activity only while it runs.
-- Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click.
+- Push to a suspended phone and Live Activity push updates have not run on a device:
+  the relay needs an APNs key and the app needs a TestFlight build with the push entitlement.
+- Selecting a macOS notification has not run with notifications allowed.
 - Zed keeps or rejects all of an agent's edits at once; Oxbit reviews and undoes each edit.
 - VS Code forks a conversation from a checkpoint; Oxbit restores files only.
 - Zed mentions the branch diff and JetBrains attaches commits and folders; Oxbit attaches uncommitted changes and files.
