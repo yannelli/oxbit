@@ -11,6 +11,7 @@ import { SubagentRegistry } from "./acp-subagents.js";
 import { AgentMCP } from "./agent-mcp.js";
 import { runtimeVersion } from "./version.js";
 import { REGISTRY_ID, type ACPRegistry } from "./acp-registry.js";
+import type { AgentStatus } from "./push.js";
 
 type Params = Record<string, any>;
 type Pending = {
@@ -47,6 +48,7 @@ type Agent = {
   stopped: boolean;
   sequence: number;
   turn: number;
+  startedAt?: number;
   newSessionUpdates?: Params[];
   subagents?: SubagentRegistry;
   events: ACPSessionSnapshot["events"];
@@ -88,6 +90,7 @@ export class AgentACP {
     private emit: (owner: string, event: string, params: Params) => void,
     private stateChanged: () => void = () => {},
     private acpRegistry?: ACPRegistry,
+    private statusChanged: (status: AgentStatus) => void = () => {},
   ) {}
   private get(owner: string, id: string) {
     const agent = this.agents.get(id);
@@ -143,6 +146,16 @@ export class AgentACP {
     }
     if (agent.client) this.emit(agent.client, event, payload);
     this.stateChanged();
+  }
+  private report(agent: Agent, status: AgentStatus["status"]) {
+    try {
+      this.statusChanged({
+        owner: agent.owner, agent: agent.connection.name ?? agent.connection.provider, status,
+        pending: agent.approvals.size, startedAt: agent.startedAt,
+      });
+    } catch (error) {
+      process.stderr.write(`Oxbit agent status listener failed: ${String(error)}\n`);
+    }
   }
   list(owner: string) {
     return { sessions: [...this.agents.values()].filter((a) => a.owner === owner && !a.stopped).map((a) => ({
@@ -537,10 +550,12 @@ export class AgentACP {
     const messageId = params.messageId === undefined ? randomUUID() : requireString(params, "messageId", 256);
     agent.busy = true;
     agent.turn++;
+    agent.startedAt = Date.now();
     if (agent.title === "New conversation") agent.title = text.slice(0, 100);
     this.publish(agent, "acp.turnStarted", {
       messageId, text, context: JSON.parse(JSON.stringify(params.context ?? [], withoutImageData)),
     });
+    this.report(agent, "working");
     const abort = () => this.stopAgent(agent, "Agent request interrupted");
     signal?.addEventListener("abort", abort, { once: true });
     let stopReason: string | undefined;
@@ -565,6 +580,8 @@ export class AgentACP {
       signal?.removeEventListener("abort", abort);
       if (!agent.stopped) {
         this.publish(agent, "acp.turnEnded", { stopReason, error: failure });
+        if (failure !== undefined) this.report(agent, "failed");
+        else if (stopReason !== "cancelled") this.report(agent, "finished");
         this.publishQueue(agent);
         queueMicrotask(() => this.runQueue(agent));
       }
@@ -819,6 +836,7 @@ export class AgentACP {
       if (method !== "fs/read_text_file" && !method.startsWith("oxbit/"))
         registry.waiting(sessionId, requestId, true, params.toolCallId ?? params.toolCall?.toolCallId);
       this.publish(agent, "acp.request", this.requestEvent(agent, requestId, request));
+      if (method === "session/request_permission") this.report(agent, "waiting");
     });
   }
   private async tool(id: string, name: string, args: Params) {

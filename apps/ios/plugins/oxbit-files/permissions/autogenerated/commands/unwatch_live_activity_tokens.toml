@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-unwatch-live-activity-tokens"
+description = "Enables the unwatch_live_activity_tokens command without any pre-configured scope."
+commands.allow = ["unwatch_live_activity_tokens"]
+
+[[permission]]
+identifier = "deny-unwatch-live-activity-tokens"
+description = "Denies the unwatch_live_activity_tokens command without any pre-configured scope."
+commands.deny = ["unwatch_live_activity_tokens"]

@@ -555,6 +555,7 @@ export { lspGlobMatches, lspWatchPattern } from "./lsp-glob.js";
 
 export * from "./agent-acp.js";
 export * from "./agent-models.js";
+export * from "./push.js";
 export * from "./git.js";
 export * from "./tasks.js";
 export * from "./settings.js";

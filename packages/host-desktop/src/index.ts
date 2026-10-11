@@ -18,6 +18,12 @@ import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 import { KEEP_ALIVE_SETTING, keepAliveMs } from "@oxbit/feature-runtime";
 import { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
 export { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
+export {
+  DesktopNotification,
+  installNotifications,
+  watchNotificationClicks,
+  type NotificationPermission,
+} from "./notifications.js";
 
 export interface Project {
   key: string;
