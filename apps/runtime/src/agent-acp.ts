@@ -666,6 +666,14 @@ export class AgentACP {
     this.publishQueue(agent);
     return { prompt };
   }
+  moveQueued(owner: string, id: string, promptId: string, index: number) {
+    const agent = this.get(owner, id);
+    const from = agent.queue.findIndex((p) => p.id === promptId);
+    if (from < 0) throw new Error("The queued message has already started or was removed");
+    const [prompt] = agent.queue.splice(from, 1);
+    agent.queue.splice(Math.max(0, Math.min(index, agent.queue.length)), 0, prompt);
+    return this.publishQueue(agent);
+  }
   resumeQueue(owner: string, id: string) {
     const agent = this.get(owner, id);
     agent.queuePaused = false;

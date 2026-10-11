@@ -52,7 +52,8 @@ export class LocalAgentRuntime implements RpcClient {
     return () => listeners.delete(listener);
   }
   async request<T>(method: string, params: Record<string, unknown> = {}, options: { signal?: AbortSignal; id?: string } = {}): Promise<T> {
-    if (method.startsWith("git.") && this.options.git) return this.options.git.request<T>(method, params, options);
+    // The device git client has no branch diff; outside a repository it would report that instead of a missing method.
+    if (method.startsWith("git.") && method !== "git.branchDiff" && this.options.git) return this.options.git.request<T>(method, params, options);
     return (await this.handle(method, params as Params, options.signal)) as T;
   }
   private async handle(method: string, params: Params, signal?: AbortSignal) {
@@ -67,6 +68,7 @@ export class LocalAgentRuntime implements RpcClient {
       case "acp.enqueue":
       case "acp.interrupt": return this.enqueue(this.get(params.id), params, method === "acp.interrupt");
       case "acp.dequeue": return this.dequeue(this.get(params.id), text(params, "promptId"));
+      case "acp.moveQueued": return this.moveQueued(this.get(params.id), text(params, "promptId"), params.index);
       case "acp.resumeQueue": {
         const connection = this.get(params.id);
         connection.queuePaused = false;
@@ -282,6 +284,14 @@ export class LocalAgentRuntime implements RpcClient {
     const [prompt] = connection.queue.splice(index, 1);
     this.publishQueue(connection);
     return { prompt };
+  }
+  private moveQueued(connection: Connection, promptId: string, index: unknown) {
+    if (!Number.isInteger(index)) throw new Error("Invalid index");
+    const from = connection.queue.findIndex((prompt) => prompt.id === promptId);
+    if (from < 0) throw new Error("The queued message has already started or was removed");
+    const [prompt] = connection.queue.splice(from, 1);
+    connection.queue.splice(Math.max(0, Math.min(index as number, connection.queue.length)), 0, prompt);
+    return this.publishQueue(connection);
   }
   private runQueue(connection: Connection) {
     if (connection.busy || connection.queueRunning || connection.stopped || connection.queuePaused || !connection.queue.length) return;

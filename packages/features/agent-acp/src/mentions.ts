@@ -1,4 +1,4 @@
-import type { FileSystem } from "@oxbit/sdk";
+import type { ACPContext, FileSystem, GitCommit } from "@oxbit/sdk";
 import { workspaceEntries } from "@oxbit/workbench";
 import type { Conversation } from "./history.js";
 import { agentName } from "./launch.js";
@@ -7,10 +7,13 @@ export type Mention =
   | { kind: "file"; path: string }
   | { kind: "symbol"; name: string; path: string; line: number; endLine: number }
   | { kind: "thread"; id: string; title: string; agent: string; updatedAt: string }
-  | { kind: "selection" | "diagnostics" | "changes" };
+  | { kind: "commit"; id: string; subject: string; author: string; date: string }
+  | { kind: "folder"; path: string }
+  | { kind: "selection" | "diagnostics" | "changes" | "branch" };
 
 export type SymbolMention = Extract<Mention, { kind: "symbol" }>;
 export type ThreadMention = Extract<Mention, { kind: "thread" }>;
+export type CommitMention = Extract<Mention, { kind: "commit" }>;
 
 interface Position { line: number }
 /** The parts of the language service's `workspaceSymbols` that mentions use. */
@@ -118,7 +121,7 @@ export function searchThreads(
 }
 
 /** The conversation's user and agent messages, keeping the latest `limit` characters. */
-export function threadTranscript(entry: Conversation, limit = 200000) {
+export function threadTranscript(entry: Pick<Conversation, "activity" | "name" | "provider" | "title">, limit = 200000) {
   const messages = entry.activity.flatMap((item) =>
     item.kind === "message" && item.message.role !== "thought" && item.message.text.trim()
       ? [`${item.message.role === "user" ? "User" : "Agent"}: ${item.message.text.trim()}`]
@@ -127,4 +130,28 @@ export function threadTranscript(entry: Conversation, limit = 200000) {
   const head = `Earlier conversation with ${entry.name || agentName(entry.provider)}: ${entry.title}\n\n`;
   const body = messages.join("\n\n");
   return head + (head.length + body.length > limit ? body.slice(head.length + body.length - limit) : body);
+}
+
+/** The thread context for a conversation forked at activity `index`: the messages before it. */
+export function forkContext(entry: Pick<Conversation, "activity" | "name" | "provider" | "title">, index: number): ACPContext | undefined {
+  const text = threadTranscript({ ...entry, activity: entry.activity.slice(0, index) });
+  return text ? { path: ".", text, kind: "thread", label: `Thread: ${entry.title}` } : undefined;
+}
+
+/** Commits whose subject or author contains `query`, or whose hash starts with it, in log order. */
+export function searchCommits(commits: readonly GitCommit[], query: string, limit = 5): CommitMention[] {
+  const term = query.trim().toLowerCase();
+  if (!term) return [];
+  return commits
+    .filter((commit) => commit.id.startsWith(term) || commit.subject.toLowerCase().includes(term) || commit.author.toLowerCase().includes(term))
+    .slice(0, limit)
+    .map(({ id, subject, author, date }) => ({ kind: "commit", id, subject, author, date }));
+}
+
+/** Folders above the matched file paths whose path matches `query`, ranked like files. */
+export function searchFolders(paths: readonly string[], query: string, limit = 5) {
+  const folders = new Set<string>();
+  for (const path of paths)
+    for (let at = path.indexOf("/"); at > 0; at = path.indexOf("/", at + 1)) folders.add(path.slice(0, at));
+  return rankFiles([...folders], query.trim(), limit);
 }

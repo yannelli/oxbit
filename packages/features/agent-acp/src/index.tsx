@@ -17,7 +17,7 @@ import {
   type FeatureOptions,
 } from "@oxbit/sdk";
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
-import { AgentController, type AgentRequest } from "./controller.js";
+import { AgentController, FILE_REJECTED, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
 import { ContextMeter } from "./context-meter.js";
 import { DictationButton } from "./dictation.js";
@@ -37,6 +37,7 @@ import {
   ContextPicker,
   ContextItem,
   ChangeSummary,
+  ReviewAll,
 } from "./views.js";
 
 import { Subagents } from "./subagents.js";
@@ -108,22 +109,16 @@ function RequestCard({
           <div className="acp-actions">
             <button
               className="button primary"
-              disabled={busy || !agent.requests.includes(request)}
+              disabled={busy || agent.reviewingAll || !agent.requests.includes(request)}
               onClick={() => void run(() => agent.applyFile(request))}
             >
               {tr("Apply change")}
             </button>
             <button
               className="button"
-              disabled={busy || !agent.requests.includes(request)}
+              disabled={busy || agent.reviewingAll || !agent.requests.includes(request)}
               onClick={() =>
-                void run(() =>
-                  agent.respond(
-                    request,
-                    undefined,
-                    "User rejected the file change",
-                  ),
-                )
+                void run(() => agent.respond(request, undefined, FILE_REJECTED))
               }
             >
               {tr("Reject")}
@@ -369,6 +364,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     if (trigger?.isConnected && document.activeElement === document.body)
       trigger.focus();
   }, [settingsDisabled]);
+  const connectionId = connection?.id;
+  useEffect(() => {
+    if (connectionId) setShowSetup(false);
+  }, [connectionId]);
   useEffect(() => {
     if (follow.current && transcript.current && agent.messages.length)
       transcript.current.scrollTop = transcript.current.scrollHeight;
@@ -387,6 +386,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const newThread = () => {
     setChooser(undefined);
     void agent.action(() => agent.detach());
+  };
+  const queueList = useRef<HTMLElement>(null);
+  const moveQueued = (id: string, index: number, direction: "up" | "down") => {
+    const focused = !!queueList.current?.contains(document.activeElement);
+    void agent.action(async () => {
+      await agent.moveQueued(id, index);
+      if (focused) requestAnimationFrame(() => {
+        const item = queueList.current?.querySelector(`[data-queue-id="${CSS.escape(id)}"]`);
+        (item?.querySelector<HTMLElement>(`[data-move="${direction}"]`) ?? item?.querySelector<HTMLElement>("[data-move]"))?.focus();
+      });
+    });
   };
   const chosen = agent.chosen.provider;
   useEffect(() => {
@@ -608,6 +618,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           </details>
         ))}
         <ChangeSummary agent={agent} />
+        <ReviewAll agent={agent} />
         {agent.requests.map((request) => (
           <RequestCard
             key={request.requestId}
@@ -653,13 +664,23 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           {tr("Agent needs your input")} · {agent.requests.length}
         </button>
       )}
-      {agent.queue.length > 0 && <section className="acp-queue" aria-label={tr("Queued messages")}>
+      {agent.queue.length > 0 && <section className="acp-queue" ref={queueList} aria-label={tr("Queued messages")}>
         <div className="acp-queue-heading"><strong>{tr("Queued messages")} · {agent.queue.length}</strong>
           {agent.queuePaused && <button className="button" type="button" onClick={() => void agent.action(() => agent.resumeQueue())}>{tr("Run queue")}</button>}
         </div>
-        {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id}>
+        {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id} data-queue-id={prompt.id}
+          onKeyDown={(event) => {
+            const to = !event.altKey ? -1 : event.key === "ArrowUp" ? index - 1 : event.key === "ArrowDown" ? index + 1 : -1;
+            if (!agent.canMoveQueued || to < 0 || to >= agent.queue.length) return;
+            event.preventDefault();
+            moveQueued(prompt.id, to, to < index ? "up" : "down");
+          }}>
           <span title={prompt.text}>{index + 1}. {prompt.text}</span>
           {agent.busy && !agent.cancelling && <IconButton icon="play" label={tr("Send queued message now")} onClick={() => void agent.action(() => agent.sendQueuedNow(prompt.id))} />}
+          {agent.canMoveQueued && index > 0 && <IconButton icon="arrowUp" label="Move queued message up" data-move="up"
+            onClick={() => moveQueued(prompt.id, index - 1, "up")} />}
+          {agent.canMoveQueued && index < agent.queue.length - 1 && <IconButton icon="arrowDown" label="Move queued message down" data-move="down"
+            onClick={() => moveQueued(prompt.id, index + 1, "down")} />}
           <IconButton icon="pencil" label={tr("Edit queued message")} onClick={() => void agent.action(() => agent.editQueued(prompt.id))} />
           <IconButton icon="x" label={tr("Remove queued message")} onClick={() => void agent.action(() => agent.removeQueued(prompt.id))} />
         </div>)}
@@ -736,7 +757,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                   icon="x"
                   label={tr("Remove attachment {0}", {
                     0: context.kind === "changes" ? tr("Uncommitted changes")
-                      : context.kind === "thread" ? (context.label ?? context.path) : context.path,
+                      : ["thread", "branch", "commit", "folder"].includes(context.kind!) ? (context.label ?? context.path) : context.path,
                   })}
                   onClick={() => {
                     agent.context.splice(index, 1);
@@ -786,6 +807,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           findSymbols={(query, signal) =>
             searchSymbols(agent.options.kernel.services.optional<WorkspaceSymbolSource>("language"), query, signal)}
           findThreads={(query) => agent.mentionThreads(query)}
+          findCommits={(query) => agent.mentionCommits(query)}
+          branchDiff={agent.branchDiffAvailable}
+          onMentionOpen={() => agent.probeBranchDiff()}
         />
         <div className="acp-composer-toolbar">
           <button

@@ -13,6 +13,7 @@ import {
   type ACPSubagent,
   type ACPSubagentEvent,
   type FeatureOptions,
+  type GitLog,
 } from "@oxbit/sdk";
 import type { DocumentService } from "@oxbit/documents";
 import { sessionControls, type SessionControl } from "./session-controls.js";
@@ -37,8 +38,11 @@ import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js
 import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
-import { uncommittedChanges } from "./changes.js";
-import { searchThreads, threadTranscript, type Mention, type SymbolMention } from "./mentions.js";
+import { branchChanges, commitChanges, uncommittedChanges } from "./changes.js";
+import {
+  forkContext, searchCommits, searchThreads, threadTranscript, type CommitMention, type Mention, type SymbolMention,
+} from "./mentions.js";
+import { folderText } from "./folders.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
@@ -54,6 +58,7 @@ export type AgentRequest = {
   version?: number;
   error?: string;
 };
+export const FILE_REJECTED = "User rejected the file change";
 const missingFile = (error: unknown) =>
   ["ENOENT", "NOT_FOUND"].includes((error as { code?: unknown } | null)?.code as string) ||
   (error instanceof DOMException && error.name === "NotFoundError") ||
@@ -1077,6 +1082,9 @@ export class AgentController {
     if (mention.kind === "changes") return this.attachChanges();
     if (mention.kind === "symbol") return this.attachSymbol(mention);
     if (mention.kind === "thread") return this.attachThread(mention.id);
+    if (mention.kind === "branch") return this.attachBranchDiff();
+    if (mention.kind === "commit") return this.attachCommit(mention);
+    if (mention.kind === "folder") return this.attachFolder(mention.path);
     if (mention.kind !== "file")
       return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
     if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
@@ -1137,6 +1145,55 @@ export class AgentController {
       kind: "diagnostics",
       label: `Diagnostics: ${path}`,
     });
+    this.changed();
+  }
+  /** False once `git.branchDiff` is missing: an older runtime, or the in-app runtime of a device folder. */
+  branchDiffAvailable = true;
+  private branchDiffProbe?: Promise<void>;
+  /** Asks once whether the runtime serves `git.branchDiff`, with a request that diffs no files. */
+  probeBranchDiff() {
+    if (this.branchDiffProbe || !this.options.runtime?.connected) return;
+    this.branchDiffProbe = this.request("git.branchDiff", { limit: 0 }).then(() => {}, (error) => void this.branchDiffMissing(error));
+  }
+  private branchDiffMissing(error: unknown) {
+    const missing = (error as { code?: unknown } | null)?.code === "METHOD_NOT_FOUND" ||
+      (error instanceof Error && /needs a runtime workspace$/.test(error.message));
+    if (missing && this.branchDiffAvailable) {
+      this.branchDiffAvailable = false;
+      this.changed();
+    }
+    return missing;
+  }
+  async attachBranchDiff() {
+    const others = this.context.filter((item) => item.kind !== "branch");
+    if (others.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const diff = await branchChanges((method, params) => this.request(method, params ?? {})).catch((error) => {
+      throw this.branchDiffMissing(error) ? new Error("Branch diff needs a runtime workspace") : error;
+    });
+    this.context = [...others, { path: ".", kind: "branch", ...diff }];
+    this.changed();
+  }
+  /** Commits for `@` from the latest 100 whose subject, short hash or author matches. */
+  async mentionCommits(query: string) {
+    if (!query.trim()) return [];
+    return searchCommits((await this.request<GitLog>("git.log", { limit: 100 })).commits, query);
+  }
+  async attachCommit({ id, subject }: CommitMention) {
+    const label = `Commit ${id.slice(0, 7)}: ${subject.slice(0, 100)}`;
+    if (this.context.some((item) => item.kind === "commit" && item.label === label)) return;
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await commitChanges((method, params) => this.request(method, params ?? {}), id);
+    this.context.push({ path: ".", text, kind: "commit", label });
+    this.changed();
+  }
+  async attachFolder(path: string) {
+    if (this.context.some((item) => item.kind === "folder" && item.path === path)) return;
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    const text = await folderText(this.options.filesystem, path);
+    this.context.push({ path, text, kind: "folder", label: `Folder: ${path}` });
     this.changed();
   }
   async send() {
@@ -1290,6 +1347,31 @@ export class AgentController {
       await this.request("acp.enqueue", message).catch(() => undefined);
       throw error;
     }
+  }
+  private queueMoveUnsupported?: string;
+  /** False for a connection whose runtime answered acp.moveQueued with METHOD_NOT_FOUND. */
+  get canMoveQueued() {
+    return !!this.connection && this.queueMoveUnsupported !== this.connection.id;
+  }
+  async moveQueued(promptId: string, index: number) {
+    const connection = this.connection;
+    if (!connection || !this.canMoveQueued) return;
+    const generation = this.connectionGeneration;
+    const queueRevision = this.queueRevision;
+    let result: { queue: ACPQueuedPrompt[]; paused: boolean };
+    try {
+      result = await this.request("acp.moveQueued", { id: connection.id, promptId, index });
+    } catch (error) {
+      if ((error as { code?: unknown } | null)?.code !== "METHOD_NOT_FOUND") throw error;
+      this.queueMoveUnsupported = connection.id;
+      throw new Error("Update the runtime to reorder queued messages");
+    }
+    if (generation !== this.connectionGeneration) return;
+    if (this.queueRevision === queueRevision) {
+      this.queue = result.queue;
+      this.queuePaused = result.paused;
+    }
+    this.changed();
   }
   async resumeQueue() {
     if (!this.connection) return;
@@ -1543,10 +1625,11 @@ export class AgentController {
     );
     this.changed();
   }
+  /** Resolves true when the write was applied and false when the file changed during review. */
   async applyFile(request: AgentRequest) {
     if (!this.requests.includes(request) || this.connection?.id !== request.id)
       throw new Error("File review has expired");
-    if (this.fileActions.has(request.requestId)) return;
+    if (this.fileActions.has(request.requestId)) return false;
     const document = this.documents.get(request.params.path);
     if (
       document?.dirty ||
@@ -1560,7 +1643,7 @@ export class AgentController {
         undefined,
         "File changed during review. Read the latest content and retry.",
       );
-      return;
+      return false;
     }
     this.fileActions.add(request.requestId);
     try {
@@ -1598,11 +1681,56 @@ export class AgentController {
           preview: false,
         });
       await this.options.workbench.refreshFiles();
+      return true;
     } catch (error) {
       await this.respond(request, undefined, String(error)).catch(() => {});
       throw error;
     } finally {
       this.fileActions.delete(request.requestId);
+    }
+  }
+  /** True while Apply all, Reject all or Undo all runs; review buttons stay disabled. */
+  reviewingAll = false;
+  get pendingWrites() {
+    return this.requests.filter((request) => request.method === "fs/write_text_file");
+  }
+  get undoableChanges() {
+    return this.changes.filter((change) => !change.undone && !change.created);
+  }
+  /** Applies pending writes in order through Apply change and stops at the first that fails. */
+  async applyAllFiles() {
+    await this.answerWrites(async (request) => {
+      if (!(await this.applyFile(request)))
+        throw new Error(`File changed during review: ${request.params.path}`);
+    });
+  }
+  async rejectAllFiles() {
+    await this.answerWrites((request) => this.respond(request, undefined, FILE_REJECTED));
+  }
+  /** Undoes applied edits newest first and stops at the first that cannot be undone. */
+  async undoAllChanges() {
+    const changes = this.undoableChanges.reverse();
+    await this.reviewAll(changes.map((change) => change.id), async () => {
+      for (const change of changes) await this.undoChange(change.id);
+    });
+  }
+  private async answerWrites(answer: (request: AgentRequest) => Promise<unknown>) {
+    const writes = this.pendingWrites;
+    await this.reviewAll(writes.map((request) => request.requestId), async () => {
+      for (const request of writes) if (this.requests.includes(request)) await answer(request);
+    });
+  }
+  private async reviewAll(keys: string[], run: () => Promise<void>) {
+    if (this.reviewingAll || !keys.length) return;
+    if (keys.some((key) => this.fileActions.has(key)))
+      throw new Error("Wait for the current file review to finish");
+    this.reviewingAll = true;
+    this.changed();
+    try {
+      await run();
+    } finally {
+      this.reviewingAll = false;
+      this.changed();
     }
   }
   async undoChange(id: string) {
@@ -1655,15 +1783,34 @@ export class AgentController {
       this.changed();
     }
   }
-  async restoreCheckpoint(message: Message) {
-    if (!message.checkpoint || !this.connection) return;
+  /** Restores the files to before `message`; `note` adds a notice to the conversation. */
+  async restoreCheckpoint(message: Message, note = true) {
+    if (!message.checkpoint || !this.connection) return false;
     if (this.busy || this.connecting || this.requests.length || this.activeSubagentCount)
       throw new Error("Wait for the agent to finish before restoring a checkpoint");
     const paths = await this.checkpoints.restore(message.checkpoint, (path) => !!this.documents.get(path)?.dirty);
-    if (!paths) return;
-    this.activity.push(restoredNotice(message));
+    if (!paths) return false;
+    if (note) this.activity.push(restoredNotice(message));
     this.changed();
     await this.options.workbench.refreshFiles();
+    return true;
+  }
+  /** Starts a new conversation with the same agent: the messages before `message` attached as a thread, its text in the draft. */
+  async forkFrom(message: Message, restore = false) {
+    const index = this.activity.findIndex((item) => item.kind === "message" && item.message === message);
+    const conversation = this.activeConversation;
+    if (index < 0 || !conversation || !this.connection) return;
+    if (this.busy || this.connecting || this.sessionStarting || this.updatingSettings || this.discovering ||
+      this.requests.length || this.queue.length || this.activeSubagentCount)
+      throw new Error("Wait for the agent to finish before forking");
+    const thread = forkContext({ ...conversation, title: this.title, activity: this.activity }, index);
+    if (restore && !(await this.restoreCheckpoint(message, false))) return;
+    await this.newSession();
+    if (this.activeConversation?.id === conversation.id || !this.connection?.sessionId) return;
+    this.draft = message.text;
+    this.context = thread ? [thread] : [];
+    if (restore) this.activity.push(restoredNotice(message));
+    this.changed();
   }
   private isChildRequest(request: AgentRequest) {
     return (

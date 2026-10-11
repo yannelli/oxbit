@@ -7,6 +7,7 @@ import type { ACPContext } from "@oxbit/sdk";
 import { type AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
 import { agentName, startable } from "./launch.js";
+import { OverflowMenu } from "./overflow-menu.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: true });
 export function markdownHTML(text: string) {
@@ -346,6 +347,15 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
                   {tr("Restore checkpoint")}
                 </button>
               )}
+              {entry.message.role === "user" && agent.connection && (
+                <OverflowMenu label="Message actions" items={[
+                  { id: "fork", label: "Fork from here", icon: "agentChat", run: () => void agent.action(() => agent.forkFrom(entry.message)) },
+                  ...(entry.message.checkpoint ? [{
+                    id: "restore-fork", label: "Restore files and fork", icon: "refresh",
+                    run: () => void agent.action(() => agent.forkFrom(entry.message, true)),
+                  }] : []),
+                ]} />
+              )}
               <IconButton
                 icon={copied === index ? "check" : "copy"}
                 label="Copy message"
@@ -574,9 +584,17 @@ export function ContextPicker({ agent }: { agent: AgentController }) {
 }
 export function ChangeSummary({ agent }: { agent: AgentController }) {
   if (!agent.changes.length) return null;
+  const blocked = agent.busy || agent.connecting || agent.requests.length > 0 || agent.reviewingAll;
   return (
     <section className="acp-changes" aria-label={tr("Reviewed agent edits")}>
-      <strong>{tr("Reviewed agent edits")}</strong>
+      <div className="acp-review-heading">
+        <strong>{tr("Reviewed agent edits")}</strong>
+        {agent.undoableChanges.length > 1 && (
+          <button className="button" disabled={blocked} onClick={() => void agent.action(() => agent.undoAllChanges())}>
+            {tr("Undo all")}
+          </button>
+        )}
+      </div>
       {agent.changes.map((change) => (
         <details key={change.id}>
           <summary>
@@ -590,9 +608,7 @@ export function ChangeSummary({ agent }: { agent: AgentController }) {
           {!change.undone && !change.created && (
             <button
               className="button"
-              disabled={
-                agent.busy || agent.connecting || agent.requests.length > 0
-              }
+              disabled={blocked}
               onClick={() =>
                 void agent.action(() => agent.undoChange(change.id))
               }
@@ -602,6 +618,26 @@ export function ChangeSummary({ agent }: { agent: AgentController }) {
           )}
         </details>
       ))}
+    </section>
+  );
+}
+/** Apply all and Reject all when two or more file writes wait for review. */
+export function ReviewAll({ agent }: { agent: AgentController }) {
+  const count = agent.pendingWrites.length;
+  if (count < 2) return null;
+  return (
+    <section className="acp-review-all" aria-label={tr("Pending file changes")}>
+      <div className="acp-review-heading">
+        <strong>{tr("{0} file changes", { 0: count })}</strong>
+        <button className="button primary" disabled={agent.reviewingAll}
+          onClick={() => void agent.action(() => agent.applyAllFiles())}>
+          {tr("Apply all")}
+        </button>
+        <button className="button" disabled={agent.reviewingAll}
+          onClick={() => void agent.action(() => agent.rejectAllFiles())}>
+          {tr("Reject all")}
+        </button>
+      </div>
     </section>
   );
 }

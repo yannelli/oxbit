@@ -101,6 +101,8 @@ test("a local workspace offers the Oxbit agent, asks for a key on Start, and sav
   await expect(setup.getByText("Key saved", { exact: true })).toBeVisible();
   expect(await setting(page, "agentACP.oxbit.api")).toBe("openai-compatible");
   expect(await setting(page, "agentACP.oxbit.baseUrl")).toBe("https://openrouter.ai/api");
+  const header = panel.locator(".acp-header");
+  expect(await header.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(0);
   await setup.getByRole("button", { name: "Remove" }).click();
   await expect(setup.getByText("No key saved")).toBeVisible();
   expect(await savedKeys(page)).toEqual({ '{"api":"openai"}': "sk-local-test" });
@@ -129,10 +131,14 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review an
     await z.kernel.configuration.set("agentACP.oxbit.baseUrl", "https://models.test/api", "user");
     await z.kernel.configuration.set("agentACP.oxbit.model", "model-b", "user");
   });
+  await panel.getByRole("button", { name: "More agent actions" }).click();
+  await page.getByRole("menuitem", { name: "Agent setup" }).click();
+  await expect(panel.getByRole("form", { name: "Oxbit Agent setup" })).toBeVisible();
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await expect(composer).toBeEnabled();
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.sessionId)).toBeTruthy();
+  await expect(panel.getByRole("form", { name: "Oxbit Agent setup" })).toHaveCount(0);
   await composer.fill("Write a note");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
 

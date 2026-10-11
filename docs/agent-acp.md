@@ -85,7 +85,8 @@ with the user's key:
 - Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
   and edits open the same review card as other agents. There is no shell.
 - **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
-- The registry, runtime sessions and checkpoints need a runtime workspace.
+  `@` commits use `git.log`, `git.show` and `git.commitDiff` from the same client.
+- The registry, runtime sessions, checkpoints and `@` **Branch diff** need a runtime workspace.
 - API details: [Model APIs for the built-in Oxbit agent](agent-model-apis.md).
   Keychain and request handling on iOS: [In-app agent on iOS](ios.md#in-app-agent-on-ios).
 - Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
@@ -164,12 +165,29 @@ thread is opened.
   `@`, from the connected workspace root, without the open conversation. Choosing
   one attaches its user and agent messages as **Thread: <title>**, without thoughts
   or tool calls, keeping the latest 200,000 characters.
+- `@` **Branch diff** attaches **Branch diff: <base>...<head>**: the committed, staged,
+  unstaged and untracked changes since the merge base of `HEAD` and the base branch,
+  up to 50 files and 200,000 characters. The base is the upstream remote's default
+  branch (`refs/remotes/<remote>/HEAD`), then `origin/HEAD`, then `main`, then `master`.
+  The item is hidden after `git.branchDiff` fails with `METHOD_NOT_FOUND` (an older
+  runtime) or "needs a runtime workspace" (the in-app Oxbit Agent). The panel asks once,
+  with `{ limit: 0 }`, when `@` first opens the list.
+- `@` also lists up to 5 of the latest 100 commits whose subject or author contains the
+  text after `@`, or whose hash starts with it. Choosing one attaches
+  **Commit <short hash>: <subject>** with the message and the diff of up to 50 files,
+  up to 200,000 characters.
+- `@` also lists up to 5 folders above the matched files. Choosing one inserts
+  `@<folder>/` and attaches **Folder: <path>**: up to 500 file paths, then the text of
+  each file that fits in 200,000 characters. Binary files, `.git` and `node_modules`
+  are skipped.
 - Paste, drop or attach up to 4 PNG, JPEG, GIF or WebP images (5 MB each) when
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
-  and can be edited or removed. **Send queued message now** stops the running turn
-  and sends that message next.
+  and can be edited, removed or moved. **Send queued message now** stops the running
+  turn and sends that message next. **Move queued message up** and **down**, or
+  Alt+Up and Alt+Down while one of a queued message's buttons has focus, change
+  the order in which queued messages run.
 - **Dictate** (the microphone button) appends speech to the draft as you talk.
   Select it again to finish. Editing or sending the draft stops dictation. See
   [Dictation](#dictation).
@@ -340,10 +358,16 @@ Checked 2026-10-10.
   fresh read and proposal. Disk saves check the original file revision.
   Apply and Undo save the reviewed snapshot exactly, bypassing formatting hooks;
   ordinary editor saves retain their configured hooks.
+- With two or more file changes pending, **Apply all** and **Reject all** sit above
+  the reviews. Apply all applies each change in order with the same checks as
+  **Apply change**. It stops at the first change that fails, shows its error and
+  leaves the rest pending. Reject all sends each change the same answer as **Reject**.
 - **Reviewed agent edits** records client-API edits for the current conversation.
   **Undo this edit** restores an existing file only when its buffer and disk
   still match the applied edit. Undo is unavailable during agent work or pending
   approvals. New files and files changed again belong in Source Control review.
+  With two or more edits to undo, **Undo all** undoes them newest first through
+  Undo this edit and stops at the first edit it cannot undo.
 - Tool file locations open in the editor. **Review changes** opens source control.
 - Agent terminal commands run in the workspace, show bounded output, and support
   output, wait, kill, and release through ACP.
@@ -399,7 +423,12 @@ policy; the Oxbit review applies to proposed edits through the Oxbit client.
 Messages sent during a turn enter a queue of at most 16 messages and 1 MiB.
 They run in order after a successful turn. A stopped or failed turn pauses the
 queue. **Interrupt and send** cancels the current turn and sends the correction
-after cancellation is acknowledged. Providers report plans and token usage only
+after cancellation is acknowledged. `acp.moveQueued {id, promptId, index}` moves a
+message that has not started to `index`, clamped to the queue, and publishes
+`acp.queue`; a message that started or was removed is rejected. The runtime and
+the Oxbit Agent both serve it. A runtime from before this method answers
+`METHOD_NOT_FOUND`; the panel then shows the error once and hides the move
+buttons for that connection. Providers report plans and token usage only
 when they expose those events.
 
 Agents execute with the trusted runtime user's privileges. The workspace path
@@ -535,10 +564,24 @@ write git objects and no refs. Unreferenced objects follow git's `gc.pruneExpire
 window (two weeks by default), after which `git gc` deletes them and restore
 reports that the checkpoint is no longer available.
 
+**Message actions** (the **…** button on a user message) offers **Fork from here**:
+it starts a new conversation with the same agent, attaches the earlier messages as
+**Thread: <title>** (the forked message excluded) and puts that message's text in the
+draft. On a message with a checkpoint, **Restore files and fork** restores the
+checkpoint first, then forks; the fork starts with the restore note. The original
+conversation stays in history unchanged. Forking needs a connected agent and is
+refused while the agent is working or has pending requests or queued messages.
+
 Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
 `{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and
 the changed paths; `acp.checkpoint.restore` `{ tree, paths }` restores and refuses
 when files outside `paths` changed since the diff.
+
+`git.branchDiff` `{ limit? }` (0 to 50 files, default 50) returns
+`{ base, head, files: [{ path, diff, binary }], truncated }` or `{ repository: false }`.
+`diff` is empty for a file whose diff exceeds the 2 MiB output limit. It fails with
+`NOT_FOUND` when `HEAD` has no commits, no base branch exists, or the histories share no
+commit.
 
 ## Protocol references
 
@@ -551,7 +594,7 @@ Design references: [Zed's agent panel](https://zed.dev/docs/ai/agent-panel) docu
 Focused runtime and editor tests:
 
 ```sh
-bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts packages/features/agent-acp/src
+bunx vitest run apps/runtime/tests/agent-acp.test.ts apps/runtime/tests/acp-registry.test.ts apps/runtime/tests/agent-mcp.test.ts apps/runtime/tests/acp-subagents.test.ts apps/runtime/tests/acp-subagents-integration.test.ts apps/runtime/tests/acp-checkpoints.test.ts apps/runtime/tests/git-branch-diff.test.ts packages/features/agent-acp/src
 ```
 
 Browser journeys (after `bun run build`):

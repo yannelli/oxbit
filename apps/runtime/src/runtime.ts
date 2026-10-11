@@ -716,6 +716,9 @@ export async function createRuntime(options: RuntimeOptions) {
         return agents.enqueue(session.id, requireString(params, "id"), params, method === "acp.interrupt");
       case "acp.dequeue":
         return agents.dequeue(session.id, requireString(params, "id"), requireString(params, "promptId"));
+      case "acp.moveQueued":
+        if (!Number.isInteger(params.index)) throw new RpcError("INVALID_PARAMS", "index must be an integer");
+        return agents.moveQueued(session.id, requireString(params, "id"), requireString(params, "promptId"), params.index as number);
       case "acp.resumeQueue":
         return agents.resumeQueue(session.id, requireString(params, "id"));
       case "acp.call":
@@ -916,6 +919,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return git.show(params.ref, signal);
       case "git.commitDiff":
         return git.commitDiff(params, signal);
+      case "git.branchDiff":
+        return git.branchDiff(params, signal);
       case "git.stashes":
         return git.stashes(signal);
       case "git.stashDiff":
