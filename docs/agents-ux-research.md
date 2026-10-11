@@ -120,4 +120,4 @@ Rows where another client documents more than Oxbit are listed under the gaps be
 - Selecting a macOS notification has not run with notifications allowed.
 - VS Code forks the agent session at a checkpoint. ACP `session/fork` copies the whole session, so Oxbit forks the session only from the latest message (`agent-acp-fork-session`); forking from an earlier message attaches the earlier messages as text (`agent-acp-context-fork`).
 - In iOS device folders `@` has no branch diff, which needs a runtime (`agent-acp-context-fork`); `@` commits through the native Git client have not run on a device.
-- Dictation, iOS notification taps and the Live Activity have not run on a physical device.
+- Dictation, iOS notification taps, the Agent finished toast and the Live Activity have not run on a physical device.
