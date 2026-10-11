@@ -1,0 +1,12 @@
+{
+  "name": "oxbit-push",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-01",
+  "workers_dev": true,
+  "vars": {
+    "BUNDLE_ID": "com.yannelli.oxbit"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
