@@ -213,7 +213,7 @@ final class Dictation {
     case ("SFSpeechErrorDomain", 2):
       return "audio-capture"
     default:
-      return "network"
+      return "unknown"
     }
   }
 }

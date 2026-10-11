@@ -996,6 +996,8 @@
   "Allow speech recognition for Oxbit to dictate": "请允许 Oxbit 使用语音识别以使用语音输入",
   "No microphone is available": "没有可用的麦克风",
   "Dictation needs a network connection": "语音输入需要网络连接",
+  "Dictation failed: {0}": "语音输入失败：{0}",
+  "Dictation failed": "语音输入失败",
   "Dictation does not support this language": "语音输入不支持此语言",
   "No speech was detected": "未检测到语音",
   "1 request needs an answer": "1 个请求等待回复",

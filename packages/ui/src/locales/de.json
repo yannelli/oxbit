@@ -969,6 +969,8 @@
   "Allow speech recognition for Oxbit to dictate": "Erlaube Oxbit die Spracherkennung, um zu diktieren",
   "No microphone is available": "Kein Mikrofon verfügbar",
   "Dictation needs a network connection": "Diktieren benötigt eine Netzwerkverbindung",
+  "Dictation failed: {0}": "Diktieren fehlgeschlagen: {0}",
+  "Dictation failed": "Diktieren fehlgeschlagen",
   "Dictation does not support this language": "Diktieren unterstützt diese Sprache nicht",
   "No speech was detected": "Keine Sprache erkannt",
   "1 request needs an answer": "1 Anfrage wartet auf eine Antwort",

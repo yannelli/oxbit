@@ -14,7 +14,7 @@ export interface Recognition {
   continuous: boolean;
   interimResults: boolean;
   onresult: ((event: RecognitionEvent) => void) | null;
-  onerror: ((event: { readonly error: string }) => void) | null;
+  onerror: ((event: { readonly error: string; readonly message?: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
@@ -35,6 +35,14 @@ const errorMessages: Record<string, string> = {
   "language-not-supported": "Dictation does not support this language",
   "no-speech": "No speech was detected",
 };
+
+/** The message for a recognition error; an unknown native error shows its own description. Aborts show nothing. */
+export function dictationError(event: { readonly error: string; readonly message?: string }) {
+  const message = errorMessages[event.error];
+  if (message) return tr(message);
+  if (event.error !== "unknown") return undefined;
+  return event.message ? tr("Dictation failed: {0}", { 0: event.message }) : tr("Dictation failed");
+}
 
 export function spokenText(event: RecognitionEvent) {
   let text = "";
@@ -77,8 +85,8 @@ export function DictationButton({ value, onChange, onError }: {
       latest.current.onChange(current.written);
     };
     recognition.onerror = (event) => {
-      const message = errorMessages[event.error];
-      if (message) latest.current.onError(tr(message));
+      const message = dictationError(event);
+      if (message) latest.current.onError(message);
     };
     recognition.onend = () => {
       if (session.current !== current) return;
