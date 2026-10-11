@@ -4,19 +4,34 @@ import * as fs from "node:fs/promises";
 const shots = "/tmp/oxbit-agents/local-panel";
 const presets = ["Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
 
-/** The browser workspace has no runtime. `models` registers a fake agentModels service that keeps keys in page memory. */
-async function open(page: Page, models: boolean) {
+const sse = (...events: unknown[]) => [...events.map((event) => `data: ${JSON.stringify(event)}\n\n`), "data: [DONE]\n\n"];
+const chatTool = (id: string, name: string, args: unknown) => sse(
+  { choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id, type: "function", function: { name, arguments: JSON.stringify(args) } }] } }] },
+  { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+);
+const chatText = (text: string) => sse(
+  { choices: [{ index: 0, delta: { role: "assistant", content: text } }] },
+  { choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+);
+
+/** The browser workspace has no runtime. `models` registers a fake agentModels service that keeps keys in page memory and streams `replies` in order. */
+async function open(page: Page, models: boolean, replies: string[][] = []) {
   await page.goto("/");
   await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
-  await page.evaluate(async (models) => {
+  await page.evaluate(async ({ models, replies }) => {
     const z = (window as any).__oxbit;
     const saved = new Map<string, string>();
     const calls: [string, unknown][] = [];
-    (window as any).__models = { saved, calls };
+    const requests: unknown[] = [];
+    (window as any).__models = { saved, calls, requests };
     const id = (endpoint: unknown) => JSON.stringify(endpoint);
     if (models)
       z.kernel.services.register("agentModels", {
-        async *stream() {},
+        async *stream(request: { method: string }) {
+          requests.push(request);
+          if (request.method === "GET") yield JSON.stringify({ data: [{ id: "model-a" }, { id: "model-b" }] });
+          else yield* replies.shift() ?? [];
+        },
         keys: {
           has: async (endpoint: unknown) => (calls.push(["has", endpoint]), saved.has(id(endpoint))),
           save: async (endpoint: unknown, key: string) => {
@@ -31,7 +46,7 @@ async function open(page: Page, models: boolean) {
       });
     await z.kernel.extensions.activate("oxbit.agent-acp");
     z.workbench.run("agentACP.open");
-  }, models);
+  }, { models, replies });
   return page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
 }
 const savedKeys = (page: Page) =>
@@ -100,4 +115,39 @@ test("without a model service the browser workspace keeps the runtime prompt and
   await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toBeEnabled();
   await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toHaveAttribute("aria-checked", "true");
   await expect(panel.getByRole("button", { name: "Start Codex ACP" })).toBeDisabled();
+});
+
+test("the Oxbit agent runs a turn in the app: it streams a reply and its file write waits for review", async ({ page }) => {
+  const panel = await open(page, true, [
+    chatTool("call_1", "write_file", { path: "notes.md", content: "agent note\n" }),
+    chatText("Wrote notes.md."),
+  ]);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    (window as any).__models.saved.set(JSON.stringify({ api: "openai-compatible", baseUrl: "https://models.test/api" }), "sk-test");
+    await z.kernel.configuration.set("agentACP.oxbit.api", "openai-compatible", "user");
+    await z.kernel.configuration.set("agentACP.oxbit.baseUrl", "https://models.test/api", "user");
+    await z.kernel.configuration.set("agentACP.oxbit.model", "model-b", "user");
+  });
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  const composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.sessionId)).toBeTruthy();
+  await composer.fill("Write a note");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+
+  await expect(panel.getByText("notes.md").first()).toBeVisible();
+  await expect(panel.getByLabel("File change diff").last()).toContainText("+agent note");
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.filesystem.read("notes.md").then(() => true, () => false))).toBe(false);
+  await panel.getByRole("button", { name: "Apply change", exact: true }).click();
+  await expect(panel.getByText("Wrote notes.md.")).toBeVisible();
+  expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
+
+  const requests = await page.evaluate(() => (window as any).__models.requests);
+  expect(requests.map((request: any) => [request.method, request.path])).toEqual([
+    ["GET", "/v1/models"], ["POST", "/v1/chat/completions"], ["POST", "/v1/chat/completions"],
+  ]);
+  expect(requests[1]).toEqual(expect.objectContaining({ api: "openai-compatible", baseUrl: "https://models.test/api" }));
+  expect(requests[1].body.model).toBe("model-b");
+  expect(JSON.stringify(requests)).not.toContain("sk-test");
 });

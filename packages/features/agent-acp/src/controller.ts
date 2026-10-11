@@ -54,6 +54,11 @@ export type AgentRequest = {
   version?: number;
   error?: string;
 };
+const missingFile = (error: unknown) =>
+  ["ENOENT", "NOT_FOUND"].includes((error as { code?: unknown } | null)?.code as string) ||
+  (error instanceof DOMException && error.name === "NotFoundError") ||
+  (error instanceof Error && /^File not found:/.test(error.message));
+
 export class AgentController {
   private listeners = new Set<() => void>();
   private revision = 0;
@@ -1497,11 +1502,7 @@ export class AgentController {
         try {
           document = await this.documents.open(request.params.path);
         } catch (error) {
-          if (
-            (error as any)?.code !== "ENOENT" &&
-            (error as any)?.code !== "NOT_FOUND"
-          )
-            throw error;
+          if (!missingFile(error)) throw error;
         }
         if (document?.dirty)
           throw new Error(
