@@ -64,3 +64,27 @@ test("Laravel joins PHP support only within an artisan project", async ({ page }
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("language").servicesForPath("laravel/welcome.blade.php").map((service: any) => service.transport.definitionId))).toEqual(["laravel"]);
   expect(errors).toEqual([]);
 });
+
+test("Language Servers names the PHP servers and starts Laravel until each runs or fails with a reason", async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/#pair=oxbit-acceptance-2026"); await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit; await app.runtime.trust(true);
+    await app.runtime.request("fs.mkdir", { path: "laravel-status" }).catch(() => {});
+    for (const [path, text] of [["laravel-status/artisan", "<?php\n"], ["laravel-status/composer.json", '{"require":{"laravel/framework":"^12.0"}}'], ["laravel-status/PatientChartProposalsController.php", "<?php\nclass PatientChartProposalsController {}\n"]]) {
+      const previous = await app.runtime.request("fs.read", { path }).catch(() => null);
+      await app.runtime.request("fs.write", { path, text, expectedRevision: previous?.revision ?? null });
+    }
+    await app.openFile("laravel-status/PatientChartProposalsController.php");
+  });
+  await page.getByRole("button", { name: /^Language Servers:/ }).click();
+  const servers = page.getByRole("dialog", { name: "Language Servers", exact: true }).locator(".lsp-server");
+  await expect(servers).toHaveCount(2);
+  await expect(servers.locator(".lsp-server-name strong")).toHaveText([/^Intelephense$/i, /^Laravel/]);
+  for (const server of await servers.all()) {
+    await expect(server.locator(".lsp-server-state")).toHaveText(/^(Running|Failed)$/, { timeout: 180_000 });
+    if (await server.locator(".lsp-server-state").textContent() === "Failed") await expect(server.locator(".lsp-server-error")).toHaveText(/\S/);
+  }
+  expect(errors).toEqual([]);
+});

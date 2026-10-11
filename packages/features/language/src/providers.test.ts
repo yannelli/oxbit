@@ -427,7 +427,7 @@ describe("current document server status", () => {
     cleanup.push(() => service.dispose());
     expect(service.servers.map(item => item.name)).toEqual(["Foo"]);
     workbench.activePath = () => "notes.md";
-    expect(service.servers.map(item => item.name)).toEqual(["Bar", "Markdown"]);
+    expect(service.servers.map(item => item.name)).toEqual(["Bar", "Marksman"]);
     workbench.activePath = () => undefined;
     expect(service.servers).toEqual([]);
   });

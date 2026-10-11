@@ -37,7 +37,11 @@ export async function findWorkspaceFiles(
 ): Promise<string[]> {
   const term = query.trim().toLowerCase();
   if (!term) return [];
-  if (filesystem.findFiles) return filesystem.findFiles(term, signal);
+  if (filesystem.findFiles) {
+    // Older runtimes lack search.files and hosts without ripgrep fail it; walk the tree instead.
+    try { return await filesystem.findFiles(term, signal); }
+    catch (error) { if (signal.aborted) throw error; }
+  }
   const matches: string[] = [];
   for await (const entry of workspaceEntries(filesystem, {
     signal,

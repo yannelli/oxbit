@@ -6,7 +6,8 @@ const names: Record<string, string> = {
   taplo: "Taplo", intelephense: "Intelephense", laravel: "Laravel", lemminx: "LemMinX",
 };
 
-export const managedServerIds = [...new Set(languages.flatMap(language => language.providers.filter(id => id !== "local")))];
+export const managedServerName = (id: string) => names[id] ?? id;
+export const managedServerIds =[...new Set(languages.flatMap(language => language.providers.filter(id => id !== "local")))];
 export const managedServerExtensionId = (id: string) => `oxbit.language-${id}`;
 export const managedFileTypesSetting = (id: string) => `languageServer.${id}.fileTypes`;
 const serverFileTypes = (id: string) => languages.filter(language => language.providers.includes(id)).map(language => language.id);
@@ -29,7 +30,7 @@ function writeServer(configuration: ConfigurationService, id: string, change: (e
 }
 
 function createManagedServerFeature(id: string): Extension {
-  const name = names[id] ?? id;
+  const name = managedServerName(id);
   const setting = managedFileTypesSetting(id);
   return {
     manifest: {

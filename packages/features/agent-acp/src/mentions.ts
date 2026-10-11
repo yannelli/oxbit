@@ -67,7 +67,11 @@ export function rankFiles(paths: string[], query: string, limit = 20) {
 export async function searchFiles(filesystem: FileSystem, query: string, signal: AbortSignal) {
   const term = query.trim().toLowerCase();
   if (!term) return [];
-  if (filesystem.findFiles) return rankFiles(await filesystem.findFiles(term, signal), term);
+  if (filesystem.findFiles) {
+    // Older runtimes lack search.files and hosts without ripgrep fail it; walk the tree instead.
+    try { return rankFiles(await filesystem.findFiles(term, signal), term); }
+    catch (error) { if (signal.aborted) throw error; }
+  }
   const matches: string[] = [];
   for await (const entry of workspaceEntries(filesystem, {
     signal,

@@ -1068,6 +1068,18 @@ export async function createRuntime(options: RuntimeOptions) {
           params.encoding as Encoding | undefined,
           params.eol as Eol | undefined,
         );
+      case "search.files": {
+        const term = requireString(params, "query", 1024).trim().toLowerCase();
+        if (!term) return [];
+        const result = await runCommand(options.desktop?.rgPath ?? "rg", ["--files", "--hidden", "--glob", "!.git", "--glob", "!node_modules", "--glob", "!.oxbit-tmp-*"], {
+          cwd: root,
+          signal,
+          maxBytes: 64 * MAX_BUFFER_BYTES,
+        });
+        if (result.exitCode > 1) throw new RpcError("SEARCH_FAILED", result.stderr.trim());
+        const matches = (path: string) => { let at = 0; for (const char of term) { at = path.indexOf(char, at) + 1; if (!at) return false; } return true; };
+        return result.stdout.split("\n").filter(path => path && matches(path.toLowerCase())).sort().slice(0, 1000);
+      }
       case "search.query": {
         const query = requireString(params, "query", 8192);
         if (!query) return [];

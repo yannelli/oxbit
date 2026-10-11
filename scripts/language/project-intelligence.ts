@@ -5,6 +5,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { WorkspaceFiles } from "../../apps/runtime/src/filesystem.js";
 import { LanguageServerManager } from "../../apps/runtime/src/lsp-manager.js";
+import { laravelPhpCommand } from "../../apps/runtime/src/managed/catalog.js";
 import { ProjectStore } from "../../apps/runtime/src/projects.js";
 
 const root = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-project-intelligence-"));
@@ -64,12 +65,14 @@ try {
   await fs.mkdir(path.join(root, "laravel"));
   await fs.writeFile(path.join(root, "laravel/artisan"), "<?php\n");
   await fs.writeFile(path.join(root, "laravel/composer.json"), '{"require":{"laravel/framework":"^13"}}');
-  const blade = await open("laravel", "laravel/resources/views/welcome.blade.php", "<h1>Hello</h1>\n@if(true)\n<p>Welcome</p>\n@endif\n");
-  assert(manager.status(blade.id).capabilities?.completionProvider);
-  assert(manager.status(blade.id).projectRootUri.endsWith("/laravel"));
-  pass("Pinned Laravel native LSP initialization and Blade activation");
-  const bladeHover = await blade.request("textDocument/hover", { position: { line: 1, character: 2 } });
-  console.log("Laravel Blade hover", JSON.stringify(bladeHover).slice(0, 300));
+  if (await laravelPhpCommand(root, process.env).then(() => true, () => false)) {
+    const blade = await open("laravel", "laravel/resources/views/welcome.blade.php", "<h1>Hello</h1>\n@if(true)\n<p>Welcome</p>\n@endif\n");
+    assert(manager.status(blade.id).capabilities?.completionProvider);
+    assert(manager.status(blade.id).projectRootUri.endsWith("/laravel"));
+    pass("Pinned Laravel native LSP initialization and Blade activation");
+    const bladeHover = await blade.request("textDocument/hover", { position: { line: 1, character: 2 } });
+    console.log("Laravel Blade hover", JSON.stringify(bladeHover).slice(0, 300));
+  } else console.log("SKIP Laravel: no PHP on this host");
   await project.refresh();
   assert(project.info().frameworks.includes("laravel/framework"));
   assert((await project.relations("helper.ts")).importedBy.includes("README.mdx"));

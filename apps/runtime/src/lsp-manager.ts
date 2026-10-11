@@ -5,7 +5,7 @@ import { languageIdForPath, resolveLanguage, matchesFilePattern, validateFileAss
 import { RpcError } from "@oxbit/protocol";
 import { LanguageServer } from "./lsp.js";
 import { WorkspaceFiles } from "./filesystem.js";
-import { deferToRuff, serverCatalog, resolveLaunch, type LaunchSpec } from "./managed/catalog.js";
+import { deferToRuff, laravelPhpCommand, serverCatalog, resolveLaunch, type LaunchSpec } from "./managed/catalog.js";
 import { ManagedInstaller, fingerprint } from "./managed/install.js";
 import { setting } from "./branding.js";
 import { JsonSchemas } from "./json-schemas.js";
@@ -111,6 +111,8 @@ export class LanguageServerManager {
           else spec = await resolveLaunch(definition.id, root, this.installer, signal);
           spec = { ...spec, args: definition.args ?? spec.args, env: { ...spec.env, ...definition.env }, initializationOptions: merge(spec.initializationOptions, definition.initializationOptions), settings: merge(spec.settings, definition.settings) };
           if (ruff) spec = deferToRuff(spec);
+          if (definition.id === "laravel" && !spec.initializationOptions?.phpCommand && (spec.initializationOptions?.phpEnvironment ?? "auto") === "auto")
+            spec.initializationOptions = { ...spec.initializationOptions, phpCommand: await laravelPhpCommand(root, { ...process.env, ...spec.env }, signal) };
           if (definition.id === "json") {
             const options = this.project ? (await this.project.reload()).schemas : { catalog: true, download: true, associations: [] };
             spec.settings = await this.schemas.settings(spec.settings ?? {}, options);
@@ -146,7 +148,10 @@ export class LanguageServerManager {
         instance.server.closeDocument(file);
       }
       if (!instance.attachments.size && !instance.idle) {
-        instance.idle = setTimeout(() => { instance.idle = undefined; void this.stop(false, instance.id); }, this.idleMs);
+        instance.idle = setTimeout(() => {
+          instance.idle = undefined;
+          if (this.instances.get(instance.id) === instance) void this.stop(false, instance.id);
+        }, this.idleMs);
         instance.idle.unref();
       }
     }

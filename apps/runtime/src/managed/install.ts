@@ -105,15 +105,16 @@ export class ManagedInstaller {
         try {
           const pid = Number(await fs.readFile(path.join(lock, "owner"), "utf8"));
           if (pid > 0) { try { process.kill(pid, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ESRCH") { await fs.rm(lock, { recursive: true, force: true }); continue; } } }
-        } catch {
-          // Recover a host crash between creating the lock and writing its owner.
-          try { if (Date.now() - (await fs.stat(lock)).mtimeMs > 60_000) { await fs.rm(lock, { recursive: true, force: true }); continue; } } catch { /* Another waiter recovered it. */ }
-        }
+        } catch { /* A crash between creating the lock and writing its owner leaves no owner; the age check recovers it. */ }
+        // The holder touches the lock every 10 seconds. An older lock outlived its holder, even when another process reuses that ID.
+        try { if (Date.now() - (await fs.stat(lock)).mtimeMs > 60_000) { await fs.rm(lock, { recursive: true, force: true }); continue; } } catch { /* Another waiter recovered it. */ }
         if (Date.now() > deadline) throw new Error("Timed out waiting for another language server installation");
         await delay(100, undefined, { signal });
       }
     }
     const stage = path.join(base, `.staging-${randomUUID()}`);
+    const heartbeat = setInterval(() => void fs.utimes(lock, new Date(), new Date()).catch(() => {}), 10_000);
+    heartbeat.unref();
     try {
       if (await complete()) return target;
       for (const name of await fs.readdir(base)) if (name.startsWith(".staging-")) await fs.rm(path.join(base, name), { recursive: true, force: true });
@@ -126,6 +127,7 @@ export class ManagedInstaller {
       await fs.rename(stage, target);
       return target;
     } finally {
+      clearInterval(heartbeat);
       await fs.rm(stage, { recursive: true, force: true });
       await fs.rm(lock, { recursive: true, force: true });
     }

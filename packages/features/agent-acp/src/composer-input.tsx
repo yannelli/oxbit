@@ -161,7 +161,7 @@ export function ComposerInput({
     const abort = new AbortController();
     const timer = setTimeout(() => {
       Promise.all([
-        search.current.findFiles(mentionTerm, abort.signal),
+        search.current.findFiles(mentionTerm, abort.signal).catch((): string[] => []),
         search.current.findSymbols(mentionTerm, abort.signal).catch((): SymbolMention[] => []),
         search.current.findCommits(mentionTerm, abort.signal).catch((): CommitMention[] => []),
       ]).then(

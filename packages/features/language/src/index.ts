@@ -5,6 +5,7 @@ import { documentationPopups, showDocumentation, showSignature } from "./popups.
 import { logLinkExtensions } from "./log-links.js";
 import { languages, languageForKernel, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
 import { LocalLanguageTransport } from "./local.js";
+import { managedServerName } from "./managed-extensions.js";
 import { translate as tr } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
 import {
@@ -281,7 +282,7 @@ export class LanguageService {
       transport ??
       o.kernel.services.optional<LanguageTransport>("language.transport") ??
       new RuntimeLanguageTransport(o);
-    if (!(this.transport instanceof RuntimeLanguageTransport)) this.state = "stopped";
+    if (providerContext || !(this.transport instanceof RuntimeLanguageTransport)) this.state = "stopped";
     this.bindNotifications();
     this.subscriptions.push(o.kernel.configuration.subscribe(() => {
       for (const overlay of this.overlays.values()) overlay.refresh(true);
@@ -458,7 +459,9 @@ export class LanguageService {
       if (this.disposed || generation !== this.generation || this.starting) return;
       this.name = status.name ?? this.name;
       this.paused = status.paused ?? false;
+      this.error = status.error ?? "";
       if (status.state === "ready") await this.start();
+      else if (status.state === "installing" || status.state === "starting") void this.start().catch(() => {});
       else this.stopped(status.state);
     } catch { /* A disconnected or untrusted runtime cannot expose language status. */ }
   }
@@ -534,6 +537,7 @@ export class LanguageService {
         })().catch(() => false).then(found => {
           if (this.disposed || generation !== this.laravelGeneration) return;
           this.laravelProjects.set(directory, found); this.laravelLookups.delete(directory); this.providersChanged();
+          if (found) this.startShown(directory);
         });
       }
       if (!this.laravelProjects.get(directory)) presets = presets.filter(id => id !== "laravel");
@@ -544,7 +548,15 @@ export class LanguageService {
       if (configured?.enabled === false) return false;
       if (!configured?.selectors) return presets.includes(id);
       return selectorsMatch(configured.selectors, definition.id, path);
-    }).sort((a, b) => (settings[b]?.priority ?? 0) - (settings[a]?.priority ?? 0) || a.localeCompare(b)).map(id => ({ id, language: definition.id, title: languages.find(item => item.id === definition.id)?.title ?? definition.id }));
+    }).sort((a, b) => (settings[b]?.priority ?? 0) - (settings[a]?.priority ?? 0) || a.localeCompare(b)).map(id => ({ id, language: definition.id, title: managedServerName(id) }));
+  }
+  /** Starts servers that joined after the editor opened, such as Laravel once the artisan lookup finishes. */
+  private startShown(directory: string) {
+    const services = [this, ...this.managedServices.values(), ...[...this.transports.values()].map(record => record.service)];
+    for (const path of new Set(services.flatMap(service => [...service.views.keys()])))
+      if (path.split("/").slice(0, -1).join("/") === directory)
+        for (const service of this.servicesForPath(path))
+          if (service.transport instanceof RuntimeLanguageTransport && service.state === "stopped" && service.canUseLsp(path)) void service.start().catch(() => {});
   }
   servicesForPath(path: string): LanguageService[] {
     if (this.disposed) return [];
@@ -860,7 +872,9 @@ export class LanguageService {
       } catch (error) {
         if (generation === this.generation && !this.disposed) {
           this.state = "failed";
-          this.error = String(error);
+          this.error = (error as { code?: string })?.code === "TIMEOUT" && this.transport instanceof RuntimeLanguageTransport
+            ? "Timed out waiting for the runtime to start this language server. Retry to check it again."
+            : String(error);
           this.updateContext();
         }
         throw error;

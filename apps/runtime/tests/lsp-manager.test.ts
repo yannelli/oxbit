@@ -4,7 +4,8 @@ import path from "node:path";
 import os from "node:os";
 import { WorkspaceFiles } from "../src/filesystem.js";
 import { LanguageServerManager, yamlSchemaSettings } from "../src/lsp-manager.js";
-import { deferToRuff, resolveLaunch, serverCatalog } from "../src/managed/catalog.js";
+import { deferToRuff, laravelPhpCommand, resolveLaunch, serverCatalog } from "../src/managed/catalog.js";
+import { LanguageServer } from "../src/lsp.js";
 import { fingerprint, lockedPackages, ManagedInstaller, managedPlatforms, verifyIntegrity } from "../src/managed/install.js";
 import nativeLock from "../src/managed/artifacts.lock.json" with { type: "json" };
 import { createHash } from "node:crypto";
@@ -58,6 +59,14 @@ describe("project language instances", () => {
     await expect(manager.projectRoot("escape/file.ts", ["package.json"])).rejects.toThrow();
     await expect(manager.attach("main.ts", "one", { typescript: { enabled: false } })).rejects.toThrow("No enabled");
   });
+  it("ignores the idle timer of an instance that dispose removed", async () => {
+    const { manager } = await setup(50);
+    await manager.attach("main.ts", "one");
+    const disposing = manager.dispose();
+    manager.detach("one");
+    await disposing;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
   it("retains manual Stop across detach and reconnect", async () => {
     const { manager } = await setup();
     const a = await manager.attach("main.ts", "one");
@@ -80,6 +89,48 @@ describe("project language instances", () => {
     expect(Object.values(manager.versions(a.instanceId))).toEqual([2]);
     manager.detach("two");
     expect(manager.versions(a.instanceId)).toEqual({});
+  });
+});
+describe("Laravel PHP and start phases", () => {
+  async function stubs(root: string, scripts: Record<string, string>) {
+    const bin = path.join(root, "stub-bin");
+    await fs.mkdir(bin, { recursive: true });
+    for (const [name, body] of Object.entries(scripts)) await fs.writeFile(path.join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+    return bin;
+  }
+  it("bounds each PHP probe and passes the PHP binary it finds", async () => {
+    const { root } = await setup();
+    const bin = await stubs(root, { herd: "/bin/sleep 30", php: "printf %s /opt/php/bin/php" });
+    const started = Date.now();
+    expect(await laravelPhpCommand(root, { PATH: bin }, undefined, 300)).toEqual(["/opt/php/bin/php"]);
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+  it("uses Sail from the project before a host PHP", async () => {
+    const { root } = await setup();
+    await fs.mkdir(path.join(root, "vendor/bin"), { recursive: true });
+    await fs.writeFile(path.join(root, "vendor/bin/sail"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const bin = await stubs(root, { php: "printf %s /usr/bin/php" });
+    expect(await laravelPhpCommand(root, { PATH: bin }, undefined, 2000)).toEqual(["./vendor/bin/sail", "php"]);
+  });
+  it("fails with the fix when the host has no PHP", async () => {
+    const { root } = await setup();
+    const bin = await stubs(root, {});
+    await expect(laravelPhpCommand(root, { PATH: bin }, undefined, 2000)).rejects.toThrow("Laravel needs PHP on the runtime host");
+  });
+  it("reports the current phase to a client that joins a start in progress", async () => {
+    const { root } = await setup();
+    const events: unknown[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const server = new LanguageServer(new WorkspaceFiles(root), (method, params) => { if (method === "oxbit/serverState") events.push(params); }, {
+      name: "Fixture", prepare: async () => { await gate; throw new Error("Offline"); },
+    });
+    const first = server.start(true), second = server.start();
+    expect(events).toEqual([{ state: "installing" }, { state: "installing" }]);
+    release();
+    await expect(first).rejects.toThrow("Offline");
+    await expect(second).rejects.toThrow("Offline");
+    expect(events.at(-1)).toMatchObject({ state: "stopped", error: "Offline" });
   });
 });
 describe("managed installation locks", () => {
@@ -159,6 +210,20 @@ it("installs atomically once across concurrent callers and retains a working dig
   const controller = new AbortController(); controller.abort();
   await expect(installer.install("fixture", "next", build, controller.signal)).rejects.toThrow();
   expect(await installer.install("fixture", "next", async (stage: string) => fs.writeFile(path.join(stage, "server"), "recovered"))).not.toBe(a);
+});
+
+it("recovers a lock that outlived its holder even when that process ID is alive", async () => {
+  const { root } = await setup();
+  const cache = path.join(root, "stale-cache"), installer = new ManagedInstaller(cache, "linux-x64") as any;
+  const lock = path.join(cache, "fixture-linux-x64", ".install-lock");
+  await fs.mkdir(lock, { recursive: true });
+  await fs.writeFile(path.join(lock, "owner"), String(process.pid));
+  const stale = new Date(Date.now() - 120_000);
+  await fs.utimes(lock, stale, stale);
+  const started = Date.now();
+  const target = await installer.install("fixture", "digest", async (stage: string) => fs.writeFile(path.join(stage, "server"), "installed"));
+  expect(await fs.readFile(path.join(target, "server"), "utf8")).toBe("installed");
+  expect(Date.now() - started).toBeLessThan(5000);
 });
 
 it("repairs an interrupted installed tree after staging a complete replacement", async () => {

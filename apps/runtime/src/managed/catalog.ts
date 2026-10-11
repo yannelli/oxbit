@@ -6,8 +6,11 @@ import cargoConfigSchema from "./schemas/cargo-config.json" with { type: "json" 
 import path from "node:path";
 import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
+import { spawn } from "node:child_process";
 import type { LanguageServerDefinition } from "@oxbit/sdk";
 import { ManagedInstaller } from "./install.js";
+import { trackChild } from "../owned-processes.js";
+import { killProcess } from "../process-lifecycle.js";
 const js = ["typescript", "typescriptreact", "javascript", "javascriptreact"];
 const preset = (id: string, name: string, languages: string[], rootMarkers: string[]): LanguageServerDefinition => ({ id, name, selectors: languages.map(language => ({ language })), rootMarkers, priority: 0 });
 export const serverCatalog: readonly LanguageServerDefinition[] = [
@@ -55,6 +58,40 @@ export function deferToRuff(spec: LaunchSpec): LaunchSpec {
     settings: { ...spec.settings, basedpyright: { ...spec.settings?.basedpyright, analysis: { ...analysis, diagnosticSeverityOverrides } } },
     diagnostics: diagnostics => diagnostics.filter(item => item.code !== undefined),
   };
+}
+/** The Laravel server's `auto` PHP detection order (laravel/lsp 0.0.31 `PhpCommandDetector`). */
+const phpProbes: { command: string[]; php: (output: string) => string[] | undefined }[] = [
+  { command: ["herd", "which-php"], php: output => output.includes("No usable PHP version found") ? undefined : [output.trim()] },
+  { command: ["valet", "which-php"], php: output => [output.trim()] },
+  { command: ["./vendor/bin/sail", "ps"], php: () => ["./vendor/bin/sail", "php"] },
+  { command: ["lando", "php", "-r", "echo PHP_BINARY;"], php: () => ["lando", "php"] },
+  { command: ["ddev", "php", "-r", "echo PHP_BINARY;"], php: () => ["ddev", "php"] },
+  { command: ["php", "-r", "echo PHP_BINARY;"], php: output => [output.trim()] },
+];
+function probe(command: string[], cwd: string, env: NodeJS.ProcessEnv, timeout: number, signal?: AbortSignal) {
+  return new Promise<string | undefined>(resolve => {
+    const child = spawn(command[0], command.slice(1), { cwd, env, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "ignore"] });
+    trackChild(child);
+    let output = "";
+    const finish = (value?: string) => { clearTimeout(timer); signal?.removeEventListener("abort", stop); resolve(value); };
+    const stop = () => { killProcess(child); finish(); };
+    const timer = setTimeout(stop, timeout);
+    signal?.addEventListener("abort", stop, { once: true });
+    child.stdout.on("data", (data: Buffer) => { output = (output + data.toString()).slice(-4096); });
+    child.on("error", () => finish());
+    child.on("close", code => finish(code === 0 ? output : undefined));
+  });
+}
+/** Resolves `initializationOptions.phpCommand` with a time limit per probe; the server's own probes have none and block `initialize`. */
+export async function laravelPhpCommand(root: string, env: NodeJS.ProcessEnv, signal?: AbortSignal, timeout = 5000): Promise<string[]> {
+  for (const { command, php } of phpProbes) {
+    signal?.throwIfAborted();
+    const output = await probe(command, root, env, timeout, signal);
+    const found = output === undefined ? undefined : php(output);
+    if (found?.[0]) return found;
+  }
+  signal?.throwIfAborted();
+  throw new Error("Laravel needs PHP on the runtime host. No PHP was found through Herd, Valet, Sail, Lando, DDEV or php on PATH. Install PHP or set languageServers.laravel.initializationOptions.phpCommand.");
 }
 const npmPresets: Record<string, [string, string, string[]?]> = {
   typescript: ["typescript-language-server", "lib/cli.mjs", ["typescript"]],
