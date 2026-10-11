@@ -969,13 +969,14 @@ export function createFeature(options: FeatureOptions): Extension {
       configuration: agentConfiguration,
     },
     activate(ctx) {
-      const runtime =
-        options.runtime ??
-        new LocalAgentRuntime(options, () =>
-          options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE),
-        );
-      const agent = new AgentController({ ...options, runtime });
+      const local = options.runtime
+        ? undefined
+        : new LocalAgentRuntime(options, () =>
+            options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE),
+          );
+      const agent = new AgentController({ ...options, runtime: options.runtime ?? local });
       ctx.own(agent);
+      if (local) ctx.own(local);
       ctx.own(watchThreads(agent, () => options.workbench.panelVisible?.(AGENT_VIEW) === true));
       ctx.own(ctx.services.register("agentACP", agent));
       ctx.own(
