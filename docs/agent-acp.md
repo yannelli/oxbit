@@ -65,6 +65,33 @@ arguments. If Cursor is installed as `cursor-agent`, use that executable with `a
 The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
 
+### Oxbit Agent without a runtime
+
+Added 2026-10-11. In iOS device folders, which have no runtime, the picker offers
+**Oxbit Agent** and marks the other agents "Needs a runtime workspace". The agent
+runs in the app (`packages/features/agent-acp/src/local/`) and calls a model API
+with the user's key:
+
+| `agentACP.oxbit.api` | API |
+| --- | --- |
+| `openai` (default) | OpenAI Responses |
+| `anthropic` | Anthropic Messages |
+| `openai-compatible` | Chat Completions at `agentACP.oxbit.baseUrl` |
+
+- **Agent setup** saves the key in the iOS Keychain; settings hold only the API,
+  base URL and model. Start without a key shows "Add an API key in Agent setup".
+- The model list comes from `GET /v1/models`; the model and reasoning controls are
+  session settings, and the chosen model is saved to `agentACP.oxbit.model`.
+- Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
+  and edits open the same review card as other agents. There is no shell.
+- **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
+- The registry, runtime sessions and checkpoints need a runtime workspace.
+- API details: [Model APIs for the built-in Oxbit agent](agent-model-apis.md).
+  Keychain and request handling on iOS: [In-app agent on iOS](ios.md#in-app-agent-on-ios).
+- Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
+  file write through a scripted model), `tests/ios/agent-models.spec.ts`. No request
+  to a real model API and no device run yet.
+
 ### ACP Registry agents
 
 The runtime fetches the registry when **More agents…** opens, when the chosen
