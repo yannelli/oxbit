@@ -161,3 +161,39 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review an
   expect(requests[1].body.model).toBe("model-b");
   expect(JSON.stringify(requests)).not.toContain("sk-test");
 });
+
+test("with the keyboard open the @ list sits between the status bar and the composer, and tapping an entry attaches it", async ({ page }, info) => {
+  const panel = await open(page, true);
+  await page.evaluate(() => (window as any).__oxbit.filesystem.write("pelican-notes.md", "tide table\n", { expectedRevision: null }));
+  const composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  const before = (await composer.boundingBox())!;
+  const keyboard = Math.round(before.y - 300);
+  const statusBar = 59;
+  // iOS WebKit with the keyboard open: client rects follow the visual viewport, which sits `keyboard` px down the layout viewport.
+  await composer.evaluate((input, { keyboard, statusBar }) => {
+    const view = input.ownerDocument.defaultView!;
+    Object.defineProperty(view.visualViewport, "offsetTop", { configurable: true, get: () => keyboard });
+    Object.defineProperty(view.visualViewport, "height", { configurable: true, get: () => view.innerHeight });
+    const measure = Element.prototype.getBoundingClientRect;
+    for (const element of [input, input.parentElement!.querySelector(".acp-slash-commands")!])
+      element.getBoundingClientRect = function () {
+        const rect = measure.call(this);
+        return new DOMRect(rect.x, rect.y - keyboard, rect.width, rect.height);
+      };
+    input.ownerDocument.documentElement.style.setProperty("--safe-area-top", `${statusBar}px`);
+  }, { keyboard, statusBar });
+  expect((await composer.boundingBox())!.y).toBe(before.y);
+
+  await composer.fill("explain @pelican");
+  const mentions = page.getByRole("listbox", { name: "Mention files and context" });
+  const option = mentions.getByRole("option", { name: /pelican-notes\.md/ });
+  await expect(option).toBeVisible();
+  await expect(mentions.getByRole("option")).toHaveCount(1);
+  const list = (await mentions.boundingBox())!;
+  expect(list.y).toBeGreaterThanOrEqual(keyboard + statusBar);
+  expect(list.y + list.height).toBeLessThanOrEqual(before.y);
+  await (info.project.use.hasTouch ? option.tap() : option.click());
+  await expect(panel.getByRole("button", { name: "Remove attachment pelican-notes.md" })).toBeVisible();
+  await expect(composer).toHaveValue("explain @pelican-notes.md ");
+});

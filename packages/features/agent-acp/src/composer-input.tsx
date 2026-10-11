@@ -187,23 +187,29 @@ export function ComposerInput({
     const owner = input?.ownerDocument.defaultView;
     if (!open || !list || !input || !owner) return;
     const position = () => {
+      // iOS WebKit with the keyboard open measures client rects from the visual viewport and places fixed boxes in the layout viewport.
+      Object.assign(list.style, { left: "0px", top: "0px", bottom: "auto" });
+      const origin = list.getBoundingClientRect();
+      Object.assign(list.style, { top: "auto", bottom: "0px" });
+      const end = list.getBoundingClientRect().bottom;
       const rect = input.getBoundingClientRect();
       const viewport = owner.visualViewport;
-      const top = viewport?.offsetTop ?? 0;
-      const left = viewport?.offsetLeft ?? 0;
+      const top = origin.top + (viewport?.offsetTop ?? 0);
+      const left = origin.left + (viewport?.offsetLeft ?? 0);
       const width = viewport?.width ?? owner.innerWidth;
-      const bottom = top + (viewport?.height ?? owner.innerHeight);
+      const bottom = Math.min(end, top + (viewport?.height ?? owner.innerHeight));
       const upward = rect.top - top >= bottom - rect.bottom;
+      const space = upward ? `${rect.top - top - 12}px - var(--safe-area-top)` : `${bottom - rect.bottom - 12}px`;
       Object.assign(list.style, {
         width: `${Math.min(rect.width, width - 16)}px`,
-        maxHeight: `${Math.max(0, Math.min(240, (upward ? rect.top - top : bottom - rect.bottom) - 12))}px`,
-        left: `${Math.max(left + 8, Math.min(rect.left, left + width - rect.width - 8))}px`,
-        top: upward ? "auto" : `${rect.bottom + 4}px`,
-        bottom: upward ? `${owner.innerHeight - rect.top + 4}px` : "auto",
+        maxHeight: `max(0px, min(240px, ${space}))`,
+        left: `${Math.max(left + 8, Math.min(rect.left, left + width - rect.width - 8)) - origin.left}px`,
+        top: upward ? "auto" : `${rect.bottom + 4 - origin.top}px`,
+        bottom: upward ? `${end - rect.top + 4}px` : "auto",
       });
     };
-    position();
     list.showPopover();
+    position();
     owner.addEventListener("resize", position);
     owner.addEventListener("scroll", position, true);
     owner.visualViewport?.addEventListener("resize", position);
