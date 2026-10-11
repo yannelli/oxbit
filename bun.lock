@@ -31,7 +31,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.4.1",
+      "version": "0.8.0",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -53,7 +53,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.4.1",
+      "version": "0.8.0",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/feature-runtime": "workspace:*",
@@ -72,9 +72,16 @@
         "@tauri-apps/cli": "2.11.4",
       },
     },
+    "apps/push-relay": {
+      "name": "@oxbit/push-relay",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@oxbit/sdk": "workspace:*",
+      },
+    },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.4.1",
+      "version": "0.8.0",
       "dependencies": {
         "@oxbit/core": "workspace:*",
         "@oxbit/protocol": "workspace:*",
@@ -878,6 +885,8 @@
     "@oxbit/ios": ["@oxbit/ios@workspace:apps/ios"],
 
     "@oxbit/protocol": ["@oxbit/protocol@workspace:packages/protocol"],
+
+    "@oxbit/push-relay": ["@oxbit/push-relay@workspace:apps/push-relay"],
 
     "@oxbit/runtime": ["@oxbit/runtime@workspace:apps/runtime"],
 
@@ -2444,7 +2453,6 @@
     "wrap-ansi-cjs/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
 
     "yaml-language-server/vscode-languageserver": ["vscode-languageserver@9.0.1", "", { "dependencies": { "vscode-languageserver-protocol": "3.17.5" }, "bin": { "installServerIntoExtension": "bin/installServerIntoExtension" } }, "sha512-woByF3PDpkHFUreUa7Hos7+pUWdeWMXRd26+ZX2A8cFx6v/JPTtd4/uN0/jB6XQHYaOlHbio03NTHCqrgG5n7g=="],
-
 
     "yaml-language-server/vscode-languageserver-types": ["vscode-languageserver-types@3.17.5", "", {}, "sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg=="],
 
