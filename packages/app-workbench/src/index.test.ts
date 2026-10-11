@@ -41,6 +41,7 @@ vi.doMock("@oxbit/workbench", () => ({
   WorkbenchController: class {
     state = { groups: [{ tabs: [{ path: "index.ts" }] }], files: [] };
     documentChanged = vi.fn();
+    scheduleRefreshFiles = vi.fn();
     notify = vi.fn();
     touch = vi.fn();
     restore = vi.fn(async () => {});
@@ -105,6 +106,10 @@ describe("session disposal", () => {
 
       emit("connection.change", { state: "disconnected" });
       expect(session.kernel.context.get("connected")).toBe(false);
+      expect(session.workbench.scheduleRefreshFiles).not.toHaveBeenCalled();
+      emit("connection.change", { state: "connected" });
+      expect(session.workbench.scheduleRefreshFiles).toHaveBeenCalledOnce();
+      emit("connection.change", { state: "disconnected" });
       emit("workspace.trust", { trusted: true });
       expect(session.kernel.context.get("trusted")).toBe(true);
       vi.mocked(session.workbench.documentChanged).mockClear();

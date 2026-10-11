@@ -171,6 +171,7 @@ export async function createWorkbenchSession({
     await documents.restore();
     const options = { kernel, documents, filesystem, runtime, git, workbench };
     const connection = runtime?.subscribe("connection.change", ({ state }) => {
+      if (state === "connected") workbench.scheduleRefreshFiles();
       kernel.context.set("connected", state === "connected");
       kernel.context.set(
         "trusted",
