@@ -96,8 +96,37 @@ A runtime started over [SSH](ios-ssh.md) receives a keep-alive lease in its laun
 
 When the app returns, Oxbit checks that the recorded process still runs the Oxbit runtime and that `/api/health` reports the same runtime `id` as at launch. If both hold, it reopens the tunnel to that runtime with the same token, and terminals and tasks continue. The workspace reports "Reconnected to the running runtime." If either check fails, Oxbit stops the old process and launches a new runtime. A reattached runtime has no launch channel, so it receives no heartbeats and cannot forward new task ports until it is relaunched. Closing the workspace stops a reattached runtime by process ID.
 
+### In-app agent on iOS
+
+Device folders (the Oxbit Documents folder and Files app folders) register the `agentModels` service (`AGENT_MODELS_SERVICE` in `@oxbit/sdk`) with `IosAgentModels` from `@oxbit/host-ios`. Runtime and SSH workspaces do not register it. The WebView's `connect-src` has no `https:`, so model API requests run in Swift: `AgentModels.swift` and `AgentModelEndpoint.swift` in the `oxbit-files` plugin.
+
+| Command | Arguments | Result |
+| --- | --- | --- |
+| `agent_models_key` | `operation` (`has`, `save`, `remove`), `api`, `baseUrl`, `key` for `save` | `has` returns `{ saved }`. No command returns the key. |
+| `agent_models_stream` | `id`, `api`, `baseUrl`, `method` (`GET` or `POST`), `path`, `body` as JSON text, `channel` | Resolves once the task starts. The channel receives `chunk` events with base64 body bytes, then `end` with the status, or `failed` with the URLSession error. For a non-2xx status, `end` carries the first 64 KiB of the body. A missing key rejects with code `MISSING_KEY` and `Add an API key in Agent setup`. |
+| `agent_models_cancel` | `id` | Cancels the task and drops its remaining events. Resolves for finished and unknown ids. |
+
+`IosAgentModels.stream` decodes the chunks with `TextDecoder`, so a character split across two network reads arrives whole. A non-2xx status throws an `AgentModelError` with `status` and `body`. Aborting its `AbortSignal`, or leaving the `for await` loop early, sends `agent_models_cancel`; an abort rethrows the signal's reason.
+
+Keys are Keychain generic passwords under the service `com.yannelli.oxbit.agent`, with the account `<api> <origin>`, for example `openai https://api.openai.com` or `openai-compatible https://openrouter.ai`. Items use `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, so they stay on the device. `save` accepts printable ASCII without spaces.
+
+| `api` | Base | Authentication |
+| --- | --- | --- |
+| `openai` | `https://api.openai.com` | `Authorization: Bearer <key>` |
+| `anthropic` | `https://api.anthropic.com` | `x-api-key: <key>` and `anthropic-version: 2023-06-01` |
+| `openai-compatible` | The `https://` `baseUrl`, origin plus optional path prefix | `Authorization: Bearer <key>` |
+
+Requests stay on the endpoint's origin. A `baseUrl` with credentials, a query, or a fragment is rejected. The `path` must start with `/` and cannot contain `..`, `%2e`, a backslash, a fragment, or whitespace; the final URL must keep the base's scheme, host, and port and stay under its path prefix. The URLSession delegate refuses redirects, so a 3xx ends the request as a non-2xx error. The session is ephemeral, without cookies or a URL cache. Anthropic lists `Authorization: Bearer` as its primary header and `x-api-key` as a supported legacy fallback; Oxbit sends `x-api-key`.
+
+`tests/ios/bridge.ts` mocks the three commands: `agentResponses` scripts SSE answers by path, and `agentKeys` seeds saved keys as `api origin`. `tests/ios/agent-models.spec.ts` reaches the service through `window.__oxbit`, which `main.tsx` sets in Vite dev builds.
+
 ### References
 
+- Apple, [`urlSession(_:task:willPerformHTTPRedirection:newRequest:completionHandler:)`](https://developer.apple.com/documentation/foundation/urlsessiontaskdelegate/urlsession(_:task:willperformhttpredirection:newrequest:completionhandler:)): passing `nil` refuses the redirect and returns the redirect response's body.
+- Apple, [`urlSession(_:dataTask:didReceive:)`](https://developer.apple.com/documentation/foundation/urlsessiondatadelegate/urlsession(_:datatask:didreceive:))
+- Apple, [`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`](https://developer.apple.com/documentation/security/ksecattraccessibleafterfirstunlockthisdeviceonly)
+- Anthropic, [API overview](https://platform.claude.com/docs/en/api/overview) (authentication headers) and [Versions](https://platform.claude.com/docs/en/api/versioning) (`2023-06-01`)
+- OpenAI, [OpenAPI specification](https://github.com/openai/openai-openapi/blob/manual_spec/openapi.yaml): `ApiKeyAuth` is HTTP bearer authentication.
 - Apple, [NWBrowser](https://developer.apple.com/documentation/network/nwbrowser)
 - Apple, [NSBonjourServices](https://developer.apple.com/documentation/bundleresources/information-property-list/nsbonjourservices)
 - [RFC 6762: Multicast DNS](https://www.rfc-editor.org/rfc/rfc6762)

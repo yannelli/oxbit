@@ -2,14 +2,17 @@ import type { Page } from "@playwright/test";
 
 export interface BridgeRuntime { runtimeId: string; name: string; version?: string; host: string; port: number; url: string }
 export interface BridgeAccount { id: string; provider: "github" | "gitea"; host: string; url?: string; login: string; isDefault: boolean }
+/** One scripted model API answer: `chunks` stream `delay` ms apart (default 5), then `status` (default 200) ends it with `body`. */
+export interface BridgeAgentResponse { status?: number; chunks?: string[]; body?: string; delay?: number }
 
 /** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
 /** An added token names its login; the token `rejected` fails validation. */
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
 /** `notificationTapped` launches the app from a notification tap; `__iosTest.tapNotification()` taps one later. */
 /** `notificationPermission` seeds the iOS permission; `__iosTest.liveActivityToken(hex)` reports a Live Activity push token. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default" } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission }) => {
+/** `agentResponses` answers model requests by path; a list answers successive requests and repeats its last entry. `agentKeys` seeds saved keys as `api origin`. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[] } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -75,6 +78,45 @@ export async function installBridge(page: Page, { repository = false, accounts =
       activityToken = token;
       if (activityTokenChannel) callbacks.get(activityTokenChannel.id)?.({ index: activityTokenIndex++, message: { token } });
     };
+    const agentKeys = new Map(seededKeys.map(account => [account, "sk-seeded"]));
+    const agentRequests: { id: string; api: string; baseUrl?: string; method: string; path: string; body?: unknown }[] = [];
+    const agentCancels: string[] = [];
+    const agentTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    const agentUses = new Map<string, number>();
+    const agentAccount = (api: string, baseUrl?: string) => {
+      if (api === "openai") return "openai https://api.openai.com";
+      if (api === "anthropic") return "anthropic https://api.anthropic.com";
+      const url = new URL(baseUrl ?? "");
+      if (api !== "openai-compatible" || url.protocol !== "https:")
+        throw { code: "AGENT_MODELS", message: "Enter an https:// base URL without credentials, a query, or a fragment." };
+      return `${api} ${url.origin}`;
+    };
+    const base64 = (text: string) => btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+    function agentStream(args: { id: string; api: string; baseUrl?: string; method: string; path: string; body?: string; channel: { id: number } }) {
+      if (!agentKeys.has(agentAccount(args.api, args.baseUrl))) throw { code: "MISSING_KEY", message: "Add an API key in Agent setup" };
+      const { id, api, baseUrl, method, path } = args;
+      agentRequests.push({ id, api, baseUrl, method, path, body: args.body === undefined ? undefined : JSON.parse(args.body) });
+      const script = agentResponses[path];
+      const list = Array.isArray(script) ? script : script ? [script] : [];
+      const uses = agentUses.get(path) ?? 0;
+      agentUses.set(path, uses + 1);
+      const response = list[Math.min(uses, list.length - 1)] ?? { status: 404, body: JSON.stringify({ error: { message: `No scripted response for ${path}` } }) };
+      const status = response.status ?? 200;
+      const ok = status >= 200 && status < 300;
+      const steps: unknown[] = [
+        ...ok ? (response.chunks ?? []).map(text => ({ type: "chunk", data: base64(text) })) : [],
+        ok ? { type: "end", status } : { type: "end", status, body: response.body ?? "" },
+      ];
+      let index = 0;
+      const next = () => {
+        const message = steps.shift();
+        if (!message) return;
+        callbacks.get(args.channel.id)?.({ index: index++, message });
+        if (steps.length) agentTimers.set(id, setTimeout(next, response.delay ?? 5));
+        else agentTimers.delete(id);
+      };
+      agentTimers.set(id, setTimeout(next, response.delay ?? 5));
+    }
     const callbacks = new Map<number, (event: unknown) => void>();
     const listeners: { id: number; event: string; handler: number }[] = [];
     const emit = (event: string, payload: unknown) => {
@@ -152,6 +194,20 @@ export async function installBridge(page: Page, { repository = false, accounts =
           if (tapChannel?.id === args.id) tapChannel = undefined;
           return;
         }
+        if (command === "plugin:oxbit-files|agent_models_stream") return agentStream(args);
+        if (command === "plugin:oxbit-files|agent_models_cancel") {
+          agentCancels.push(args.id);
+          clearTimeout(agentTimers.get(args.id));
+          agentTimers.delete(args.id);
+          return;
+        }
+        if (command === "plugin:oxbit-files|agent_models_key") {
+          const account = agentAccount(args.api, args.baseUrl);
+          if (args.operation === "has") return { saved: agentKeys.has(account) };
+          if (args.operation === "save") agentKeys.set(account, args.key);
+          if (args.operation === "remove") agentKeys.delete(account);
+          return;
+        }
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
         if (command === "ios_icon_packs_read") return [...packs.values()];
@@ -227,7 +283,10 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates, get opened() { return opened; }, get signing() { return signing; } },
+      __iosTest: {
+        closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
+        agentKeys, agentRequests, agentCancels, get opened() { return opened; }, get signing() { return signing; },
+      },
     });
-  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys });
 }

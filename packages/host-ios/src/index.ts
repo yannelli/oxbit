@@ -25,6 +25,7 @@ export {
   type GitSshPrompt,
   type PickedFile,
   type RemoteNotificationRegistration,
+  type AgentModelStreamEvent,
   type TransferProgress,
   type TransferSummary,
   type RemoteRuntimeStarted,
@@ -40,4 +41,5 @@ export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type Re
 export { searchRoot, findRootFiles } from "./search.js";
 export { IosNotification, installNotifications, notificationPermission, onNotificationGrant, type NotificationPermission } from "./notifications.js";
 export { IosPush, PUSH_DEVICE_KEY, PUSH_HANDLES_KEY } from "./push.js";
+export { IosAgentModels } from "./agent-models.js";
 export { IosSpeechRecognition, installSpeechRecognition, type SpeechErrorCode, type SpeechErrorEvent, type SpeechResultEvent } from "./speech.js";
