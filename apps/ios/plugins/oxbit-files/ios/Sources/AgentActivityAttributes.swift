@@ -26,6 +26,29 @@ public struct AgentActivityAttributes: ActivityAttributes {
       self.pending = pending
       self.startedAt = startedAt
     }
+
+    private enum CodingKeys: String, CodingKey {
+      case status, title, detail, pending, startedAt
+    }
+
+    /// `startedAt` is Unix epoch seconds, the format runtime pushes send in `content-state`.
+    public init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      status = try container.decode(Status.self, forKey: .status)
+      title = try container.decode(String.self, forKey: .title)
+      detail = try container.decode(String.self, forKey: .detail)
+      pending = try container.decode(Int.self, forKey: .pending)
+      startedAt = try container.decodeIfPresent(Double.self, forKey: .startedAt).map(Date.init(timeIntervalSince1970:))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      try container.encode(status, forKey: .status)
+      try container.encode(title, forKey: .title)
+      try container.encode(detail, forKey: .detail)
+      try container.encode(pending, forKey: .pending)
+      try container.encodeIfPresent(startedAt?.timeIntervalSince1970, forKey: .startedAt)
+    }
   }
 
   public var agent: String

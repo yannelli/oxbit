@@ -7,8 +7,9 @@ export interface BridgeAccount { id: string; provider: "github" | "gitea"; host:
 /** An added token names its login; the token `rejected` fails validation. */
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
 /** `notificationTapped` launches the app from a notification tap; `__iosTest.tapNotification()` taps one later. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped }) => {
+/** `notificationPermission` seeds the iOS permission; `__iosTest.liveActivityToken(hex)` reports a Live Activity push token. */
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default" } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -66,6 +67,14 @@ export async function installBridge(page: Page, { repository = false, accounts =
       if (tapChannel) callbacks.get(tapChannel.id)?.({ index: tapIndex++, message: {} });
       else tapped = true;
     };
+    let activityTokenChannel: { id: number } | undefined;
+    let activityTokenIndex = 0;
+    let activityToken: string | undefined;
+    const activityUpdates: unknown[] = [];
+    const liveActivityToken = (token: string) => {
+      activityToken = token;
+      if (activityTokenChannel) callbacks.get(activityTokenChannel.id)?.({ index: activityTokenIndex++, message: { token } });
+    };
     const callbacks = new Map<number, (event: unknown) => void>();
     const listeners: { id: number; event: string; handler: number }[] = [];
     const emit = (event: string, payload: unknown) => {
@@ -118,8 +127,20 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return signing;
         }
         if (command === "plugin:clipboard-manager|write_text") { copied.push(args.text); return; }
-        if (command === "plugin:oxbit-files|notification_permission") return { permission: "default" };
-        if (command === "plugin:oxbit-files|request_notification_permission") return { permission: "granted" };
+        if (command === "plugin:oxbit-files|notification_permission") return { permission: notificationPermission };
+        if (command === "plugin:oxbit-files|request_notification_permission") return { permission: notificationPermission = "granted" };
+        if (command === "plugin:oxbit-files|register_remote_notifications") return { token: "a1b2c3d4", environment: "development" };
+        if (command === "plugin:oxbit-files|live_activity") { activityUpdates.push(args.update); return { enabled: true }; }
+        if (command === "plugin:oxbit-files|watch_live_activity_tokens") {
+          activityTokenChannel = args.channel;
+          activityTokenIndex = 0;
+          if (activityToken) liveActivityToken(activityToken);
+          return;
+        }
+        if (command === "plugin:oxbit-files|unwatch_live_activity_tokens") {
+          if (activityTokenChannel?.id === args.id) activityTokenChannel = undefined;
+          return;
+        }
         if (command === "plugin:oxbit-files|notify") { notifications.push({ title: args.title, body: args.body, tag: args.tag }); return; }
         if (command === "plugin:oxbit-files|watch_notification_taps") {
           tapChannel = args.channel;
@@ -206,7 +227,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     Object.assign(window, {
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
-      __iosTest: { closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, get opened() { return opened; }, get signing() { return signing; } },
+      __iosTest: { closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates, get opened() { return opened; }, get signing() { return signing; } },
     });
-  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission });
 }

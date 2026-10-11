@@ -21,10 +21,21 @@ struct LiveActivityResult: Encodable {
   let enabled: Bool
 }
 
-/// Shows the current agent turn as a Live Activity while Oxbit runs. Updates come only from the
-/// app, so once iOS suspends it the activity keeps its last state until the stale date passes.
+struct WatchLiveActivityTokensArgs: Decodable {
+  let channel: Channel
+}
+
+struct UnwatchLiveActivityTokensArgs: Decodable {
+  let id: UInt64
+}
+
+/// Shows the current agent turn as a Live Activity. The app updates it while it runs; a runtime
+/// updates it through the activity's push token once iOS suspends the app.
 final class LiveActivity {
   private static let staleAfter: TimeInterval = 15 * 60
+  private var channel: Channel?
+  private var token: String?
+  private var observed = Set<String>()
 
   func handle(_ invoke: Invoke) {
     guard #available(iOS 16.2, *) else {
@@ -45,7 +56,7 @@ final class LiveActivity {
       }
       do {
         if let update = args.update {
-          try await LiveActivity.apply(update)
+          try await self.apply(update)
         } else {
           await LiveActivity.endAll()
         }
@@ -56,11 +67,58 @@ final class LiveActivity {
     }
   }
 
+  /// Reports each activity's push token in hex. A new channel receives the latest token first.
+  func watchTokens(_ invoke: Invoke) {
+    let args: WatchLiveActivityTokensArgs
+    do {
+      args = try invoke.parseArgs(WatchLiveActivityTokensArgs.self)
+    } catch {
+      invoke.reject(error.localizedDescription, code: "INVALID_ARGS")
+      return
+    }
+    Task { @MainActor in
+      self.channel = args.channel
+      if let token = self.token { args.channel.send(["token": token] as JsonObject) }
+      if #available(iOS 16.2, *) {
+        for activity in Activity<AgentActivityAttributes>.activities { self.observe(activity) }
+      }
+      invoke.resolve()
+    }
+  }
+
+  func unwatchTokens(_ invoke: Invoke) {
+    let args: UnwatchLiveActivityTokensArgs
+    do {
+      args = try invoke.parseArgs(UnwatchLiveActivityTokensArgs.self)
+    } catch {
+      invoke.reject(error.localizedDescription, code: "INVALID_ARGS")
+      return
+    }
+    Task { @MainActor in
+      if self.channel?.id == args.id { self.channel = nil }
+      invoke.resolve()
+    }
+  }
+
+  @available(iOS 16.2, *)
+  @MainActor
+  private func observe(_ activity: Activity<AgentActivityAttributes>) {
+    guard observed.insert(activity.id).inserted else { return }
+    Task { @MainActor in
+      for await data in activity.pushTokenUpdates {
+        let token = data.map { String(format: "%02x", $0) }.joined()
+        self.token = token
+        self.channel?.send(["token": token] as JsonObject)
+      }
+      self.observed.remove(activity.id)
+    }
+  }
+
   /// Finds or requests the activity before the first suspension so two quick updates for one
   /// agent cannot start two activities.
   @available(iOS 16.2, *)
   @MainActor
-  private static func apply(_ update: LiveActivityUpdate) async throws {
+  private func apply(_ update: LiveActivityUpdate) async throws {
     let now = Date()
     let state = AgentActivityAttributes.ContentState(
       status: update.status,
@@ -69,8 +127,9 @@ final class LiveActivity {
       pending: update.pending,
       startedAt: update.startedAt.map { Date(timeIntervalSince1970: $0 / 1000) })
     let ending = update.status == .finished || update.status == .failed
+    let staleAfter = LiveActivity.staleAfter
     let content = ActivityContent(state: state, staleDate: ending ? nil : now.addingTimeInterval(staleAfter))
-    if let activity = running(update.agent) {
+    if let activity = LiveActivity.running(update.agent) {
       if ending {
         await activity.end(content, dismissalPolicy: .after(now.addingTimeInterval(staleAfter)))
       } else {
@@ -78,8 +137,15 @@ final class LiveActivity {
       }
       return
     }
-    let activity = try Activity.request(
-      attributes: AgentActivityAttributes(agent: update.agent), content: content, pushType: nil)
+    let attributes = AgentActivityAttributes(agent: update.agent)
+    let activity: Activity<AgentActivityAttributes>
+    do {
+      activity = try Activity.request(attributes: attributes, content: content, pushType: .token)
+      observe(activity)
+    } catch {
+      // Keeps local updates when iOS refuses a push token, as without the aps-environment entitlement.
+      activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
+    }
     if ending {
       await activity.end(content, dismissalPolicy: .after(now.addingTimeInterval(staleAfter)))
     }

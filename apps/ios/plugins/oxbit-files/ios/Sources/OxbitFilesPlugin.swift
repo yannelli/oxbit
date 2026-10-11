@@ -33,6 +33,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let dictation = Dictation()
   private let liveActivity = LiveActivity()
   private let notifications = Notifications()
+  private let remoteNotifications = RemoteNotifications()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -95,6 +96,18 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func liveActivity(_ invoke: Invoke) {
     liveActivity.handle(invoke)
+  }
+
+  @objc public func watchLiveActivityTokens(_ invoke: Invoke) {
+    liveActivity.watchTokens(invoke)
+  }
+
+  @objc public func unwatchLiveActivityTokens(_ invoke: Invoke) {
+    liveActivity.unwatchTokens(invoke)
+  }
+
+  @objc public func registerRemoteNotifications(_ invoke: Invoke) {
+    remoteNotifications.register(invoke)
   }
 
   @objc public func notificationPermission(_ invoke: Invoke) {
