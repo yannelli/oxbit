@@ -67,8 +67,7 @@ test("Apply all, Undo all and Reject all review several agent writes at once", a
     expect([...order].sort()).toEqual(files);
     await bar.getByRole("button", { name: "Apply all" }).click();
     await expect.poll(app.disk).toEqual(files.map((file) => `agent edit ${file}\n`));
-    // Applying opens each file; on a phone the editor replaces the agent panel.
-    await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
+    expect(await page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("agent-acp"))).toBe(true);
     await app.ready();
     await expect(bar).toBeHidden();
 
