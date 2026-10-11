@@ -74,6 +74,8 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged | `agent-acp-checkpoints` |
+| Keep or reject all agent edits | Zed | Apply all and Reject all with two or more pending file changes; Undo all for applied edits | `agent-acp-review-queue`: Apply all, Undo all and Reject all |
+| Queue and reorder messages | Zed, Cursor, GitHub | Edit, remove, send now, and move up or down | `agent-acp-review-queue`: queued message moved up runs first; `agent-acp-composer`: send queued message now |
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button | `agent-acp-threads` |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% | `agent-acp-workflows`: 85% of context used |
 | Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts | `agent-acp-composer`: microphone; `tests/desktop/agent.e2e.mjs`: speech recognition; `packages/host-ios/src/speech.test.ts` |
@@ -97,9 +99,9 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 | `@` diff or commits | Branch diff | Commits | – | Git diffs | – | – | – | – | Uncommitted changes | Uncommitted changes |
 | Images | Yes | Yes | – | Yes | Yes | – | – | Yes | Yes | Yes |
 | Approve tool calls | – | Yes | Yes | – | Yes | Yes | Yes | – | Yes | Yes |
-| Review agent edits | Keep All, Reject All | Per-file revert | – | – | Diff pane | Diffs | – | Diff review | Per edit, with Undo | Per edit, with Undo |
+| Review agent edits | Keep All, Reject All | Per-file revert | – | – | Diff pane | Diffs | – | Diff review | Per edit with Undo; Apply all, Reject all, Undo all | Per edit with Undo; Apply all, Reject all, Undo all |
 | Checkpoints | Yes | – | Restore and fork | – | – | – | – | – | Restore, files only | Restore, files only |
-| Queued messages | Edit, remove, send now | – | – | Queue, reorder | – | – | Queue | – | Edit, remove, send now | Edit, remove, send now |
+| Queued messages | Edit, remove, send now | – | – | Queue, reorder | – | – | Queue | – | Edit, remove, send now, reorder | Edit, remove, send now, reorder |
 | Parallel threads | Yes | – | Sessions list | Agents window | Session list | – | – | Agent inbox | Thread strip | Thread strip |
 | Context meter | Ring, 85% warning | Percentage | – | – | – | – | – | – | Ring, 85% warning | Ring, 85% warning |
 | Badges for waiting agents | – | – | Yes | – | – | – | – | – | Yes | Yes |
@@ -116,8 +118,6 @@ Rows where another client documents more than Oxbit are listed under the gaps be
 - Push to a suspended phone and Live Activity push updates have not run on a device:
   the relay needs an APNs key and the app needs a TestFlight build with the push entitlement.
 - Selecting a macOS notification has not run with notifications allowed.
-- Zed keeps or rejects all of an agent's edits at once; Oxbit reviews and undoes each edit.
 - VS Code forks a conversation from a checkpoint; Oxbit restores files only.
 - Zed mentions the branch diff and JetBrains attaches commits and folders; Oxbit attaches uncommitted changes and files.
-- Cursor reorders queued messages; Oxbit does not.
 - Dictation, iOS notification taps and the Live Activity have not run on a physical device.

@@ -709,6 +709,102 @@ describe("ACP conversation workflows", () => {
   });
 });
 
+describe("ACP bulk review and queue order", () => {
+  async function pendingWrites(paths = ["a.txt", "b.txt", "c.txt"]) {
+    const context = setup();
+    const docs = new Map(paths.map((path) => {
+      let text = `${path} before`;
+      const doc = { path, dirty: false, state: "ready", version: 1, savedRevision: `${path}@1`,
+        text: { toString: () => text }, replace: (value: string) => { text = value; } };
+      return [path, doc];
+    }));
+    const saves: string[] = [];
+    const save = vi.fn(async (path: string) => {
+      saves.push(path);
+      docs.get(path)!.savedRevision = `${path}@${saves.length + 1}`;
+    });
+    Object.assign(context.options.documents, { get: (path: string) => docs.get(path), open: async (path: string) => docs.get(path), save });
+    context.filesystem.read.mockImplementation((async (path: string) => ({ text: docs.get(path)!.text.toString(), revision: docs.get(path)!.savedRevision })) as any);
+    for (const path of paths)
+      context.listeners.get("acp.request")!({ id: "connection", requestId: path, method: "fs/write_text_file", params: { path, content: `${path} after` } });
+    await expect.poll(() => context.agent.requests.length).toBe(paths.length);
+    const answers = () => context.runtime.request.mock.calls.filter(([method]) => method === "acp.respond").map(([, params]) => [params.requestId, params.error ?? params.result]);
+    return { ...context, docs, saves, save, answers };
+  }
+  it("applies pending writes in order and stops at the first conflict or failed save", async () => {
+    const conflict = await pendingWrites();
+    conflict.docs.get("b.txt")!.dirty = true;
+    await expect(conflict.agent.applyAllFiles()).rejects.toThrow("File changed during review: b.txt");
+    expect(conflict.saves).toEqual(["a.txt"]);
+    expect(conflict.answers()).toEqual([["a.txt", null], ["b.txt", "File changed during review. Read the latest content and retry."]]);
+    expect(conflict.agent.requests.map((request) => request.requestId)).toEqual(["c.txt"]);
+    expect(conflict.agent.reviewingAll).toBe(false);
+    conflict.agent.dispose();
+
+    const failure = await pendingWrites();
+    failure.save.mockImplementation(async (path: string) => {
+      failure.saves.push(path);
+      if (path === "b.txt") throw new Error("Disk full");
+    });
+    await expect(failure.agent.applyAllFiles()).rejects.toThrow("Disk full");
+    expect(failure.saves).toEqual(["a.txt", "b.txt"]);
+    expect(failure.answers()).toEqual([["a.txt", null], ["b.txt", "Error: Disk full"]]);
+    expect(failure.agent.changes.map((change) => change.path)).toEqual(["a.txt"]);
+    expect(failure.agent.requests.map((request) => request.requestId)).toEqual(["c.txt"]);
+    failure.agent.dispose();
+  });
+  it("rejects every pending write with the Reject answer and keeps unconfirmed ones pending", async () => {
+    const { agent, runtime, answers, saves } = await pendingWrites();
+    runtime.request.mockImplementation(async (method: string, params: any) => {
+      if (method === "acp.respond" && params.requestId === "b.txt") throw new Error("Runtime disconnected");
+      return {};
+    });
+    await expect(agent.rejectAllFiles()).rejects.toThrow("Runtime disconnected");
+    expect(agent.requests.map((request) => request.requestId)).toEqual(["b.txt", "c.txt"]);
+    runtime.request.mockImplementation(async () => ({}));
+    await agent.rejectAllFiles();
+    expect(answers()).toEqual(["a.txt", "b.txt", "b.txt", "c.txt"].map((id) => [id, "User rejected the file change"]));
+    expect(agent.requests).toEqual([]);
+    expect(saves).toEqual([]);
+    agent.dispose();
+  });
+  it("undoes applied edits newest first and stops at the first that cannot be undone", async () => {
+    const { agent, docs, saves } = await pendingWrites();
+    await agent.applyAllFiles();
+    expect(agent.undoableChanges.map((change) => change.path)).toEqual(["a.txt", "b.txt", "c.txt"]);
+    saves.length = 0;
+    docs.get("b.txt")!.dirty = true;
+    await expect(agent.undoAllChanges()).rejects.toThrow("changed after the agent edit");
+    expect(saves).toEqual(["c.txt"]);
+    expect(agent.changes.map((change) => !!change.undone)).toEqual([false, false, true]);
+    docs.get("b.txt")!.dirty = false;
+    await agent.undoAllChanges();
+    expect(saves).toEqual(["c.txt", "b.txt", "a.txt"]);
+    expect([...docs.values()].map((doc) => doc.text.toString())).toEqual(["a.txt before", "b.txt before", "c.txt before"]);
+    expect(agent.undoableChanges).toEqual([]);
+    agent.dispose();
+  });
+  it("moves a queued prompt and hides moves for a connection whose runtime lacks the method", async () => {
+    const { agent, runtime } = setup();
+    agent.queue = [{ id: "a", text: "A" }, { id: "b", text: "B" }];
+    runtime.request.mockResolvedValueOnce({ queue: [{ id: "b", text: "B" }, { id: "a", text: "A" }], paused: false });
+    await agent.moveQueued("b", 0);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.moveQueued", { id: "connection", promptId: "b", index: 0 });
+    expect(agent.queue.map((prompt) => prompt.id)).toEqual(["b", "a"]);
+    runtime.request.mockRejectedValueOnce(new Error("The queued message has already started or was removed"));
+    await expect(agent.moveQueued("b", 1)).rejects.toThrow("already started");
+    expect(agent.canMoveQueued).toBe(true);
+    runtime.request.mockRejectedValueOnce(Object.assign(new Error("Unknown runtime method acp.moveQueued"), { code: "METHOD_NOT_FOUND" }));
+    await expect(agent.moveQueued("a", 0)).rejects.toThrow("Update the runtime to reorder queued messages");
+    expect(agent.canMoveQueued).toBe(false);
+    const calls = runtime.request.mock.calls.length;
+    await agent.moveQueued("a", 0);
+    expect(runtime.request.mock.calls.length).toBe(calls);
+    agent.connection = { ...agent.connection!, id: "other" };
+    expect(agent.canMoveQueued).toBe(true);
+    agent.dispose();
+  });
+});
 describe("ACP thread mentions", () => {
   it("attaches an earlier thread's transcript once and lists threads from the connected root", () => {
     const { agent } = setup();

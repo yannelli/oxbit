@@ -54,6 +54,7 @@ export type AgentRequest = {
   version?: number;
   error?: string;
 };
+export const FILE_REJECTED = "User rejected the file change";
 const missingFile = (error: unknown) =>
   ["ENOENT", "NOT_FOUND"].includes((error as { code?: unknown } | null)?.code as string) ||
   (error instanceof DOMException && error.name === "NotFoundError") ||
@@ -1291,6 +1292,31 @@ export class AgentController {
       throw error;
     }
   }
+  private queueMoveUnsupported?: string;
+  /** False for a connection whose runtime answered acp.moveQueued with METHOD_NOT_FOUND. */
+  get canMoveQueued() {
+    return !!this.connection && this.queueMoveUnsupported !== this.connection.id;
+  }
+  async moveQueued(promptId: string, index: number) {
+    const connection = this.connection;
+    if (!connection || !this.canMoveQueued) return;
+    const generation = this.connectionGeneration;
+    const queueRevision = this.queueRevision;
+    let result: { queue: ACPQueuedPrompt[]; paused: boolean };
+    try {
+      result = await this.request("acp.moveQueued", { id: connection.id, promptId, index });
+    } catch (error) {
+      if ((error as { code?: unknown } | null)?.code !== "METHOD_NOT_FOUND") throw error;
+      this.queueMoveUnsupported = connection.id;
+      throw new Error("Update the runtime to reorder queued messages");
+    }
+    if (generation !== this.connectionGeneration) return;
+    if (this.queueRevision === queueRevision) {
+      this.queue = result.queue;
+      this.queuePaused = result.paused;
+    }
+    this.changed();
+  }
   async resumeQueue() {
     if (!this.connection) return;
     await this.request("acp.resumeQueue", { id: this.connection.id });
@@ -1543,10 +1569,11 @@ export class AgentController {
     );
     this.changed();
   }
+  /** Resolves true when the write was applied and false when the file changed during review. */
   async applyFile(request: AgentRequest) {
     if (!this.requests.includes(request) || this.connection?.id !== request.id)
       throw new Error("File review has expired");
-    if (this.fileActions.has(request.requestId)) return;
+    if (this.fileActions.has(request.requestId)) return false;
     const document = this.documents.get(request.params.path);
     if (
       document?.dirty ||
@@ -1560,7 +1587,7 @@ export class AgentController {
         undefined,
         "File changed during review. Read the latest content and retry.",
       );
-      return;
+      return false;
     }
     this.fileActions.add(request.requestId);
     try {
@@ -1597,11 +1624,56 @@ export class AgentController {
         preview: false,
       });
       await this.options.workbench.refreshFiles();
+      return true;
     } catch (error) {
       await this.respond(request, undefined, String(error)).catch(() => {});
       throw error;
     } finally {
       this.fileActions.delete(request.requestId);
+    }
+  }
+  /** True while Apply all, Reject all or Undo all runs; review buttons stay disabled. */
+  reviewingAll = false;
+  get pendingWrites() {
+    return this.requests.filter((request) => request.method === "fs/write_text_file");
+  }
+  get undoableChanges() {
+    return this.changes.filter((change) => !change.undone && !change.created);
+  }
+  /** Applies pending writes in order through Apply change and stops at the first that fails. */
+  async applyAllFiles() {
+    await this.answerWrites(async (request) => {
+      if (!(await this.applyFile(request)))
+        throw new Error(`File changed during review: ${request.params.path}`);
+    });
+  }
+  async rejectAllFiles() {
+    await this.answerWrites((request) => this.respond(request, undefined, FILE_REJECTED));
+  }
+  /** Undoes applied edits newest first and stops at the first that cannot be undone. */
+  async undoAllChanges() {
+    const changes = this.undoableChanges.reverse();
+    await this.reviewAll(changes.map((change) => change.id), async () => {
+      for (const change of changes) await this.undoChange(change.id);
+    });
+  }
+  private async answerWrites(answer: (request: AgentRequest) => Promise<unknown>) {
+    const writes = this.pendingWrites;
+    await this.reviewAll(writes.map((request) => request.requestId), async () => {
+      for (const request of writes) if (this.requests.includes(request)) await answer(request);
+    });
+  }
+  private async reviewAll(keys: string[], run: () => Promise<void>) {
+    if (this.reviewingAll || !keys.length) return;
+    if (keys.some((key) => this.fileActions.has(key)))
+      throw new Error("Wait for the current file review to finish");
+    this.reviewingAll = true;
+    this.changed();
+    try {
+      await run();
+    } finally {
+      this.reviewingAll = false;
+      this.changed();
     }
   }
   async undoChange(id: string) {

@@ -57,6 +57,23 @@ describe("runtime-owned agent workspaces", () => {
     expect(snapshot.queue).toEqual([]);
     expect(new Set(snapshot.events.map(e => e.params.seq)).size).toBe(snapshot.events.length);
   });
+  it("moves queued prompts within bounds, publishes the order and rejects started prompts", async () => {
+    const { agent, connection, events, prompt } = await setup();
+    const turn = prompt("wait");
+    for (const id of ["a", "b", "c"]) await agent.enqueue("owner", connection.id, { text: `queued ${id}`, messageId: id });
+    const order = (result: { queue: { id: string }[] }) => result.queue.map((p) => p.id);
+    expect(order(agent.moveQueued("owner", connection.id, "c", 0))).toEqual(["c", "a", "b"]);
+    expect(order(agent.moveQueued("owner", connection.id, "c", 99))).toEqual(["a", "b", "c"]);
+    expect(order(agent.moveQueued("owner", connection.id, "b", -3))).toEqual(["b", "a", "c"]);
+    expect(order(events.filter((e) => e.name === "acp.queue").at(-1)!.params)).toEqual(["b", "a", "c"]);
+    expect(() => agent.moveQueued("owner", connection.id, "missing", 0)).toThrow("The queued message has already started or was removed");
+    agent.cancel("owner", connection.id, true);
+    await turn;
+    await expect.poll(() => agent.list("owner").sessions[0].busy || agent.list("owner").sessions[0].queued > 0).toBe(false);
+    const snapshot = agent.attach("owner", connection.id, "window-one");
+    expect(snapshot.events.filter((e) => e.name === "acp.turnStarted").map((e) => e.params.text)).toEqual(["wait", "queued b", "queued a", "queued c"]);
+    expect(() => agent.moveQueued("owner", connection.id, "b", 1)).toThrow("already started");
+  });
   it("detaches the previous session when the editor switches live agents", async () => {
     const { root, agent, connection, prompt } = await setup();
     const next = await agent.start("owner", {

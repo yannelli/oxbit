@@ -140,6 +140,9 @@ test("the Oxbit agent runs a turn in the app: it streams a reply and its file wr
   await expect(panel.getByLabel("File change diff").last()).toContainText("+agent note");
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.filesystem.read("notes.md").then(() => true, () => false))).toBe(false);
   await panel.getByRole("button", { name: "Apply change", exact: true }).click();
+  // Applying opens notes.md; below 1100px the editor closes the agent panel.
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.activePath())).toBe("notes.md");
+  await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
   await expect(panel.getByText("Wrote notes.md.")).toBeVisible();
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 

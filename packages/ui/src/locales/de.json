@@ -984,5 +984,12 @@
   "Origin and path prefix of a Chat Completions API.": "Ursprung und Pfadpräfix einer Chat-Completions-API.",
   "API key": "API-Schlüssel",
   "Key saved": "Schlüssel gespeichert",
-  "No key saved": "Kein Schlüssel gespeichert"
+  "No key saved": "Kein Schlüssel gespeichert",
+  "Pending file changes": "Ausstehende Dateiänderungen",
+  "{0} file changes": "{0} Dateiänderungen",
+  "Apply all": "Alle anwenden",
+  "Reject all": "Alle ablehnen",
+  "Undo all": "Alle rückgängig machen",
+  "Move queued message up": "Nachricht in der Warteschlange nach oben verschieben",
+  "Move queued message down": "Nachricht in der Warteschlange nach unten verschieben"
 }

@@ -164,8 +164,10 @@ thread is opened.
   the agent advertises image prompts. An image over about 165 KB is scaled down
   and re-encoded as WebP or JPEG so the message fits the 2 MiB request limit.
 - **/** opens the agent's slash commands. Messages sent during a turn are queued
-  and can be edited or removed. **Send queued message now** stops the running turn
-  and sends that message next.
+  and can be edited, removed or moved. **Send queued message now** stops the running
+  turn and sends that message next. **Move queued message up** and **down**, or
+  Alt+Up and Alt+Down while one of a queued message's buttons has focus, change
+  the order in which queued messages run.
 - **Dictate** (the microphone button) appends speech to the draft as you talk.
   Select it again to finish. Editing or sending the draft stops dictation. See
   [Dictation](#dictation).
@@ -334,10 +336,16 @@ Checked 2026-10-10.
   fresh read and proposal. Disk saves check the original file revision.
   Apply and Undo save the reviewed snapshot exactly, bypassing formatting hooks;
   ordinary editor saves retain their configured hooks.
+- With two or more file changes pending, **Apply all** and **Reject all** sit above
+  the reviews. Apply all applies each change in order with the same checks as
+  **Apply change**. It stops at the first change that fails, shows its error and
+  leaves the rest pending. Reject all sends each change the same answer as **Reject**.
 - **Reviewed agent edits** records client-API edits for the current conversation.
   **Undo this edit** restores an existing file only when its buffer and disk
   still match the applied edit. Undo is unavailable during agent work or pending
   approvals. New files and files changed again belong in Source Control review.
+  With two or more edits to undo, **Undo all** undoes them newest first through
+  Undo this edit and stops at the first edit it cannot undo.
 - Tool file locations open in the editor. **Review changes** opens source control.
 - Agent terminal commands run in the workspace, show bounded output, and support
   output, wait, kill, and release through ACP.
@@ -393,7 +401,12 @@ policy; the Oxbit review applies to proposed edits through the Oxbit client.
 Messages sent during a turn enter a queue of at most 16 messages and 1 MiB.
 They run in order after a successful turn. A stopped or failed turn pauses the
 queue. **Interrupt and send** cancels the current turn and sends the correction
-after cancellation is acknowledged. Providers report plans and token usage only
+after cancellation is acknowledged. `acp.moveQueued {id, promptId, index}` moves a
+message that has not started to `index`, clamped to the queue, and publishes
+`acp.queue`; a message that started or was removed is rejected. The runtime and
+the Oxbit Agent both serve it. A runtime from before this method answers
+`METHOD_NOT_FOUND`; the panel then shows the error once and hides the move
+buttons for that connection. Providers report plans and token usage only
 when they expose those events.
 
 Agents execute with the trusted runtime user's privileges. The workspace path

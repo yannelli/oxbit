@@ -94,6 +94,25 @@ describe("LocalAgentRuntime", () => {
     expect(named("acp.turnStarted").map((event) => event.messageId)).toEqual(["first", "c", "a"]);
     await expect(runtime.request("acp.dequeue", { id: connection.id, promptId: "c" })).rejects.toThrow("already started or was removed");
   });
+  it("moves a queued prompt to a clamped index and runs the queue in the new order", async () => {
+    const { runtime, connect, named } = setup([hanging(), chatText("C"), chatText("A"), chatText("B")]);
+    const connection = await connect();
+    const first = prompt(runtime, connection.id, "first");
+    for (const id of ["a", "b", "c"]) await runtime.request("acp.enqueue", { id: connection.id, text: id.toUpperCase(), messageId: id });
+    const move = (promptId: string, index: unknown) => runtime.request<{ queue: { id: string }[] }>("acp.moveQueued", { id: connection.id, promptId, index });
+    expect((await move("c", -1)).queue.map((item) => item.id)).toEqual(["c", "a", "b"]);
+    expect((await move("b", 1)).queue.map((item) => item.id)).toEqual(["c", "b", "a"]);
+    expect((await move("b", 9)).queue.map((item) => item.id)).toEqual(["c", "a", "b"]);
+    expect(named("acp.queue").at(-1)!.queue.map((item: { id: string }) => item.id)).toEqual(["c", "a", "b"]);
+    await expect(move("missing", 0)).rejects.toThrow("The queued message has already started or was removed");
+    await expect(move("a", 0.5)).rejects.toThrow("Invalid index");
+    await runtime.request("acp.cancel", { id: connection.id });
+    expect(await first).toEqual({ stopReason: "cancelled" });
+    await runtime.request("acp.resumeQueue", { id: connection.id });
+    await expect.poll(() => named("acp.turnEnded").length).toBe(4);
+    expect(named("acp.turnStarted").map((event) => event.messageId)).toEqual(["first", "c", "a", "b"]);
+    await expect(move("c", 0)).rejects.toThrow("already started");
+  });
   it("stops a connection with acp.exit and rejects later calls", async () => {
     const { runtime, connect, named } = setup([hanging()]);
     const connection = await connect();
