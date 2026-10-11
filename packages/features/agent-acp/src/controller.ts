@@ -1271,7 +1271,7 @@ export class AgentController {
         this.status = this.busy ? "Working…" : "Ready";
         this.changed();
       }
-      await this.request("acp.enqueue", message);
+      await this.request("acp.enqueue", message).catch(() => undefined);
       throw error;
     }
   }

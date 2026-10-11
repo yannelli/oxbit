@@ -109,12 +109,7 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 | Voice input | – | – | – | – | – | Yes | – | Yes | Yes | Yes |
 | Live Activity | n/a | n/a | n/a | n/a | – | Yes | Yes | – | n/a | While the app runs |
 
-Oxbit has every capability another client documents in this table, except:
-
-- Selecting a macOS notification does not open the agent panel.
-- Oxbit iOS does not receive push while suspended, and its Live Activity stops updating.
-- Zed's Keep All and Reject All act on all edits at once; Oxbit reviews and undoes each edit.
-- Cursor reorders queued messages; Oxbit edits, removes or sends one now.
+Rows where another client documents more than Oxbit are listed under the gaps below.
 
 ## Gaps against other tools
 
@@ -122,5 +117,7 @@ Oxbit has every capability another client documents in this table, except:
   posts notifications and updates its Live Activity only while it runs.
 - Selecting a macOS notification does not open the agent panel; the desktop plugin reports no click.
 - Zed keeps or rejects all of an agent's edits at once; Oxbit reviews and undoes each edit.
+- VS Code forks a conversation from a checkpoint; Oxbit restores files only.
+- Zed mentions the branch diff and JetBrains attaches commits and folders; Oxbit attaches uncommitted changes and files.
 - Cursor reorders queued messages; Oxbit does not.
 - Dictation, iOS notification taps and the Live Activity have not run on a physical device.
