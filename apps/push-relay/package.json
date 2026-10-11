@@ -1,0 +1,19 @@
+{
+  "name": "@oxbit/push-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npx -y wrangler@4.149.0 deploy --dry-run --outdir /tmp/oxbit-push-dry",
+    "deploy": "npx -y wrangler@4.149.0 deploy"
+  },
+  "devDependencies": {
+    "@oxbit/sdk": "workspace:*"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Ryan Yannelli",
+    "email": "ryanyannelli@gmail.com",
+    "url": "https://github.com/yannelli"
+  }
+}

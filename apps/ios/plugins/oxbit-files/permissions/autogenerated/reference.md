@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity and report its push tokens, post agent notifications and report taps on them, and register for remote notifications.
 
 #### This default permission set includes the following:
 
@@ -18,11 +18,14 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-start-dictation`
 - `allow-stop-dictation`
 - `allow-live-activity`
+- `allow-watch-live-activity-tokens`
+- `allow-unwatch-live-activity-tokens`
 - `allow-notification-permission`
 - `allow-request-notification-permission`
 - `allow-notify`
 - `allow-watch-notification-taps`
 - `allow-unwatch-notification-taps`
+- `allow-register-remote-notifications`
 
 ## Permission Table
 
@@ -322,6 +325,32 @@ Denies the pick_folder command without any pre-configured scope.
 <tr>
 <td>
 
+`oxbit-files:allow-register-remote-notifications`
+
+</td>
+<td>
+
+Enables the register_remote_notifications command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-register-remote-notifications`
+
+</td>
+<td>
+
+Denies the register_remote_notifications command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `oxbit-files:allow-request-notification-permission`
 
 </td>
@@ -478,6 +507,32 @@ Denies the stop_dictation command without any pre-configured scope.
 <tr>
 <td>
 
+`oxbit-files:allow-unwatch-live-activity-tokens`
+
+</td>
+<td>
+
+Enables the unwatch_live_activity_tokens command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-unwatch-live-activity-tokens`
+
+</td>
+<td>
+
+Denies the unwatch_live_activity_tokens command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `oxbit-files:allow-unwatch-notification-taps`
 
 </td>
@@ -497,6 +552,32 @@ Enables the unwatch_notification_taps command without any pre-configured scope.
 <td>
 
 Denies the unwatch_notification_taps command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-watch-live-activity-tokens`
+
+</td>
+<td>
+
+Enables the watch_live_activity_tokens command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-watch-live-activity-tokens`
+
+</td>
+<td>
+
+Denies the watch_live_activity_tokens command without any pre-configured scope.
 
 </td>
 </tr>

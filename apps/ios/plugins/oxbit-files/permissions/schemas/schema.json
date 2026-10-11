@@ -427,6 +427,18 @@
           "markdownDescription": "Denies the pick_folder command without any pre-configured scope."
         },
         {
+          "description": "Enables the register_remote_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-register-remote-notifications",
+          "markdownDescription": "Enables the register_remote_notifications command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the register_remote_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-register-remote-notifications",
+          "markdownDescription": "Denies the register_remote_notifications command without any pre-configured scope."
+        },
+        {
           "description": "Enables the request_notification_permission command without any pre-configured scope.",
           "type": "string",
           "const": "allow-request-notification-permission",
@@ -499,6 +511,18 @@
           "markdownDescription": "Denies the stop_dictation command without any pre-configured scope."
         },
         {
+          "description": "Enables the unwatch_live_activity_tokens command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unwatch-live-activity-tokens",
+          "markdownDescription": "Enables the unwatch_live_activity_tokens command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unwatch_live_activity_tokens command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unwatch-live-activity-tokens",
+          "markdownDescription": "Denies the unwatch_live_activity_tokens command without any pre-configured scope."
+        },
+        {
           "description": "Enables the unwatch_notification_taps command without any pre-configured scope.",
           "type": "string",
           "const": "allow-unwatch-notification-taps",
@@ -509,6 +533,18 @@
           "type": "string",
           "const": "deny-unwatch-notification-taps",
           "markdownDescription": "Denies the unwatch_notification_taps command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the watch_live_activity_tokens command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-watch-live-activity-tokens",
+          "markdownDescription": "Enables the watch_live_activity_tokens command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the watch_live_activity_tokens command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-watch-live-activity-tokens",
+          "markdownDescription": "Denies the watch_live_activity_tokens command without any pre-configured scope."
         },
         {
           "description": "Enables the watch_notification_taps command without any pre-configured scope.",
@@ -523,10 +559,10 @@
           "markdownDescription": "Denies the watch_notification_taps command without any pre-configured scope."
         },
         {
-          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`",
+          "description": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity and report its push tokens, post agent notifications and report taps on them, and register for remote notifications.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-watch-live-activity-tokens`\n- `allow-unwatch-live-activity-tokens`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`\n- `allow-register-remote-notifications`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity, and post agent notifications and report taps on them.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`"
+          "markdownDescription": "Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity and report its push tokens, post agent notifications and report taps on them, and register for remote notifications.\n#### This default permission set includes:\n\n- `allow-pick-folder`\n- `allow-open-folder`\n- `allow-close-folder`\n- `allow-forget-folder`\n- `allow-documents-path`\n- `allow-runtime-credentials`\n- `allow-runtime-discovery`\n- `allow-git-credentials`\n- `allow-ssh-keys`\n- `allow-pick-files`\n- `allow-commit-signing`\n- `allow-start-dictation`\n- `allow-stop-dictation`\n- `allow-live-activity`\n- `allow-watch-live-activity-tokens`\n- `allow-unwatch-live-activity-tokens`\n- `allow-notification-permission`\n- `allow-request-notification-permission`\n- `allow-notify`\n- `allow-watch-notification-taps`\n- `allow-unwatch-notification-taps`\n- `allow-register-remote-notifications`"
         }
       ]
     }

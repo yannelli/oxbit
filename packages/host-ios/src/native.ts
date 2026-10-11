@@ -1,7 +1,7 @@
 import { Channel, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
-import type { AgentActivityUpdate, FileEntry } from "@oxbit/sdk";
+import type { AgentActivityUpdate, FileEntry, PushEnvironment } from "@oxbit/sdk";
 
 export interface NativeError {
   code: string;
@@ -77,6 +77,11 @@ export type GitSshPrompt =
   | { status: "hostUnknown"; hostKey: SshHostKey }
   | { status: "hostChanged"; hostKey: SshHostKey; known: KnownHostKey[] }
   | { status: "keyRequired"; hostname: string; port: number; username: string };
+/** Hex APNs device token and the APNs environment it belongs to. */
+export interface RemoteNotificationRegistration {
+  token: string;
+  environment: PushEnvironment;
+}
 export interface PickedFile {
   name: string;
   path: string;
@@ -234,6 +239,14 @@ export const ssh = {
 export const native = {
   agentActivity: (update: AgentActivityUpdate | null) =>
     call<{ enabled: boolean }>("plugin:oxbit-files|live_activity", { update }),
+  /** Runs `listener` with each Live Activity push token in hex; a new listener receives the latest token first. */
+  onLiveActivityToken: async (listener: (token: string) => void) => {
+    const channel = new Channel<{ token: string }>((message) => listener(message.token));
+    await call<void>("plugin:oxbit-files|watch_live_activity_tokens", { channel });
+    return { unregister: () => call<void>("plugin:oxbit-files|unwatch_live_activity_tokens", { id: channel.id }) };
+  },
+  registerRemoteNotifications: () =>
+    call<RemoteNotificationRegistration>("plugin:oxbit-files|register_remote_notifications"),
   /** Runs `listener` for each tap on a posted notification, including the tap that launched the app. */
   onNotificationTap: async (listener: () => void) => {
     const channel = new Channel<unknown>(() => listener());

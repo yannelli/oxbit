@@ -1395,6 +1395,10 @@ var acpPreset = (id) => ACP_PROVIDERS.find((provider) => provider.id === id);
 var acpBuiltinForRegistry = (registryId) => ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
 var AGENT_ACTIVITY_SERVICE = "agentActivity";
 
+// packages/sdk/src/push.ts
+var PUSH_RELAY_URL = "https://oxbit-push.ryanyannelli.workers.dev";
+var PUSH_COLLAPSE_ID = "oxbit-agent-acp";
+
 // packages/sdk/src/tasks.ts
 var taskPhases = [
   "preinit",
@@ -1452,6 +1456,8 @@ export {
   ACP_PROVIDERS,
   ACP_REGISTRY_URL,
   AGENT_ACTIVITY_SERVICE,
+  PUSH_COLLAPSE_ID,
+  PUSH_RELAY_URL,
   SDK_VERSION,
   SETTINGS_SCHEMA_URI,
   acpBuiltinForRegistry,

@@ -1,10 +1,10 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-10.
+Created: 2026-10-02. Last updated: 2026-10-11.
 
 | Guide | Use when |
 | --- | --- |
-| [Agent ACP](agent-acp.md) | Changing agent providers, the agent picker, ACP Registry installs, the composer, badges and notifications, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
+| [Agent ACP](agent-acp.md) | Changing agent providers, the agent picker, ACP Registry installs, the composer, badges and notifications, push to a suspended phone through the `oxbit-push` relay, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
 | [Agent panel research (2026)](agents-ux-research.md) | Comparing the agent panel with Zed, JetBrains, VS Code, Cursor and mobile agent clients; the ACP Registry schema and listed agents; which shared patterns Oxbit adopted or deferred. |
 | [Editor consistency contracts](editor-consistency.md) | Changing document lifecycle, file operations, tab navigation, replacement semantics, Settings resolution, and runtime operation retention; Zed, ECMAScript, and idempotency references. |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
