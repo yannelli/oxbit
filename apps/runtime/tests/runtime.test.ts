@@ -369,6 +369,21 @@ describe("authenticated runtime with real services", () => {
     });
     expect(filtered).toHaveLength(0);
   });
+  it("finds quick-open files with .gitignore applied", async () => {
+    const project = path.join(root, "quick-open");
+    for (const file of ["app/Http/Controllers/ChartController.php", "vendor/laravel/framework/ChartController.php", "storage/logs/chart-controller.log", ".github/chart-controller.yml"]) {
+      await fs.mkdir(path.dirname(path.join(project, file)), { recursive: true });
+      await fs.writeFile(path.join(project, file), "<?php\n");
+    }
+    await fs.writeFile(path.join(project, ".gitignore"), "/vendor/\n");
+    await fs.writeFile(path.join(project, "storage/logs/.gitignore"), "*.log\n");
+    await runCommand("git", ["init", "-q"], { cwd: project });
+    expect(await client.request("search.files", { query: "chartcontroller" })).toEqual([
+      "quick-open/.github/chart-controller.yml",
+      "quick-open/app/Http/Controllers/ChartController.php",
+    ]);
+    expect(await client.request("search.files", { query: "  " })).toEqual([]);
+  });
   it("keeps terminals at least four columns wide", async () => {
     const terminal = await client.request("terminal.create", { cols: 80, rows: 24 });
     await client.request("terminal.resize", { id: terminal.id, cols: 2, rows: 3 });

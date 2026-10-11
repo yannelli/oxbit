@@ -392,6 +392,10 @@ export class RuntimeFileSystem implements FileSystem {
   list(path = "") {
     return this.client.request<FileEntry[]>("fs.list", { path });
   }
+  /** Quick-open paths from the runtime's `search.files`, which applies .gitignore. */
+  findFiles(query: string, signal?: AbortSignal) {
+    return this.client.request<string[]>("search.files", { query }, { signal });
+  }
   readDisk(path: string) { return this.client.request<FileSnapshot>("fs.read", {path}); }
   async readBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
     const chunks: Uint8Array[] = [];

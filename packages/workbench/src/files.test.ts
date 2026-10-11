@@ -56,6 +56,12 @@ describe("explicit workspace traversal", () => {
     expect(findFiles).toHaveBeenCalledWith("ndl", signal);
     expect(list).not.toHaveBeenCalled();
   });
+  it("walks the workspace when the runtime has no native file finder", async () => {
+    const { filesystem } = fixture();
+    const findFiles = vi.fn(async () => { throw Object.assign(new Error("Unknown runtime method search.files"), { code: "METHOD_NOT_FOUND" }); });
+    const native = Object.assign(filesystem, { findFiles });
+    expect(await findWorkspaceFiles(native, "ndl", new AbortController().signal)).toEqual(["closed/needle.ts"]);
+  });
   it("exports entries in collapsed folders and empty directories", async () => {
     const { filesystem } = fixture();
     const entries = [];

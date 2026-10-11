@@ -60,7 +60,10 @@ export function rankFiles(paths: string[], query: string, limit = 20) {
 export async function searchFiles(filesystem: FileSystem, query: string, signal: AbortSignal) {
   const term = query.trim().toLowerCase();
   if (!term) return [];
-  if (filesystem.findFiles) return rankFiles(await filesystem.findFiles(term, signal), term);
+  if (filesystem.findFiles) {
+    try { return rankFiles(await filesystem.findFiles(term, signal), term); }
+    catch (error) { if ((error as { code?: string }).code !== "METHOD_NOT_FOUND") throw error; }
+  }
   const matches: string[] = [];
   for await (const entry of workspaceEntries(filesystem, {
     signal,

@@ -208,7 +208,10 @@ export class LanguageServer {
     if (resume) this.paused = false;
     if (!resume && this.phase === "failed") throw new RpcError("LSP_FAILED", this.error || "Language server failed. Retry from Language Servers.");
     if (this.paused) throw new RpcError("LSP_STOPPED", "Language server is stopped. Start it from Language Servers.");
-    if (this.starting) return this.starting;
+    if (this.starting) {
+      this.emit("oxbit/serverState", { state: this.phase });
+      return this.starting;
+    }
     if (this.child && this.capabilities)
       return { capabilities: this.capabilities, registrations: [...this.registrations.values()], rootUri: this.uri(""), projectRootUri: pathToFileURL(this.options.root ?? this.files.root).href, version: this.launchSpec?.version };
     this.error = "";
