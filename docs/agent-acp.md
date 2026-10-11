@@ -272,6 +272,10 @@ because the relay has no APNs key yet.
   AES-GCM handles and holds the APNs key. Pushes use the collapse id
   `oxbit-agent-acp`. A gone token answers `{gone: true}` and the runtime drops it;
   without the APNs secrets the relay answers 503 `RelayNotConfigured`.
+- On 2026-10-11 the chain ran in the iOS 26.5 simulator with a sandbox APNs key and a
+  `wrangler dev --remote` relay. A turn that ended while Oxbit was suspended showed a
+  banner that opened the Agent panel, and the 128-byte Live Activity token ended the
+  activity as **Finished**. A device needs the production key in the deployed relay.
 - Runtimes without `push.*` answer `METHOD_NOT_FOUND`; the app then skips push
   for that connection. `OXBIT_PUSH_RELAY` points the runtime at another relay.
 - Apple references: [registering with APNs](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns),
@@ -303,8 +307,8 @@ Added 2026-10-10.
 - On 2026-10-10 the widget ran in the iOS 26.5 simulator on an iPhone 17 Pro. The
   compact timer shrinks to fit past one hour, the expanded view moves the agent
   name below the title when it does not fit, and a stale activity has a gray
-  outline. The Lock Screen layout was checked with `ImageRenderer` only; the
-  simulator cannot be locked from the command line.
+  outline. The Lock Screen layout was checked with `ImageRenderer` on 2026-10-10 and
+  on a locked simulator through XCUITest on 2026-10-11.
 
 ### Dictation
 
@@ -325,8 +329,9 @@ Checked 2026-10-10.
 - The iOS app defines `SpeechRecognition` on top of Apple's Speech framework
   (`packages/host-ios/src/speech.ts`, `apps/ios/plugins/oxbit-files/ios/Sources/Dictation.swift`).
   It recognizes on the device when the recognizer supports that, and declares the
-  same two usage descriptions. The Swift code compiles in the iOS cargo build;
-  permission prompts and recognition have not run on a simulator or device.
+  same two usage descriptions. On 2026-10-11 the iOS 26.5 simulator granted both
+  permissions, its recognizer failed to start, and the composer showed "Dictation
+  failed: Failed to initialize recognizer". Recognition has not run on a device.
 - MDN states that Chrome sends the audio to a web service for recognition, so
   dictation in Chrome does not work offline.
 
