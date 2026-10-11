@@ -1,6 +1,6 @@
 # Model APIs for the built-in Oxbit agent
 
-Created: 2026-10-10. Last updated: 2026-10-10.
+Created: 2026-10-10. Last updated: 2026-10-11.
 
 The Oxbit agent in `packages/features/agent-acp/src/local/` runs in the app and sends model requests through the host's `AgentModels` service (`packages/sdk/src/agent-models.ts`). The host adds the saved key, pins the request to the API origin, and adds provider headers such as `anthropic-version`. JavaScript does not see the key. Each adapter builds the request body and turns the streamed body into text, reasoning, tool call, usage, and stop events.
 
@@ -85,3 +85,16 @@ The agent answers `initialize` with `protocolVersion: 1` and `promptCapabilities
 Session updates: `agent_message_chunk`, `agent_thought_chunk`, `tool_call` and `tool_call_update` (kinds `read`, `search`, `edit`, `think`; edits carry `{type: "diff", path, oldText, newText}` with `oldText: null` for a new file), `plan` (the full entry list each time), and `usage_update` (`used`, `size`) when the model list gives a context window. `session/prompt` ends with `end_turn`, `max_tokens`, `max_turn_requests`, `refusal` or `cancelled`.
 
 References: [ACP schema](https://agentclientprotocol.com/protocol/v1/schema), [Prompt turn](https://agentclientprotocol.com/protocol/v1/prompt-turn), [Session config options](https://agentclientprotocol.com/protocol/v1/session-config-options), [Agent plan](https://agentclientprotocol.com/protocol/v1/agent-plan).
+
+## Smoke test against a server
+
+`bun scripts/oxbit-agent-smoke.ts <api> <model> [baseUrl]` runs one turn of the real
+`LocalAgentRuntime`: the model has to call `read_file` on a fixture and answer with its
+contents. The base URL defaults to a local [Ollama](https://docs.ollama.com/api/openai-compatibility),
+which serves `/v1/models`, `/v1/chat/completions`, `/v1/responses` and an Anthropic-compatible
+`/v1/messages` ([Anthropic compatibility](https://docs.ollama.com/api/anthropic-compatibility)). For a hosted API, pass its base URL and set `OXBIT_AGENT_KEY`.
+
+On 2026-10-11 all three APIs passed against Ollama 0.24.0 with `qwen3:0.6b`: a tool call,
+the tool result and a final answer. In one of four Anthropic runs the model put its whole
+answer in thinking and the turn ended without text. No hosted OpenAI or Anthropic endpoint
+has been called.

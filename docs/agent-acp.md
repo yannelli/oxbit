@@ -89,8 +89,9 @@ with the user's key:
 - API details: [Model APIs for the built-in Oxbit agent](agent-model-apis.md).
   Keychain and request handling on iOS: [In-app agent on iOS](ios.md#in-app-agent-on-ios).
 - Checks: `local/*.test.ts`, `tests/browser/agent-acp-local.spec.ts` (a turn with a
-  file write through a scripted model), `tests/ios/agent-models.spec.ts`. No request
-  to a real model API and no device run yet.
+  file write through a scripted model), `tests/ios/agent-models.spec.ts`, and
+  `scripts/oxbit-agent-smoke.ts` against a local Ollama for all three APIs. No hosted
+  API request and no device run yet.
 
 ### ACP Registry agents
 
