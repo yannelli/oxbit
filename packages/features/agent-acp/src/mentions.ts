@@ -1,12 +1,16 @@
 import type { FileSystem } from "@oxbit/sdk";
 import { workspaceEntries } from "@oxbit/workbench";
+import type { Conversation } from "./history.js";
+import { agentName } from "./launch.js";
 
 export type Mention =
   | { kind: "file"; path: string }
   | { kind: "symbol"; name: string; path: string; line: number; endLine: number }
+  | { kind: "thread"; id: string; title: string; agent: string; updatedAt: string }
   | { kind: "selection" | "diagnostics" | "changes" };
 
 export type SymbolMention = Extract<Mention, { kind: "symbol" }>;
+export type ThreadMention = Extract<Mention, { kind: "thread" }>;
 
 interface Position { line: number }
 /** The parts of the language service's `workspaceSymbols` that mentions use. */
@@ -90,4 +94,37 @@ export async function searchSymbols(language: WorkspaceSymbolSource | undefined,
     if (symbols.length >= limit) break;
   }
   return symbols;
+}
+
+/** Saved conversations whose title contains `query`, newest first. */
+export function searchThreads(
+  entries: readonly Conversation[],
+  query: string,
+  { exclude, root }: { exclude?: string; root?: string } = {},
+  limit = 5,
+): ThreadMention[] {
+  const term = query.trim().toLowerCase();
+  if (!term) return [];
+  return entries
+    .filter((entry) => entry.id !== exclude && (!root || entry.root === root) && entry.title.toLowerCase().includes(term))
+    .slice(0, limit)
+    .map((entry) => ({
+      kind: "thread",
+      id: entry.id,
+      title: entry.title,
+      agent: entry.name || agentName(entry.provider),
+      updatedAt: entry.updatedAt,
+    }));
+}
+
+/** The conversation's user and agent messages, keeping the latest `limit` characters. */
+export function threadTranscript(entry: Conversation, limit = 200000) {
+  const messages = entry.activity.flatMap((item) =>
+    item.kind === "message" && item.message.role !== "thought" && item.message.text.trim()
+      ? [`${item.message.role === "user" ? "User" : "Agent"}: ${item.message.text.trim()}`]
+      : []);
+  if (!messages.length) return "";
+  const head = `Earlier conversation with ${entry.name || agentName(entry.provider)}: ${entry.title}\n\n`;
+  const body = messages.join("\n\n");
+  return head + (head.length + body.length > limit ? body.slice(head.length + body.length - limit) : body);
 }

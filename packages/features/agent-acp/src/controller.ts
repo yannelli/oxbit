@@ -37,7 +37,7 @@ import { settingId } from "./configuration.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
 import { uncommittedChanges } from "./changes.js";
-import type { Mention, SymbolMention } from "./mentions.js";
+import { searchThreads, threadTranscript, type Mention, type SymbolMention } from "./mentions.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 export type AgentRequest = {
@@ -1060,6 +1060,7 @@ export class AgentController {
   async attachMention(mention: Mention) {
     if (mention.kind === "changes") return this.attachChanges();
     if (mention.kind === "symbol") return this.attachSymbol(mention);
+    if (mention.kind === "thread") return this.attachThread(mention.id);
     if (mention.kind !== "file")
       return mention.kind === "selection" ? this.attach(true) : this.attachDiagnostics();
     if (this.context.some((item) => item.kind === "file" && item.path === mention.path)) return;
@@ -1073,6 +1074,21 @@ export class AgentController {
     if (text.length > 200000)
       throw new Error("Select a smaller portion of this file (maximum 200,000 characters)");
     this.context.push({ path, text, line, endLine, version: document.version, kind: "selection", label: `${name} ${path}:${line}-${endLine}` });
+    this.changed();
+  }
+  /** Saved conversations for `@` other than the open one, from the connected root when there is one. */
+  mentionThreads(query: string) {
+    return searchThreads(this.history.entries, query, { exclude: this.activeConversation?.id, root: this.connection?.root });
+  }
+  attachThread(id: string) {
+    const entry = this.history.entries.find((item) => item.id === id);
+    if (!entry) throw new Error("This conversation is no longer in history");
+    const text = threadTranscript(entry);
+    if (!text) throw new Error("This conversation has no messages");
+    if (this.context.some((item) => item.kind === "thread" && item.text === text)) return;
+    if (this.context.length >= 8)
+      throw new Error("Attach up to eight files or selections per message");
+    this.context.push({ path: ".", text, kind: "thread", label: `Thread: ${entry.title}` });
     this.changed();
   }
   async attachChanges() {
@@ -1232,6 +1248,32 @@ export class AgentController {
     this.draft = prompt.text;
     this.context = prompt.context ?? [];
     this.changed();
+  }
+  /** Stops the running turn and sends a queued message next. */
+  async sendQueuedNow(promptId: string) {
+    const connection = this.connection;
+    const prompt = this.queue.find(item => item.id === promptId);
+    if (!connection || !prompt || !this.busy || this.cancelling) return;
+    const generation = this.connectionGeneration;
+    const turnId = this.activeTurnId;
+    // Dequeue first: a fast queue would otherwise start the original before it is removed.
+    await this.removeQueued(promptId);
+    if (generation !== this.connectionGeneration) return;
+    const message = { id: connection.id, text: prompt.text, context: prompt.context, messageId: prompt.id };
+    this.cancelling = true;
+    this.status = "Stopping…";
+    this.changed();
+    try {
+      await this.request("acp.interrupt", message);
+    } catch (error) {
+      if (generation === this.connectionGeneration && this.activeTurnId === turnId && this.cancelling) {
+        this.cancelling = false;
+        this.status = this.busy ? "Working…" : "Ready";
+        this.changed();
+      }
+      await this.request("acp.enqueue", message).catch(() => undefined);
+      throw error;
+    }
   }
   async resumeQueue() {
     if (!this.connection) return;

@@ -646,6 +646,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </div>
         {agent.queue.map((prompt, index) => <div className="acp-queue-item" key={prompt.id}>
           <span title={prompt.text}>{index + 1}. {prompt.text}</span>
+          {agent.busy && !agent.cancelling && <IconButton icon="play" label={tr("Send queued message now")} onClick={() => void agent.action(() => agent.sendQueuedNow(prompt.id))} />}
           <IconButton icon="pencil" label={tr("Edit queued message")} onClick={() => void agent.action(() => agent.editQueued(prompt.id))} />
           <IconButton icon="x" label={tr("Remove queued message")} onClick={() => void agent.action(() => agent.removeQueued(prompt.id))} />
         </div>)}
@@ -721,7 +722,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
                 <IconButton
                   icon="x"
                   label={tr("Remove attachment {0}", {
-                    0: context.kind === "changes" ? tr("Uncommitted changes") : context.path,
+                    0: context.kind === "changes" ? tr("Uncommitted changes")
+                      : context.kind === "thread" ? (context.label ?? context.path) : context.path,
                   })}
                   onClick={() => {
                     agent.context.splice(index, 1);
@@ -770,6 +772,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           findFiles={(query, signal) => searchFiles(agent.options.filesystem, query, signal)}
           findSymbols={(query, signal) =>
             searchSymbols(agent.options.kernel.services.optional<WorkspaceSymbolSource>("language"), query, signal)}
+          findThreads={(query) => agent.mentionThreads(query)}
         />
         <div className="acp-composer-toolbar">
           <button
