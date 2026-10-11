@@ -104,14 +104,18 @@ final class LiveActivity {
   @MainActor
   private func observe(_ activity: Activity<AgentActivityAttributes>) {
     guard observed.insert(activity.id).inserted else { return }
+    if let data = activity.pushToken { report(data) }
     Task { @MainActor in
-      for await data in activity.pushTokenUpdates {
-        let token = data.map { String(format: "%02x", $0) }.joined()
-        self.token = token
-        self.channel?.send(["token": token] as JsonObject)
-      }
+      for await data in activity.pushTokenUpdates { self.report(data) }
       self.observed.remove(activity.id)
     }
+  }
+
+  @MainActor
+  private func report(_ data: Data) {
+    let token = data.map { String(format: "%02x", $0) }.joined()
+    self.token = token
+    channel?.send(["token": token] as JsonObject)
   }
 
   /// Finds or requests the activity before the first suspension so two quick updates for one

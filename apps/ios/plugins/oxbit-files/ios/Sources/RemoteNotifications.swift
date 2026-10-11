@@ -14,8 +14,10 @@ final class RemoteNotifications {
   private typealias TokenIMP = @convention(c) (AnyObject, Selector, UIApplication, NSData) -> Void
   private typealias ErrorIMP = @convention(c) (AnyObject, Selector, UIApplication, NSError) -> Void
 
+  private static let timeout: TimeInterval = 30
   private var pending: [Invoke] = []
   private var installed = false
+  private var attempt = 0
 
   func register(_ invoke: Invoke) {
     DispatchQueue.main.async {
@@ -28,7 +30,14 @@ final class RemoteNotifications {
         self.installed = true
       }
       self.pending.append(invoke)
+      self.attempt += 1
+      let attempt = self.attempt
       UIApplication.shared.registerForRemoteNotifications()
+      DispatchQueue.main.asyncAfter(deadline: .now() + RemoteNotifications.timeout) {
+        guard self.attempt == attempt, !self.pending.isEmpty else { return }
+        for invoke in self.pending { invoke.reject("APNs did not answer the registration", code: "TIMEOUT") }
+        self.pending.removeAll()
+      }
     }
   }
 
