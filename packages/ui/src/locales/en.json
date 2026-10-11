@@ -1023,5 +1023,8 @@
   "Attach this branch's changes since its base": "Attach this branch's changes since its base",
   "Message actions": "Message actions",
   "Fork from here": "Fork from here",
-  "Restore files and fork": "Restore files and fork"
+  "Restore files and fork": "Restore files and fork",
+  "Fork conversation": "Fork conversation",
+  "Forked from “{title}”. The agent keeps the earlier context.": "Forked from “{title}”. The agent keeps the earlier context.",
+  "Update the runtime to fork conversations": "Update the runtime to fork conversations"
 }

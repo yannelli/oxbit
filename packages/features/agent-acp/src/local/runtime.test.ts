@@ -22,6 +22,18 @@ const prompt = (runtime: LocalAgentRuntime, id: string, messageId: string, text 
   runtime.request<{ stopReason: string }>("acp.call", { id, method: "session/prompt", params: { text, messageId } });
 
 describe("LocalAgentRuntime", () => {
+  it("forks a session into a new one whose model requests keep the earlier turns", async () => {
+    const { runtime, connect, requests } = setup([chatText("Noted"), chatText("Blue")]);
+    const first = await connect();
+    expect(first.capabilities?.sessionCapabilities?.fork).toEqual({});
+    await prompt(runtime, first.id, "m1", "Remember the blue door");
+    const forked = await runtime.request<ACPConnection>("acp.call", { id: first.id, method: "session/fork" });
+    expect(forked.sessionId).not.toBe(first.sessionId);
+    await prompt(runtime, first.id, "m2", "Which door?");
+    const messages = (requests.at(-1)!.body as { messages: { role: string; content: unknown }[] }).messages;
+    expect(messages.filter((message) => message.role !== "system").map((message) => message.content))
+      .toEqual(["Remember the blue door", "Noted", "Which door?"]);
+  });
   it("rejects start without a key and answers unavailable runtime methods", async () => {
     const { runtime, unavailable } = setup([], false);
     expect(runtime.local).toBe(true);

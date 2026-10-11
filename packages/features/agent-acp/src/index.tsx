@@ -428,6 +428,9 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
     { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
     ...(connection && !local ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread }] : []),
+    ...(agent.canForkSession
+      ? [{ id: "fork", label: "Fork conversation", icon: "git", run: () => void agent.action(() => agent.forkSession()) }]
+      : []),
     ...(connection
       ? [{ id: "disconnect", label: "Disconnect", icon: "power", run: () => void agent.action(() => agent.disconnect()) }]
       : []),

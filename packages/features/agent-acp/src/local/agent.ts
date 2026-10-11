@@ -68,7 +68,7 @@ export class LocalAgent {
   initialize() {
     return {
       protocolVersion: 1,
-      agentCapabilities: { loadSession: false, promptCapabilities: { embeddedContext: true } },
+      agentCapabilities: { loadSession: false, sessionCapabilities: { fork: {} }, promptCapabilities: { embeddedContext: true } },
       agentInfo: { name: "oxbit", title: "Oxbit Agent" },
       authMethods: [],
     };
@@ -110,6 +110,15 @@ export class LocalAgent {
     if (saved && !catalog.some((model) => model.id === saved)) catalog = [{ id: saved, name: saved }, ...catalog];
     for (const [id, session] of this.sessions) if (!session.abort) this.sessions.delete(id);
     const session: Session = { id: crypto.randomUUID(), turns: [], model: saved || catalog[0]?.id || "", effort: "default", catalog };
+    this.sessions.set(session.id, session);
+    return this.state(session);
+  }
+  /** A new session with a copy of the source's turns. Like newSession, it drops the other idle sessions. */
+  forkSession(sessionId: string) {
+    const source = this.session(sessionId);
+    if (source.abort) throw new Error("Wait for the agent to finish before forking");
+    const session: Session = { ...source, id: crypto.randomUUID(), turns: structuredClone(source.turns) };
+    for (const [id, other] of this.sessions) if (!other.abort) this.sessions.delete(id);
     this.sessions.set(session.id, session);
     return this.state(session);
   }

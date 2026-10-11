@@ -137,6 +137,8 @@ export interface ACPConnection {
     sessionCapabilities?: {
       list?: object;
       resume?: object;
+      /** Unstable ACP `session/fork`: a new session with the source session's whole context. */
+      fork?: object;
       subagents?: object;
     };
     promptCapabilities?: { embeddedContext?: boolean; image?: boolean };

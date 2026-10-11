@@ -206,8 +206,10 @@ thread is opened.
   when a turn ends while the panel is hidden. The status bar shows the agent
   state; selecting it opens the panel.
 - When a turn ends or a request arrives while the panel is hidden, a toast
-  offers **Open Agent**. When Oxbit's window is hidden or another app has focus,
-  Oxbit also shows a system notification once permission is granted. Use
+  offers **Open Agent**. When Oxbit's window is hidden or, with a mouse, another
+  app has focus, Oxbit also shows a system notification once permission is granted.
+  On a touch screen only a hidden window counts, because the phone web view can lose
+  focus while it is on screen. Use
   **Enable notifications** in **More agent actions** to grant it. Set
   `agentACP.notifications` to `never` to turn system notifications off.
 - Applying an agent edit opens the file in the editor when the panel sits beside it.
@@ -571,6 +573,18 @@ draft. On a message with a checkpoint, **Restore files and fork** restores the
 checkpoint first, then forks; the fork starts with the restore note. The original
 conversation stays in history unchanged. Forking needs a connected agent and is
 refused while the agent is working or has pending requests or queued messages.
+
+**Fork conversation** in **More agent actions** forks the agent session itself when
+the agent advertises the unstable ACP `session/fork`
+(`agentCapabilities.sessionCapabilities.fork`). The runtime sends
+`session/fork` `{ sessionId, cwd }` for the current session; the agent returns a new
+session that keeps the whole context. The panel copies the transcript into a new
+conversation and adds the note "Forked from “<title>”". The original conversation
+stays in history. The Oxbit Agent forks by copying its turns. Agents without the
+capability do not show the item, and a runtime older than this feature answers
+"Update the runtime to fork conversations". ACP forks the whole session, so forking
+from an earlier message still uses **Fork from here**. Schema checked 2026-10-11 at
+[schema.unstable.json](https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/main/schema/v1/schema.unstable.json).
 
 Runtime methods: `acp.checkpoint.create` `{}` returns `{ tree }` or
 `{ unavailable }`; `acp.checkpoint.diff` `{ tree }` returns the current `tree` and

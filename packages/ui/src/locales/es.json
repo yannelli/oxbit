@@ -1023,5 +1023,8 @@
   "Attach this branch's changes since its base": "Adjuntar los cambios de esta rama desde su base",
   "Message actions": "Acciones del mensaje",
   "Fork from here": "Bifurcar desde aquí",
-  "Restore files and fork": "Restaurar archivos y bifurcar"
+  "Restore files and fork": "Restaurar archivos y bifurcar",
+  "Fork conversation": "Bifurcar conversación",
+  "Forked from “{title}”. The agent keeps the earlier context.": "Bifurcada de «{title}». El agente conserva el contexto anterior.",
+  "Update the runtime to fork conversations": "Actualiza el runtime para bifurcar conversaciones"
 }

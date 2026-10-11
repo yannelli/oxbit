@@ -1217,6 +1217,44 @@ describe("Fork from here", () => {
     expect(again.agent.context).toEqual([]);
     again.agent.dispose();
   });
+  it("forks the agent session with the transcript copied when the agent advertises session/fork", async () => {
+    const { agent, runtime, original } = await conversation();
+    expect(agent.canForkSession).toBe(false);
+    agent.connection!.capabilities = { sessionCapabilities: { fork: {} } };
+    expect(agent.canForkSession).toBe(true);
+    const calls: string[] = [];
+    runtime.request.mockImplementation(async (method: string, params: any) => {
+      if (method === "acp.call") calls.push(params.method);
+      return method === "acp.call" && params.method === "session/fork"
+        ? { id: "connection", root: "/workspace", provider: "codex", sessionId: "forked", authMethods: [] }
+        : {};
+    });
+    await agent.forkSession();
+    expect(calls).toEqual(["session/fork"]);
+    expect(agent.connection?.sessionId).toBe("forked");
+    expect((agent as any).activeConversation).toMatchObject({ sessionId: "forked" });
+    expect((agent as any).activeConversation.id).not.toBe(original);
+    expect(agent.title).toBe("Fix login");
+    expect(agent.draft).toBe("");
+    expect(agent.activity.map((item) => item.kind)).toEqual(["message", "message", "message", "notice"]);
+    expect(agent.activity.at(-1)).toEqual({
+      kind: "notice", text: "Forked from “{title}”. The agent keeps the earlier context.", values: { title: "Fix login" },
+    });
+    expect(agent.history.entries.find((entry) => entry.id === original)!.activity).toHaveLength(3);
+    agent.dispose();
+  });
+  it("asks for a newer runtime when the runtime rejects session/fork", async () => {
+    const { agent, runtime, original } = await conversation();
+    agent.connection!.capabilities = { sessionCapabilities: { fork: {} } };
+    runtime.request.mockImplementation(async (method: string, params: any) => {
+      if (method === "acp.call" && params.method === "session/fork") throw new Error("Unsupported ACP client method");
+      return {};
+    });
+    await expect(agent.forkSession()).rejects.toThrow("Update the runtime to fork conversations");
+    expect((agent as any).activeConversation.id).toBe(original);
+    expect(agent.activity).toHaveLength(3);
+    agent.dispose();
+  });
   it("restores the checkpoint first and notes the restore in the fork only", async () => {
     const { agent, checkpoint, options, second, original } = await conversation({ dirty: false });
     checkpoint.mockImplementation(async (method: string) =>
