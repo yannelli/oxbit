@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { WorkspaceFiles } from "../../apps/runtime/src/filesystem.js";
 import { LanguageServerManager } from "../../apps/runtime/src/lsp-manager.js";
+import { laravelPhpCommand } from "../../apps/runtime/src/managed/catalog.js";
 
 const fixtures = [
   ["typescript", "main.ts", "export const hello: string = 'world';\n"],
@@ -33,6 +34,11 @@ try {
   await fs.writeFile(path.join(root, ".marksman.toml"), "");
   for (const [id, file, text] of fixtures) {
     if (process.env.OXBIT_LSP_ONLY && !process.env.OXBIT_LSP_ONLY.split(",").includes(id)) continue;
+    if (id === "laravel" && !(await laravelPhpCommand(root, process.env).then(() => true, () => false))) {
+      records.push({ id, platform: `${process.platform}-${process.arch}`, skipped: "No PHP on this host" });
+      console.log("SKIP laravel: no PHP on this host");
+      continue;
+    }
     await fs.writeFile(path.join(root, file), text);
     manager.canonical(file, text);
     const attached = await manager.attach(file, "fixture", {}, {}, id);
