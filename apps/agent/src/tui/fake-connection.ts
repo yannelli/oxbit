@@ -1,5 +1,6 @@
 import { MODES } from "@oxbit/agent-core";
-import type { ConfigOption, ConnectionInfo, PermissionOutcome, PermissionRequest, PromptBlock, SessionState, SessionSummary, SessionUpdate, TuiConnection } from "./connection.js";
+import type { ConfigOption, ConnectionInfo, Panel, PanelChange, PanelContext, PanelId, PanelRow, PermissionOutcome, PermissionRequest, PromptBlock, SessionState,
+  SessionSummary, SessionUpdate, SettingsManager, TuiConnection } from "./connection.js";
 
 export interface ScriptContext {
   sessionId: string;
@@ -19,6 +20,7 @@ export interface FakeOptions {
   models?: { id: string; name: string }[];
   files?: string[];
   sessions?: SessionSummary[];
+  settings?: FakeSettings;
 }
 
 const OPTIONS = [{ optionId: "allow", name: "Allow", kind: "allow_once" }, { optionId: "reject", name: "Reject", kind: "reject_once" }];
@@ -26,6 +28,7 @@ const OPTIONS = [{ optionId: "allow", name: "Allow", kind: "allow_once" }, { opt
 /** A TuiConnection that replays scripted session/update notifications, for tests and the demo. */
 export class FakeConnection implements TuiConnection {
   prompts: string[] = [];
+  loads: string[] = [];
   modes: string[] = [];
   models: string[] = [];
   cancels = 0;
@@ -38,8 +41,11 @@ export class FakeConnection implements TuiConnection {
   private effort = "default";
   private mode = "ask";
 
+  settings?: FakeSettings;
+
   constructor(public scripts: Script[] = [], private options: FakeOptions = {}) {
     this.model = this.catalog()[0].id;
+    this.settings = options.settings;
   }
   private catalog() {
     return this.options.models ?? [{ id: "gpt-5.1", name: "GPT-5.1" }, { id: "gpt-5.1-mini", name: "GPT-5.1 mini" }];
@@ -63,8 +69,9 @@ export class FakeConnection implements TuiConnection {
   emit(sessionId: string, update: SessionUpdate) {
     for (const listener of this.listeners) listener(sessionId, update);
   }
-  info() {
-    return this.options.info ?? { provider: "openai" };
+  info(): ConnectionInfo {
+    const info = this.options.info ?? { provider: "openai" };
+    return this.settings?.provider ? { ...info, provider: this.settings.provider } : info;
   }
   async newSession() {
     const sessionId = `session-${++this.count}`;
@@ -72,6 +79,7 @@ export class FakeConnection implements TuiConnection {
     return this.state(sessionId);
   }
   async loadSession(sessionId: string) {
+    this.loads.push(sessionId);
     this.emit(sessionId, { sessionUpdate: "user_message_chunk", content: { type: "text", text: "Earlier question" } });
     this.emit(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Earlier answer." } });
     return this.state(sessionId);
@@ -141,5 +149,78 @@ export async function streamText(context: ScriptContext, text: string, size = 12
   for (let index = 0; index < text.length && !context.signal.aborted; index += size) {
     context.update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: text.slice(index, index + size) } });
     await context.sleep(delay);
+  }
+}
+
+const TITLES: Record<PanelId, string> = { config: "Settings", skills: "Skills", hooks: "Hooks", mcp: "MCP servers", instructions: "Instructions", providers: "Providers" };
+const SIGN_IN = "Open https://auth.example.com/device?code=WXYZ-1234&client=oxbit-agent-cli in a browser to sign in";
+
+/** A SettingsManager with toggles, a mode choice, actions with inputs, a sign-in that reports progress, and calls recorded in `calls`. */
+export class FakeSettings implements SettingsManager {
+  calls: string[] = [];
+  contexts: PanelContext[] = [];
+  aborted = 0;
+  provider?: string;
+  private mode = "ask";
+  private enabled: Record<string, boolean> = { autoCompact: true, claudeHooks: false, projectMcp: true, review: true, deploy: false,
+    oxbit: true, claude: false, agents: true, claudeMd: false, github: true };
+  private servers = ["github"];
+
+  private rows(id: PanelId): PanelRow[] {
+    const toggle = (rowId: string, label: string, section?: string, detail?: string): PanelRow => ({ id: rowId, label, section, detail, enabled: this.enabled[rowId] });
+    switch (id) {
+      case "config": return [
+        toggle("autoCompact", "Auto-compact", "Session", "summarize when the context is full"),
+        { id: "mode", label: "Permission mode", section: "Session", choice: { value: this.mode, options: MODES.map(({ id: value, name }) => ({ value, name })) } },
+        toggle("claudeHooks", "Claude Code hooks", "Trust"),
+        toggle("projectMcp", "Project MCP servers", "Trust", ".mcp.json")];
+      case "skills": return [
+        { ...toggle("review", "review", "Skills", "Review the current diff"), actions: [{ id: "use", label: "Use in prompt" }] },
+        toggle("deploy", "deploy", "Skills", "Ship a release")];
+      case "hooks": return [toggle("oxbit", "~/.oxbit/agent/settings.json", "Sources", "2 hooks"), toggle("claude", "~/.claude/settings.json", "Sources", "1 hook")];
+      case "instructions": return [toggle("agents", "AGENTS.md", "Project"), toggle("claudeMd", "~/.claude/CLAUDE.md", "User")];
+      case "mcp": return [
+        ...this.servers.map((name) => ({ ...toggle(name, name, "Servers", `https://mcp.example.com/${name}`),
+          actions: [{ id: "signin", label: "Sign in" }, { id: "remove", label: "Remove", reloads: true }] })),
+        { id: "add", label: "Add a server…", section: "Add", actions: [{ id: "add", label: "Add a server", reloads: true,
+          inputs: [{ label: "Name", placeholder: "linear" }, { label: "URL", placeholder: "https://" }] }] }];
+      case "providers": return [
+        { id: "openai", label: "OpenAI", section: "Providers", detail: this.provider ? "" : "default", actions: [
+          { id: "signin", label: "Sign in with ChatGPT" }, { id: "key", label: "Set API key", reloads: true, inputs: [{ label: "API key", secret: true, placeholder: "sk-…" }] }] },
+        { id: "custom", label: "Custom", section: "Providers", detail: this.provider === "custom" ? "default" : "", actions: [{ id: "connect", label: "Connect", reloads: true,
+          inputs: [{ label: "Base URL", value: "https://api.example.com/v1" }, { label: "API key", secret: true, placeholder: "sk-…" }] }] }];
+    }
+  }
+
+  async panel(id: PanelId, context: PanelContext): Promise<Panel> {
+    this.calls.push(`panel ${id}`);
+    this.contexts.push(context);
+    return { id, title: TITLES[id], rows: this.rows(id), ...id === "config" ? { footer: "Saved to ~/.oxbit/agent/settings.json" } : {} };
+  }
+  async toggle(id: PanelId, rowId: string, enabled: boolean): Promise<PanelChange> {
+    this.calls.push(`toggle ${id} ${rowId} ${enabled}`);
+    this.enabled[rowId] = enabled;
+    return {};
+  }
+  async choose(id: PanelId, rowId: string, value: string): Promise<PanelChange> {
+    this.calls.push(`choose ${id} ${rowId} ${value}`);
+    this.mode = value;
+    return { mode: value };
+  }
+  async act(id: PanelId, rowId: string, actionId: string, inputs: string[], context: PanelContext): Promise<PanelChange> {
+    this.calls.push(`act ${id} ${rowId} ${actionId} ${JSON.stringify(inputs)}`);
+    if (actionId === "use") return { draft: `/${rowId} ` };
+    if (actionId === "signin") {
+      context.progress(SIGN_IN);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, 3000);
+        context.signal.addEventListener("abort", () => { clearTimeout(timer); this.aborted++; reject(new Error("Cancelled")); }, { once: true });
+      });
+      return { message: "Signed in" };
+    }
+    if (actionId === "add") this.servers.push(inputs[0]);
+    if (actionId === "remove") this.servers = this.servers.filter((name) => name !== rowId);
+    if (actionId === "connect") this.provider = "custom";
+    return { reloaded: true, message: actionId === "connect" ? "Connected to the custom provider" : "Saved" };
   }
 }

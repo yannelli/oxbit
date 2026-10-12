@@ -90,7 +90,7 @@ export function OverlayView({ state, width }: { state: ViewState; width: number 
       </Box>
     );
   }
-  if (overlay.kind === "details") return null;
+  if (overlay.kind === "details" || overlay.kind === "panel") return null;
   const items = overlayItems(state);
   const reasoning = overlay.kind === "models" ? state.status.reasoning : undefined;
   return (

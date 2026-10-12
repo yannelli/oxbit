@@ -6,6 +6,7 @@ import { Details } from "./details.js";
 import { OverlayView, PermissionDialog, PickList } from "./dialogs.js";
 import { ItemView, type ItemContext } from "./items.js";
 import { handleKey } from "./keys.js";
+import { PanelView } from "./panel.js";
 import { PromptBox, StatusLine, Working } from "./prompt.js";
 import { ThemeContext, useTheme, type Theme } from "./theme.js";
 import { truncate } from "./width.js";
@@ -26,6 +27,7 @@ function Screen({ controller, version }: { controller: Controller; version?: str
       {state.transcript.live.map((item) => <ItemView key={item.id} item={item} live context={context} />)}
       {state.permission ? <PermissionDialog pending={state.permission} controller={controller} width={width} cwd={state.cwd} />
         : state.overlay?.kind === "details" ? <Details key={state.overlay.id} id={state.overlay.id} transcript={state.transcript} context={context} />
+          : state.overlay?.kind === "panel" ? <PanelView overlay={state.overlay} width={width} />
           : state.overlay ? <OverlayView state={state} width={width} />
           : (
             <Box flexDirection="column">

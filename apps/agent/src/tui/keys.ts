@@ -1,7 +1,24 @@
 import type { Key } from "ink";
 import type { Controller } from "./controller.js";
-import { backspace, deleteForward, deleteWordLeft, end, home, insert, killLineLeft, killLineRight, left, right, vertical, wordLeft, wordRight } from "./editor.js";
+import { backspace, deleteForward, deleteWordLeft, end, home, insert, killLineLeft, killLineRight, left, right, vertical, wordLeft, wordRight, type Draft } from "./editor.js";
 import { DECISIONS } from "./permission.js";
+import type { PanelOverlay } from "./session-controller.js";
+
+/** Cursor moves, deletion and typing, shared by the prompt and the panel input field. */
+function lineEdit(draft: Draft, input: string, key: Key): Draft | undefined {
+  if (key.leftArrow) return key.meta || key.ctrl ? wordLeft(draft) : left(draft);
+  if (key.rightArrow) return key.meta || key.ctrl ? wordRight(draft) : right(draft);
+  if (key.home || (key.ctrl && input === "a")) return home(draft);
+  if (key.end || (key.ctrl && input === "e")) return end(draft);
+  if (key.backspace) return key.meta || key.ctrl ? deleteWordLeft(draft) : backspace(draft);
+  if (key.delete) return deleteForward(draft);
+  if (key.ctrl && input === "w") return deleteWordLeft(draft);
+  if (key.ctrl && input === "u") return killLineLeft(draft);
+  if (key.ctrl && input === "k") return killLineRight(draft);
+  if (key.meta && input === "b") return wordLeft(draft);
+  if (key.meta && input === "f") return wordRight(draft);
+  if (input && !key.ctrl && !key.meta && !key.tab) return insert(draft, input.replace(/\r\n?/g, "\n"));
+}
 
 function permissionKey(controller: Controller, input: string, key: Key) {
   const pending = controller.getState().permission!;
@@ -16,8 +33,24 @@ function permissionKey(controller: Controller, input: string, key: Key) {
   if (shortcut !== undefined) choose(shortcut);
 }
 
+function panelKey(controller: Controller, input: string, key: Key, overlay: PanelOverlay) {
+  if (overlay.input) {
+    if (key.escape) return controller.escapePanel();
+    if (key.return) return controller.submitPanelInput();
+    const next = lineEdit(overlay.input.draft, input.replace(/[\r\n]/g, ""), key);
+    return next && controller.editPanelInput(next);
+  }
+  if (key.escape) return controller.escapePanel();
+  if (key.upArrow || key.downArrow) return controller.movePanel(key.upArrow ? -1 : 1);
+  if (key.return) return controller.enterPanel();
+  if (overlay.menu !== undefined) return;
+  if (input === " ") return controller.togglePanelRow();
+  if (key.leftArrow || key.rightArrow) controller.cyclePanelChoice(key.leftArrow ? -1 : 1);
+}
+
 function overlayKey(controller: Controller, input: string, key: Key) {
   const overlay = controller.getState().overlay!;
+  if (overlay.kind === "panel") return panelKey(controller, input, key, overlay);
   if (overlay.kind === "details") {
     if (key.escape || key.return || input === "q" || (key.ctrl && input === "o")) controller.set({ overlay: undefined });
     else if (key.leftArrow || key.rightArrow) controller.showDetails(key.leftArrow ? -1 : 1);
@@ -69,16 +102,6 @@ export function handleKey(controller: Controller, input: string, key: Key) {
     if (moved) return edit(moved);
     return void controller.recall(step);
   }
-  if (key.leftArrow) return edit(key.meta || key.ctrl ? wordLeft(draft) : left(draft));
-  if (key.rightArrow) return edit(key.meta || key.ctrl ? wordRight(draft) : right(draft));
-  if (key.home || (key.ctrl && input === "a")) return edit(home(draft));
-  if (key.end || (key.ctrl && input === "e")) return edit(end(draft));
-  if (key.backspace) return edit(key.meta || key.ctrl ? deleteWordLeft(draft) : backspace(draft));
-  if (key.delete) return edit(deleteForward(draft));
-  if (key.ctrl && input === "w") return edit(deleteWordLeft(draft));
-  if (key.ctrl && input === "u") return edit(killLineLeft(draft));
-  if (key.ctrl && input === "k") return edit(killLineRight(draft));
-  if (key.meta && input === "b") return edit(wordLeft(draft));
-  if (key.meta && input === "f") return edit(wordRight(draft));
-  if (input && !key.ctrl && !key.meta && !key.tab) edit(insert(draft, input.replace(/\r\n?/g, "\n")));
+  const next = lineEdit(draft, input, key);
+  if (next) edit(next);
 }
