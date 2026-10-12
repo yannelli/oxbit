@@ -1,5 +1,6 @@
 import type { AgentModelApi, AgentModelEndpoint, AgentModels } from "@oxbit/sdk";
 import { listModels, readText, type ModelInfo } from "../model.js";
+import { listedEfforts } from "../efforts.js";
 import { BUILTIN_MODELS, fillLimits, modelsDevIndex, type CatalogCache, type ModelsDevIndex } from "./catalog.js";
 import { ChatGPTAuth } from "./chatgpt.js";
 import type { AuthStore, Fetch } from "./http.js";
@@ -72,13 +73,17 @@ export const providerSpec = (id: string) => PROVIDERS.find((spec) => spec.id ===
 export const apiKeySlot = (provider: ProviderId, baseUrl?: string) =>
   provider === "openai-compatible" ? `apikey:openai-compatible ${new URL(baseUrl ?? "").origin}` : `apikey:${provider}`;
 
-/** Parses the `{models: [{slug, display_name, visibility, context_window}]}` list that a ChatGPT plan token gets from GET /v1/models. */
+/** Parses the `{models: [{slug, display_name, visibility, context_window, supported_reasoning_levels}]}` list that a ChatGPT plan token gets from GET /v1/models. */
 export function planModels(body: any): ModelInfo[] {
   if (!Array.isArray(body?.models)) throw new Error("The ChatGPT model list has no models array");
   return body.models
     .filter((model: any) => typeof model?.slug === "string" && model.slug && model.visibility === "list" && model.supported_in_api !== false)
-    .map((model: any) => ({ id: model.slug, name: typeof model.display_name === "string" ? model.display_name : model.slug,
-      ...(Number.isSafeInteger(model.context_window) && model.context_window > 0 ? { contextWindow: model.context_window } : {}) }));
+    .map((model: any) => {
+      const efforts = listedEfforts(model);
+      return { id: model.slug, name: typeof model.display_name === "string" ? model.display_name : model.slug,
+        ...(Number.isSafeInteger(model.context_window) && model.context_window > 0 ? { contextWindow: model.context_window } : {}),
+        ...efforts ? { efforts } : {} };
+    });
 }
 
 export function provider(selection: ProviderSelection, host: ProviderHost): ProviderRuntime {

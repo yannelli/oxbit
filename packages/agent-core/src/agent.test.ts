@@ -72,6 +72,44 @@ describe("Agent", () => {
       { type: "message", role: "user", content: [{ type: "input_text", text: "Again" }] },
     ]);
   });
+  it("lists the selected model's reasoning levels, recomputes them on a model change, and falls back to the model default", async () => {
+    const list = { data: [
+      { id: "model-a", reasoning: { supported_efforts: ["xhigh", "high", "medium", "low"] } },
+      { id: "model-b", reasoning: { supported_efforts: ["high", "medium", "low", "minimal"] } },
+      { id: "model-c", supported_parameters: ["tools"] },
+    ] };
+    const { agent, requests } = setup([chatText("A"), chatText("C")], {}, list);
+    const reasoning = (result: { configOptions: { id: string; currentValue: string; options: unknown[] }[] }) => {
+      const option = result.configOptions.find((item) => item.id === "reasoning");
+      return option && [option.currentValue, option.options.map((item: any) => item.value)];
+    };
+    const session = await agent.newSession();
+    expect(reasoning(session)).toEqual(["default", ["default", "low", "medium", "high", "xhigh"]]);
+    expect(session.configOptions.find((option) => option.id === "reasoning")?.options.at(-1)).toEqual({ value: "xhigh", name: "Extra high" });
+    await agent.setConfigOption(session.sessionId, "reasoning", "xhigh");
+    await agent.prompt(session.sessionId, [{ type: "text", text: "Go" }]);
+    expect((requests.at(-1)!.body as any).reasoning_effort).toBe("xhigh");
+    expect(reasoning(agent.setModel(session.sessionId, "model-b"))).toEqual(["default", ["default", "minimal", "low", "medium", "high"]]);
+    await agent.setConfigOption(session.sessionId, "reasoning", "medium");
+    expect(reasoning(await agent.setConfigOption(session.sessionId, "model", "model-a"))).toEqual(["medium", ["default", "low", "medium", "high", "xhigh"]]);
+    const plain = await agent.setConfigOption(session.sessionId, "model", "model-c");
+    expect(plain.configOptions.map((option) => option.id)).toEqual(["model", "mode"]);
+    await expect(agent.setConfigOption(session.sessionId, "reasoning", "low")).rejects.toThrow("does not support that reasoning level");
+    await agent.prompt(session.sessionId, [{ type: "text", text: "Again" }]);
+    expect(requests.at(-1)!.body).not.toHaveProperty("reasoning_effort");
+  });
+  it("uses each API's levels for the same session flow", async () => {
+    const anthropic = setup([], { "agentACP.oxbit.api": "anthropic", "agentACP.oxbit.model": "claude-opus-5-5" }, { data: [{ id: "claude-opus-5-5" }, { id: "claude-haiku-4-5" }] });
+    const { sessionId, configOptions } = await anthropic.agent.newSession();
+    expect(configOptions.find((option) => option.id === "reasoning")?.options.map((item: any) => item.value)).toEqual(["default", "low", "medium", "high", "xhigh", "max"]);
+    await anthropic.agent.setConfigOption(sessionId, "reasoning", "max");
+    expect(anthropic.agent.setModel(sessionId, "claude-haiku-4-5").configOptions.some((option) => option.id === "reasoning")).toBe(false);
+    const openai = setup([], { "agentACP.oxbit.api": "openai", "agentACP.oxbit.model": "gpt-6-sol" }, { data: [{ id: "gpt-6-sol" }, { id: "gpt-6.1-sol" }] });
+    const opened = await openai.agent.newSession();
+    await openai.agent.setConfigOption(opened.sessionId, "reasoning", "none");
+    const switched = openai.agent.setModel(opened.sessionId, "gpt-6.1-sol").configOptions.find((option) => option.id === "reasoning")!;
+    expect([switched.currentValue, switched.options.map((item: any) => item.value)]).toEqual(["default", ["default", "low", "medium", "high", "xhigh", "max"]]);
+  });
   it("reports API errors and drops the failed user turn", async () => {
     const failing = () => ({ [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(Object.assign(new Error("HTTP"), { status: 401, body: "{\"error\":{\"message\":\"bad key\"}}" })) }) });
     const { agent, requests } = setup([failing, chatText("Ok")]);

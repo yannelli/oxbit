@@ -1,5 +1,6 @@
 import type { ACPConfigOption } from "@oxbit/sdk";
-import { listModels, type Effort, type ModelInfo, type Turn } from "./model.js";
+import { listModels, type ModelInfo, type Turn } from "./model.js";
+import { effortLabel, modelEfforts } from "./efforts.js";
 import { MODES, modeOf, replay, toRecord } from "./session-records.js";
 import { generateTitle, titleInput } from "./title.js";
 import { ADAPTERS, CONTEXT_LIMIT, PromptTurn, normalize, type LiveSession } from "./turn.js";
@@ -7,7 +8,6 @@ import { contextCommand } from "./context-command.js";
 import type { AgentHost } from "./host.js";
 import type { AgentCommand, CommandContext, Params, PermissionMode } from "./extensions.js";
 
-const EFFORTS = ["default", "low", "medium", "high"] as const;
 const COMMAND = /^\/([\w:.-]+)(?:\s+([\s\S]*))?$/;
 const id = (params: Params, key: string) => {
   if (typeof params[key] !== "string" || !params[key]) throw new Error(`Invalid ${key}`);
@@ -60,14 +60,21 @@ export class Agent {
     if (!session) throw new Error("Unknown ACP session");
     return session;
   }
+  /** The session model's reasoning levels; empty when the model has no reasoning control. */
+  private efforts(session: LiveSession) {
+    const model = session.catalog.find((item) => item.id === session.model) ?? { id: session.model, name: session.model };
+    return modelEfforts(this.host.endpoint().api, model);
+  }
+  /** A model without reasoning levels gets no Reasoning option. */
   private options(session: LiveSession) {
     const models: ACPConfigOption = { id: "model", name: "Model", category: "model", type: "select", currentValue: session.model,
       options: session.catalog.map((model) => ({ value: model.id, name: model.name })) };
+    const efforts = this.efforts(session);
     const reasoning: ACPConfigOption = { id: "reasoning", name: "Reasoning", category: "thought_level", type: "select", currentValue: session.effort,
-      options: EFFORTS.map((value) => ({ value, name: value === "default" ? "Model default" : value[0].toUpperCase() + value.slice(1) })) };
+      options: [{ value: "default", name: "Model default" }, ...efforts.map((value) => ({ value, name: effortLabel(value) }))] };
     const mode: ACPConfigOption = { id: "mode", name: "Mode", category: "mode", type: "select", currentValue: modeOf(session.meta),
       options: MODES.map(({ id, name }) => ({ value: id, name })) };
-    return [...session.catalog.length ? [models] : [], reasoning, mode, ...this.host.configOptions?.(session) ?? []];
+    return [...session.catalog.length ? [models] : [], ...efforts.length ? [reasoning] : [], mode, ...this.host.configOptions?.(session) ?? []];
   }
   private state(session: LiveSession) {
     return {
@@ -153,10 +160,12 @@ export class Agent {
       void this.end(session, "clear");
     }
   }
+  /** A reasoning level the new model lacks falls back to the model default. */
   setModel(sessionId: string, modelId: string) {
     const session = this.session(sessionId);
     if (!session.catalog.some((model) => model.id === modelId)) throw new Error("This model is not in the model list");
     session.model = modelId;
+    if (!this.efforts(session).includes(session.effort)) session.effort = "default";
     this.host.saveModel?.(modelId);
     return { configOptions: this.options(session) };
   }
@@ -176,8 +185,9 @@ export class Agent {
       return { configOptions: this.options(session) };
     }
     if (configId !== "reasoning" && await this.host.setConfigOption?.(session, configId, value)) return { configOptions: this.options(session) };
-    if (configId !== "reasoning" || !EFFORTS.includes(value as Effort)) throw new Error("Unknown agent setting");
-    session.effort = value as Effort | "default";
+    if (configId !== "reasoning") throw new Error("Unknown agent setting");
+    if (value !== "default" && !this.efforts(session).includes(value)) throw new Error("This model does not support that reasoning level");
+    session.effort = value;
     return { configOptions: this.options(session) };
   }
   cancel(sessionId?: string) {
