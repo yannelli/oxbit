@@ -23,6 +23,20 @@ describe("oxbit-agent CLI", () => {
     expect((await cli(["-h"])).stdout).toContain("oxbit-agent acp");
   });
 
+  it("logs unhandled rejections while serving ACP and removes the handler when the client closes", async () => {
+    const before = process.listeners("unhandledRejection");
+    const home = await tempDir("oxa-home-");
+    const stdin = new PassThrough();
+    const stderr = sink();
+    const run = main(["acp", "--provider", "ollama"], { stdin, stdout: new PassThrough(), stderr, env: { OXBIT_AGENT_HOME: home }, cwd: home });
+    await vi.waitFor(() => expect(process.listeners("unhandledRejection")).toHaveLength(before.length + 1));
+    process.listeners("unhandledRejection").find((listener) => !before.includes(listener))!(new Error("Title request failed"), Promise.resolve());
+    stdin.end();
+    expect(await run).toBe(0);
+    expect(stderr.text).toContain("oxbit-agent: Unhandled rejection: Error: Title request failed");
+    expect(process.listeners("unhandledRejection")).toEqual(before);
+  });
+
   it("exits 2 for bad arguments and for a non-terminal stdout without -p", async () => {
     expect((await cli(["--nope"])).code).toBe(2);
     expect(await cli(["--mode", "yolo", "-p", "x"])).toEqual(expect.objectContaining({ code: 2, stderr: "oxbit-agent: Unknown mode yolo\n" }));
