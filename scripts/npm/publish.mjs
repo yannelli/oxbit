@@ -8,7 +8,7 @@ import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const usage = `Usage: node scripts/npm/publish.mjs <sdk|cli> [options]
+const usage = `Usage: node scripts/npm/publish.mjs <sdk|cli|agent> [options]
 
   --expect-tag <tag>  Fail unless <tag> is v<package version>
   --dry-run           Stage and run npm publish --dry-run
@@ -68,7 +68,7 @@ export function cliManifest(app, runtime, installedVersion) {
     description: "The oxbit command: runs the Oxbit runtime and opens the editor in a browser",
     type: "module",
     bin: { oxbit: "runtime/dist/index.js" },
-    files: ["runtime", "web", "scripts"],
+    files: ["runtime", "web", "agent", "scripts"],
     scripts: { postinstall: "node scripts/repair-pty.mjs" },
     os: ["darwin", "linux"],
     engines: app.engines,
@@ -77,16 +77,30 @@ export function cliManifest(app, runtime, installedVersion) {
   };
 }
 
+export function agentManifest(agent, installedVersion) {
+  return {
+    name: "@oxbit/agent",
+    version: agent.version,
+    description: "Oxbit Agent: a terminal coding agent with a TUI, print mode and an ACP server",
+    type: "module",
+    bin: { "oxbit-agent": "dist/index.js" },
+    files: ["dist"],
+    engines: agent.engines,
+    dependencies: pinnedDependencies(agent.dependencies, installedVersion),
+    ...shared(agent, "apps/agent"),
+  };
+}
+
 const readJson = async (file) => JSON.parse(await fs.readFile(path.join(root, file), "utf8"));
 const writeJson = (file, value) => fs.writeFile(file, JSON.stringify(value, null, 2) + "\n");
 
-function installedVersion(name) {
-  for (const directory of ["apps/runtime", "."]) {
+const installedIn = (app) => (name) => {
+  for (const directory of [app, "."]) {
     const manifest = path.join(root, directory, "node_modules", name, "package.json");
     if (existsSync(manifest)) return JSON.parse(readFileSync(manifest, "utf8")).version;
   }
   throw new Error(`${name} is not installed. Run bun install --frozen-lockfile.`);
-}
+};
 
 async function stageSdk(stage) {
   const source = await readJson("packages/sdk/package.json");
@@ -122,7 +136,7 @@ async function stageCli(stage) {
   const runtime = await readJson("apps/runtime/package.json");
   if (runtime.version !== app.version)
     throw new Error(`apps/runtime/package.json ${runtime.version} does not match package.json ${app.version}`);
-  for (const file of ["apps/runtime/dist/index.js", "apps/web/dist/index.html"])
+  for (const file of ["apps/runtime/dist/index.js", "apps/web/dist/index.html", "apps/agent/dist/index.js"])
     if (!existsSync(path.join(root, file))) throw new Error(`Missing ${file}. Run bun run build.`);
   const withoutMaps = (entry) => !entry.endsWith(".map");
   await fs.cp(path.join(root, "apps/runtime/dist"), path.join(stage, "runtime/dist"), {
@@ -130,6 +144,11 @@ async function stageCli(stage) {
     filter: withoutMaps,
   });
   await fs.cp(path.join(root, "apps/web/dist"), path.join(stage, "web/dist"), {
+    recursive: true,
+    filter: withoutMaps,
+  });
+  // The runtime starts the Oxbit Agent CLI from ../../agent/dist/ in ACP mode, which needs no TUI packages.
+  await fs.cp(path.join(root, "apps/agent/dist"), path.join(stage, "agent/dist"), {
     recursive: true,
     filter: withoutMaps,
   });
@@ -143,8 +162,29 @@ async function stageCli(stage) {
   await fs.mkdir(path.join(stage, "scripts"));
   await fs.copyFile(path.join(root, "scripts/repair-pty.mjs"), path.join(stage, "scripts/repair-pty.mjs"));
   await fs.copyFile(path.join(root, "apps/runtime/README.md"), path.join(stage, "README.md"));
-  return cliManifest(app, runtime, installedVersion);
+  return cliManifest(app, runtime, installedIn("apps/runtime"));
 }
+
+async function stageAgent(stage) {
+  const app = await readJson("package.json");
+  const agent = await readJson("apps/agent/package.json");
+  if (agent.version !== app.version)
+    throw new Error(`apps/agent/package.json ${agent.version} does not match package.json ${app.version}`);
+  if (!existsSync(path.join(root, "apps/agent/dist/index.js")))
+    throw new Error("Missing apps/agent/dist/index.js. Run bun run build.");
+  await fs.cp(path.join(root, "apps/agent/dist"), path.join(stage, "dist"), {
+    recursive: true,
+    filter: (entry) => !entry.endsWith(".map"),
+  });
+  await fs.copyFile(path.join(root, "apps/agent/README.md"), path.join(stage, "README.md"));
+  return agentManifest(agent, installedIn("apps/agent"));
+}
+
+const targets = {
+  sdk: { manifest: "packages/sdk/package.json", stage: stageSdk },
+  cli: { manifest: "package.json", stage: stageCli },
+  agent: { manifest: "apps/agent/package.json", stage: stageAgent },
+};
 
 /** The package document of a new package stays a cached 404 for minutes after its first publish; the version document does not. */
 async function isPublished(name, version) {
@@ -163,9 +203,9 @@ async function main() {
     },
   });
   const [target] = positionals;
-  if (target !== "sdk" && target !== "cli") throw new Error(usage);
+  if (!Object.hasOwn(targets, target)) throw new Error(usage);
   const name = `@oxbit/${target}`;
-  const { version } = await readJson(target === "sdk" ? "packages/sdk/package.json" : "package.json");
+  const { version } = await readJson(targets[target].manifest);
   if (values["expect-tag"] !== undefined) assertTag(values["expect-tag"], version);
   const published = await isPublished(name, version);
   if (!values["dry-run"] && published) {
@@ -174,7 +214,7 @@ async function main() {
   }
 
   const stage = await fs.mkdtemp(path.join(os.tmpdir(), `oxbit-npm-${target}-`));
-  const manifest = target === "sdk" ? await stageSdk(stage) : await stageCli(stage);
+  const manifest = await targets[target].stage(stage);
   await writeJson(path.join(stage, "package.json"), manifest);
   await fs.copyFile(path.join(root, "LICENSE"), path.join(stage, "LICENSE"));
   console.log(`Staged ${name}@${version} in ${stage}`);

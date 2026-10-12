@@ -171,6 +171,16 @@ var settings_schema_default = {
         "never"
       ]
     },
+    "agentACP.oxbit-cli.command": {
+      title: "Oxbit Agent CLI executable",
+      type: "string",
+      default: "oxbit-agent"
+    },
+    "agentACP.oxbit-cli.args": {
+      title: "Oxbit Agent CLI arguments (JSON array)",
+      type: "string",
+      default: '["acp"]'
+    },
     "agentACP.codex.command": {
       title: "Codex ACP executable",
       type: "string",
@@ -914,6 +924,12 @@ var settings_schema_default = {
         "agentACP.notifications": {
           $ref: "#/properties/agentACP.notifications"
         },
+        "agentACP.oxbit-cli.command": {
+          $ref: "#/properties/agentACP.oxbit-cli.command"
+        },
+        "agentACP.oxbit-cli.args": {
+          $ref: "#/properties/agentACP.oxbit-cli.args"
+        },
         "agentACP.codex.command": {
           $ref: "#/properties/agentACP.codex.command"
         },
@@ -1365,7 +1381,17 @@ function synchronization(capabilities) {
 }
 
 // packages/sdk/src/agent-acp.ts
+var OXBIT_CLI_PROVIDER = "oxbit-cli";
 var ACP_PROVIDERS = [
+  {
+    id: OXBIT_CLI_PROVIDER,
+    name: "Oxbit Agent CLI",
+    command: "oxbit-agent",
+    args: ["acp"],
+    setup: "Runs the oxbit-agent CLI that ships with Oxbit. It reads providers, keys, MCP servers, skills and hooks from ~/.oxbit/agent. Elsewhere, install @oxbit/agent from npm.",
+    url: "https://github.com/yannelli/oxbit/tree/main/apps/agent",
+    registryId: "oxbit-agent"
+  },
   {
     id: "codex",
     name: "Codex ACP",
@@ -1502,6 +1528,7 @@ export {
   MISSING_AGENT_KEY,
   OXBIT_AGENT_PROVIDER,
   OXBIT_AGENT_SETTINGS,
+  OXBIT_CLI_PROVIDER,
   PUSH_COLLAPSE_ID,
   PUSH_RELAY_URL,
   SDK_VERSION,

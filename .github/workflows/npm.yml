@@ -10,6 +10,8 @@ on:
       - "packages/sdk/**"
       - "apps/runtime/package.json"
       - "apps/runtime/README.md"
+      - "apps/agent/package.json"
+      - "apps/agent/README.md"
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,6 +34,7 @@ jobs:
       - run: bun run build
       - run: node scripts/npm/publish.mjs sdk --dry-run
       - run: node scripts/npm/publish.mjs cli --dry-run
+      - run: node scripts/npm/publish.mjs agent --dry-run
   publish:
     if: github.event_name != 'pull_request' && github.repository == 'yannelli/oxbit'
     runs-on: ubuntu-24.04
@@ -65,3 +68,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node scripts/npm/publish.mjs cli --expect-tag "$GITHUB_REF_NAME"
+      - name: Publish @oxbit/agent for the release tag
+        if: github.ref_type == 'tag'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/npm/publish.mjs agent --expect-tag "$GITHUB_REF_NAME"

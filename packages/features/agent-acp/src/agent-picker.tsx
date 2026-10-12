@@ -7,6 +7,7 @@ import { settingId } from "./configuration.js";
 import { formatArgs, OXBIT_AGENT_NAME, parseArgs, startable, storedArgs } from "./launch.js";
 
 const HINTS: Record<string, string> = {
+  "oxbit-cli": "Ships with Oxbit. Uses ~/.oxbit/agent settings.",
   codex: "Runs with npx. Uses your Codex sign-in.",
   claude: "Runs with npx. Uses your Claude Code sign-in.",
   gemini: "Runs with npx. Sign in or set GEMINI_API_KEY.",

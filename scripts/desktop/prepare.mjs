@@ -53,6 +53,7 @@ const node = await download(pin.node);
 const rg = await download(pin.rg);
 try {
   run("bun", ["run", "--filter", "@oxbit/runtime", "build:desktop"]);
+  run("bun", ["run", "--filter", "@oxbit/agent", "build"]);
   await fs.rm(stage, { recursive: true, force: true });
   await fs.mkdir(path.join(stage, "bin"), { recursive: true });
   await fs.mkdir(path.join(stage, "licenses"), { recursive: true });
@@ -74,6 +75,10 @@ try {
   }
   await fs.cp(path.join(root, "apps/runtime/dist-desktop"), stage, {
     recursive: true,
+  });
+  await fs.cp(path.join(root, "apps/agent/dist"), path.join(stage, "agent"), {
+    recursive: true,
+    filter: (entry) => !entry.endsWith(".map"),
   });
   await fs.writeFile(
     path.join(stage, "package.json"),

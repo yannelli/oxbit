@@ -7,7 +7,7 @@ import { createRuntime } from "../../apps/runtime/src/runtime.js";
 import { buildArchive, registryDocument, serve } from "../fixtures/agent-acp-registry/server.mjs";
 
 const shots = "/tmp/oxbit-agents/panel-start";
-const builtins = ["Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
+const builtins = ["Oxbit Agent CLI", "Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
 const listing = {
   fetchedAt: "2026-10-10T00:00:00.000Z",
   agents: [
@@ -75,14 +75,14 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
   try {
     const picker = panel.getByRole("radiogroup", { name: "Agent", exact: true });
     for (const name of builtins) await expect(picker.getByRole("radio", { name })).toBeVisible();
-    await expect(picker.getByRole("radio")).toHaveCount(6);
+    await expect(picker.getByRole("radio")).toHaveCount(7);
     await expect(picker.getByRole("radio", { name: "Codex ACP" })).toHaveAttribute("aria-checked", "true");
     const logos = picker.locator(".acp-agent-logo");
-    await expect(logos).toHaveCount(6);
+    await expect(logos).toHaveCount(7);
     expect(await logos.evaluateAll((elements) => elements.map((element) => {
       const style = getComputedStyle(element);
       return [element.getAttribute("data-agent"), style.maskImage.startsWith('url("data:image/svg+xml'), style.width];
-    }))).toEqual(["codex", "claude", "gemini", "copilot", "cursor", "amp"].map((id) => [id, true, "16px"]));
+    }))).toEqual([["oxbit-cli", false, "16px"], ...["codex", "claude", "gemini", "copilot", "cursor", "amp"].map((id) => [id, true, "16px"])]);
     await fs.mkdir(shots, { recursive: true });
     await page.screenshot({ path: `${shots}/desktop-1-picker.png` });
     await picker.getByRole("radio", { name: "Claude Agent" }).click();

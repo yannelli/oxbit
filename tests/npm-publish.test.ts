@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain-node publish script without types
-import { assertTag, cliManifest, distTag, sdkManifest, versionUrl } from "../scripts/npm/publish.mjs";
+import { agentManifest, assertTag, cliManifest, distTag, sdkManifest, versionUrl } from "../scripts/npm/publish.mjs";
 
 const author = { name: "Ryan Yannelli" };
 
@@ -30,5 +30,16 @@ describe("npm publishing", () => {
     expect(manifest.dependencies).toEqual({ "node-pty": "1.1.0", ws: "8.21.3" });
     expect(manifest.bin).toEqual({ oxbit: "runtime/dist/index.js" });
     expect(manifest.version).toBe("0.4.0");
+  });
+  it("bundles the agent core and pins the terminal UI packages", () => {
+    const agent = {
+      version: "0.4.0", license: "MIT", author, engines: { node: ">=24 <25" },
+      dependencies: { "@oxbit/agent-core": "workspace:*", ink: "8.0.0", react: "19.3.0" },
+    };
+    const installed: Record<string, string> = { ink: "8.0.0", react: "19.3.0" };
+    const manifest = agentManifest(agent, (name: string) => installed[name]);
+    expect(manifest.dependencies).toEqual({ ink: "8.0.0", react: "19.3.0" });
+    expect(manifest.bin).toEqual({ "oxbit-agent": "dist/index.js" });
+    expect(manifest.repository).toMatchObject({ directory: "apps/agent" });
   });
 });

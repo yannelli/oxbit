@@ -934,6 +934,7 @@
   "Agent finished": "Agent finished",
   "Agent turn failed": "Agent turn failed",
   "Open Agent": "Open Agent",
+  "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Ships with Oxbit. Uses ~/.oxbit/agent settings.",
   "Runs with npx. Uses your Codex sign-in.": "Runs with npx. Uses your Codex sign-in.",
   "Runs with npx. Uses your Claude Code sign-in.": "Runs with npx. Uses your Claude Code sign-in.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "Runs with npx. Sign in or set GEMINI_API_KEY.",

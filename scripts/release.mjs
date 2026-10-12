@@ -21,6 +21,7 @@ const usage = `Usage: node scripts/release.mjs <patch|minor|major|X.Y.Z> [option
 export const versionFiles = [
   "package.json",
   "apps/runtime/package.json",
+  "apps/agent/package.json",
   "apps/desktop/package.json",
   "apps/desktop/src-tauri/Cargo.toml",
   "apps/desktop/src-tauri/Cargo.lock",
