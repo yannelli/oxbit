@@ -603,7 +603,17 @@ export class AgentController {
       }
     }
   }
+  /** The Oxbit Agent setup's Claude plan choice. Claude Agent runs on a runtime, so Start opens the runtime connection. */
+  claudePlan = false;
+  setClaudePlan(claudePlan: boolean) {
+    this.claudePlan = claudePlan;
+    this.changed();
+  }
   async connectSelected() {
+    if (this.local && this.claudePlan) {
+      await this.options.kernel.commands.execute("workspace.runtime");
+      return;
+    }
     await this.connect(resolveLaunch(this.chosen, this.options.kernel.configuration));
   }
   private get localRuntime() {

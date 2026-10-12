@@ -109,13 +109,12 @@ export function AgentSetup({ agent }: { agent: AgentController }) {
 const CLAUDE_PLAN = "claude-plan";
 
 /** API, base URL, and key or ChatGPT sign-in for the Oxbit agent. Save hands the key to the host's keychain and clears the field.
- * The Claude plan choice stays in component state: it points to Claude Agent on a runtime and changes no setting. */
+ * The Claude plan choice changes no setting: it points to Claude Agent on a runtime. */
 function OxbitSetup({ agent }: { agent: AgentController }) {
   const config = agent.options.kernel.configuration;
   const models = agent.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
   const locked = !!agent.connection || agent.connecting;
   const [api, setApi] = useState(() => oxbitEndpoint(config).api);
-  const [claude, setClaude] = useState(false);
   const [baseUrl, setBaseUrl] = useState(() => config.get<string>(OXBIT_AGENT_SETTINGS.baseUrl) ?? "");
   const [key, setKey] = useState("");
   const [saved, setSaved] = useState<boolean>();
@@ -149,7 +148,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
       aria-label={tr("Oxbit Agent setup")}
       onSubmit={(event) => {
         event.preventDefault();
-        if (claude || !key.trim() || missingUrl) return;
+        if (agent.claudePlan || !key.trim() || missingUrl) return;
         run(async (models) => {
           await models.keys.save(endpoint, key.trim());
           setKey("");
@@ -158,7 +157,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
     >
       <p>
         {tr(
-          claude
+          agent.claudePlan
             ? "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in."
             : api === "chatgpt"
               ? "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain."
@@ -169,7 +168,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
         <span className="acp-setting-label">{tr("API")}</span>
         <Select
           label={tr("API")}
-          value={claude ? CLAUDE_PLAN : api}
+          value={agent.claudePlan ? CLAUDE_PLAN : api}
           options={[
             { value: "openai", label: "OpenAI" },
             { value: "anthropic", label: "Anthropic" },
@@ -179,14 +178,14 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
           ]}
           disabled={locked}
           onChange={(value) => {
-            setClaude(value === CLAUDE_PLAN);
+            agent.setClaudePlan(value === CLAUDE_PLAN);
             if (value === CLAUDE_PLAN) return;
             setApi(value as AgentModelApi);
             void config.set(OXBIT_AGENT_SETTINGS.api, value, "user");
           }}
         />
       </div>
-      {claude ? (
+      {agent.claudePlan ? (
         <div className="acp-actions">
           <button
             type="button"
@@ -214,7 +213,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
           <small className="muted">{tr("Origin and path prefix of a Chat Completions API.")}</small>
         </label>
       )}
-      {claude ? null : api === "chatgpt" ? (
+      {agent.claudePlan ? null : api === "chatgpt" ? (
         <ChatGPTAccount
           models={models}
           saved={saved}

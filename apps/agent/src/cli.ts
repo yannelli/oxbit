@@ -88,7 +88,11 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     const deps: SettingsDeps = { config, auth, env: io.env, fetch: io.fetch, open: io.open, provider: () => provider };
     const settings = createSettingsManager(deps);
     const claude = () => io.claudeAgent ?? claudeAgent(io.env);
-    const open = (choice: ActiveProvider, generateTitles: boolean, quiet = false): Promise<AcpClient> => isClaude(choice) ? openClaude(claude(), io.cwd)
+    const startClaude = () => {
+      io.stderr.write("Starting Claude Agent with npx; the first run downloads it.\n");
+      return openClaude(claude(), io.cwd);
+    };
+    const open = (choice: ActiveProvider, generateTitles: boolean, quiet = false): Promise<AcpClient> => isClaude(choice) ? startClaude()
       : MemoryConnection.open(agentFactory({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log, provider: choice, settings } satisfies AgentSetup));
     const mode = (values.mode ?? config.settings.mode) as PermissionMode | undefined;
     const session = (connection: AcpClient) => isClaude(provider) ? claudeResume(connection, values, io.cwd) : resumeId(config, values, io.cwd);
@@ -156,7 +160,7 @@ async function claudeResume(connection: AcpClient, values: Values, cwd: string) 
   if (values.continue && values.resume) throw new UsageError("Use --continue or --resume, not both");
   if (!values.continue) return values.resume;
   const [latest] = (await connection.listSessions(cwd)).sessions.filter((item) => item.cwd === cwd)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
   if (!latest) throw new Error(`No saved session for ${cwd}`);
   return latest.sessionId;
 }

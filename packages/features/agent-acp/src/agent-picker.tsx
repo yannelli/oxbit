@@ -89,7 +89,7 @@ export function AgentPicker({
         disabled={!enabled || agent.connecting}
         onClick={() => void agent.action(() => agent.connectSelected())}
       >
-        {tr("Start {0}", { 0: agent.displayName })}
+        {local && agent.claudePlan ? tr("Runtime connection") : tr("Start {0}", { 0: agent.displayName })}
       </button>
     </section>
   );

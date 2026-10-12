@@ -1411,6 +1411,15 @@ describe("Oxbit agent without a runtime workspace", () => {
     await expect(agent.listLiveSessions()).resolves.toBeUndefined();
     kernel.dispose();
   });
+  it("opens the runtime connection on Start while the Claude plan is chosen", async () => {
+    const { kernel, agent } = await activate(fakeModels());
+    const execute = vi.spyOn(kernel.commands, "execute").mockResolvedValue(undefined);
+    agent.setClaudePlan(true);
+    await agent.connectSelected();
+    expect(execute).toHaveBeenCalledWith("workspace.runtime");
+    expect(agent.connection).toBeUndefined();
+    kernel.dispose();
+  });
   it("keeps today's runtime prompt when the host has no model service", async () => {
     const { kernel, agent } = await activate();
     expect(agent.local).toBe(false);
