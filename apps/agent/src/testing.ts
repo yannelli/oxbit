@@ -1,4 +1,4 @@
-import { mkdtemp, realpath } from "node:fs/promises";
+import { mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Writable } from "node:stream";
@@ -8,6 +8,7 @@ import { FileAuthStore } from "./auth.js";
 import { AgentConfig } from "./config.js";
 import { agentFactory, type AgentSetup } from "./host.js";
 import type { ProviderChoice } from "./providers.js";
+import type { PanelContext } from "./tui/connection.js";
 
 /** A new directory under the OS temp dir, with symlinks resolved so it matches session cwds. */
 export const tempDir = async (prefix: string) => realpath(await mkdtemp(join(tmpdir(), prefix)));
@@ -32,4 +33,30 @@ export function sink() {
     return true;
   } };
   return stream as typeof stream & Writable;
+}
+
+/** A 2025-06-18 stdio MCP server script with one `echo` tool, in a temp dir. */
+export async function echoServer() {
+  const path = join(await tempDir("oxa-mcp-"), "server.mjs");
+  await writeFile(path, `import { createInterface } from "node:readline";
+const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...message }) + "\\n");
+createInterface({ input: process.stdin }).on("line", (line) => {
+  const message = JSON.parse(line);
+  if (message.id === undefined) return;
+  if (message.method === "initialize")
+    return send({ id: message.id, result: { protocolVersion: "2025-06-18", capabilities: { tools: {} }, serverInfo: { name: "echo", version: "1" } } });
+  if (message.method === "tools/list")
+    return send({ id: message.id, result: { tools: [{ name: "echo", description: "Echo text", inputSchema: { type: "object", properties: { text: { type: "string" } } } }] } });
+  if (message.method === "tools/call") return send({ id: message.id, result: { content: [{ type: "text", text: "echo: " + message.params.arguments.text }] } });
+  send({ id: message.id, error: { code: -32601, message: "Method not found" } });
+});
+`);
+  return path;
+}
+
+/** A PanelContext for `cwd` that keeps progress text. */
+export function panelContext(cwd: string) {
+  const progress: string[] = [];
+  const context: PanelContext = { cwd, signal: new AbortController().signal, progress: (text) => void progress.push(text) };
+  return Object.assign(context, { shown: progress });
 }

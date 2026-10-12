@@ -160,7 +160,7 @@ export class LocalAgentRuntime implements RpcClient {
     if (method === "session/set_model" || method === "session/set_config_option") {
       const result = method === "session/set_model"
         ? connection.agent.setModel(sessionId, text(params, "modelId"))
-        : connection.agent.setConfigOption(sessionId, text(params, "configId"), text(params, "value"));
+        : await connection.agent.setConfigOption(sessionId, text(params, "configId"), text(params, "value"));
       connection.connection.configOptions = result.configOptions;
       const model = result.configOptions.find((option) => option.id === "model")?.currentValue;
       if (connection.connection.models && model) connection.connection.models.currentModelId = model;
