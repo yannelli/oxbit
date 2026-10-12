@@ -26,7 +26,7 @@ Request fields the adapter sends:
 
 - `model`, `instructions` (the system prompt), `input`, `stream: true`.
 - `tools: [{type: "function", name, description, parameters, strict: false}]`. The tool schemas have optional properties, so strict mode is off.
-- `reasoning: {effort, summary: "auto"}` only when the Reasoning option is set. Supported `effort` values depend on the model.
+- `reasoning: {effort, summary: "auto"}` only when the Reasoning option is set. Supported `effort` values depend on the model; see [Reasoning levels](#reasoning-levels).
 - `store` is omitted. The reference says it defaults to `true`.
 
 Input items: user text is `{type: "message", role: "user", content: [{type: "input_text", text}]}`. Tool results are `{type: "function_call_output", call_id, output}`. The adapter replays each earlier response's output items (`reasoning`, `message` with its `phase`, `function_call`) unchanged, as the reasoning guide requires for items between the last user message and a function call output. Items come from `response.output_item.done`.
@@ -86,9 +86,46 @@ Stream events:
 
 References: [Create a message](https://platform.claude.com/docs/en/api/messages/create), [Streaming messages](https://platform.claude.com/docs/en/build-with-claude/streaming), [Extended thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), [Effort](https://platform.claude.com/docs/en/build-with-claude/effort), [Versioning](https://platform.claude.com/docs/en/api/versioning), [List models](https://platform.claude.com/docs/en/api/models/list).
 
+## Reasoning levels
+
+Added 2026-10-12. `agent-core/src/efforts.ts` gives each model its levels, lowest first. The Reasoning option (`category: "thought_level"`) lists "Model default" and those levels. `session/set_model` and `session/set_config_option` with `configId: "model"` return `configOptions` with the new model's levels. A level the new model lacks resets to "Model default", which sends no effort field. A model with no levels gets no Reasoning option. Levels come from the model list entry first, then the API's table, then `low`, `medium`, `high` for an unknown model.
+
+| API | Levels from the model list | Table for models the list does not describe | Request field |
+| --- | --- | --- | --- |
+| `chatgpt` | `supported_reasoning_levels[].effort` from `/codex/models`; an empty array means no levels | `CHATGPT_MODELS` (`low` to `max`; `gpt-5.5` stops at `xhigh`), then the `openai` table | `reasoning.effort` |
+| `openai` | none: `/v1/models` has no levels. With a ChatGPT plan token the CLI's `planModels` reads `supported_reasoning_levels` when the list has it | `openai` table below | `reasoning.effort` |
+| `anthropic` | `capabilities.effort.{low,medium,high,xhigh,max}.supported`; `effort.supported: false` means no levels | `anthropic` table below; other Claude models have no effort parameter | `output_config.effort` |
+| `openai-compatible` | OpenRouter `reasoning.supported_efforts` (highest first; `null` allows every gateway level, `mandatory: true` drops `none`). A `supported_parameters` list without `reasoning` or `reasoning_effort` means no levels | `low`, `medium`, `high` | `reasoning_effort` |
+
+The `chatgpt` list drops `ultra` and `persistent`. The Codex client resolves `ultra` to `multi_agent_reasoning_effort`, else `max`, and adds task delegation; it sends `persistent` as `disabled` (`codex-rs/protocol/src/openai_models/reasoning_effort.rs`, 2026-10-12). OpenRouter documents `reasoning_effort` as equivalent to `reasoning.effort`, so the adapter sends one field for every OpenAI-compatible server.
+
+`openai` table, from the developers.openai.com model pages on 2026-10-12. An ID matches a row when it equals the prefix or starts with the prefix and `-`.
+
+| Model ID prefix | `reasoning.effort` |
+| --- | --- |
+| `gpt-6-astra`, `gpt-6.1-sol` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `gpt-6-sol`, `gpt-6-luna` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
+| `gpt-5.6` | `low`, `medium`, `high`, `xhigh`, `max` (openai/codex `models.json`; the API docs list no levels) |
+| `gpt-5.5`, `gpt-5.4`, `gpt-5.2` | `none`, `low`, `medium`, `high`, `xhigh` |
+| `gpt-5.1` | `none`, `low`, `medium`, `high` |
+| `gpt-5` | `minimal`, `low`, `medium`, `high` |
+| `gpt-4`, `gpt-4o`, `gpt-4.1`, `gpt-4.5`, `gpt-3.5`, `chatgpt-4o` | none (non-reasoning models) |
+| other, including the o-series | `low`, `medium`, `high` (the o-series pages list no levels) |
+
+`anthropic` table, from [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) on 2026-10-12. On `claude-fable-5-1`, `claude-opus-5-5`, `claude-sonnet-5-5` and `claude-haiku-5-5` a request without `thinking` runs adaptive thinking, so `output_config.effort` is the only field the adapter sends. The default is `medium` on Opus 5.5 and Haiku 5.5 and `high` on the others.
+
+| Model | `output_config.effort` |
+| --- | --- |
+| `claude-fable-5-1`, `claude-mythos-5-1`, `claude-fable-5`, `claude-mythos-5`, `claude-opus-5-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-opus-4-7`, `claude-sonnet-5-5`, `claude-sonnet-5`, `claude-haiku-5-5` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-mythos-preview` | `low`, `medium`, `high`, `max` |
+| `claude-opus-4-5` | `low`, `medium`, `high` |
+| other Claude models, such as `claude-haiku-4-5` and `claude-sonnet-4-5` | none |
+
+References: [OpenAI reasoning effort](https://developers.openai.com/api/docs/guides/reasoning#reasoning-effort), [OpenAI models](https://developers.openai.com/api/docs/models), [Anthropic List models](https://platform.claude.com/docs/en/api/models/list), [OpenRouter models](https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties), [OpenRouter chat completion](https://openrouter.ai/docs/api/api-reference/chat/send-chat-completion-request), openai/codex `codex-rs/protocol/src/openai_models.rs` and `codex-rs/models-manager/models.json`.
+
 ## ACP surface
 
-The agent answers `initialize` with `protocolVersion: 1` and `promptCapabilities.embeddedContext`. `session/new` returns `sessionId`, `configOptions` with a `model` option (`category: "model"`) and a `reasoning` option (`category: "thought_level"`), and the legacy `models` field. ACP v1 selects models through `configOptions`; `models` comes from the unstable schema. When the model list fails, the list holds only the saved `agentACP.oxbit.model`, so a model ID typed in Agent setup still works.
+The agent answers `initialize` with `protocolVersion: 1` and `promptCapabilities.embeddedContext`. `session/new` returns `sessionId`, `configOptions` with a `model` option (`category: "model"`), a `reasoning` option (`category: "thought_level"`) when the model has reasoning levels, and the legacy `models` field. ACP v1 selects models through `configOptions`; `models` comes from the unstable schema. When the model list fails, the list holds only the saved `agentACP.oxbit.model`, so a model ID typed in Agent setup still works.
 
 Session updates: `agent_message_chunk`, `agent_thought_chunk`, `tool_call` and `tool_call_update` (kinds `read`, `search`, `edit`, `think`; edits carry `{type: "diff", path, oldText, newText}` with `oldText: null` for a new file), `plan` (the full entry list each time), and `usage_update` (`used`, `size`) when the model list gives a context window. `session/prompt` ends with `end_turn`, `max_tokens`, `max_turn_requests`, `refusal` or `cancelled`.
 

@@ -51,8 +51,8 @@ describe("ChatGPT model list", () => {
   it("lists visible models from /codex/models by priority", async () => {
     const { models, requests } = fakeModels([], { list: { models: [listed("gpt-b", 2), listed("hidden", 0, "hide"), listed("gpt-a", 1), { slug: "" }] } });
     expect(await listModels(models, { api: "chatgpt" })).toEqual([
-      { id: "gpt-a", name: "GPT-A", contextWindow: 272000 },
-      { id: "gpt-b", name: "GPT-B", contextWindow: 272000 },
+      { id: "gpt-a", name: "GPT-A", contextWindow: 272000, efforts: [] },
+      { id: "gpt-b", name: "GPT-B", contextWindow: 272000, efforts: [] },
     ]);
     expect(requests).toEqual([{ api: "chatgpt", method: "GET", path: "/codex/models?client_version=0.162.1" }]);
   });

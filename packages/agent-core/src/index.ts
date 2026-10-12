@@ -4,6 +4,7 @@ export * from "./tools.js";
 export * from "./host.js";
 export * from "./extensions.js";
 export { Agent } from "./agent.js";
+export { UNKNOWN_EFFORTS, effortLabel, listedEfforts, modelEfforts } from "./efforts.js";
 export { MODES, modeOf, sessionTitle } from "./session-records.js";
 export { openaiResponses } from "./openai-responses.js";
 export { CHATGPT_CLIENT_VERSION, CHATGPT_MODELS, chatgptResponses } from "./chatgpt.js";
