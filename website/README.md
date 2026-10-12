@@ -16,6 +16,9 @@ npm run deploy
 `oxbit.<account>.workers.dev`. Add a custom domain in the Cloudflare
 dashboard under Workers & Pages → oxbit → Settings → Domains & Routes.
 
+The hero's version label is `<span data-version>` in `public/index.html`; `bun run release`
+updates it with the other version files.
+
 ## Local preview
 
 ```sh
@@ -33,7 +36,7 @@ production, including `404.html` and `_headers`.
 | `public/404.html` | Not-found page |
 | `public/styles.css`, `public/main.js` | Styling, scroll reveal, copy buttons, terminal animation |
 | `public/brand/` | Logo assets copied from `apps/web/public/brand` |
-| `public/screens/` | Screenshots copied from `design/baselines` |
+| `public/screens/` | Screenshots of the app; `/screens/*` is cached as immutable, so a new capture gets a new file name |
 | `public/_headers` | Cache and security headers |
 | `wrangler.jsonc` | Worker configuration |
 

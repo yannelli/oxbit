@@ -70,14 +70,13 @@
   if (terminal) {
     const lines = [
       { text: '$ ', cls: 'p', typed: 'oxbit ~/code/orbit-dash' },
-      { text: 'Oxbit runtime 0.3.0 starting', cls: 'd' },
-      { text: 'workspace  orbit-dash' },
-      { text: 'runtime    http://127.0.0.1:9277/#pair=…', cls: 'u' },
-      { text: 'watching   1,248 files' },
-      { text: 'opening the editor in your browser', cls: 'd' },
+      { text: '/Users/dev/code/orbit-dash', cls: 'd' },
+      { text: 'http://127.0.0.1:52817/#pair=3f9a1c07be42', cls: 'u' },
       { text: '' },
       { text: '$ ', cls: 'p', typed: 'oxbit --status' },
-      { text: 'runtime for orbit-dash is serving on port 9277', cls: 'd' },
+      { text: 'Workspace: /Users/dev/code/orbit-dash' },
+      { text: 'Runtime: http://127.0.0.1:52817' },
+      { text: 'Process: 48213', cls: 'd' },
       { text: '' },
       { text: '$ ', cls: 'p', caret: true },
     ];

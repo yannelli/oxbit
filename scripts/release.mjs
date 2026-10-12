@@ -28,6 +28,7 @@ export const versionFiles = [
   "apps/ios/package.json",
   "apps/ios/src-tauri/Cargo.toml",
   "apps/ios/src-tauri/Cargo.lock",
+  "website/public/index.html",
 ];
 
 export function nextVersion(current, bump) {
@@ -50,6 +51,7 @@ function versionPattern(file) {
   }
   if (/Cargo\.toml$/.test(file)) return /(\[package\][\s\S]*?\nversion\s*=\s*")[^"]*(")/;
   if (/\.json$/.test(file)) return /("version"\s*:\s*")[^"]*(")/;
+  if (/\.html$/.test(file)) return /(<span data-version>v)[^<]*(<\/span>)/;
   return undefined;
 }
 export function setVersion(file, text, version) {
