@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Agent } from "./agent.js";
 import type { Compactor, ContinuationProvider, SnapshotStore } from "./extensions.js";
+import { STOP_BLOCK_LIMIT } from "./turn.js";
 import { chatText, chatTool, chatTools } from "./test-models.js";
 import { hooks, start, testHost, text } from "./test-host.js";
 
@@ -53,14 +54,15 @@ describe("Agent hooks", () => {
     expect(calls.find(([event]) => event === "PostToolUseFailure")![1]).toEqual(expect.objectContaining({ tool_name: "edit_file",
       error: expect.stringContaining("old_string was not found") }));
   });
-  it("blocks a prompt from UserPromptSubmit and appends its context", async () => {
+  it("ends a prompt that UserPromptSubmit blocks with the reason as a message, and appends its context", async () => {
     const outcomes = [{ block: true, reason: "No secrets" }, { additionalContext: "Today is Monday" }];
     const { runner } = hooks((event) => event === "UserPromptSubmit" ? outcomes.shift() : undefined);
     const t = testHost([chatText("Ok")], { extensions: { hooks: runner } });
     const agent = new Agent(t.host);
     const sessionId = await start(agent);
-    await expect(agent.prompt(sessionId, text("Key?"))).rejects.toThrow("No secrets");
+    expect(await agent.prompt(sessionId, text("Key?"))).toEqual({ stopReason: "end_turn" });
     expect(t.posts()).toEqual([]);
+    expect(t.updates.at(-1)).toEqual({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "\n\nNo secrets\n\n" } });
     await agent.prompt(sessionId, text("Day?"));
     expect(t.messages().slice(1)).toEqual([{ role: "user", content: "Day?\n\nToday is Monday" }]);
   });
@@ -75,6 +77,26 @@ describe("Agent hooks", () => {
     expect(calls.filter(([event]) => event === "Stop").map(([, input]) => [input.stop_hook_active, input.last_assistant_message]))
       .toEqual([[false, "Done"], [true, "Tests pass"]]);
     expect(t.updates).toContainEqual({ sessionUpdate: "user_message_chunk", content: { type: "text", text: "Run the tests" }, _meta: { oxbit: { continuation: true } } });
+  });
+  it("ends the turn after STOP_BLOCK_LIMIT blocking Stop hooks", async () => {
+    const { runner, calls } = hooks((event) => event === "Stop" ? { block: true, reason: "Again" } : undefined);
+    const t = testHost(Array.from({ length: STOP_BLOCK_LIMIT + 1 }, () => chatText("Done")), { extensions: { hooks: runner } });
+    const agent = new Agent(t.host);
+    expect(await agent.prompt(await start(agent), text("Fix"))).toEqual({ stopReason: "end_turn" });
+    expect(t.posts()).toHaveLength(STOP_BLOCK_LIMIT + 1);
+    expect(calls.filter(([event]) => event === "Stop")).toHaveLength(STOP_BLOCK_LIMIT + 1);
+    expect(t.updates.at(-1)?.content?.text).toContain(`blocked the end of this turn ${STOP_BLOCK_LIMIT} times`);
+  });
+  it("keeps the turn going when the hook runner throws", async () => {
+    const runner = { run: vi.fn(async () => {
+      throw new Error("settings.json is unreadable");
+    }) };
+    const t = testHost([chatTool("call_1", "read_file", { path: "a.ts" }), chatText("Read")], { extensions: { hooks: runner }, files: { "/root/a.ts": "A" } });
+    const agent = new Agent(t.host);
+    expect(await agent.prompt(await start(agent), text("Read"))).toEqual({ stopReason: "end_turn" });
+    expect(t.messages().at(-1)).toEqual({ role: "tool", tool_call_id: "call_1", content: "A" });
+    expect(t.updates).toContainEqual({ sessionUpdate: "agent_message_chunk", content: { type: "text",
+      text: "\n\nThe UserPromptSubmit hooks failed: settings.json is unreadable\n\n" } });
   });
   it("stops the turn when a hook returns continue: false and skips the remaining tools", async () => {
     const { runner } = hooks((event) => event === "PreToolUse" ? { continue: false, stopReason: "Budget reached" } : undefined);

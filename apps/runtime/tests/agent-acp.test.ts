@@ -169,15 +169,26 @@ describe("ACP runtime bridge", () => {
   it.each(["crash", "malformed", "oversized"])(
     "fails pending calls when an agent sends %s",
     async (text) => {
-      const { agent, connection } = await setup();
+      const { agent, connection, events } = await setup();
       await expect(
         agent.call("client", connection.id, "session/prompt", { text }),
       ).rejects.toThrow();
       await expect(
         agent.call("client", connection.id, "session/new"),
       ).rejects.toThrow("ended");
+      expect(events.filter((e) => e.name === "acp.exit").map((e) => e.params.unexpected)).toEqual([true]);
     },
   );
+  it("resumes a queue paused by a failed turn when a prompt is sent directly", async () => {
+    const { agent, connection, events } = await setup();
+    await expect(agent.call("client", connection.id, "session/prompt", { text: "error" })).rejects.toThrow("Fixture prompt failed");
+    const paused = () => events.filter((e) => e.name === "acp.queue").at(-1)?.params.paused;
+    expect(paused()).toBe(true);
+    expect(await agent.call("client", connection.id, "session/prompt", { text: "hello" })).toEqual({ stopReason: "end_turn" });
+    expect(paused()).toBe(false);
+    agent.stop("client", connection.id);
+    expect(events.filter((e) => e.name === "acp.exit").map((e) => e.params)).toEqual([expect.not.objectContaining({ unexpected: true })]);
+  });
   it("does not launch unknown providers or missing executables", async () => {
     const { agent } = await setup();
     await expect(

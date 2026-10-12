@@ -105,6 +105,7 @@ export class AgentController {
   private threadConversations = new Map<string, string>();
   /** The runtime connection to reattach when the runtime reconnects, while its conversation stays open. */
   private reattachOnReconnect?: { id: string; conversationId?: string };
+  private reconnects: number[] = [];
   private checkpointing = false;
   private autoApplyValue?: boolean;
   private titleRequested = false;
@@ -303,8 +304,10 @@ export class AgentController {
         (r) => !requestIds.includes(r.requestId),
       );
     });
-    on("acp.exit", ({ reason }) => {
+    on("acp.exit", ({ reason, unexpected }) => {
+      const target = unexpected === true ? this.reconnectTarget() : undefined;
       this.clearConnection(reason);
+      if (target) void this.action(() => this.reconnect(target, reason));
     });
     on("connection.change", ({ state }) => {
       if (state === "connected") {
@@ -467,6 +470,31 @@ export class AgentController {
     this.queuePaused = false;
     this.activeTurnId = undefined;
     this.status = status;
+  }
+  /** The open conversation to load into a new agent process after a crash, at most 3 times a minute. */
+  private reconnectTarget() {
+    const conversation = this.activeConversation;
+    if (this.archived || !conversation?.sessionId || !this.connection?.capabilities?.loadSession) return undefined;
+    const now = Date.now();
+    this.reconnects = this.reconnects.filter((time) => now - time < 60000);
+    if (this.reconnects.length >= 3) return undefined;
+    this.reconnects.push(now);
+    const prompt = this.busy ? this.messages.findLast((message) => message.role === "user")?.text : undefined;
+    return { id: conversation.id, launch: this.launch, prompt };
+  }
+  /** Starts the agent again and loads the conversation. A prompt the replay lacks returns to an empty composer. */
+  private async reconnect(target: { id: string; launch: ACPLaunch; prompt?: string }, reason: string) {
+    await this.saveConversation();
+    const entry = this.history.entries.find((e) => e.id === target.id);
+    if (!entry || this.disposed || this.connection || this.connecting || this.activeConversation?.id !== target.id) return;
+    this.status = "Reconnecting…";
+    this.changed();
+    await this.connect(target.launch, entry);
+    if (this.activeConversation?.id !== target.id || !this.connection) return;
+    this.activity.push({ kind: "notice", text: `${reason}. The agent restarted and loaded this conversation.` });
+    if (target.prompt && !this.draft.trim() && this.messages.findLast((message) => message.role === "user")?.text !== target.prompt)
+      this.draft = target.prompt;
+    void this.saveConversation();
   }
   private request<T = any>(
     method: string,

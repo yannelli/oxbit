@@ -34,6 +34,8 @@ export interface AgentModelRequest extends AgentModelEndpoint {
 export interface AgentModelError extends Error {
   status: number;
   body: string;
+  /** The response's Retry-After, when the host reads headers. */
+  retryAfterMs?: number;
 }
 
 /** A ChatGPT sign-in waiting for the user to enter `userCode` at `verificationUrl`. */

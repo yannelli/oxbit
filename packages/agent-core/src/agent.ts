@@ -238,8 +238,11 @@ export class Agent {
     const endpoint = this.host.endpoint();
     let text = promptText(blocks);
     const submit = await turn.hook("UserPromptSubmit", { prompt: text });
-    if (submit.block) throw new Error(submit.reason || "A hook blocked this prompt");
     if (turn.halt) return turn.halted();
+    if (submit.block) {
+      turn.notice(submit.reason || "A hook blocked this prompt");
+      return { stopReason: "end_turn" };
+    }
     if (submit.additionalContext) text += `\n\n${submit.additionalContext.slice(0, CONTEXT_LIMIT)}`;
     const user: Turn = { role: "user", text };
     session.turns.push(user);
@@ -288,6 +291,11 @@ export class Agent {
     const key = JSON.stringify(available);
     if (key === (session.commands ?? "[]")) return;
     session.commands = key;
-    this.host.update(session.id, { sessionUpdate: "available_commands_update", availableCommands: available });
+    try {
+      this.host.update(session.id, { sessionUpdate: "available_commands_update", availableCommands: available });
+    } catch {
+      // Runs from a timer; a closed client connection must not reject it unhandled.
+      session.commands = undefined;
+    }
   }
 }
