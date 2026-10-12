@@ -4,10 +4,12 @@ import { createRoot } from "react-dom/client";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
+  AUTO_UPDATE_SETTING,
   installNotifications,
   native,
   ProjectSessionManager,
   watchNotificationClicks,
+  watchUpdates,
   type CloseRequest,
   type ToolStatus,
   type UpdateStatus,
@@ -115,13 +117,12 @@ function App() {
   const perform = (operation: Promise<unknown>) => {
     void operation.catch((e) => setError(String(e)));
   };
-  const checkUpdates = async (startup = false) => {
+  const checkUpdates = async () => {
     try {
-      const result = await native.checkUpdate();
-      setUpdate(result);
-      if (!startup || result.status === "available") setPanel("update");
+      setUpdate(await native.checkUpdate());
+      setPanel("update");
     } catch (e) {
-      if (!startup) setError(String(e));
+      setError(String(e));
     }
   };
   const showTools = async (checkAuth = false) => {
@@ -245,8 +246,21 @@ function App() {
             ),
         ),
       );
-      await manager.start();
-      await checkUpdates(true);
+      try {
+        await manager.start();
+      } finally {
+        add(
+          watchUpdates({
+            check: native.checkUpdate,
+            enabled: () => manager.snapshot().profile.user[AUTO_UPDATE_SETTING.id] !== false,
+            announce: (status) => {
+              if (manager.isClosing) return;
+              setUpdate(status);
+              setPanel((current) => current ?? "update");
+            },
+          }),
+        );
+      }
     })().catch((e) => setError(String(e)));
     return () => {
       stopped = true;
@@ -381,6 +395,7 @@ function App() {
     const disposables = registrations.map(([id, title, run]) =>
       session.kernel.commands.register({ id, title, category: "Desktop", run }),
     );
+    disposables.push(session.kernel.configuration.register(AUTO_UPDATE_SETTING));
     if (!active.project.path.startsWith("ssh://")) {
       for (const location of ["explorer", "tab", "editor"]) {
         disposables.push(session.kernel.contributions.register({

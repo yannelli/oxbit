@@ -24,6 +24,13 @@ export {
   watchNotificationClicks,
   type NotificationPermission,
 } from "./notifications.js";
+import type { UpdateStatus } from "./updates.js";
+export {
+  AUTO_UPDATE_SETTING,
+  UPDATE_INTERVAL,
+  watchUpdates,
+  type UpdateStatus,
+} from "./updates.js";
 
 export interface Project {
   key: string;
@@ -58,12 +65,6 @@ export interface ToolStatus {
   version?: string;
   authenticated?: boolean;
   guidance: string;
-}
-export interface UpdateStatus {
-  status: "manual" | "unconfigured" | "available" | "current";
-  version?: string;
-  notes?: string;
-  url?: string;
 }
 export const native = {
   snapshot: () => invoke<DesktopSnapshot>("desktop_snapshot"),
