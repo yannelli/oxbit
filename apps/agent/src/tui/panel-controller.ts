@@ -161,6 +161,21 @@ export class PanelController extends SessionController {
     void this.change((settings, id, context) => settings.act(id, input.rowId, input.action.id, values, context));
   }
 
+  /** Typed `/providers use <id>`: the agent command cannot rebuild the agent mid-turn, so the panel action switches it here. */
+  async useProvider(id: string) {
+    const settings = this.connection.settings;
+    if (!settings) return;
+    if (this.state.running) return this.flash("Wait for the turn to finish");
+    const context: PanelContext = { cwd: this.cwd, sessionId: this.state.status.sessionId, signal: new AbortController().signal, progress: () => {} };
+    try {
+      const change = await settings.act("providers", id, "use", [], context);
+      if (change.reloaded) await this.reload();
+      if (change.message) this.flash(change.message);
+    } catch (error) {
+      this.notice(message(error), "error");
+    }
+  }
+
   /** Esc: cancels the running call, then leaves the input or action list, then closes the panel. */
   escapePanel() {
     const overlay = this.panelOverlay();

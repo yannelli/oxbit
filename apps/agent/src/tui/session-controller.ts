@@ -128,7 +128,9 @@ export class SessionController {
     try {
       session = sessionId ? await this.connection.loadSession(sessionId, this.cwd) : await this.connection.newSession(this.cwd);
     } catch (error) {
-      this.notice(message(error), "error");
+      // A rebuilt agent has no record of a session that never got a prompt.
+      if (!replay && /Unknown ACP session/.test(message(error))) session = await this.connection.newSession(this.cwd).catch(() => undefined);
+      if (!session) this.notice(message(error), "error");
     }
     const early = this.early;
     this.early = undefined;

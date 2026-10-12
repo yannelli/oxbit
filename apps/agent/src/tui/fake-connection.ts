@@ -29,6 +29,8 @@ const OPTIONS = [{ optionId: "allow", name: "Allow", kind: "allow_once" }, { opt
 export class FakeConnection implements TuiConnection {
   prompts: string[] = [];
   loads: string[] = [];
+  /** Session ids loadSession rejects, as for a session that was never saved. */
+  unknown = new Set<string>();
   modes: string[] = [];
   models: string[] = [];
   cancels = 0;
@@ -80,6 +82,7 @@ export class FakeConnection implements TuiConnection {
   }
   async loadSession(sessionId: string) {
     this.loads.push(sessionId);
+    if (this.unknown.has(sessionId)) throw new Error(`Unknown ACP session ${sessionId}`);
     this.emit(sessionId, { sessionUpdate: "user_message_chunk", content: { type: "text", text: "Earlier question" } });
     this.emit(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Earlier answer." } });
     return this.state(sessionId);
@@ -209,6 +212,10 @@ export class FakeSettings implements SettingsManager {
   }
   async act(id: PanelId, rowId: string, actionId: string, inputs: string[], context: PanelContext): Promise<PanelChange> {
     this.calls.push(`act ${id} ${rowId} ${actionId} ${JSON.stringify(inputs)}`);
+    if (actionId === "use" && id === "providers") {
+      this.provider = rowId;
+      return { reloaded: true, message: `Using ${rowId}` };
+    }
     if (actionId === "use") return { draft: `/${rowId} ` };
     if (actionId === "signin") {
       context.progress(SIGN_IN);

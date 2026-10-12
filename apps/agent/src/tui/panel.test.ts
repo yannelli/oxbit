@@ -90,6 +90,19 @@ describe("settings panels", () => {
     await ui.exit();
   });
 
+  test("/providers use switches now and opens a new session when the old one was never saved", async () => {
+    const ui = await start({ settings: new FakeSettings() });
+    ui.connection.unknown.add("session-1");
+    ui.command("/providers use custom");
+    await ui.until("Using custom");
+    await ui.until("GPT-5.1 · custom");
+    expect(ui.settings.calls).toContain("act providers custom use []");
+    expect(ui.connection.prompts).toEqual([]);
+    expect(ui.connection.loads).toEqual(["session-1"]);
+    expect(ui.frame()).not.toContain("Unknown ACP session");
+    await ui.exit();
+  });
+
   test("lists several actions, shows sign-in progress in full and cancels it with esc", async () => {
     const ui = await start({ settings: new FakeSettings() });
     ui.command("/providers");

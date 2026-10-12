@@ -88,10 +88,16 @@ export class Controller extends PanelController {
         if (!this.connection.listSessions && !args) return false;
         if (args) void this.open(args, "Resumed session"); else void this.openSessions();
         return true;
-      case "config": case "skills": case "hooks": case "mcp": case "instructions": case "providers":
+      case "config": case "skills": case "hooks": case "mcp": case "instructions": case "providers": {
+        const use = name === "providers" && this.connection.settings ? /^use\s+(\S+)$/i.exec(args) : null;
+        if (use) {
+          void this.useProvider(use[1]);
+          return true;
+        }
         if (!this.connection.settings || args) return false;
         this.openPanel(name);
         return true;
+      }
       case "help": this.set({ overlay: { kind: "help" } }); return true;
       case "exit": case "quit": this.exit(); return true;
     }
