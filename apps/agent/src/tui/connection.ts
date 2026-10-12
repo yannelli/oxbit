@@ -50,6 +50,53 @@ export interface ConnectionInfo {
 
 export type PromptBlock = { type: "text"; text: string };
 
+export type PanelId = "config" | "skills" | "hooks" | "mcp" | "instructions" | "providers";
+export interface PanelInput { label: string; placeholder?: string; secret?: boolean; value?: string }
+export interface PanelAction {
+  id: string;
+  label: string;
+  /** Asked one after another before the action runs. */
+  inputs?: PanelInput[];
+  /** The action rebuilds the agent, so the TUI refuses it while a turn runs. */
+  reloads?: boolean;
+}
+export interface PanelRow {
+  id: string;
+  label: string;
+  detail?: string;
+  section?: string;
+  /** Shown as a checkbox that space flips. */
+  enabled?: boolean;
+  /** Cycled with ← and →. */
+  choice?: { value: string; options: { value: string; name: string }[] };
+  /** Enter runs the only action or lists them. */
+  actions?: PanelAction[];
+}
+export interface Panel { id: PanelId; title: string; rows: PanelRow[]; footer?: string }
+export interface PanelContext {
+  cwd: string;
+  sessionId?: string;
+  signal: AbortSignal;
+  /** Status text while an action runs, such as a sign-in address. */
+  progress(text: string): void;
+}
+export interface PanelChange {
+  message?: string;
+  /** The agent was rebuilt; the TUI loads its session again and reads info(). */
+  reloaded?: boolean;
+  /** Mode for the current session, from the /config permission row. */
+  mode?: string;
+  /** Text for the prompt, such as "/review " after picking a skill. */
+  draft?: string;
+}
+/** Reads and changes ~/.oxbit/agent settings for the /config, /skills, /hooks, /mcp, /instructions and /providers panels. */
+export interface SettingsManager {
+  panel(id: PanelId, context: PanelContext): Promise<Panel>;
+  toggle(id: PanelId, rowId: string, enabled: boolean, context: PanelContext): Promise<PanelChange>;
+  choose(id: PanelId, rowId: string, value: string, context: PanelContext): Promise<PanelChange>;
+  act(id: PanelId, rowId: string, actionId: string, inputs: string[], context: PanelContext): Promise<PanelChange>;
+}
+
 /** What the TUI needs from W4's in-memory ACP connection. Method names follow ACP. */
 export interface TuiConnection {
   info(): ConnectionInfo;
@@ -67,4 +114,5 @@ export interface TuiConnection {
   onPermission(handler: (request: PermissionRequest) => Promise<PermissionOutcome>): () => void;
   /** Workspace-relative file paths matching `query` for @ mentions. */
   listFiles?(query: string, cwd: string): Promise<string[]>;
+  settings?: SettingsManager;
 }
