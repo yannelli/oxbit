@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, type ACPConnection, type FeatureOptions, type Persistence } from "@oxbit/sdk";
 import { LocalAgentRuntime } from "./runtime.js";
 import { memoryPersistence } from "./sessions.js";
+import type { AgentHost } from "@oxbit/agent-core";
 import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
-const EVENTS = ["acp.turnStarted", "acp.turnEnded", "acp.update", "acp.request", "acp.requestsExpired", "acp.cancelled", "acp.queue", "acp.exit"];
+const EVENTS = ["acp.turnStarted", "acp.turnEnded", "acp.update", "acp.request", "acp.requestsExpired", "acp.cancelled", "acp.queue", "acp.exit", "acp.subagent"];
 /** A workspace FileSystem over relative paths and file texts. */
 function workspace(files: Record<string, string>) {
   const children = (dir: string) => {
@@ -34,6 +35,8 @@ function setup(replies: Reply[] = [], key = true, { files = {}, persistence }: {
   const named = (name: string) => events.filter((event) => event.name === name).map((event) => event.params);
   return { runtime, events, connect, named, configuration, unavailable: () => (available = false), ...fake };
 }
+/** The Agent host, to send the child-session traffic that the task tool sends. */
+const agentHost = (runtime: LocalAgentRuntime, id: string): AgentHost => (runtime as any).connections.get(id).agent.host;
 const prompt = (runtime: LocalAgentRuntime, id: string, messageId: string, text = "Hi") =>
   runtime.request<{ stopReason: string }>("acp.call", { id, method: "session/prompt", params: { text, messageId } });
 
@@ -219,5 +222,55 @@ describe("LocalAgentRuntime", () => {
     runtime.dispose();
     expect(await turn).toEqual({ stopReason: "cancelled" });
     expect(named("acp.exit")).toEqual([expect.objectContaining({ id: connection.id, reason: "Workspace closed" })]);
+  });
+  it("advertises child sessions and routes a child's updates and requests through the subagent registry", async () => {
+    const { runtime, connect, named } = setup();
+    const connection = await connect();
+    const root = connection.sessionId!;
+    const host = agentHost(runtime, connection.id);
+    expect(host.capabilities.childSessions).toBe(true);
+    expect(host.subagents).toEqual({});
+    host.update(root, { sessionUpdate: "subagent_spawned", subagentSessionId: "C", name: "Review", task: "Inspect a.ts" });
+    host.update("C", { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Looking" } });
+    host.update("Z", { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Stray" } });
+    expect(named("acp.update").filter((event) => event.sessionId !== root)).toEqual([
+      expect.objectContaining({ rootSessionId: root, sessionId: "C", update: expect.objectContaining({ sessionUpdate: "agent_message_chunk" }) })]);
+    expect(named("acp.subagent").at(-1)).toEqual(expect.objectContaining({ rootSessionId: root, activeCount: 1,
+      subagent: expect.objectContaining({ id: "oxbit:C", provider: "oxbit", name: "Review", state: "running", result: "Looking" }) }));
+    const write = host.request("fs/write_text_file", { sessionId: "C", toolCallId: "t1", path: "/root/a.ts", content: "x" });
+    await expect(host.request("fs/read_text_file", { sessionId: "Z", path: "/root/a.ts" })).rejects.toThrow("Unknown ACP session");
+    const request = named("acp.request").at(-1)!;
+    expect(request).toEqual(expect.objectContaining({ sessionId: "C", rootSessionId: root, subagentId: "oxbit:C", method: "fs/write_text_file" }));
+    expect(named("acp.subagent").at(-1)!.subagent.phase).toBe("awaiting_input");
+    await expect(runtime.request("acp.call", { id: connection.id, method: "session/new" })).rejects.toThrow("Wait for active subagents");
+    host.update(root, { sessionUpdate: "subagent_state_update", subagentSessionId: "C", state: "completed" });
+    await expect(write).rejects.toThrow("Session turn ended");
+    expect(named("acp.requestsExpired")).toEqual([expect.objectContaining({ requestIds: [request.requestId] })]);
+    expect(named("acp.subagent").at(-1)).toEqual(expect.objectContaining({ activeCount: 0, subagent: expect.objectContaining({ state: "completed" }) }));
+    await expect(host.request("fs/read_text_file", { sessionId: "C", path: "/root/a.ts" })).rejects.toThrow("Unknown ACP session");
+    const next = await runtime.request<ACPConnection>("acp.call", { id: connection.id, method: "session/new" });
+    host.update("C", { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Late" } });
+    expect(named("acp.update").some((event) => event.update.content?.text === "Late")).toBe(false);
+    expect(next.sessionId).not.toBe(root);
+  });
+  it("attributes fallback child cards and their permission requests to the task call", async () => {
+    const { runtime, connect, named } = setup();
+    const connection = await connect();
+    const root = connection.sessionId!;
+    const host = agentHost(runtime, connection.id);
+    host.update(root, { sessionUpdate: "tool_call", toolCallId: "call_1", title: "Agent: Review", kind: "other", status: "in_progress",
+      _meta: { oxbit: { subagent: { name: "Review", task: "Inspect a.ts", state: "running" } } } });
+    host.update(root, { sessionUpdate: "tool_call", toolCallId: "call_1/c1", title: "Edit a.ts", kind: "edit", status: "pending",
+      _meta: { oxbit: { subagentOf: "call_1" } } });
+    const id = `tool:${JSON.stringify([root, "call_1"])}`;
+    const permission = host.request("session/request_permission", { sessionId: root, toolCall: { toolCallId: "call_1/c1" }, options: [] });
+    const request = named("acp.request").at(-1)!;
+    expect(request).toEqual(expect.objectContaining({ sessionId: root, subagentId: id }));
+    expect(named("acp.subagent").at(-1)!.subagent).toEqual(expect.objectContaining({ id, phase: "awaiting_input", state: "running" }));
+    await runtime.request("acp.respond", { id: connection.id, requestId: request.requestId, result: { outcome: { outcome: "selected", optionId: "allow" } } });
+    expect(await permission).toEqual({ outcome: { outcome: "selected", optionId: "allow" } });
+    expect(named("acp.subagent").at(-1)!.subagent.phase).toBe("unknown");
+    await runtime.request("acp.stop", { id: connection.id });
+    expect(named("acp.subagent").at(-1)).toEqual(expect.objectContaining({ activeCount: 0, subagent: expect.objectContaining({ id, state: "disconnected" }) }));
   });
 });
