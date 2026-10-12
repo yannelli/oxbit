@@ -14,7 +14,7 @@ describe("Agent hooks", () => {
     expect(t.client).toEqual([]);
     expect(t.messages().at(-1)).toEqual({ role: "tool", tool_call_id: "call_1", content: "No reads" });
     expect(events()).toEqual(["SessionStart", "UserPromptSubmit", "PreToolUse", "Stop"]);
-    expect(calls[2][1]).toEqual({ session_id: sessionId, cwd: "/root", hook_event_name: "PreToolUse", tool_name: "read_file",
+    expect(calls[2][1]).toEqual({ session_id: sessionId, cwd: "/root", hook_event_name: "PreToolUse", permission_mode: "default", tool_name: "read_file",
       tool_input: { path: "a.ts" }, tool_use_id: "call_1" });
     expect(t.updates.filter((update) => update.sessionUpdate === "tool_call_update").map((update) => update.status)).toEqual(["failed"]);
   });
@@ -93,6 +93,14 @@ describe("Agent hooks", () => {
     await agent.prompt(await start(agent), text("Start"));
     expect(next).toHaveBeenCalledTimes(2);
     expect(t.messages().slice(-2)).toEqual([{ role: "assistant", content: "A" }, { role: "user", content: "Keep going" }]);
+  });
+  it("gives each continuation a full step budget", async () => {
+    let left = 70;
+    const t = testHost(Array.from({ length: 71 }, () => chatText("Again")), { extensions: { continuations: [{ next: async () => left-- > 0 ? "Continue" : undefined }] } });
+    const agent = new Agent(t.host);
+    const sessionId = await start(agent);
+    expect(await agent.prompt(sessionId, text("Go"))).toEqual({ stopReason: "end_turn" });
+    expect(left).toBe(-1);
   });
   it("compacts after a finished step with PreCompact and PostCompact around it", async () => {
     const { runner, events } = hooks();

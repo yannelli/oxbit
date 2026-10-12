@@ -142,6 +142,6 @@ describe("createHookRunner", () => {
     expect(t.client.filter(([method]) => method.startsWith("terminal/"))).toEqual([]);
     expect(t.messages().at(-1)).toEqual({ role: "tool", tool_call_id: "call_1", content: "rm is blocked" });
     expect(JSON.parse(calls[0][1].stdin)).toEqual({ transcript_path: "", session_id: sessionId, cwd: "/root", hook_event_name: "PreToolUse",
-      tool_name: "Bash", oxbit_tool_name: "bash", tool_input: { command: "rm -rf build" }, tool_use_id: "call_1" });
+      permission_mode: "default", tool_name: "Bash", oxbit_tool_name: "bash", tool_input: { command: "rm -rf build" }, tool_use_id: "call_1" });
   });
 });

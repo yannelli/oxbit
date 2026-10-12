@@ -38,6 +38,7 @@ const system = (root: string, reviewed: boolean, shell: boolean) => [
   "Use update_plan for work with several steps. Keep replies short and use Markdown.",
 ].join("\n");
 export const normalize = (cwd: string) => cwd.replace(/\/+$/, "") || "/";
+const CLAUDE_PERMISSION_MODES = { "ask": "default", "accept-edits": "acceptEdits", "full-auto": "bypassPermissions" } as const;
 
 /** One prompt turn of a session: the model and tool loop with every extension call site. */
 export class PromptTurn {
@@ -49,7 +50,8 @@ export class PromptTurn {
   async hook(event: HookEvent, input: Params): Promise<HookOutcome> {
     const runner = this.host.extensions?.hooks;
     if (!runner) return {};
-    const outcome = await runner.run(event, { session_id: this.session.id, cwd: this.session.cwd, hook_event_name: event, ...input }, this.signal);
+    const outcome = await runner.run(event, { session_id: this.session.id, cwd: this.session.cwd, hook_event_name: event,
+      permission_mode: CLAUDE_PERMISSION_MODES[modeOf(this.session.meta)], ...input }, this.signal);
     if (outcome.systemMessage) this.notice(outcome.systemMessage);
     if (outcome.continue === false) this.halt ??= outcome.stopReason || "A hook stopped the agent";
     return outcome;
@@ -83,7 +85,8 @@ export class PromptTurn {
     const gate = hookGate({ sessionId: session.id, hook: (event, input) => this.hook(event, input),
       request: (method, params) => this.host.request(method, params), mode: () => modeOf(session.meta), snapshot: (label) => this.snapshot(label) });
     let usage = { input: 0, output: 0 };
-    for (let step = 0; step < MAX_STEPS; step++) {
+    let steps = 0;
+    while (steps++ < MAX_STEPS) {
       const tools = await this.tools();
       this.snapshotted = false;
       const result = await streamStep({ adapter, models, endpoint, signal, update, turns: session.turns, contextWindow: info?.contextWindow,
@@ -117,6 +120,8 @@ export class PromptTurn {
       if (next === undefined) return { stopReason: result.stop === "tool_use" ? "end_turn" : result.stop! };
       session.turns.push({ role: "user", text: next });
       update({ sessionUpdate: "user_message_chunk", content: { type: "text", text: next } });
+      // Each continuation gets a full step budget; goal and loop cap their own runs.
+      steps = 0;
     }
     return { stopReason: "max_turn_requests" };
   }
