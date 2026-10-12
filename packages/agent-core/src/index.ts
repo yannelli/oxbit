@@ -8,3 +8,5 @@ export { MODES, modeOf, sessionTitle } from "./session-records.js";
 export { openaiResponses } from "./openai-responses.js";
 export { chatCompletions } from "./chat-completions.js";
 export { anthropicMessages, DEFAULT_MAX_TOKENS } from "./anthropic-messages.js";
+export * from "./mcp/index.js";
+export * from "./providers/index.js";
