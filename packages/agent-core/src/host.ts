@@ -12,6 +12,8 @@ export interface HostCapabilities {
   diagnostics?: boolean;
   /** ACP `mcpCapabilities`: the session/new MCP transports the host connects to besides stdio. */
   mcp?: { http?: boolean; sse?: boolean };
+  /** The client accepts subagent child sessions (`clientCapabilities.subagents`). */
+  childSessions?: boolean;
 }
 
 export interface AgentHost {
@@ -45,4 +47,6 @@ export interface AgentHost {
   extensions?: AgentExtensions;
   /** Retries of model requests that fail before any output. Defaults to DEFAULT_RETRY. */
   retry?: RetryPolicy;
+  /** Offers the task tool. `concurrency` caps parallel subagents; defaults to 4. */
+  subagents?: { concurrency?: number };
 }

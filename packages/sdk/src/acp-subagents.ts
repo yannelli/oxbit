@@ -3,7 +3,7 @@ import type {
   ACPSubagent,
   ACPSubagentPhase,
   ACPSubagentState,
-} from "@oxbit/sdk";
+} from "./agent-acp.js";
 
 type Data = Record<string, any>;
 type Observation = {

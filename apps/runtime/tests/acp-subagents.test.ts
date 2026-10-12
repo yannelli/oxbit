@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SubagentRegistry } from "../src/acp-subagents.js";
+import { SubagentRegistry } from "@oxbit/sdk/acp-subagents";
 import type { ACPProviderId, ACPSubagent } from "@oxbit/sdk";
 function setup(provider: ACPProviderId = "codex") {
   const events: any[] = [];
