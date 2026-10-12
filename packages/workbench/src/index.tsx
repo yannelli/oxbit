@@ -42,6 +42,7 @@ import {
 import catalog from "./catalog.json";
 import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
 import { PanelProvider, PanelDock } from "./panels.js";
+import { panelAlignments, type PanelAlignment } from "./panel-layout.js";
 import { PanelSwitcher } from "./panel-switcher.js";
 export { PanelProvider } from "./panels.js";
 export * from "./panel-layout.js";
@@ -441,6 +442,11 @@ export function Workbench({
     };
   }, [workbench]);
   const mode = width < 600 ? "phone" : width < 1100 ? "tablet" : "desktop";
+  const configuredAlignment = kernel.configuration.get<string>("workbench.panelAlignment");
+  const alignment: PanelAlignment =
+    mode === "desktop" && panelAlignments.includes(configuredAlignment as PanelAlignment)
+      ? (configuredAlignment as PanelAlignment)
+      : "center";
   const theme = themeMode(kernel);
   const locale = String(
     kernel.configuration.get("workbench.locale") ?? "en",
@@ -501,6 +507,7 @@ export function Workbench({
           kernel.configuration.get("workbench.density") || "compact"
         }
         data-mode={mode}
+        data-panel-alignment={alignment}
         data-rm={
           kernel.configuration.get("workbench.reducedMotion") ? "1" : "0"
         }
@@ -736,29 +743,37 @@ export function Workbench({
                 {mode !== "desktop" && <PanelSwitcher workbench={workbench} navigation barViews={barViews.map((view) => view.id)} badge={mode === "phone" ? overflowBadge(views.filter((view) => !barViews.includes(view))) : undefined} />}
               </nav>
             )}
-            <PanelDock side="left" mode={mode} />
-            <main className="main-workbench">
-              <div
-                className="editor-groups"
-                style={{
-                  flexDirection: s.direction,
-                  display: s.maxPanel && s.panel ? "none" : undefined,
-                }}
-              >
-                {s.groups.map((group, i) => (
-                  <Fragment key={group.id}>
-                    {i > 0 && <GroupSash workbench={workbench} index={i} />}
-                    <EditorGroup
-                      group={group}
-                      workbench={workbench}
-                      first={i === 0}
-                    />
-                  </Fragment>
-                ))}
+            {alignment === "right" && <PanelDock side="left" mode={mode} />}
+            {/* Center alignment flattens these wrappers with display: contents. */}
+            <div className="workspace-column">
+              <div className="workspace-row">
+                {alignment !== "right" && <PanelDock side="left" mode={mode} />}
+                <main className="main-workbench">
+                  <div
+                    className="editor-groups"
+                    style={{
+                      flexDirection: s.direction,
+                      display: s.maxPanel && s.panel ? "none" : undefined,
+                    }}
+                  >
+                    {s.groups.map((group, i) => (
+                      <Fragment key={group.id}>
+                        {i > 0 && <GroupSash workbench={workbench} index={i} />}
+                        <EditorGroup
+                          group={group}
+                          workbench={workbench}
+                          first={i === 0}
+                        />
+                      </Fragment>
+                    ))}
+                  </div>
+                  {alignment === "center" && <PanelDock side="bottom" mode={mode} />}
+                </main>
+                {alignment !== "left" && <PanelDock side="right" mode={mode} />}
               </div>
-              <PanelDock side="bottom" mode={mode} />
-            </main>
-            <PanelDock side="right" mode={mode} />
+              {alignment !== "center" && <PanelDock side="bottom" mode={mode} />}
+            </div>
+            {alignment === "left" && <PanelDock side="right" mode={mode} />}
           </div>
         ) : (
           <div className="welcome">

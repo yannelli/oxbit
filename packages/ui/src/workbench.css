@@ -463,6 +463,11 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 
 /* Shared panel docks. Containers remain mounted when moved or hidden. */
 .dock-workbench .main-workbench{min-width:280px;flex:1}
+/* Panel alignment: the bottom dock spans under the sidebars it is aligned to. */
+.workspace-column,.workspace-row{display:flex;flex:1;min-width:0;min-height:0}
+.workspace-column{flex-direction:column;order:2}
+.workbench[data-panel-alignment=center] :is(.workspace-column,.workspace-row){display:contents}
+.workspace-column:has(>.bottom-panel.maximized)>.workspace-row{display:none}
 .panel-dock{position:relative;display:flex;flex:none;min-width:0;min-height:0;overflow:visible}
 .panel-dock.sidebar{flex-direction:column;border-right:1px solid var(--bd);padding:0}
 .panel-dock.dock-right{border-left:1px solid var(--bd);border-right:0;order:4}
@@ -582,7 +587,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 
   @media(min-width:600px){
     & .workspace-body{gap:var(--workbench-gap);padding:var(--workbench-gap)}
-    & .main-workbench{gap:var(--workbench-gap)}
+    & :is(.main-workbench,.workspace-column,.workspace-row){gap:var(--workbench-gap)}
     & .activity-bar{border:0;padding:calc(var(--workbench-tab-inset) + 1px) 0}
     & .activity-bar>button{height:var(--tab)}
     & :is(.titlebar,.statusbar){border:0}

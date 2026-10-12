@@ -381,6 +381,18 @@ var settings_schema_default = {
         "right"
       ]
     },
+    "workbench.panelAlignment": {
+      title: "Panel Alignment",
+      description: "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).",
+      type: "string",
+      default: "center",
+      enum: [
+        "center",
+        "left",
+        "right",
+        "justify"
+      ]
+    },
     "editor.fontFamily": {
       title: "Font Family",
       description: "Controls the font family of the editor.",
@@ -1049,6 +1061,9 @@ var settings_schema_default = {
         },
         "workbench.sidebarLocation": {
           $ref: "#/properties/workbench.sidebarLocation"
+        },
+        "workbench.panelAlignment": {
+          $ref: "#/properties/workbench.panelAlignment"
         },
         "editor.fontFamily": {
           $ref: "#/properties/editor.fontFamily"
