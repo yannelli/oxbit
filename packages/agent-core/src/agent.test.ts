@@ -60,11 +60,12 @@ describe("Agent", () => {
     const { agent, updates, requests } = setup([ignoresSignal, next], { "agentACP.oxbit.api": "openai" });
     const { sessionId } = await agent.newSession();
     const turn = agent.prompt(sessionId, [{ type: "text", text: "Go" }]);
-    await expect.poll(() => updates.length).toBe(1);
+    const shown = () => updates.filter((update) => update.sessionUpdate !== "available_commands_update");
+    await expect.poll(() => shown().length).toBe(1);
     agent.cancel(sessionId);
     expect(await turn).toEqual({ stopReason: "cancelled" });
     expect(await agent.prompt(sessionId, [{ type: "text", text: "Again" }])).toEqual({ stopReason: "end_turn" });
-    expect(kinds(updates)).toEqual(["agent_message_chunk", "agent_message_chunk"]);
+    expect(kinds(shown())).toEqual(["agent_message_chunk", "agent_message_chunk"]);
     expect((requests.at(-1)!.body as any).input).toEqual([
       { type: "message", role: "user", content: [{ type: "input_text", text: "Go" }] },
       { type: "message", role: "assistant", content: "Partial" },

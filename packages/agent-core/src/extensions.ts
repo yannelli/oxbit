@@ -39,8 +39,8 @@ export interface AgentTool {
   run(args: Params, context: ToolContext): Promise<string>;
 }
 export interface ToolProvider { tools(session: SessionView): AgentTool[] | Promise<AgentTool[]> }
-/** Returns a system prompt section, or undefined to add nothing. */
-export interface ContextProvider { system(session: SessionView): Promise<string | undefined> }
+/** Returns a system prompt section, or undefined to add nothing. `label` names the section's category in /context. */
+export interface ContextProvider { label?: string; system(session: SessionView): Promise<string | undefined> }
 
 export interface CommandContext {
   session: SessionView;
@@ -85,6 +85,8 @@ export interface ContinuationProvider { next(session: SessionView, signal: Abort
 export interface Compactor {
   shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number, maxOutput?: number): boolean;
   compact(session: SessionView, summarize: (system: string, turns: Turn[]) => Promise<string>, signal: AbortSignal): Promise<Turn[]>;
+  /** Tokens at which auto compaction runs, for /context. Undefined when auto compaction is off. */
+  autoThreshold?(contextWindow: number, maxOutput?: number): number | undefined;
 }
 /** `cwd` is the session's working directory, so one store can serve sessions in several directories. */
 export interface SnapshotStore {

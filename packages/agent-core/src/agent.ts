@@ -3,6 +3,7 @@ import { listModels, type Effort, type ModelInfo, type Turn } from "./model.js";
 import { MODES, modeOf, replay, toRecord } from "./session-records.js";
 import { generateTitle, titleInput } from "./title.js";
 import { ADAPTERS, CONTEXT_LIMIT, PromptTurn, normalize, type LiveSession } from "./turn.js";
+import { contextCommand } from "./context-command.js";
 import type { AgentHost } from "./host.js";
 import type { AgentCommand, CommandContext, Params, PermissionMode } from "./extensions.js";
 
@@ -252,7 +253,7 @@ export class Agent {
   }
   private async commandList(session: LiveSession): Promise<AgentCommand[]> {
     const lists = await Promise.all((this.host.extensions?.commands ?? []).map((provider) => provider.commands(session)));
-    return lists.flat();
+    return [contextCommand(this.host, session), ...lists.flat()];
   }
   private commandContext(session: LiveSession, turn: PromptTurn): CommandContext {
     return {

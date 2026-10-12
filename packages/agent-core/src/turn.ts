@@ -18,6 +18,8 @@ export interface LiveSession extends SessionView {
   /** SessionStart additionalContext for the system prompt. */
   context: string[];
   commands?: string;
+  /** Provider-reported usage of the last request since the turns were last compacted. */
+  usage?: { input: number; output: number };
   /** Title generation ran or does not apply. */
   titled?: boolean;
   abort?: AbortController;
@@ -31,7 +33,7 @@ export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
 };
 const MAX_STEPS = 64;
 export const CONTEXT_LIMIT = 10000;
-const system = (root: string, reviewed: boolean, shell: boolean) => [
+export const basePrompt = (root: string, reviewed: boolean, shell: boolean) => [
   `You are Oxbit Agent, a coding agent inside the Oxbit editor. You work in the workspace "${root.split("/").pop()}" through tools.`,
   "Paths are relative to the workspace root. Read a file before you edit it. edit_file replaces an exact string; write_file replaces a whole file.",
   ...reviewed ? ["The user reviews each write before it is saved; a rejected write returns an error, so ask what to change instead of retrying it."] : [],
@@ -73,7 +75,7 @@ export class PromptTurn {
   }
   private async system() {
     const sections = await Promise.all((this.host.extensions?.context ?? []).map((provider) => provider.system(this.session)));
-    const base = system(this.session.cwd, this.host.capabilities.fs, this.host.capabilities.terminal);
+    const base = basePrompt(this.session.cwd, this.host.capabilities.fs, this.host.capabilities.terminal);
     return [base, ...this.session.context, ...sections].filter((section) => !!section).join("\n\n");
   }
   async run(models: AgentModels, endpoint: AgentModelEndpoint): Promise<{ stopReason: string }> {
@@ -94,6 +96,7 @@ export class PromptTurn {
         input: { model: session.model, system: prompt, turns: session.turns, tools: tools.map((tool) => tool.spec),
           effort: session.effort === "default" ? undefined : session.effort, maxTokens: info?.maxOutput } });
       usage = result.usage ?? usage;
+      if (result.usage) session.usage = result.usage;
       const calls = result.turn.calls;
       const context = { root: session.cwd, sessionId: session.id, mode: modeOf(session.meta), signal, update,
         request: (method: string, params: Params) => this.host.request(method, params),
@@ -159,6 +162,7 @@ export class PromptTurn {
     const before = await this.hook("PreCompact", { trigger, custom_instructions: typeof focus === "string" ? focus : "" });
     if (before.block || this.halt) return false;
     this.session.turns = await compactor.compact(this.session, summarize, this.signal);
+    this.session.usage = undefined;
     await this.hook("PostCompact", { trigger });
     return true;
   }
