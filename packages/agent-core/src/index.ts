@@ -14,6 +14,8 @@ export * from "./hooks.js";
 export * from "./goal.js";
 export * from "./loop.js";
 export { Compaction, COMPACT_FOCUS, type CompactionOptions } from "./compaction.js";
+export { contextGrid, contextUsage, formatPercent, formatTokens, type ContextCategory, type ContextUsage } from "./context-usage.js";
+export { contextCommand, contextLegend, contextNotes, renderContextUsage } from "./context-command.js";
 export { Instructions, findGitRoot, type HostFiles, type InstructionOptions } from "./instructions.js";
 export { Skills, parseFrontmatter, type Skill, type SkillOptions, type SkillSet } from "./skills.js";
 export * from "./mcp/index.js";

@@ -1,4 +1,4 @@
-import type { Params } from "@oxbit/agent-core";
+import type { ContextUsage, Params } from "@oxbit/agent-core";
 import { stableLength } from "./markdown-parse.js";
 import type { SessionUpdate } from "./connection.js";
 
@@ -23,7 +23,8 @@ export type Item =
   | { id: number; type: "tool"; tool: ToolView; done?: boolean }
   | { id: number; type: "plan"; entries: PlanEntry[]; done?: boolean }
   | { id: number; type: "notice"; text: string; tone: "info" | "warn" | "error" }
-  | { id: number; type: "divider"; text: string };
+  | { id: number; type: "divider"; text: string }
+  | { id: number; type: "context"; usage: ContextUsage };
 type NewItem = Item extends infer T ? T extends Item ? Omit<T, "id"> : never : never;
 
 /** `flushed` only grows and feeds Ink's <Static>; `live` holds items that can still change. */
@@ -32,7 +33,7 @@ export interface Transcript { flushed: Item[]; live: Item[]; next: number }
 export const emptyTranscript = (): Transcript => ({ flushed: [{ id: 0, type: "banner" }], live: [], next: 1 });
 
 const STREAMING = new Set(["assistant", "thought", "plan"]);
-const FINAL = new Set(["banner", "user", "notice", "divider"]);
+const FINAL = new Set(["banner", "user", "notice", "divider", "context"]);
 const isDone = (item: Item) => FINAL.has(item.type) || !!(item as { done?: boolean }).done;
 const textOf = (content: unknown) => {
   const block = content as Params | undefined;
@@ -103,7 +104,8 @@ function tool(state: Transcript, update: Params): Transcript {
 /** Applies one ACP session/update to the transcript. Status fields (title, usage, mode) live in the controller. */
 export function applyUpdate(state: Transcript, update: SessionUpdate): Transcript {
   switch (update.sessionUpdate) {
-    case "agent_message_chunk": return stream(state, "assistant", textOf(update.content));
+    case "agent_message_chunk": return update._meta?.oxbit?.context ? append(state, { type: "context", usage: update._meta.oxbit.context })
+      : stream(state, "assistant", textOf(update.content));
     case "agent_thought_chunk": return stream(state, "thought", textOf(update.content));
     case "user_message_chunk": {
       const text = textOf(update.content);

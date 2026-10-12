@@ -71,14 +71,14 @@ describe("Agent sessions", () => {
     const sessionId = await start(agent);
     await tick();
     expect(t.updates).toEqual([{ sessionUpdate: "available_commands_update", availableCommands: [
-      { name: "greet", description: "Greet someone", input: { hint: "name" } }, { name: "status", description: "Show status" }] }]);
+      { name: "context", description: "Show context window usage" }, { name: "greet", description: "Greet someone", input: { hint: "name" } }, { name: "status", description: "Show status" }] }]);
     await agent.prompt(sessionId, text("/greet Bob"));
     expect(run).toHaveBeenCalledWith("Bob", expect.objectContaining({ session: expect.objectContaining({ id: sessionId }) }));
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "Say hello to Bob" });
     expect(await agent.prompt(sessionId, text("/status"))).toEqual({ stopReason: "end_turn" });
     expect(t.posts()).toHaveLength(1);
     await tick();
-    expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["greet", "status", "reset"]);
+    expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["context", "greet", "status", "reset"]);
     await agent.prompt(sessionId, text("/etc/hosts is missing"));
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "/etc/hosts is missing" });
   });
@@ -158,6 +158,7 @@ describe("Agent modes and titles", () => {
     const quiet = new Agent(failing.host);
     await quiet.prompt(await start(quiet), text("Hi"));
     await tick();
-    expect(failing.updates.map((update) => update.sessionUpdate)).toEqual(["agent_message_chunk", "usage_update"]);
+    expect(failing.updates.map((update) => update.sessionUpdate).filter((kind) => kind !== "available_commands_update"))
+      .toEqual(["agent_message_chunk", "usage_update"]);
   });
 });

@@ -123,6 +123,7 @@ export function invokeSkill(skill: Skill, args: string) {
 
 /** Agent Skills: the <available_skills> catalog, the `skill` tool, `/skills`, and a `/<name> args` command per skill. */
 export class Skills implements ContextProvider, ToolProvider, CommandProvider {
+  readonly label = "Skills";
   private sets = new Map<string, SkillSet>();
   constructor(private options: SkillOptions) {}
   /** Scans the user roots, then .agents/skills and .claude/skills from cwd up to the git root. The first skill with a name wins. */

@@ -100,6 +100,9 @@ export class Compaction implements Compactor, CommandProvider {
   threshold(contextWindow: number, maxOutput?: number) {
     return contextWindow - Math.min(this.options.reserve ?? 20000, maxOutput ?? DEFAULT_MAX_OUTPUT, Math.floor(contextWindow / 4));
   }
+  autoThreshold(contextWindow: number, maxOutput?: number) {
+    return this.options.auto === false ? undefined : this.threshold(contextWindow, maxOutput);
+  }
   /** Due when the last request's input plus output reaches the threshold. turn.ts does not pass `maxOutput` yet. */
   shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number, maxOutput?: number) {
     if (!contextWindow) return false;

@@ -1,5 +1,6 @@
 /* @jsxRuntime automatic */
 import { Box, Text } from "ink";
+import { ContextView } from "./context-view.js";
 import { Markdown } from "./markdown.js";
 import { Gutter, More, ToolCard } from "./tool-card.js";
 import { useTheme } from "./theme.js";
@@ -106,6 +107,7 @@ export function ItemView({ item, live = false, context }: { item: Item; live?: b
     case "notice": return item.tone === "error"
       ? <Box marginTop={1} width={width}><Box width={2} flexShrink={0}><Text color={theme.error}>✗</Text></Box><Text color={theme.error} wrap="wrap">{item.text}</Text></Box>
       : <Box width={width}><Gutter><Text color={item.tone === "warn" ? theme.warning : theme.muted} wrap="wrap">{item.text}</Text></Gutter></Box>;
+    case "context": return <ContextView usage={item.usage} width={width} />;
     case "divider": {
       const label = ` ${item.text} `;
       return <Box marginTop={1}><Text color={theme.muted} wrap="truncate-end">──{label}{"─".repeat(Math.max(0, width - label.length - 2))}</Text></Box>;

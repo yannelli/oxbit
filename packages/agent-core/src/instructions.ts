@@ -68,6 +68,7 @@ const clipBytes = (text: string, limit: number) => {
 
 /** System prompt section from AGENTS.md and CLAUDE.md files, each labeled with its path. */
 export class Instructions implements ContextProvider {
+  readonly label = "Instructions";
   constructor(private options: InstructionOptions) {}
   /** Global files, then from the git root (or cwd) down to cwd the first non-empty AGENTS.override.md, AGENTS.md or CLAUDE.md. */
   async load(cwd: string) {
