@@ -45,6 +45,9 @@ enum ChatGPTAuth {
     credential.expiresAt - refreshMarginMs <= milliseconds(now)
   }
 
+  /// The token endpoint answers a revoked, reused, or expired refresh token with 400 or 401.
+  static func refreshRejected(status: Int) -> Bool { status == 400 || status == 401 }
+
   static func deviceCode(_ body: Data) throws -> DeviceCode {
     let json = object(body)
     guard let id = nonEmpty(json?["device_auth_id"]), let code = nonEmpty(json?["user_code"] ?? json?["usercode"]) else {

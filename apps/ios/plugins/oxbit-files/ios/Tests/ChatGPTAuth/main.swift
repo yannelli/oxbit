@@ -46,6 +46,12 @@ func runTests() throws {
   try expect(ChatGPTAuth.needsRefresh(credential(expiresIn: 60_000), now: now), "1 minute left refreshes")
   try expect(ChatGPTAuth.needsRefresh(credential(expiresIn: -60_000), now: now), "an expired token refreshes")
 
+  // A refresh answered 400 or 401 ends the sign-in; other failures keep it.
+  for status in [400, 401] { try expect(ChatGPTAuth.refreshRejected(status: status), "\(status) ends the sign-in") }
+  for status in [200, 403, 429, 500, 503] {
+    try expect(!ChatGPTAuth.refreshRejected(status: status), "\(status) keeps the sign-in")
+  }
+
   // Poll status mapping.
   try expect(ChatGPTAuth.poll(status: 200, body: json(["authorization_code": "code", "code_challenge": "c",
     "code_verifier": "verifier"])) == .complete(code: "code", verifier: "verifier"), "2xx completes")

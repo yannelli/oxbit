@@ -40,7 +40,8 @@ actor ChatGPTTokens {
     case .slowDown: return "slow_down"
     case .failed(let message): throw AgentModelFailure(message)
     case .complete(let code, let verifier):
-      let credential = try await token(ChatGPTAuth.exchangeRequest(code: code, verifier: verifier), previous: nil)
+      let (status, body) = try await send(ChatGPTAuth.exchangeRequest(code: code, verifier: verifier))
+      let credential = try token(status, body, previous: nil)
       generation += 1
       try keys.save(try encode(credential), account: account)
       return "complete"
@@ -64,17 +65,21 @@ actor ChatGPTTokens {
     return try await task.value
   }
 
+  /// A rejected refresh token deletes the credential, so `has` reports the sign-in as gone.
   private func refresh(_ saved: ChatGPTAuth.Credential, account: String) async throws -> ChatGPTAuth.Credential {
     let started = generation
-    let fresh = try await token(ChatGPTAuth.refreshRequest(saved.refresh), previous: saved)
+    let (status, body) = try await send(ChatGPTAuth.refreshRequest(saved.refresh))
     guard started == generation else { return try read(account) }
+    if ChatGPTAuth.refreshRejected(status: status) {
+      try remove(account)
+      throw ChatGPTSignInRequired()
+    }
+    let fresh = try token(status, body, previous: saved)
     try keys.save(try encode(fresh), account: account)
     return fresh
   }
 
-  private func token(_ request: URLRequest, previous: ChatGPTAuth.Credential?) async throws -> ChatGPTAuth.Credential {
-    let (status, body) = try await send(request)
-    if previous != nil, status == 400 || status == 401 { throw ChatGPTSignInRequired() }
+  private func token(_ status: Int, _ body: Data, previous: ChatGPTAuth.Credential?) throws -> ChatGPTAuth.Credential {
     guard (200..<300).contains(status) else {
       throw AgentModelFailure(ChatGPTAuth.failure("ChatGPT token request", status: status, body: body))
     }
