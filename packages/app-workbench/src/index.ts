@@ -42,7 +42,7 @@ import { createFeature as collaborationFeature } from "@oxbit/feature-collaborat
 import { createFeature as agentACPFeature } from "@oxbit/feature-agent-acp";
 import bundleInspector from "@oxbit/bundle-inspector";
 import { ScopedConfigurationPersistence } from "./configuration.js";
-export { ScopedConfigurationPersistence } from "./configuration.js";
+export { mirrorUserChanges, ScopedConfigurationPersistence } from "./configuration.js";
 export { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 const SEED_KEY = "oxbit.iconPack.seeded";
 /** Origin-wide, matching the icon pack store, so every project shares one answer. */
@@ -119,8 +119,8 @@ export async function createWorkbenchSession({
     filesystem,
     persistence,
   );
-  configurationPersistence.attach(kernel, (message, type) =>
-    workbench.notify(message, type),
+  configurationPersistence.attach(kernel, (message, type, options) =>
+    workbench.notify(message, type, options),
   );
   if (runtime) {
     kernel.commands.register({

@@ -1,12 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
-import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, type ACPConnection, type FeatureOptions } from "@oxbit/sdk";
+import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, type ACPConnection, type FeatureOptions, type Persistence } from "@oxbit/sdk";
 import { LocalAgentRuntime } from "./runtime.js";
+import { memoryPersistence } from "./sessions.js";
 import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
 const EVENTS = ["acp.turnStarted", "acp.turnEnded", "acp.update", "acp.request", "acp.requestsExpired", "acp.cancelled", "acp.queue", "acp.exit"];
-function setup(replies: Reply[] = [], key = true) {
+/** A workspace FileSystem over relative paths and file texts. */
+function workspace(files: Record<string, string>) {
+  const children = (dir: string) => {
+    const names = new Map<string, "file" | "directory">();
+    for (const path of Object.keys(files)) {
+      if (dir && !path.startsWith(`${dir}/`)) continue;
+      const [name, ...rest] = (dir ? path.slice(dir.length + 1) : path).split("/");
+      names.set(name, rest.length ? "directory" : "file");
+    }
+    return [...names].map(([name, kind]) => ({ name, kind }));
+  };
+  return { id: "fs", root: "/root/", list: async (dir: string) => children(dir),
+    read: async (path: string) => path in files ? { text: files[path] } : Promise.reject(new Error(`${path} not found`)) };
+}
+function setup(replies: Reply[] = [], key = true, { files = {}, persistence }: { files?: Record<string, string>; persistence?: Persistence } = {}) {
   const fake = fakeModels(replies, { key });
-  const options = { kernel: { configuration: settings() }, filesystem: { id: "fs", root: "/root/", list: async () => [] } } as unknown as FeatureOptions;
+  const configuration = settings();
+  const options = { kernel: { configuration }, filesystem: workspace(files), workbench: { persistence } } as unknown as FeatureOptions;
   let available = true;
   const runtime = new LocalAgentRuntime(options, () => available ? fake.models : undefined);
   const events: { name: string; params: Record<string, any> }[] = [];
@@ -16,7 +32,7 @@ function setup(replies: Reply[] = [], key = true) {
     return runtime.request<ACPConnection>("acp.call", { id: started.id, method: "session/new" });
   };
   const named = (name: string) => events.filter((event) => event.name === name).map((event) => event.params);
-  return { runtime, events, connect, named, unavailable: () => (available = false), ...fake };
+  return { runtime, events, connect, named, configuration, unavailable: () => (available = false), ...fake };
 }
 const prompt = (runtime: LocalAgentRuntime, id: string, messageId: string, text = "Hi") =>
   runtime.request<{ stopReason: string }>("acp.call", { id, method: "session/prompt", params: { text, messageId } });
@@ -131,6 +147,60 @@ describe("LocalAgentRuntime", () => {
     await expect.poll(() => named("acp.turnEnded").length).toBe(4);
     expect(named("acp.turnStarted").map((event) => event.messageId)).toEqual(["first", "c", "a", "b"]);
     await expect(move("c", 0)).rejects.toThrow("already started");
+  });
+  it("lists compaction, goal, loop, config and workspace skill commands, and reads AGENTS.md", async () => {
+    const files = { "AGENTS.md": "Use tabs.", ".agents/skills/review/SKILL.md": "---\nname: review\ndescription: Review the diff\n---\nReview it.",
+      ".claude/skills/ship/SKILL.md": "---\nname: ship\ndescription: Ship it\n---\nShip." };
+    const { runtime, connect, named, requests } = setup([chatText("Ok")], true, { files });
+    const connection = await connect();
+    expect(connection.capabilities).toEqual(expect.objectContaining({ loadSession: true, sessionCapabilities: expect.objectContaining({ list: {} }) }));
+    const commands = () => named("acp.update").filter((event) => event.update.sessionUpdate === "available_commands_update").at(-1)?.update.availableCommands
+      .map((command: { name: string }) => command.name) ?? [];
+    await expect.poll(commands).toEqual(expect.arrayContaining(["context", "compact", "goal", "loop", "config", "skills", "review", "ship"]));
+    await prompt(runtime, connection.id, "m");
+    const system = (requests.at(-1)!.body as { messages: { role: string; content: string }[] }).messages[0].content;
+    expect(system).toContain("Use tabs.");
+    expect(system).toContain("Review the diff");
+  });
+  it("saves sessions to host storage, lists them and loads one into a new runtime", async () => {
+    const persistence = memoryPersistence();
+    const first = setup([chatText("Noted")], true, { persistence });
+    const original = await first.connect();
+    await prompt(first.runtime, original.id, "m1", "Remember the blue door");
+    const second = setup([chatText("Blue")], true, { persistence });
+    const started = await second.runtime.request<ACPConnection>("acp.start", { provider: "oxbit" });
+    const call = (method: string, params?: object) => second.runtime.request<any>("acp.call", { id: started.id, method, params });
+    expect((await call("session/list")).sessions).toEqual([expect.objectContaining({ sessionId: original.sessionId, cwd: "/root" })]);
+    const loaded = await call("session/load", { sessionId: original.sessionId });
+    expect(loaded.sessionId).toBe(original.sessionId);
+    expect(second.named("acp.update").map((event) => [event.rootSessionId, event.update.sessionUpdate, event.update.content?.text]))
+      .toEqual(expect.arrayContaining([[original.sessionId, "user_message_chunk", "Remember the blue door"], [original.sessionId, "agent_message_chunk", "Noted"]]));
+    await prompt(second.runtime, started.id, "m2", "Which door?");
+    const messages = (second.requests.at(-1)!.body as { messages: { role: string; content: unknown }[] }).messages;
+    expect(messages.filter((message) => message.role !== "system").map((message) => message.content))
+      .toEqual(["Remember the blue door", "Noted", "Which door?"]);
+    await expect(call("session/load", { sessionId: "missing" })).rejects.toThrow();
+    expect((await call("session/list")).sessions).toHaveLength(1);
+  });
+  it("changes compaction settings with /config and sends config_option_update", async () => {
+    const { runtime, connect, named, configuration } = setup();
+    const connection = await connect();
+    expect(connection.configOptions?.find((option) => option.id === "auto-compact")?.currentValue).toBe("on");
+    expect(await prompt(runtime, connection.id, "m", "/config auto-compact off")).toEqual({ stopReason: "end_turn" });
+    expect(configuration.store["agentACP.oxbit.autoCompact"]).toBe(false);
+    const update = named("acp.update").find((event) => event.update.sessionUpdate === "config_option_update")!.update;
+    expect(update.configOptions.find((option: { id: string }) => option.id === "auto-compact").currentValue).toBe("off");
+  });
+  it("resumes a paused queue when a prompt is sent directly", async () => {
+    const { runtime, connect, named } = setup([hanging(), chatText("Now"), chatText("Later")]);
+    const connection = await connect();
+    const first = prompt(runtime, connection.id, "first");
+    await runtime.request("acp.enqueue", { id: connection.id, text: "Later", messageId: "later" });
+    await runtime.request("acp.cancel", { id: connection.id });
+    expect(await first).toEqual({ stopReason: "cancelled" });
+    expect(named("acp.queue").at(-1)).toEqual(expect.objectContaining({ paused: true }));
+    expect(await prompt(runtime, connection.id, "now", "Now")).toEqual({ stopReason: "end_turn" });
+    await expect.poll(() => named("acp.turnStarted").map((event) => event.messageId)).toEqual(["first", "now", "later"]);
   });
   it("stops a connection with acp.exit and rejects later calls", async () => {
     const { runtime, connect, named } = setup([hanging()]);

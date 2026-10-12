@@ -19,6 +19,8 @@ export type {
   PanelLayout,
 } from "@oxbit/sdk";
 export const dockSides: DockSide[] = ["left", "right", "bottom"];
+export const panelAlignments = ["center", "left", "right", "justify"] as const;
+export type PanelAlignment = (typeof panelAlignments)[number];
 const uid = () => "dock-" + crypto.randomUUID();
 export const panelGroup = (
   panels: string[],

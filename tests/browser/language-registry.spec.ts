@@ -19,7 +19,8 @@ test("status follows the active document and local intelligence works offline", 
   await expect(popup.locator(".lsp-server-state")).toHaveText("Running");
   await popup.press("Escape");
   await expect(popup).toHaveCount(0);
-  await page.evaluate(() => (window as any).__oxbit.openFile("language-status.csv"));
+  await page.evaluate(() => { const app = (window as any).__oxbit; (window as any).__csvOpen = app.openFile("language-status.csv"); });
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.activePath())).toBe("language-status.csv");
   await indicator.click();
   await expect(popup.locator(".lsp-server-name strong")).toHaveText("Oxbit csv");
   await expect(popup.locator(".lsp-server")).toHaveCount(1);

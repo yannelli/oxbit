@@ -1,6 +1,7 @@
 import type { AgentModelEndpoint, AgentModels } from "@oxbit/sdk";
 import type { Params } from "./extensions.js";
 import { modelError, type ModelAdapter, type ModelInput, type StopReason, type ToolCall, type Turn } from "./model.js";
+import { DEFAULT_RETRY, retryDelay, type RetryPolicy } from "./retry.js";
 
 export type AssistantTurn = Extract<Turn, { role: "assistant" }>;
 export interface StepResult {
@@ -19,6 +20,7 @@ export interface StepOptions {
   turns: Turn[];
   update(update: Params): void;
   contextWindow?: number;
+  retry?: RetryPolicy;
 }
 
 /** Ends iteration when `signal` aborts, even if the host stream ignores the signal. */
@@ -40,8 +42,27 @@ async function* abortable<T>(source: AsyncIterable<T>, signal: AbortSignal): Asy
   }
 }
 
-/** Streams one model response and reports text, reasoning and usage as ACP session updates. */
-export async function streamStep({ adapter, models, endpoint, input, signal, turns, update, contextWindow }: StepOptions): Promise<StepResult> {
+/** Streams one model response and reports text, reasoning and usage as ACP session updates.
+ * A transient failure before any text, reasoning or tool call arrived is retried with backoff; see RetryPolicy. */
+export async function streamStep(options: StepOptions): Promise<StepResult> {
+  const policy = { ...DEFAULT_RETRY, ...options.retry };
+  for (let attempt = 0; ; attempt++) {
+    const progress = { streamed: false };
+    try {
+      return await attemptStep(options, progress);
+    } catch (error) {
+      const delay = progress.streamed ? undefined : retryDelay(error, attempt, policy);
+      if (delay === undefined) throw modelError(error);
+      const seconds = Math.round(delay / 100) / 10;
+      options.update({ sessionUpdate: "agent_message_chunk", content: { type: "text",
+        text: `\n\n${modelError(error).message}. Retrying in ${seconds} s (${attempt + 1} of ${policy.retries}).\n\n` } });
+      if (!await policy.sleep(delay, options.signal)) return { turn: { role: "assistant", text: "", calls: [] } };
+    }
+  }
+}
+
+/** One request. Rejects with the raw error so the caller can read its status; resolves without `stop` when cancelled. */
+async function attemptStep({ adapter, models, endpoint, input, signal, turns, update, contextWindow }: StepOptions, progress: { streamed: boolean }) {
   const calls: ToolCall[] = [];
   const turn: AssistantTurn = { role: "assistant", text: "", calls };
   const result: StepResult = { turn };
@@ -49,12 +70,16 @@ export async function streamStep({ adapter, models, endpoint, input, signal, tur
     const request = adapter.request(input);
     for await (const event of adapter.events(abortable(models.stream({ ...endpoint, ...request }, signal), signal))) {
       if (event.type === "text") {
+        progress.streamed = true;
         turn.text += event.text;
         update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: event.text } });
-      } else if (event.type === "reasoning")
+      } else if (event.type === "reasoning") {
+        progress.streamed = true;
         update({ sessionUpdate: "agent_thought_chunk", content: { type: "text", text: event.text } });
-      else if (event.type === "tool_call") calls.push(event.call);
-      else if (event.type === "usage") {
+      } else if (event.type === "tool_call") {
+        progress.streamed = true;
+        calls.push(event.call);
+      } else if (event.type === "usage") {
         result.usage = { input: event.input, output: event.output };
         if (contextWindow) update({ sessionUpdate: "usage_update", used: event.input + event.output, size: contextWindow });
       } else if (event.type === "stop") {
@@ -64,7 +89,7 @@ export async function streamStep({ adapter, models, endpoint, input, signal, tur
     }
     if (!result.stop && !signal.aborted) throw new Error("The model stream ended before the response finished");
   } catch (error) {
-    if (!signal.aborted) throw modelError(error);
+    if (!signal.aborted) throw error;
   } finally {
     // Calls from an unfinished response never run and lack the API's reasoning items.
     if (!result.stop) calls.length = 0;

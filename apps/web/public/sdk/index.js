@@ -292,6 +292,26 @@ var settings_schema_default = {
       type: "string",
       default: ""
     },
+    "agentACP.oxbit.autoCompact": {
+      title: "Oxbit Agent auto-compact",
+      description: "In-app Oxbit Agent conversations summarize older turns when the context window fills. Needs a model whose context window the catalog reports. /compact works either way.",
+      type: "boolean",
+      default: true
+    },
+    "agentACP.oxbit.compactAt": {
+      title: "Oxbit Agent compact at",
+      description: "Percent of the context window at which in-app auto-compaction starts. default compacts when less than min(20000 tokens, the model's max output, a quarter of the window) remains.",
+      type: "string",
+      default: "default",
+      enum: [
+        "default",
+        "50",
+        "60",
+        "70",
+        "80",
+        "90"
+      ]
+    },
     "workbench.keymap": {
       title: "Keymap",
       description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
@@ -359,6 +379,18 @@ var settings_schema_default = {
       enum: [
         "left",
         "right"
+      ]
+    },
+    "workbench.panelAlignment": {
+      title: "Panel Alignment",
+      description: "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).",
+      type: "string",
+      default: "center",
+      enum: [
+        "center",
+        "left",
+        "right",
+        "justify"
       ]
     },
     "editor.fontFamily": {
@@ -1003,6 +1035,12 @@ var settings_schema_default = {
         "agentACP.oxbit.model": {
           $ref: "#/properties/agentACP.oxbit.model"
         },
+        "agentACP.oxbit.autoCompact": {
+          $ref: "#/properties/agentACP.oxbit.autoCompact"
+        },
+        "agentACP.oxbit.compactAt": {
+          $ref: "#/properties/agentACP.oxbit.compactAt"
+        },
         "workbench.keymap": {
           $ref: "#/properties/workbench.keymap"
         },
@@ -1023,6 +1061,9 @@ var settings_schema_default = {
         },
         "workbench.sidebarLocation": {
           $ref: "#/properties/workbench.sidebarLocation"
+        },
+        "workbench.panelAlignment": {
+          $ref: "#/properties/workbench.panelAlignment"
         },
         "editor.fontFamily": {
           $ref: "#/properties/editor.fontFamily"

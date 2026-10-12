@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createKernel } from "../packages/core/src/index.js";
-import { ScopedConfigurationPersistence } from "../packages/app-workbench/src/configuration.js";
+import { mirrorUserChanges, ScopedConfigurationPersistence } from "../packages/app-workbench/src/configuration.js";
 import { SettingsStore } from "../apps/runtime/src/settings.js";
 import { WorkspaceFiles } from "../apps/runtime/src/filesystem.js";
 import type { Persistence, RpcClient, FileSystem } from "@oxbit/sdk";
@@ -27,9 +27,10 @@ async function fixture() {
     kernel.configuration.register({ id: "object", title: "Object", type: "object", default: {} });
     kernel.configuration.register({ id: "number", title: "Number", type: "number", default: 1 });
     kernel.configuration.import(data, { persist: false });
-    const errors: string[] = []; persistence.attach(kernel, message => errors.push(message));
+    const errors: string[] = [], actions: string[][] = [];
+    persistence.attach(kernel, (message, _type, options) => { errors.push(message); actions.push(options?.actions?.map(action => action.command) ?? []); });
     cleanup.push(() => persistence.dispose()); cleanup.push(() => kernel.dispose());
-    return { kernel, persistence, errors };
+    return { kernel, persistence, errors, actions };
   };
   return { root, store, runtime, emit, create, values };
 }
@@ -61,10 +62,11 @@ it("recovers offline changes after recreating the client without replacing unrel
   await expect.poll(() => second.kernel.configuration.get("object")).toEqual({ external: true });
 });
 it("keeps conflicting UI edits until explicitly reloaded, without overwriting disk", async () => {
-  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors } = await create();
+  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors, actions } = await create();
   runtime.connected = false; kernel.configuration.set("number", 7); await kernel.configuration.flush!();
   await fs.writeFile(store.paths[0], '{"number":9}'); runtime.connected = true; emit("connection.change", { state: "connected" });
   await expect.poll(() => errors.some(message => message.includes("changed on disk")), { timeout: 3000 }).toBe(true);
+  expect(actions[errors.findIndex(message => message.includes("changed on disk"))]).toEqual(["settings.saveWorkspace", "settings.reloadWorkspace"]);
   expect(kernel.configuration.get("number")).toBe(7);
   expect(JSON.parse(await fs.readFile(store.paths[0], "utf8")).number).toBe(9);
   await persistence.resolveWorkspaceSettings("disk"); expect(kernel.configuration.get("number")).toBe(9);
@@ -77,6 +79,48 @@ it("explicitly saving a conflict rebases only pending changes onto the current f
   await persistence.resolveWorkspaceSettings("local");
   expect(JSON.parse(await fs.readFile(store.paths[0], "utf8"))).toEqual({ number: 7, object: { external: true } });
   expect(kernel.configuration.get("object")).toEqual({ external: true });
+});
+it("reports a held conflict once while settings events repeat", async () => {
+  const { store, runtime, create, emit } = await fixture(), { kernel, errors } = await create();
+  runtime.connected = false; kernel.configuration.set("number", 7, "workspace"); await kernel.configuration.flush!();
+  await fs.writeFile(store.paths[1], '{"number":9}'); runtime.connected = true;
+  for (let index = 0; index < 5; index++) { emit("connection.change", { state: "connected" }); emit("settings.changed"); }
+  await expect.poll(() => errors.filter(message => message.includes("changed on disk")).length, { timeout: 3000 }).toBe(1);
+  expect(errors.filter(message => message.includes("Reconnect"))).toHaveLength(1);
+  kernel.configuration.set("number", 8, "workspace"); await kernel.configuration.flush!();
+  expect(kernel.configuration.get("number")).toBe(8);
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8")).number).toBe(8);
+  expect(errors.filter(message => message.includes("changed on disk"))).toHaveLength(1);
+});
+it("saves a change made while connected over a value that changed on disk", async () => {
+  const { store, create } = await fixture(), { kernel, errors } = await create();
+  await fs.writeFile(store.paths[0], '{"number":9,"object":{"external":true}}');
+  kernel.configuration.set("number", 7); await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8"))).toEqual({ number: 7, object: { external: true } });
+  expect(kernel.configuration.get("number")).toBe(7);
+  expect(kernel.configuration.get("object")).toEqual({ external: true });
+  expect(errors).toEqual([]);
+});
+it("saves user-scope changes and follows the user file while a workspace conflict is held", async () => {
+  const { store, runtime, create, emit } = await fixture(), { kernel, errors } = await create();
+  runtime.connected = false; kernel.configuration.set("number", 7, "workspace"); await kernel.configuration.flush!();
+  await fs.writeFile(store.paths[1], '{"number":9}'); runtime.connected = true; emit("connection.change", { state: "connected" });
+  kernel.configuration.set("object", { user: true }, "user"); await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8")).object).toEqual({ user: true });
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ number: 9 });
+  expect(kernel.configuration.inspect("number")).toMatchObject({ value: 7, scope: "workspace" });
+  await fs.writeFile(store.paths[0], '{"object":{"user":true},"number":3}');
+  await expect.poll(() => (kernel.configuration.export() as any).user.number, { timeout: 3000 }).toBe(3);
+  expect(errors.filter(message => message.includes("changed on disk"))).toHaveLength(1);
+});
+it("saves user-scope changes while a workspace file has invalid JSON", async () => {
+  const { store, create } = await fixture(), { kernel, errors } = await create();
+  await fs.writeFile(store.paths[1], '{"number":');
+  await expect.poll(() => errors.some(message => message.includes(store.paths[1])), { timeout: 3000 }).toBe(true);
+  kernel.configuration.set("number", 4, "workspace"); kernel.configuration.set("object", { user: true }); await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8")).object).toEqual({ user: true });
+  expect(errors.filter(message => message.includes("Fix invalid settings JSON"))).toHaveLength(1);
+  expect(kernel.configuration.get("number")).toBe(4);
 });
 it("migrates pending writes from the former workspace file without losing offline edits", async () => {
   const { store, root, create, values } = await fixture();
@@ -98,4 +142,17 @@ it("retains an upgrade conflict when the former workspace file changed while off
   expect(kernel.configuration.get("number")).toBe(7);
   expect(errors.some(message => message.includes("changed on disk"))).toBe(true);
   expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ $schema: "../../schemas/settings.v1.schema.json", number: 9 });
+});
+it("copies User changes from a runtime session into the storage profile without replacing the profile's other User values", async () => {
+  const { values, create } = await fixture(), { kernel } = await create();
+  values.set("profile-settings", { user: { "editor.fontSize": 15 }, userLanguages: {} });
+  const notices: string[] = [], off = mirrorUserChanges(kernel, { get: async key => structuredClone(values.get(key)) as never, set: async (key, value) => void values.set(key, structuredClone(value)), delete: async key => void values.delete(key) }, message => void notices.push(message));
+  cleanup.push(off);
+  kernel.configuration.set("number", 3);
+  kernel.configuration.set("number", 4, "workspace");
+  kernel.configuration.set("number", 5, "user", "markdown");
+  await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15, number: 3 }, userLanguages: { markdown: { number: 5 } } });
+  kernel.configuration.reset("number", "user");
+  await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15 }, userLanguages: { markdown: { number: 5 } } });
+  expect(notices).toEqual([]);
 });

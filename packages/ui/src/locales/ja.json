@@ -282,6 +282,17 @@
   "Where the primary sidebar is docked.": "メイン サイドバーの配置位置です。",
   "left": "左",
   "right": "右",
+  "Panel Alignment": "パネルの配置",
+  "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).": "デスクトップで下部パネルが広がる範囲を指定します。エディターの下のみ (center)、左または右のサイドバーの下まで、または両方の下まで (justify)。",
+  "center": "中央",
+  "justify": "両端揃え",
+  "Align Panel: Center": "パネルの配置: 中央",
+  "Align Panel: Left": "パネルの配置: 左",
+  "Align Panel: Right": "パネルの配置: 右",
+  "Align Panel: Justify": "パネルの配置: 両端揃え",
+  "Application": "アプリケーション",
+  "Check for Updates Automatically": "アップデートを自動的に確認",
+  "Checks for a new Oxbit desktop release at launch and every hour.": "起動時と 1 時間ごとに Oxbit デスクトップの新しいリリースを確認します。",
   "Font Family": "フォント ファミリー",
   "Controls the font family of the editor.": "エディターのフォント ファミリーを制御します。",
   "Editor · Typography": "エディター · タイポグラフィ",
@@ -1048,5 +1059,7 @@
   "Copied": "コピーしました",
   "Open sign-in page": "サインインページを開く",
   "Waiting for you to sign in": "サインインを待っています",
-  "The sign-in code expired. Sign in again.": "サインインコードの有効期限が切れました。もう一度サインインしてください。"
+  "The sign-in code expired. Sign in again.": "サインインコードの有効期限が切れました。もう一度サインインしてください。",
+  "The Workspace value {0} overrides this setting.": "ワークスペースの値 {0} がこの設定を上書きしています。",
+  "Remove Workspace value": "ワークスペースの値を削除"
 }

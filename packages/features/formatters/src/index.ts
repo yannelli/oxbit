@@ -50,14 +50,20 @@ export class FormatterService {
       (provider) => !language || provider.languages.some(id => canonicalLanguageId(id) === language || id === "javascript" && language === "javascriptreact"),
     );
   }
-  selected(path: string): Formatter {
+  private choice(path: string) {
     const language = languageForKernel(this.options.kernel, path).id;
     const id =
       this.options.kernel.configuration.get<string>(
         "editor.defaultFormatter",
         language,
       ) || "oxbit.prettier";
-    const formatter = this.list(path).find((provider) => provider.id === id);
+    return { language, id, formatter: this.list(path).find((provider) => provider.id === id) };
+  }
+  available(path: string): Formatter | undefined {
+    return this.choice(path).formatter;
+  }
+  selected(path: string): Formatter {
+    const { language, id, formatter } = this.choice(path);
     if (!formatter)
       throw new Error(`Formatter ${id} is unavailable for ${language}`);
     return formatter;
@@ -117,13 +123,7 @@ export function createFeature(options: FeatureOptions): Extension {
       ctx.services.register("formatters", service);
       const refresh = () => {
         const path = options.workbench.activePath();
-        let available = false;
-        if (path && ctx.context.get("editor")) {
-          try {
-            service.selected(path);
-            available = true;
-          } catch {}
-        }
+        const available = !!path && !!ctx.context.get("editor") && !!service.available(path);
         if (ctx.context.get("formattable") !== available)
           ctx.context.set("formattable", available);
       };
@@ -160,8 +160,14 @@ export function createFeature(options: FeatureOptions): Extension {
         "formatters.save",
         async ({ path, text, signal }) => {
           const language = languageForKernel(options.kernel, path).id;
-          if (ctx.configuration.get("editor.formatOnSave", language))
-            text = await service.format(text, path, signal);
+          if (ctx.configuration.get("editor.formatOnSave", language) && service.available(path)) {
+            try {
+              text = await service.format(text, path, signal);
+            } catch (error) {
+              signal.throwIfAborted();
+              options.workbench.notify(`Saved without formatting: ${error instanceof Error ? error.message : String(error)}`, "error");
+            }
+          }
           signal.throwIfAborted();
           if (ctx.configuration.get("files.trimTrailingWhitespace", language))
             text = text.replace(/[\t ]+$/gm, "");

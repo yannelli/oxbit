@@ -211,7 +211,13 @@ and `.codex/hooks.json`.
   the reason. Exit 0 with a JSON object maps `continue`, `stopReason`,
   `systemMessage`, `decision`, and `hookSpecificOutput` fields
   (`permissionDecision`, `updatedInput`, `additionalContext`). Other codes and
-  timeouts (600 s default) are warnings.
+  timeouts (600 s default, 30 s for UserPromptSubmit) are warnings. Stdout that is
+  not a JSON object is context for UserPromptSubmit and SessionStart and is ignored
+  for other events.
+- A UserPromptSubmit block ends the turn with `end_turn` and shows the reason as an
+  agent message; the prompt is not sent to the model. A Stop block sends the reason
+  as the next user message and the turn continues, up to 10 blocks per prompt.
+- When hook settings cannot be read, the turn shows "The <event> hooks failed" and continues.
 - Matching hooks run in parallel: deny beats ask beats allow, any block denies.
   `disableAllHooks: true` turns hooks off.
 
@@ -228,6 +234,16 @@ and `.codex/hooks.json`.
   `schedule_next` (1 s to 1 h) and the loop ends when it does not. `/loop stop`
   or cancelling the turn ends it.
 - Each continuation gets a fresh budget of 64 model steps.
+
+## Model request retries
+
+A model request that fails before any of its output streamed is retried 4 times with
+1, 2, 4 and 8 s waits, or after the response's `Retry-After`. A `Retry-After` over 30 s
+ends the retries.
+HTTP 408, 409, 429 and 5xx other than 501 and 505, overloaded or rate limit messages,
+and network failures are retried; quota errors are not. Each retry adds
+"Retrying in N s (n of 4)" to the reply, and cancelling the turn ends the wait.
+`oxbit-agent acp` logs an unhandled promise rejection to stderr and keeps serving.
 
 ## Compaction
 

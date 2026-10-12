@@ -42,6 +42,20 @@
     "category": "Appearance"
   },
   {
+    "id": "workbench.panelAlignment",
+    "title": "Panel Alignment",
+    "description": "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).",
+    "type": "string",
+    "default": "center",
+    "enum": [
+      "center",
+      "left",
+      "right",
+      "justify"
+    ],
+    "category": "Appearance"
+  },
+  {
     "id": "editor.fontFamily",
     "title": "Font Family",
     "description": "Controls the font family of the editor.",

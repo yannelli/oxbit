@@ -828,7 +828,9 @@ function PanelTabs({
           container: destination.id,
           group: groupId,
         });
-    } else if (value === "float") void workbench.detachPanel(group.active);
+    } else if (value.startsWith("align:"))
+      workbench.kernel.configuration.set("workbench.panelAlignment", value.slice(6));
+    else if (value === "float") void workbench.detachPanel(group.active);
     else if (value === "dock") workbench.redockPanel(group.active);
     else if (value.startsWith("split:"))
       workbench.movePanel(group.active, target(value.slice(6) as DropEdge));
@@ -1022,6 +1024,14 @@ function PanelTabs({
                       ),
                   })),
               ),
+              container === "bottom"
+                ? [
+                    { value: "align:center", label: tr("Align Panel: Center") },
+                    { value: "align:left", label: tr("Align Panel: Left") },
+                    { value: "align:right", label: tr("Align Panel: Right") },
+                    { value: "align:justify", label: tr("Align Panel: Justify") },
+                  ]
+                : [],
               [
                 ...(workbench.panelWindows.canDetach ? [{ value: "float", label: tr("Pop Out Panel") }] : []),
                 ...(!isDock ? [{ value: "dock", label: tr("Dock Back") }] : []),

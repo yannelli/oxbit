@@ -282,6 +282,17 @@
   "Where the primary sidebar is docked.": "Legt fest, wo die Hauptseitenleiste angedockt ist.",
   "left": "links",
   "right": "rechts",
+  "Panel Alignment": "Ausrichtung des Bereichs",
+  "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).": "Legt fest, wie weit sich der untere Bereich auf dem Desktop erstreckt: nur unter dem Editor (center), zusätzlich unter der linken oder rechten Seitenleiste oder unter beiden (justify).",
+  "center": "zentriert",
+  "justify": "Blocksatz",
+  "Align Panel: Center": "Bereich ausrichten: Mitte",
+  "Align Panel: Left": "Bereich ausrichten: Links",
+  "Align Panel: Right": "Bereich ausrichten: Rechts",
+  "Align Panel: Justify": "Bereich ausrichten: Blocksatz",
+  "Application": "Anwendung",
+  "Check for Updates Automatically": "Automatisch nach Updates suchen",
+  "Checks for a new Oxbit desktop release at launch and every hour.": "Sucht beim Start und stündlich nach einer neuen Oxbit-Desktopversion.",
   "Font Family": "Schriftfamilie",
   "Controls the font family of the editor.": "Legt die Schriftfamilie des Editors fest.",
   "Editor · Typography": "Editor · Typografie",
@@ -1021,5 +1032,7 @@
   "Copied": "Kopiert",
   "Open sign-in page": "Anmeldeseite öffnen",
   "Waiting for you to sign in": "Warten auf Ihre Anmeldung",
-  "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an."
+  "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an.",
+  "The Workspace value {0} overrides this setting.": "Der Arbeitsbereich-Wert {0} überschreibt diese Einstellung.",
+  "Remove Workspace value": "Arbeitsbereich-Wert entfernen"
 }

@@ -22,7 +22,7 @@ export interface Status {
 
 export const emptyStatus = (): Status => ({ mode: "ask", models: [], commands: [] });
 
-/** Model, reasoning and mode from ACP config options; absent options leave fields unchanged. */
+/** Model, reasoning and mode from ACP config options. An absent model or mode leaves the field unchanged; an absent reasoning option clears it. */
 export function fromConfig(options: unknown): Partial<Status> {
   if (!Array.isArray(options)) return {};
   const list = options as ConfigOption[];
@@ -31,7 +31,7 @@ export function fromConfig(options: unknown): Partial<Status> {
   const mode = list.find((option) => option.id === "mode" || option.category === "mode");
   return {
     ...model ? { model: model.currentValue, models: model.options.map(({ value, name }) => ({ value, name })) } : {},
-    ...reasoning ? { reasoning } : {},
+    reasoning,
     ...mode ? { mode: mode.currentValue } : {},
   };
 }

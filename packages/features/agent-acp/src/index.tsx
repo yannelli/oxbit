@@ -319,6 +319,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const transcript = useRef<HTMLDivElement>(null);
   const settingsFocus = useRef<HTMLElement | null>(null);
   const follow = useRef(true);
+  const lastScrollTop = useRef(0);
   const connection = agent.connection;
   const enabled = !!runtime?.connected;
   const local = agent.local;
@@ -374,6 +375,25 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     if (follow.current && transcript.current && agent.messages.length)
       transcript.current.scrollTop = transcript.current.scrollHeight;
   }, [agent.snapshot()]);
+  // Streamed text, images and highlighting grow the transcript after the render that added them.
+  useEffect(() => {
+    const node = transcript.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const sizes = new ResizeObserver(() => {
+      if (follow.current && agent.messages.length) node.scrollTop = node.scrollHeight;
+    });
+    const watch = () => {
+      sizes.observe(node);
+      for (const child of node.children) sizes.observe(child);
+    };
+    watch();
+    const children = new MutationObserver(watch);
+    children.observe(node, { childList: true });
+    return () => {
+      sizes.disconnect();
+      children.disconnect();
+    };
+  }, [agent]);
   useEffect(() => {
     const node = panel.current;
     agent.markSeen();
@@ -569,9 +589,11 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         ref={transcript}
         onScroll={() => {
           const node = transcript.current;
-          if (node)
-            follow.current =
-              node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+          if (!node) return;
+          // Growth below the view never moves it up, so only scrolling up stops following.
+          if (node.scrollHeight - node.scrollTop - node.clientHeight < 80) follow.current = true;
+          else if (node.scrollTop < lastScrollTop.current) follow.current = false;
+          lastScrollTop.current = node.scrollTop;
           setFollowing(follow.current);
         }}
       >
@@ -593,23 +615,6 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {agent.replayTruncated && <p className="acp-turn-note" role="status">{tr("Earlier activity was trimmed by the runtime.")}</p>}
         {agent.subagents.size > 0 && <Subagents agent={agent} compact />}
         <ActivityFeed agent={agent} />
-        {agent.plan.length > 0 && (
-          <details className="acp-card">
-            <summary>
-              {tr("Plan")} ·{" "}
-              {agent.plan.filter((e) => e.status === "completed").length}/
-              {agent.plan.length}
-            </summary>
-            <ol>
-              {agent.plan.map((entry, index) => (
-                <li key={index}>
-                  <span className="muted">{tr(entry.status)} · </span>
-                  {entry.content}
-                </li>
-              ))}
-            </ol>
-          </details>
-        )}
         {Array.from(agent.terminals.entries()).map(([id, terminal]) => (
           <details className="acp-card" key={id}>
             <summary>
@@ -829,13 +834,6 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           >
             <Icon name="plus" />
           </button>
-          <IconButton
-            icon="diff"
-            label="Review changes"
-            onClick={() =>
-              void agent.action(() => kernel.commands.execute("view.scm"))
-            }
-          />
           {agent.commands.length > 0 && (
             <button
               type="button"

@@ -1,5 +1,6 @@
 import type { AgentModelApi, AgentModelEndpoint, AgentModelRequest, AgentModels } from "@oxbit/sdk";
 import { CHATGPT_MODELS, CHATGPT_MODELS_PATH } from "./chatgpt.js";
+import { listedEfforts } from "./efforts.js";
 
 export interface ToolCall {
   id: string;
@@ -23,7 +24,8 @@ export interface ToolSpec {
   description: string;
   parameters: Record<string, unknown>;
 }
-export type Effort = "low" | "medium" | "high";
+/** A reasoning level as the API names it, for example "low" or "xhigh". `efforts.ts` lists the levels each model accepts. */
+export type Effort = string;
 export interface ModelInput {
   model: string;
   system: string;
@@ -49,6 +51,8 @@ export interface ModelInfo {
   name: string;
   contextWindow?: number;
   maxOutput?: number;
+  /** Reasoning levels from the model list, lowest first; empty when the model has no reasoning control. */
+  efforts?: Effort[];
 }
 
 const count = (...values: unknown[]) => values.find((value): value is number => Number.isSafeInteger(value) && (value as number) > 0);
@@ -59,6 +63,11 @@ export async function readText(models: AgentModels, request: AgentModelRequest, 
   return text;
 }
 
+const withEfforts = (info: ModelInfo, item: unknown): ModelInfo => {
+  const efforts = listedEfforts(item);
+  return efforts ? { ...info, efforts } : info;
+};
+
 /** `GET /v1/models` for OpenAI, Anthropic, and OpenAI-compatible lists such as OpenRouter's, `GET /codex/models` for ChatGPT. */
 export async function listModels(models: AgentModels, endpoint: AgentModelEndpoint, signal?: AbortSignal): Promise<ModelInfo[]> {
   if (endpoint.api === "chatgpt") return listChatGPTModels(models, signal);
@@ -67,12 +76,12 @@ export async function listModels(models: AgentModels, endpoint: AgentModelEndpoi
   return body.data
     .filter((item: any) => typeof item?.id === "string" && item.id)
     .slice(0, 1000)
-    .map((item: any) => ({
+    .map((item: any) => withEfforts({
       id: item.id,
       name: typeof item.display_name === "string" ? item.display_name : typeof item.name === "string" ? item.name : item.id,
       contextWindow: count(item.max_input_tokens, item.context_length),
       maxOutput: count(item.max_tokens, item.top_provider?.max_completion_tokens),
-    }));
+    }, item));
 }
 
 /** The body is `{models: ModelInfo[]}` from openai/codex codex-rs/protocol/src/openai_models.rs; Codex lists `visibility: "list"` by `priority`.
@@ -83,16 +92,16 @@ async function listChatGPTModels(models: AgentModels, signal?: AbortSignal): Pro
     const listed: ModelInfo[] = (Array.isArray(body?.models) ? body.models : [])
       .filter((item: any) => typeof item?.slug === "string" && item.slug && item.visibility === "list")
       .sort((a: any, b: any) => (Number(a.priority) || 0) - (Number(b.priority) || 0))
-      .map((item: any) => ({
+      .map((item: any) => withEfforts({
         id: item.slug,
         name: typeof item.display_name === "string" && item.display_name ? item.display_name : item.slug,
         contextWindow: count(item.context_window),
-      }));
+      }, item));
     if (listed.length) return listed;
   } catch (error) {
     if (signal?.aborted) throw error;
   }
-  return CHATGPT_MODELS.map((model) => ({ ...model }));
+  return CHATGPT_MODELS.map((model) => ({ ...model, ...model.efforts ? { efforts: [...model.efforts] } : {} }));
 }
 
 /** A readable error from a non-2xx model response. */

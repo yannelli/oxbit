@@ -282,6 +282,17 @@
   "Where the primary sidebar is docked.": "主侧边栏停靠的位置。",
   "left": "左侧",
   "right": "右侧",
+  "Panel Alignment": "面板对齐方式",
+  "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).": "控制桌面端底部面板的延伸范围：仅在编辑器下方 (center)、同时延伸到左侧或右侧边栏下方，或延伸到两侧边栏下方 (justify)。",
+  "center": "居中",
+  "justify": "两端对齐",
+  "Align Panel: Center": "面板对齐: 居中",
+  "Align Panel: Left": "面板对齐: 左侧",
+  "Align Panel: Right": "面板对齐: 右侧",
+  "Align Panel: Justify": "面板对齐: 两端对齐",
+  "Application": "应用程序",
+  "Check for Updates Automatically": "自动检查更新",
+  "Checks for a new Oxbit desktop release at launch and every hour.": "在启动时及每小时检查新的 Oxbit 桌面版本。",
   "Font Family": "字体",
   "Controls the font family of the editor.": "控制编辑器的字体。",
   "Editor · Typography": "编辑器 · 字体排印",
@@ -1048,5 +1059,7 @@
   "Copied": "已复制",
   "Open sign-in page": "打开登录页面",
   "Waiting for you to sign in": "正在等待你登录",
-  "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。"
+  "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。",
+  "The Workspace value {0} overrides this setting.": "工作区的值 {0} 覆盖了此设置。",
+  "Remove Workspace value": "移除工作区的值"
 }

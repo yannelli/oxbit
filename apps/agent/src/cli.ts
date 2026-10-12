@@ -84,7 +84,14 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     const setup = (generateTitles: boolean, quiet = false): AgentSetup =>
       ({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log, provider, settings });
     if (command === "acp") {
-      await serveStdio({ input: io.stdin, output: io.stdout, factory: agentFactory(setup(true)), log });
+      // Node exits on an unhandled rejection; the client would lose the session over one failed background task.
+      const rejected = (error: unknown) => log(`Unhandled rejection: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
+      process.on("unhandledRejection", rejected);
+      try {
+        await serveStdio({ input: io.stdin, output: io.stdout, factory: agentFactory(setup(true)), log });
+      } finally {
+        process.off("unhandledRejection", rejected);
+      }
       return 0;
     }
     const sessionId = await resumeId(config, values, io.cwd);

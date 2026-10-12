@@ -12,7 +12,7 @@ const kernels: Kernel[] = [];
 afterEach(() => {
   for (const kernel of kernels.splice(0)) kernel.dispose();
 });
-async function setup() {
+async function setup(notify: FeatureOptions["workbench"]["notify"] = () => {}) {
   const kernel = createKernel();
   kernels.push(kernel);
   for (const setting of [
@@ -29,11 +29,12 @@ async function setup() {
       type: "boolean",
       default: true,
     },
+    { id: "editor.formatOnSave", title: "Format on Save", type: "boolean", default: true },
   ] as const)
     kernel.configuration.register(setting);
   const options = {
     kernel,
-    workbench: { activePath: () => "index.ts" },
+    workbench: { activePath: () => "index.ts", notify },
   } as FeatureOptions;
   for (const extension of [
     createFeature(options),
@@ -110,5 +111,19 @@ describe("formatter providers", () => {
     );
     expect(await service.format("Hello", "README.md")).toBe("4:false:Hello");
     expect(service.selected("index.ts").id).toBe("oxbit.prettier");
+  });
+  it("saves files whose language has no formatter, and saves unformatted text when the formatter fails", async () => {
+    const notices: string[] = [];
+    const { kernel } = await setup((message) => void notices.push(message));
+    const save = (path: string, text: string) =>
+      kernel.hooks.runBeforeSave({ documentId: path, path, text, signal: new AbortController().signal });
+    expect(await save(".env", "API_URL=http://localhost\n")).toBe("API_URL=http://localhost\n");
+    expect(await save("index.ts", "const answer=1")).toBe("const answer = 1;\n");
+    expect(notices).toEqual([]);
+    kernel.contributions.register({ id: "broken.formatter", kind: "formatter", title: "Broken",
+      data: { id: "broken", languages: ["typescript"], format: async () => { throw new Error("Unexpected token"); } } satisfies Formatter });
+    kernel.configuration.set("editor.defaultFormatter", "broken", "workspace", "typescript");
+    expect(await save("index.ts", "const answer=1")).toBe("const answer=1");
+    expect(notices).toEqual(["Saved without formatting: Unexpected token"]);
   });
 });

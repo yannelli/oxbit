@@ -1,4 +1,4 @@
-import { createWorkbenchSession, RuntimeClient, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
+import { createWorkbenchSession, mirrorUserChanges, RuntimeClient, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
 import { connectRuntime, runtimeScope } from "./runtime.js";
 import { runtimeConnector } from "./runtime-connector.js";
 import { normalizePath } from "@oxbit/host-browser";
@@ -56,6 +56,13 @@ async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ss
   return { path: folder.path, recent: { id: folder.id, kind: "bookmark", name: folder.name } };
 }
 
+/** A runtime workspace keeps User settings in the runtime's file; local and SFTP workspaces read the app profile. */
+function mirrorUserSettings(session: Session, persistence: IosPersistence) {
+  const off = mirrorUserChanges(session.kernel, persistence, (message, type) => session.workbench.notify(message, type));
+  const dispose = session.dispose.bind(session);
+  session.dispose = async () => { off(); await dispose(); };
+}
+
 export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace> {
   if (request.kind === "runtime" || (request.kind === "recent" && request.recent.kind === "runtime")) {
     const url = request.kind === "runtime" ? request.url : request.recent.url;
@@ -66,7 +73,9 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
     try {
       const scope = await runtimeScope(runtime);
       const filesystem = new RuntimeFileSystem(runtime, scope);
-      session = await createWorkbenchSession({ filesystem, runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore, runtimeConnector });
+      const persistence = new IosPersistence(scope);
+      session = await createWorkbenchSession({ filesystem, runtime, persistence, protectUnload: false, iconPackStore, runtimeConnector });
+      mirrorUserSettings(session, persistence);
       const recent: RecentWorkspace = {
         id: "runtime:" + scope.slice(4), kind: "runtime", url: runtime.url, runtimeId: runtime.identity?.id,
         name: runtime.session?.workspaceName ?? runtime.identity?.name ?? new URL(runtime.url).hostname, lastOpened: Date.now(),
@@ -143,9 +152,11 @@ async function openSshRuntime(request: Extract<OpenRequest, { kind: "sshRuntime"
     runtime = new RuntimeClient(started.url, "default", { token: started.token, persistToken: false });
     await runtime.connect();
     const scope = "ios:" + started.workspaceKey;
+    const persistence = new IosPersistence(scope);
     session = await createWorkbenchSession({
-      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence: new IosPersistence(scope), protectUnload: false, iconPackStore, runtimeConnector,
+      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence, protectUnload: false, iconPackStore, runtimeConnector,
     });
+    mirrorUserSettings(session, persistence);
     if (started.openFile) await session.workbench.openFile(started.openFile, { preview: false });
     const recent: RecentWorkspace = {
       id: "sshRuntime:" + started.workspaceKey, kind: "sshRuntime", name: `${request.label}: ${started.root.split("/").at(-1) || started.root}`,

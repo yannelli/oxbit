@@ -27,8 +27,9 @@ test("Fork conversation forks the agent session and keeps the original in histor
       await z.kernel.extensions.activate("oxbit.agent-acp");
       await z.kernel.configuration.set("agentACP.codex.command", executable, "user");
       await z.kernel.configuration.set("agentACP.codex.args", JSON.stringify([fixture, "--history"]), "user");
-      z.workbench.run("agentACP.open");
     }, { executable: process.execPath, fixture: path.resolve("tests/fixtures/agent-acp/agent.mjs") });
+    // Opening the panel inside the async evaluate made Chromium drop its promise.
+    await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
     const panel = page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
     const log = panel.getByRole("log");
     const ready = () => expect(panel.locator(".acp-status")).toHaveText("Ready");

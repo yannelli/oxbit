@@ -108,10 +108,12 @@ describe("provider catalog", () => {
 
   it("lists ChatGPT plan models and maps plan errors", async () => {
     expect(planModels({ models: [
-      { slug: "gpt-6-sol", display_name: "GPT-6 Sol", visibility: "list", supported_in_api: true, context_window: 1050000 },
+      { slug: "gpt-6-sol", display_name: "GPT-6 Sol", visibility: "list", supported_in_api: true, context_window: 1050000,
+        supported_reasoning_levels: [{ effort: "max", description: "" }, { effort: "low", description: "" }, { effort: "ultra", description: "" }] },
+      { slug: "gpt-old", visibility: "list" },
       { slug: "hidden", visibility: "hide" },
       { slug: "app-only", visibility: "list", supported_in_api: false },
-    ] })).toEqual([{ id: "gpt-6-sol", name: "GPT-6 Sol", contextWindow: 1050000 }]);
+    ] })).toEqual([{ id: "gpt-6-sol", name: "GPT-6 Sol", contextWindow: 1050000, efforts: ["low", "max"] }, { id: "gpt-old", name: "gpt-old" }]);
     expect(JSON.parse(describePlanError(429, JSON.stringify({ error: { code: "subscription_sharing_usage_limit_exceeded" } }))).error.message)
       .toBe("ChatGPT plan usage limit reached. Manage usage: https://chatgpt.com/settings/usage");
     expect(JSON.parse(describePlanError(400, JSON.stringify({ error: { code: "subscription_sharing_unsupported_capability", param: "temperature" } }))).error.message)

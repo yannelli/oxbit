@@ -282,6 +282,17 @@
   "Where the primary sidebar is docked.": "Indica dónde se acopla la barra lateral principal.",
   "left": "izquierda",
   "right": "derecha",
+  "Panel Alignment": "Alineación del panel",
+  "Controls how far the bottom panel spans on desktop: under the editor only (center), also under the left or right sidebar, or under both (justify).": "Controla cuánto se extiende el panel inferior en el escritorio: solo bajo el editor (center), también bajo la barra lateral izquierda o derecha, o bajo ambas (justify).",
+  "center": "centro",
+  "justify": "justificado",
+  "Align Panel: Center": "Alinear panel: centro",
+  "Align Panel: Left": "Alinear panel: izquierda",
+  "Align Panel: Right": "Alinear panel: derecha",
+  "Align Panel: Justify": "Alinear panel: justificado",
+  "Application": "Aplicación",
+  "Check for Updates Automatically": "Buscar actualizaciones automáticamente",
+  "Checks for a new Oxbit desktop release at launch and every hour.": "Busca una nueva versión de escritorio de Oxbit al iniciar y cada hora.",
   "Font Family": "Familia tipográfica",
   "Controls the font family of the editor.": "Controla la familia tipográfica del editor.",
   "Editor · Typography": "Editor · Tipografía",
@@ -1048,5 +1059,7 @@
   "Copied": "Copiado",
   "Open sign-in page": "Abrir página de inicio de sesión",
   "Waiting for you to sign in": "Esperando a que inicies sesión",
-  "The sign-in code expired. Sign in again.": "El código de inicio de sesión ha caducado. Vuelve a iniciar sesión."
+  "The sign-in code expired. Sign in again.": "El código de inicio de sesión ha caducado. Vuelve a iniciar sesión.",
+  "The Workspace value {0} overrides this setting.": "El valor {0} del espacio de trabajo reemplaza este ajuste.",
+  "Remove Workspace value": "Quitar el valor del espacio de trabajo"
 }

@@ -1,7 +1,42 @@
-import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSettings, type SettingsChange, type SettingsLayers, type SettingsSnapshot, type FileSystem, type Kernel, type Persistence, type RpcClient } from "@oxbit/sdk";
+import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSettings, type SettingsChange, type SettingsLayers, type SettingsSnapshot, type FileSystem, type Kernel, type NotifyOptions, type Persistence, type RpcClient } from "@oxbit/sdk";
 
 interface Recovery { snapshot: SettingsSnapshot; local: SettingsLayers; pending: SettingsChange[] }
 const empty = () => settingsLayers({}, {});
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
+type Notify = (message: string, type?: string, options?: NotifyOptions) => void;
+const CONFLICT_ACTIONS: NotifyOptions = { ttl: 0, actions: [{ title: "Save Local Settings", command: "settings.saveWorkspace" }, { title: "Reload from Disk", command: "settings.reloadWorkspace" }] };
+/** Mirrors the runtime patch check: the change's scope has an invalid file, or disk matches neither side of the change. */
+const conflicting = (latest: SettingsSnapshot, change: SettingsChange) => {
+  const existing = change.path.reduce<unknown>((value, key) => settingsObject(value) ? value[key] : undefined, settingsFile(latest.layers, change.scope));
+  return latest.files.some(file => file.scope === change.scope && file.error) || (!same(existing, change.before) && !same(existing, change.value));
+};
+/** Applies changes over the latest layers; each rebased change records the disk value it replaces. */
+function rebase(layers: SettingsLayers, changes: SettingsChange[]) {
+  const files = { user: settingsFile(layers, "user"), workspace: settingsFile(layers, "workspace") };
+  const rebased = changes.map(change => {
+    let cursor = files[change.scope];
+    for (const key of change.path.slice(0, -1)) { if (!settingsObject(cursor[key])) cursor[key] = {}; cursor = cursor[key] as Record<string, unknown>; }
+    const key = change.path.at(-1)!, before = cursor[key];
+    if (change.value === undefined) delete cursor[key]; else cursor[key] = change.value;
+    return { scope: change.scope, path: change.path, ...(before === undefined ? {} : { before }), ...(change.value === undefined ? {} : { value: change.value }) };
+  });
+  return { layers: settingsLayers(files.user, files.workspace), changes: rebased };
+}
+
+/** Copies User setting changes from a runtime session into the storage profile that sessions without a runtime read. */
+export function mirrorUserChanges(kernel: Kernel, storage: Persistence, notify: (message: string, type?: string) => void) {
+  let previous = kernel.configuration.export() as SettingsLayers, queue = Promise.resolve();
+  return kernel.configuration.subscribe(() => {
+    const current = kernel.configuration.export() as SettingsLayers;
+    const changes = settingsChanges(previous, current).filter(change => change.scope === "user");
+    previous = current;
+    if (changes.length) queue = queue.then(async () => {
+      const { layers } = rebase({ ...empty(), ...await storage.get<Pick<SettingsLayers, "user" | "userLanguages">>("profile-settings") }, changes);
+      await storage.set("profile-settings", { user: layers.user, userLanguages: layers.userLanguages });
+    }).catch(error => notify(error instanceof Error ? error.message : String(error), "error"));
+  });
+}
 
 /** Browser-only sessions use host storage; runtime sessions share the same JSON files. */
 export class ScopedConfigurationPersistence implements Persistence {
@@ -13,8 +48,11 @@ export class ScopedConfigurationPersistence implements Persistence {
   private pending: SettingsChange[] = [];
   private queue: Promise<void> = Promise.resolve();
   private kernel?: Kernel;
-  private notify?: (message: string, type?: string) => void;
-  private errors: string[] = [];
+  private notify?: Notify;
+  private errors: Parameters<Notify>[] = [];
+  /** Changes made while connected: the user chose these values, so a conflict saves them over the disk value. */
+  private live = new Set<SettingsChange>();
+  private reported = new Set<string>();
   private subscriptions: (() => void)[] = [];
   private disposed = false;
   private fileSettings: boolean;
@@ -53,7 +91,7 @@ export class ScopedConfigurationPersistence implements Persistence {
       this.reportFiles(snapshot);
       await this.flush();
       await this.cache();
-    } catch (error) { this.report(`Settings are retained locally: ${String(error)}`); }
+    } catch (error) { this.failed("Settings are retained locally", error); }
     await this.cache();
     return this.local;
   }
@@ -69,10 +107,11 @@ export class ScopedConfigurationPersistence implements Persistence {
     const changes = settingsChanges(this.local, layers);
     this.local = layers;
     this.pending.push(...changes);
+    if (this.runtime?.connected && this.snapshot?.files.length) for (const change of changes) this.live.add(change);
     if (this.snapshot && !settingsChanges(this.snapshot.layers, this.local).length) this.pending = [];
     this.queue = this.queue.catch(() => {}).then(async () => {
       await this.cache();
-      try { await this.flush(); } catch (error) { this.report(`Settings are retained locally: ${String(error)}`); }
+      try { await this.flush(); } catch (error) { this.failed("Settings are retained locally", error); }
     });
     await this.queue;
   }
@@ -87,29 +126,52 @@ export class ScopedConfigurationPersistence implements Persistence {
     if (!this.runtime?.connected) throw new Error("Reconnect to save settings to disk.");
     if (!this.snapshot?.files.length) this.snapshot = await this.runtime.request<SettingsSnapshot>("settings.read", { legacy: this.snapshot?.layers ?? empty() });
     const changes = [...this.pending], saved = structuredClone(this.local);
-    const snapshot = await this.runtime.request<SettingsSnapshot>("settings.patch", { changes });
-    this.pending.splice(0, changes.length);
+    let snapshot: SettingsSnapshot, held: SettingsChange[] = [], failure: unknown;
+    try { snapshot = await this.runtime.request<SettingsSnapshot>("settings.patch", { changes }); }
+    catch (error) {
+      // The runtime rejects the whole batch. Hold conflicting offline changes; save the rest over the latest files.
+      if ((error as { code?: string }).code !== "CONFLICT") throw error;
+      const latest = await this.runtime.request<SettingsSnapshot>("settings.read");
+      const conflicts = changes.filter(change => conflicting(latest, change));
+      if (!conflicts.length) throw error;
+      const invalid = (change: SettingsChange) => latest.files.some(file => file.scope === change.scope && file.error);
+      const replaced = (change: SettingsChange) => changes.slice(changes.indexOf(change) + 1).some(later => this.live.has(later) && later.scope === change.scope && same(later.path, change.path));
+      held = conflicts.filter(change => invalid(change) || !this.live.has(change) && !replaced(change));
+      const clean = rebase(latest.layers, changes.filter(change => !held.includes(change) && !(conflicts.includes(change) && replaced(change)))).changes;
+      snapshot = clean.length ? await this.runtime.request<SettingsSnapshot>("settings.patch", { changes: clean }) : latest;
+      if (held.length) failure = error;
+    }
+    this.pending.splice(0, changes.length, ...held);
+    for (const change of changes) this.live.delete(change);
     this.snapshot = snapshot;
     // A newer UI change can already be queued in the kernel. Do not replace it.
-    if (!this.pending.length && (!this.kernel || !settingsChanges(saved, this.kernel.configuration.export() as SettingsLayers).length)) this.apply(snapshot);
+    if (this.pending.length === held.length && (!this.kernel || !settingsChanges(saved, this.kernel.configuration.export() as SettingsLayers).length)) this.apply(snapshot, held);
     await this.cache();
+    if (failure) throw failure;
   }
-  private apply(snapshot: SettingsSnapshot) {
+  private apply(snapshot: SettingsSnapshot, held: SettingsChange[] = []) {
     this.snapshot = snapshot;
-    this.local = structuredClone(snapshot.layers);
+    this.local = held.length ? rebase(snapshot.layers, held).layers : structuredClone(snapshot.layers);
     this.kernel?.configuration.import(this.local, { persist: false });
     this.reportFiles(snapshot);
+    if (!this.pending.length && !snapshot.files.some(file => file.error)) this.reported.clear();
   }
   private reportFiles(snapshot: SettingsSnapshot) {
     for (const file of snapshot.files) if (file.error) this.report(`${file.path}: ${file.error}. Keeping the last valid settings.`);
   }
-  private report(message: string) {
-    if (this.notify) this.notify(message, "error");
-    else this.errors.push(message);
+  private failed(prefix: string, error: unknown) {
+    this.report(`${prefix}: ${reason(error)}`, reason(error), (error as { code?: string }).code === "CONFLICT" ? CONFLICT_ACTIONS : undefined);
   }
-  attach(kernel: Kernel, notify: (message: string, type?: string) => void) {
+  /** Reports each distinct failure once until settings save and load cleanly again. */
+  private report(message: string, key = message, options?: NotifyOptions) {
+    if (this.reported.has(key)) return;
+    this.reported.add(key);
+    if (this.notify) this.notify(message, "error", options);
+    else this.errors.push([message, "error", options]);
+  }
+  attach(kernel: Kernel, notify: Notify) {
     this.kernel = kernel; this.notify = notify;
-    for (const message of this.errors) notify(message, "error");
+    for (const error of this.errors) notify(...error);
     this.errors = [];
     if (!this.fileSettings) return;
     const refresh = () => {
@@ -120,7 +182,7 @@ export class ScopedConfigurationPersistence implements Persistence {
           if (this.pending.length || settingsChanges(this.local, kernel.configuration.export() as SettingsLayers).length) return;
           this.apply(await this.runtime!.request<SettingsSnapshot>("settings.read"));
           await this.cache();
-        } catch (error) { this.report(`Settings reload failed: ${String(error)}`); }
+        } catch (error) { this.failed("Settings reload failed", error); }
       });
     };
     this.subscriptions.push(this.runtime!.subscribe("settings.changed", refresh));
@@ -134,14 +196,7 @@ export class ScopedConfigurationPersistence implements Persistence {
       this.pending = [];
       this.apply(latest);
     } else {
-      const files = { user: settingsFile(latest.layers, "user"), workspace: settingsFile(latest.layers, "workspace") };
-      this.pending = this.pending.map(change => {
-        let cursor = files[change.scope];
-        for (const key of change.path.slice(0, -1)) { if (!settingsObject(cursor[key])) cursor[key] = {}; cursor = cursor[key] as Record<string, unknown>; }
-        const key = change.path.at(-1)!, before = cursor[key];
-        if (change.value === undefined) delete cursor[key]; else cursor[key] = change.value;
-        return { scope: change.scope, path: change.path, ...(before === undefined ? {} : { before }), ...(change.value === undefined ? {} : { value: change.value }) };
-      });
+      this.pending = rebase(latest.layers, this.pending).changes;
       if (this.pending.length) await this.flush(); else this.apply(latest);
     }
     await this.cache();

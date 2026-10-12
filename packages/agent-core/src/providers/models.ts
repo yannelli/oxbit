@@ -1,4 +1,5 @@
 import type { AgentModelEndpoint, AgentModels } from "@oxbit/sdk";
+import { retryAfterMs } from "../retry.js";
 import { bodyText, httpError, textChunks, type Fetch } from "./http.js";
 
 export const ANTHROPIC_VERSION = "2023-06-01";
@@ -77,7 +78,9 @@ export function httpModels(options: HttpModelsOptions): AgentModels {
       }
       if (!response.ok) {
         const body = await bodyText(response);
-        throw httpError(response.status, options.describe ? options.describe(response.status, body) : body);
+        const error = httpError(response.status, options.describe ? options.describe(response.status, body) : body);
+        const after = retryAfterMs({ headers: response.headers });
+        throw after === undefined ? error : Object.assign(error, { retryAfterMs: after });
       }
       yield* textChunks(response.body);
     },
