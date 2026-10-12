@@ -149,8 +149,12 @@ Not in the app, and why:
 - HTTP MCP servers: the iOS content security policy limits `connect-src` to the app, IPC and
   the push relay, and model requests go through the Swift plugin.
 - `/undo` and `/redo` need the snapshot store that `oxbit-agent` keeps under its agent home.
+  The review card's **Undo this edit** and **Undo all** revert in-app agent writes.
 - `/new` and `/resume` are terminal commands of `oxbit-agent`; the panel's **New conversation**
   and **History** do the same.
+
+Runtime workspaces, including iOS workspaces on a LAN or SSH runtime, offer Oxbit Agent CLI. It
+runs on the runtime with command hooks, MCP servers, `bash` and `/undo`.
 
 ### ACP Registry agents
 
