@@ -1,6 +1,6 @@
 # JSON settings
 
-Created: 2026-09-08. Last updated: 2026-10-09.
+Created: 2026-09-08. Last updated: 2026-10-12.
 
 Oxbit merges settings in this order, from lowest to highest priority:
 
@@ -72,7 +72,7 @@ The Settings UI's **User** scope writes to the user file. **Workspace** writes t
 
 Changes on disk reload automatically across connected windows, including atomic editor saves and creation/deletion of optional files. Invalid JSON keeps the last valid contents of that file and reports the problem; Oxbit does not overwrite it. On a fresh runtime, an invalid file contributes no values until fixed. Strict JSON is required: comments and trailing commas are not supported. Files are limited to 256 KiB each.
 
-Settings changes are cached while offline. Different properties changed by different windows merge on save; a conflicting edit to the same property retains the local change and reports a conflict. **Reload Settings from Disk** discards pending changes. **Save Local Settings to Disk** explicitly reapplies only pending changes over current disk values. Saves use process locks and atomic replacement, with revision checks for edits made outside Oxbit. An external editor can still race the final filesystem rename; settings saves are not a multi-file transaction.
+Settings changes are cached while offline. Different properties changed by different windows merge on save. When a property changed on disk since the app read it, the pending change, including one made offline or restored after a relaunch, is saved over that property and the file's other values stay. Changes to a scope whose file has invalid JSON stay pending and report "Fix invalid settings JSON before saving this scope"; **Reload Settings from Disk** discards pending changes and **Save Local Settings to Disk** reapplies them over current disk values. Saves use process locks and atomic replacement, with revision checks for edits made outside Oxbit. An external editor can still race the final filesystem rename; settings saves are not a multi-file transaction.
 
 Old browser/native preferences and the former `<project>/.oxbit/settings.json` seed the new files only when those files do not already exist. The old files are preserved. Browser-only workspaces retain host storage, since browsers cannot access the user's home directory. Runtime settings belong to the runtime machine and are only exposed to authenticated workspace owners, not collaboration guests.
 
@@ -101,6 +101,6 @@ Both appear in the **Runtime** category and on the Runtime page. See [Runtime pa
 
 `tests/browser/settings-header.spec.ts` checks header control heights at 320px, 393px and 1280px, the matching row above a 400px keyboard viewport on `webkit-phone`, and the Git Accounts visibility rule.
 
-Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery and both conflict resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Native desktop execution requires a separate check.
+Runtime and kernel tests cover precedence, deep merging, language overrides, migration, selective writes/reset, concurrent writers, malformed JSON, confined paths, watchers, project preferences and owner-only access. Persistence tests cover UI-to-file writes, live reload, offline recovery, saving pending changes over values changed on disk, and both explicit resolutions. The production browser journey verifies the Settings UI, two windows, all file levels, reload and deletion fallback. Native desktop execution requires a separate check.
 
 Schema tests check generation freshness, all built-in defaults, partial overrides and invalid values. `bunx tsx scripts/language/settings-schema.ts` exercises the real JSON language server for automatic associations at every location, nested completion, hover, diagnostics, canonical and local `$schema` references with zero remote schema requests. The browser journey also checks the distributable schema and visible project/language completion with downloads disabled.

@@ -2,15 +2,9 @@ import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSet
 
 interface Recovery { snapshot: SettingsSnapshot; local: SettingsLayers; pending: SettingsChange[] }
 const empty = () => settingsLayers({}, {});
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
 type Notify = (message: string, type?: string, options?: NotifyOptions) => void;
 const CONFLICT_ACTIONS: NotifyOptions = { ttl: 0, actions: [{ title: "Save Local Settings", command: "settings.saveWorkspace" }, { title: "Reload from Disk", command: "settings.reloadWorkspace" }] };
-/** Mirrors the runtime patch check: the change's scope has an invalid file, or disk matches neither side of the change. */
-const conflicting = (latest: SettingsSnapshot, change: SettingsChange) => {
-  const existing = change.path.reduce<unknown>((value, key) => settingsObject(value) ? value[key] : undefined, settingsFile(latest.layers, change.scope));
-  return latest.files.some(file => file.scope === change.scope && file.error) || (!same(existing, change.before) && !same(existing, change.value));
-};
 /** Applies changes over the latest layers; each rebased change records the disk value it replaces. */
 function rebase(layers: SettingsLayers, changes: SettingsChange[]) {
   const files = { user: settingsFile(layers, "user"), workspace: settingsFile(layers, "workspace") };
@@ -50,8 +44,6 @@ export class ScopedConfigurationPersistence implements Persistence {
   private kernel?: Kernel;
   private notify?: Notify;
   private errors: Parameters<Notify>[] = [];
-  /** Changes made while connected: the user chose these values, so a conflict saves them over the disk value. */
-  private live = new Set<SettingsChange>();
   private reported = new Set<string>();
   private subscriptions: (() => void)[] = [];
   private disposed = false;
@@ -107,7 +99,6 @@ export class ScopedConfigurationPersistence implements Persistence {
     const changes = settingsChanges(this.local, layers);
     this.local = layers;
     this.pending.push(...changes);
-    if (this.runtime?.connected && this.snapshot?.files.length) for (const change of changes) this.live.add(change);
     if (this.snapshot && !settingsChanges(this.snapshot.layers, this.local).length) this.pending = [];
     this.queue = this.queue.catch(() => {}).then(async () => {
       await this.cache();
@@ -129,20 +120,16 @@ export class ScopedConfigurationPersistence implements Persistence {
     let snapshot: SettingsSnapshot, held: SettingsChange[] = [], failure: unknown;
     try { snapshot = await this.runtime.request<SettingsSnapshot>("settings.patch", { changes }); }
     catch (error) {
-      // The runtime rejects the whole batch. Hold conflicting offline changes; save the rest over the latest files.
+      // Pending changes are the user's latest edits, so a value that changed on disk is replaced.
+      // A scope whose file has invalid JSON keeps its changes pending until the file is fixed.
       if ((error as { code?: string }).code !== "CONFLICT") throw error;
       const latest = await this.runtime.request<SettingsSnapshot>("settings.read");
-      const conflicts = changes.filter(change => conflicting(latest, change));
-      if (!conflicts.length) throw error;
-      const invalid = (change: SettingsChange) => latest.files.some(file => file.scope === change.scope && file.error);
-      const replaced = (change: SettingsChange) => changes.slice(changes.indexOf(change) + 1).some(later => this.live.has(later) && later.scope === change.scope && same(later.path, change.path));
-      held = conflicts.filter(change => invalid(change) || !this.live.has(change) && !replaced(change));
-      const clean = rebase(latest.layers, changes.filter(change => !held.includes(change) && !(conflicts.includes(change) && replaced(change)))).changes;
+      held = changes.filter(change => latest.files.some(file => file.scope === change.scope && file.error));
+      const clean = rebase(latest.layers, changes.filter(change => !held.includes(change))).changes;
       snapshot = clean.length ? await this.runtime.request<SettingsSnapshot>("settings.patch", { changes: clean }) : latest;
-      if (held.length) failure = error;
+      if (held.length) failure = Object.assign(new Error("Fix invalid settings JSON before saving this scope"), { code: "CONFLICT" });
     }
     this.pending.splice(0, changes.length, ...held);
-    for (const change of changes) this.live.delete(change);
     this.snapshot = snapshot;
     // A newer UI change can already be queued in the kernel. Do not replace it.
     if (this.pending.length === held.length && (!this.kernel || !settingsChanges(saved, this.kernel.configuration.export() as SettingsLayers).length)) this.apply(snapshot, held);
