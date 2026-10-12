@@ -253,8 +253,9 @@ export async function runTool(call: ToolCall, context: RunContext, tools: readon
   const update = (status: "completed" | "failed", output: string) =>
     context.update({ sessionUpdate: "tool_call_update", toolCallId, status, rawOutput: output.slice(0, 8000) });
   const where = locations(context.root, args);
+  const meta = tool?.meta?.(args);
   context.update({ sessionUpdate: "tool_call", toolCallId, title: (tool?.title(args) ?? call.name).slice(0, 200), kind: tool?.kind ?? "other",
-    status: "in_progress", rawInput: args, ...(where ? { locations: where } : {}) });
+    status: "in_progress", rawInput: args, ...(where ? { locations: where } : {}), ...(meta ? { _meta: meta } : {}) });
   try {
     if (typeof parsed === "string") throw new Error(parsed);
     if (!tool) throw new Error(`Unknown tool ${call.name}`);

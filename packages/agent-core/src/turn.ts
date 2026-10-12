@@ -1,6 +1,6 @@
 import type { AgentModelApi, AgentModelEndpoint, AgentModels } from "@oxbit/sdk";
-import type { Effort, ModelAdapter, ModelInfo, ToolResult, Turn } from "./model.js";
-import { builtinTools, runTool } from "./tools.js";
+import type { Effort, ModelAdapter, ModelInfo, ToolCall, ToolResult, Turn } from "./model.js";
+import { builtinTools, runTool, type ToolGate } from "./tools.js";
 import { openaiResponses } from "./openai-responses.js";
 import { chatCompletions } from "./chat-completions.js";
 import { anthropicMessages } from "./anthropic-messages.js";
@@ -9,8 +9,9 @@ import { streamStep } from "./step.js";
 import { hookGate } from "./tool-gate.js";
 import { modeOf } from "./session-records.js";
 import { COMPACT_FOCUS } from "./compaction.js";
+import { taskTool } from "./subagent.js";
 import type { AgentHost } from "./host.js";
-import type { AgentTool, HookEvent, HookOutcome, Params, SessionView } from "./extensions.js";
+import type { AgentTool, HookEvent, HookOutcome, Params, SessionView, SnapshotStore, ToolContext } from "./extensions.js";
 
 export interface LiveSession extends SessionView {
   turns: Turn[];
@@ -53,7 +54,7 @@ export class PromptTurn {
   halt?: string;
   private stopHookActive = false;
   private stopBlocks = 0;
-  private snapshotted = false;
+  private snapshotting?: Promise<void>;
   constructor(private host: AgentHost, private session: LiveSession, readonly signal: AbortSignal) {}
   async hook(event: HookEvent, input: Params): Promise<HookOutcome> {
     const runner = this.host.extensions?.hooks;
@@ -81,6 +82,8 @@ export class PromptTurn {
   async tools() {
     const provided = await Promise.all((this.host.extensions?.tools ?? []).map((provider) => provider.tools(this.session)));
     const tools: AgentTool[] = [...builtinTools(this.host.capabilities)];
+    if (this.host.subagents && !this.session.meta.subagent)
+      tools.push(taskTool({ host: this.host, parent: this.session, runChild: (host, child, signal) => new PromptTurn(host, child, signal).run(host.models()!, host.endpoint()) }));
     for (const tool of provided.flat()) if (!tools.some((item) => item.spec.name === tool.spec.name)) tools.push(tool);
     return tools;
   }
@@ -102,7 +105,7 @@ export class PromptTurn {
     let steps = 0;
     while (steps++ < MAX_STEPS) {
       const tools = await this.tools();
-      this.snapshotted = false;
+      this.snapshotting = undefined;
       const result = await streamStep({ adapter, models, endpoint, signal, update, turns: session.turns, contextWindow: info?.contextWindow, retry: this.host.retry,
         input: { model: session.model, system: prompt, turns: session.turns, tools: tools.map((tool) => tool.spec),
           effort: session.effort === "default" ? undefined : session.effort, maxTokens: info?.maxOutput } });
@@ -112,11 +115,7 @@ export class PromptTurn {
       const context = { root: session.cwd, sessionId: session.id, mode: modeOf(session.meta), signal, update,
         request: (method: string, params: Params) => this.host.request(method, params),
         filesystem: session.cwd === normalize(this.host.root) ? this.host.filesystem : this.host.filesystemFor!(session.cwd) };
-      const results: ToolResult[] = [];
-      for (const call of calls) {
-        const skipped = signal.aborted ? "Cancelled by the user" : this.halt;
-        results.push(skipped ? { id: call.id, name: call.name, output: skipped, error: true } : await runTool(call, context, tools, gate));
-      }
+      const results = await this.runCalls(calls, context, tools, gate);
       if (results.length) session.turns.push({ role: "tool", results });
       if (signal.aborted) return { stopReason: "cancelled" };
       try {
@@ -140,6 +139,32 @@ export class PromptTurn {
       steps = 0;
     }
     return { stopReason: "max_turn_requests" };
+  }
+  /** Runs calls in order; consecutive calls to parallel tools run together, up to the host's subagent concurrency. */
+  private async runCalls(calls: ToolCall[], context: Omit<ToolContext, "toolCallId">, tools: AgentTool[], gate: ToolGate) {
+    const results: ToolResult[] = [];
+    const one = async (index: number) => {
+      const call = calls[index];
+      const skipped = this.signal.aborted ? "Cancelled by the user" : this.halt;
+      results[index] = skipped ? { id: call.id, name: call.name, output: skipped, error: true } : await runTool(call, context, tools, gate);
+    };
+    const parallel = (call: ToolCall) => !!tools.find((tool) => tool.spec.name === call.name)?.parallel;
+    const limit = Math.max(1, this.host.subagents?.concurrency ?? 4);
+    for (let index = 0; index < calls.length;) {
+      let end = index;
+      while (end < calls.length && parallel(calls[end])) end++;
+      if (end === index) {
+        await one(index++);
+        continue;
+      }
+      let next = index;
+      const worker = async () => {
+        while (next < end) await one(next++);
+      };
+      await Promise.all(Array.from({ length: Math.min(limit, end - index) }, worker));
+      index = end;
+    }
+    return results;
   }
   /** Stop hooks, then continuation providers. Returns the text of the next user message, if any. */
   private async afterStop() {
@@ -181,10 +206,14 @@ export class PromptTurn {
     await this.hook("PostCompact", { trigger });
     return true;
   }
-  private async snapshot(label: string) {
+  /** The first mutating call of a step captures; concurrent calls wait for that capture. */
+  private snapshot(label: string) {
     const store = this.host.extensions?.snapshots;
-    if (!store || this.snapshotted) return;
-    this.snapshotted = true;
+    if (!store) return Promise.resolve();
+    if (this.snapshotting) return this.snapshotting.catch(() => {});
+    return this.snapshotting = this.capture(store, label);
+  }
+  private async capture(store: SnapshotStore, label: string) {
     const snapshot = await store.capture(label, this.session.cwd);
     const list = Array.isArray(this.session.meta.snapshots) ? this.session.meta.snapshots : [];
     if (snapshot) this.session.meta.snapshots = [...list, { id: snapshot, label, turn: this.session.turns.length }];

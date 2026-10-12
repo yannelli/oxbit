@@ -68,6 +68,23 @@ describe("tui", () => {
     await ui.exit();
   });
 
+  test("renders a subagent's forwarded tool card", async () => {
+    const ui = await start([async (context) => {
+      context.update(tool("t1", "Task: Update the app", "other"));
+      context.update(tool("t1/c1", "Edit src/app.ts", "edit", { rawInput: { path: "src/app.ts" }, _meta: { oxbit: { subagentOf: "t1" } } }));
+      context.update({ sessionUpdate: "tool_call_update", toolCallId: "t1/c1", _meta: { oxbit: { subagentOf: "t1" } },
+        content: [{ type: "diff", path: "/work/project/src/app.ts", oldText: "a\n", newText: "b\n" }] });
+      context.update({ sessionUpdate: "tool_call_update", toolCallId: "t1/c1", status: "completed", rawOutput: "Saved src/app.ts", _meta: { oxbit: { subagentOf: "t1" } } });
+      context.update({ sessionUpdate: "tool_call_update", toolCallId: "t1", status: "completed", rawOutput: "Updated src/app.ts" });
+    }]);
+    ui.type("delegate");
+    ui.press(KEYS.enter);
+    await ui.until("Updated src/app.ts: 1 added, 1 removed");
+    expect(ui.frame()).toContain("Task: Update the app");
+    expect(ui.frame()).toContain("✎ Edit src/app.ts");
+    await ui.exit();
+  });
+
   test("asks for permission and remembers allow for this session", async () => {
     const ui = await start([async (context) => {
       for (const [id, command] of [["t1", "npm test"], ["t2", "npm run lint"], ["t3", "rm -rf build"]]) {
