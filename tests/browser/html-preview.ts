@@ -32,7 +32,60 @@ async function fixture(page: Page, remote = false) {
   });
 }
 
+async function scriptFixture(page: Page) {
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit;
+    const files = {
+      "site/app.html": `<!doctype html><html><head><script src="js/app.js"></script></head><body>
+        <h1 id="title">Static</h1><button onclick="document.getElementById('title').textContent = 'Clicked'">Click me</button>
+        <script>try { parent.__previewExecuted = true; } catch { document.body.dataset.isolated = "yes"; }</script>
+      </body></html>`,
+      "site/js/app.js": 'window.marker = "</script> kept"; document.addEventListener("DOMContentLoaded", () => { document.getElementById("title").textContent = "Script ran"; });',
+    };
+    await app.filesystem.list("site/js").catch(() => app.filesystem.mkdir("site/js"));
+    for (const [path, text] of Object.entries(files)) {
+      const previous = await app.filesystem.read(path).catch(() => undefined);
+      await app.filesystem.write(path, text, { expectedRevision: previous?.revision ?? null });
+    }
+    await app.workbench.openFile("site/app.html", { preview: false });
+  });
+}
+
 export function htmlPreviewTests() {
+  test("HTML preview runs JavaScript in a trusted runtime workspace without reaching the app", async ({ page }) => {
+    await fixture(page, true);
+    await page.evaluate(() => (window as any).__oxbit.runtime.request("workspace.trust", { trusted: true }));
+    try {
+      await scriptFixture(page);
+      await page.getByRole("button", { name: "Open HTML preview", exact: true }).click();
+      const preview = page.frameLocator('iframe[title="HTML preview"]');
+      await expect(preview.locator("h1")).toHaveText("Script ran");
+      await expect(preview.locator("body")).toHaveAttribute("data-isolated", "yes");
+      expect(await preview.locator("body").evaluate(() => (window as any).marker)).toBe("</script> kept");
+      await preview.getByRole("button", { name: "Click me" }).click();
+      await expect(preview.locator("h1")).toHaveText("Clicked");
+      await expect(page.locator(".html-preview-scripts")).toHaveCount(0);
+      expect(await page.evaluate(() => (window as any).__previewExecuted)).toBeUndefined();
+    } finally {
+      await page.evaluate(() => (window as any).__oxbit.runtime.request("workspace.trust", { trusted: false }));
+    }
+  });
+
+  test("HTML preview asks before running JavaScript outside a trusted runtime", async ({ page }) => {
+    await fixture(page);
+    await scriptFixture(page);
+    await page.getByRole("button", { name: "Open HTML preview", exact: true }).click();
+    const preview = page.frameLocator('iframe[title="HTML preview"]');
+    await expect(preview.locator("h1")).toHaveText("Static");
+    const notice = page.locator(".html-preview-scripts");
+    await expect(notice).toContainText("Scripts you run can load content from the internet and send data to it.");
+    await notice.getByRole("button", { name: "Run JavaScript" }).click();
+    await expect(preview.locator("h1")).toHaveText("Script ran");
+    await expect(notice).toHaveCount(0);
+    expect(await page.evaluate(() => (window as any).__previewExecuted)).toBeUndefined();
+  });
+
+
   test("HTML preview loads local CSS and images, updates drafts, and navigates pages", async ({ page }) => {
     await fixture(page);
     await page.getByRole("button", { name: "Open HTML preview", exact: true }).click();

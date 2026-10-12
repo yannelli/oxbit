@@ -24,12 +24,24 @@ pub struct AppState {
     pub ssh: ssh::Ssh,
 }
 
+/// Serves the HTML preview shell, which runs a previewed page's scripts without the app's script policy.
+fn preview_shell<R: tauri::Runtime>(
+    _context: tauri::UriSchemeContext<'_, R>,
+    _request: tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<&'static [u8]> {
+    tauri::http::Response::builder()
+        .header(tauri::http::header::CONTENT_TYPE, "text/html; charset=utf-8")
+        .body(include_str!("../../../web/public/preview-shell.html").as_bytes())
+        .expect("static preview shell response")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_oxbit_files::init())
+        .register_uri_scheme_protocol("oxbit-preview", preview_shell)
         .setup(|app| {
             git_core::ssh_transport::register().map_err(|error| error.message)?;
             let directory = app.path().app_data_dir()?;

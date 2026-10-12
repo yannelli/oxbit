@@ -199,6 +199,9 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .html-preview-message{flex:none;max-height:25%;overflow:auto;padding:6px 12px;font-size:var(--font-small-font-size);color:var(--fg-3);border-bottom:1px solid var(--bd);overflow-wrap:anywhere}
 .html-preview-message.error-text{color:var(--err)}
 .html-preview-message p{margin:8px 0}
+.html-preview-scripts{flex:none;display:flex;align-items:center;gap:12px;padding:6px 12px;font-size:var(--font-small-font-size);color:var(--fg-2);background:var(--warn-soft);border-bottom:1px solid var(--bd)}
+.html-preview-scripts span{flex:1;min-width:0;overflow-wrap:anywhere}
+.html-preview-scripts .button{flex:none}
 .preview-resource-control{display:flex;align-items:center;flex-wrap:wrap;flex:none;gap:6px 12px;padding:6px 12px;border-bottom:1px solid var(--bd);font-size:var(--font-small-font-size)}
 .preview-resource-control select{min-width:0;max-width:100%;padding:5px 8px;border:1px solid var(--bd);border-radius:4px;background:var(--bg-input);color:var(--fg)}
 .preview-resource-control p{flex-basis:100%;margin:0;color:var(--fg-3);overflow-wrap:anywhere}

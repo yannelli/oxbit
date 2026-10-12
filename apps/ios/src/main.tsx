@@ -232,6 +232,7 @@ function App() {
   useEffect(() => {
     const session = workspace?.session;
     if (!session) return;
+    session.kernel.context.set("iosApp", true);
     const registrations = [
       ["workspace.open", "Open Folder…", () => open({ kind: "pick" })],
       ["workspace.switch", "Switch Workspace…", () => setSheet(true)],

@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Oxbit HTML preview</title></head><body><script>
+// Hosts serve this page without a script policy so an HTML preview with JavaScript runs under its own rules.
+addEventListener("message", function load(event) {
+  if (event.source !== parent || !event.data || event.data.type !== "oxbit.preview.document" || typeof event.data.html !== "string") return;
+  removeEventListener("message", load);
+  document.open();
+  document.write(event.data.html);
+  document.close();
+});
+parent.postMessage({ type: "oxbit.preview.shell" }, "*");
+</script></body></html>
