@@ -1427,6 +1427,136 @@ describe("Oxbit agent without a runtime workspace", () => {
   });
 });
 
+describe("In-app Oxbit agent resume after a reload", () => {
+  const storage = () => {
+    const values = new Map();
+    return { get: async (key: string) => values.get(key), set: async (key: string, value: unknown) => void values.set(key, value) };
+  };
+  /** A local workspace whose in-app runtime serves the Oxbit agent, which loads saved sessions. */
+  function inApp(persistence: ReturnType<typeof storage>, connected = true) {
+    const context = setup(undefined, persistence);
+    Object.assign(context.options.runtime!, { local: true, connected });
+    context.agent.connection = { ...context.agent.connection!, provider: OXBIT_AGENT_PROVIDER, capabilities: { loadSession: true } };
+    return context;
+  }
+  /** A controller created by a page reload: no live connection. */
+  function reloaded(persistence: ReturnType<typeof storage>, connected = true) {
+    const context = inApp(persistence, connected);
+    context.agent.connection = undefined;
+    return context;
+  }
+  const started = { id: "connection-2", root: "/workspace", provider: OXBIT_AGENT_PROVIDER, authMethods: [], capabilities: { loadSession: true } };
+  const saved = (agent: AgentController, id: string) => agent.history.entries.find((entry) => entry.id === id);
+  const activeId = (agent: AgentController) => (agent as any).activeConversation?.id as string;
+  const starts = (runtime: ReturnType<typeof setup>["runtime"]) => runtime.request.mock.calls.filter(([method]) => method === "acp.start").length;
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+  it("marks the conversation the in-app agent has loaded and clears the mark on New conversation, a switch and Disconnect", async () => {
+    const { agent, runtime } = inApp(storage());
+    const session = (sessionId: string) => ({ ...agent.connection!, sessionId });
+    runtime.request.mockResolvedValueOnce(session("first"));
+    await agent.newSession();
+    const first = activeId(agent);
+    await agent.saveConversation();
+    expect(saved(agent, first)?.inAppAgent).toBe(true);
+
+    runtime.request.mockResolvedValueOnce(session("second"));
+    await agent.newSession();
+    const second = activeId(agent);
+    expect(saved(agent, first)?.inAppAgent).toBe(false);
+    await agent.saveConversation();
+    expect(saved(agent, second)?.inAppAgent).toBe(true);
+
+    runtime.request.mockResolvedValueOnce(session("first"));
+    await agent.resumeSaved(saved(agent, first)!);
+    expect(activeId(agent)).toBe(first);
+    expect(saved(agent, second)?.inAppAgent).toBe(false);
+    await agent.saveConversation();
+    expect(saved(agent, first)?.inAppAgent).toBe(true);
+
+    await agent.disconnect();
+    expect(saved(agent, first)?.inAppAgent).toBe(false);
+    agent.dispose();
+  });
+  it("does not mark an Oxbit conversation on a runtime workspace", async () => {
+    const { agent, runtime } = setup(undefined, storage());
+    agent.connection = { ...agent.connection!, provider: OXBIT_AGENT_PROVIDER };
+    runtime.request.mockResolvedValueOnce({ ...agent.connection, sessionId: "runtime" });
+    await agent.newSession();
+    await agent.saveConversation();
+    expect(agent.history.entries[0].inAppAgent).toBe(false);
+    agent.dispose();
+  });
+  it("starts the in-app agent once the model service arrives and loads the conversation it had open", async () => {
+    const persistence = storage();
+    const before = inApp(persistence);
+    before.runtime.request.mockResolvedValueOnce({ ...before.agent.connection!, sessionId: "kept" });
+    await before.agent.newSession();
+    before.agent.draft = "Boil water";
+    before.runtime.request.mockResolvedValueOnce({ stopReason: "end_turn" });
+    await before.agent.send();
+    await before.agent.saveConversation();
+    const id = activeId(before.agent);
+
+    const { agent, runtime, listeners, options } = reloaded(persistence, false);
+    runtime.request.mockImplementation(async (method, params) => {
+      if (method === "acp.start") return started;
+      if (params?.method !== "session/load") return {};
+      listeners.get("acp.update")!({ id: "connection-2", update: { sessionUpdate: "agent_message_chunk", content: { text: "Replayed" } } });
+      return { ...started, sessionId: "kept" };
+    });
+    setTimeout(() => Object.assign(options.runtime!, { connected: true }), 150);
+    await vi.waitFor(() => expect(agent.connection?.sessionId).toBe("kept"));
+    expect(runtime.request).toHaveBeenCalledWith("acp.call", { id: "connection-2", method: "session/load", params: { sessionId: "kept" } });
+    await vi.waitFor(() => expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "The app reloaded. The agent restarted and loaded this conversation." }));
+    expect(activeId(agent)).toBe(id);
+    expect(agent.messages.map((message) => message.text)).toEqual(["Replayed"]);
+    expect(agent.archived).toBe(false);
+    await agent.saveConversation();
+    expect(saved(agent, id)?.inAppAgent).toBe(true);
+    expect(starts(runtime)).toBe(1);
+    before.agent.dispose();
+    agent.dispose();
+  });
+  it("skips entries without the mark and leaves a conversation it cannot load read-only without starting again", async () => {
+    const persistence = storage();
+    const entry = {
+      id: "kettle", sessionId: "gone", root: "/workspace", provider: OXBIT_AGENT_PROVIDER, title: "Kettle", updatedAt: "2026-10-01",
+      draft: "", context: [], tools: [], activity: [{ kind: "message" as const, message: { role: "user" as const, text: "Boil water" } }],
+    };
+    const seed = reloaded(persistence);
+    await seed.agent.history.ready;
+    await seed.agent.history.save(entry);
+    const older = reloaded(persistence);
+    await older.agent.history.ready;
+    await settle();
+    expect(starts(older.runtime)).toBe(0);
+    expect(older.agent.messages).toEqual([]);
+
+    await seed.agent.history.save({ ...entry, inAppAgent: true });
+    const failed = reloaded(persistence);
+    failed.runtime.request.mockImplementation(async (method, params) => {
+      if (method === "acp.start") return started;
+      if (params?.method === "session/load") throw new Error("Session not found");
+      return {};
+    });
+    await vi.waitFor(() => expect(failed.agent.archived).toBe(true));
+    expect(failed.agent.status).toBe("Conversation could not be restored");
+    expect(failed.agent.error).toBe("Session not found");
+    expect(failed.agent.connection).toBeUndefined();
+    expect(failed.runtime.request).toHaveBeenCalledWith("acp.stop", { id: "connection-2" });
+    expect(failed.agent.messages.map((message) => message.text)).toEqual(["Boil water"]);
+    expect(starts(failed.runtime)).toBe(1);
+
+    const again = reloaded(persistence);
+    await again.agent.history.ready;
+    await settle();
+    expect(again.agent.history.entries[0].inAppAgent).toBe(false);
+    expect(starts(again.runtime)).toBe(0);
+    for (const context of [seed, older, failed, again]) context.agent.dispose();
+  });
+});
+
 describe("Auto-apply edits", () => {
   function workspace(configuration: Record<string, unknown> = {}, storage?: any) {
     const context = setup(undefined, storage);

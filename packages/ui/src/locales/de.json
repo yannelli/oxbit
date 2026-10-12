@@ -1034,5 +1034,6 @@
   "Waiting for you to sign in": "Warten auf Ihre Anmeldung",
   "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an.",
   "The Workspace value {0} overrides this setting.": "Der Arbeitsbereich-Wert {0} überschreibt diese Einstellung.",
-  "Remove Workspace value": "Arbeitsbereich-Wert entfernen"
+  "Remove Workspace value": "Arbeitsbereich-Wert entfernen",
+  "The app reloaded. The agent restarted and loaded this conversation.": "Die App wurde neu geladen. Der Agent wurde neu gestartet und hat diese Unterhaltung geladen."
 }
