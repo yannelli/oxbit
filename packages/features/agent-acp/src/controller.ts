@@ -2057,9 +2057,10 @@ export class AgentController {
     if (id) this.selectSubagent(id);
     this.options.workbench.openPanel("agent-acp-agents");
   }
-  /** Below the workbench's 1100px breakpoint the panel overlays the editor, and opening a file closes it. */
+  /** Below the workbench's 1100px breakpoint the agent panel or Agents view overlays the editor, and opening a file closes it. */
   private panelCoversEditor() {
-    return (globalThis.innerWidth || 1440) < 1100 && this.options.workbench.panelVisible?.(AGENT_VIEW) === true;
+    return (globalThis.innerWidth || 1440) < 1100
+      && [AGENT_VIEW, "agent-acp-agents"].some((view) => this.options.workbench.panelVisible?.(view) === true);
   }
   async openLocation(absolute: string, line?: number) {
     const root = this.connection?.root ?? this.activeConversation?.root;
