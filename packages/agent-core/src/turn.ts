@@ -30,6 +30,7 @@ export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
   openai: openaiResponses,
   "openai-compatible": chatCompletions,
   anthropic: anthropicMessages,
+  chatgpt: openaiResponses,
 };
 const MAX_STEPS = 64;
 export const CONTEXT_LIMIT = 10000;
