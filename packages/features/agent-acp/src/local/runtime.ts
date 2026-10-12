@@ -1,4 +1,4 @@
-import { MISSING_AGENT_KEY, OXBIT_AGENT_PROVIDER, OXBIT_AGENT_SETTINGS, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
+import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, OXBIT_AGENT_PROVIDER, OXBIT_AGENT_SETTINGS, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
   type FeatureOptions, type RpcClient, type Unsubscribe } from "@oxbit/sdk";
 import { Agent, relativePath, resolvePath } from "@oxbit/agent-core";
 import { oxbitEndpoint } from "../configuration.js";
@@ -105,7 +105,7 @@ export class LocalAgentRuntime implements RpcClient {
     const models = this.models();
     if (!models) throw new Error("Connect to a runtime workspace first");
     const endpoint = oxbitEndpoint(this.options.kernel.configuration);
-    if (!(await models.keys.has(endpoint))) throw new Error(MISSING_AGENT_KEY);
+    if (!(await models.keys.has(endpoint))) throw new Error(endpoint.api === "chatgpt" ? MISSING_CHATGPT_SIGN_IN : MISSING_AGENT_KEY);
     if (signal?.aborted) throw new Error("Agent connection cancelled");
     const id = crypto.randomUUID();
     const live = () => this.connections.get(id);

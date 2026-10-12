@@ -10,6 +10,7 @@ import {
   ACP_PROVIDERS,
   AGENT_MODELS_SERVICE,
   MISSING_AGENT_KEY,
+  MISSING_CHATGPT_SIGN_IN,
   OXBIT_AGENT_PROVIDER,
   acpPreset,
   type AgentModels,
@@ -46,6 +47,7 @@ import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 import { AgentLogo } from "./agent-logo.js";
 import { LocalAgentRuntime } from "./local/runtime.js";
+const SETUP_ERRORS = [MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN];
 function RequestCard({
   request,
   agent,
@@ -551,10 +553,10 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         </section>}
         {agent.error && (
           <p role="alert" className="error-text">
-            {agent.error === MISSING_AGENT_KEY ? tr(MISSING_AGENT_KEY) : agent.error}
+            {SETUP_ERRORS.includes(agent.error) ? tr(agent.error) : agent.error}
           </p>
         )}
-        {agent.error === MISSING_AGENT_KEY && !showSetup && (
+        {SETUP_ERRORS.includes(agent.error) && !showSetup && (
           <div className="acp-actions">
             <button className="button" onClick={() => setShowSetup(true)}>
               {tr("Agent setup")}

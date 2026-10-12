@@ -114,3 +114,54 @@ test("a runtime workspace registers the agent models service for conversation ti
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
   expect(await page.evaluate((service) => (window as any).__oxbit.kernel.services.optional(service) !== undefined, AGENT_MODELS_SERVICE)).toBe(true);
 });
+
+test("Agent setup signs in with ChatGPT through the bridge, opens the sign-in page in the system browser, and signs out", async ({ page }) => {
+  await installBridge(page, { agentResponses: { "/codex/responses": { chunks: SSE } } });
+  await openDocuments(page);
+  const rejected = await page.evaluate(async (service) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    return models.keys.save({ api: "chatgpt" }, "sk-ignored").then(() => "", (error: Error) => error.message);
+  }, AGENT_MODELS_SERVICE);
+  expect(rejected).toBe("Sign in with ChatGPT in Agent setup");
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    await z.kernel.configuration.set("agentACP.oxbit.api", "chatgpt", "user");
+    await z.kernel.extensions.activate("oxbit.agent-acp");
+    z.workbench.run("agentACP.open");
+  });
+  const panel = page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  await expect(panel.getByRole("alert")).toHaveText("Sign in with ChatGPT in Agent setup");
+  await panel.getByRole("button", { name: "Agent setup", exact: true }).click();
+  const setup = panel.getByRole("form", { name: "Oxbit Agent setup" });
+  await expect(setup.getByText("Not signed in")).toBeVisible();
+  await setup.getByRole("button", { name: "Sign in with ChatGPT" }).click();
+  await expect(setup.getByRole("status", { name: "ChatGPT sign-in code" })).toHaveText("ABCD-1234");
+  await setup.getByRole("link", { name: "Open sign-in page" }).click();
+  await expect(setup.getByText("Signed in with ChatGPT")).toBeVisible({ timeout: 15000 });
+  const signedIn = await page.evaluate(() => {
+    const test = (window as any).__iosTest;
+    return { externals: test.externals, calls: test.agentChatGPT, keys: [...test.agentKeys.keys()] };
+  });
+  expect(signedIn).toEqual({
+    externals: ["https://auth.openai.com/codex/device"],
+    calls: [
+      { operation: "start" },
+      { operation: "poll", deviceAuthId: "device-1", userCode: "ABCD-1234" },
+      { operation: "poll", deviceAuthId: "device-1", userCode: "ABCD-1234" },
+    ],
+    keys: ["chatgpt https://chatgpt.com"],
+  });
+
+  const chunks = await page.evaluate(async (service) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    const chunks: string[] = [];
+    for await (const text of models.stream({ api: "chatgpt", method: "POST", path: "/codex/responses", body: {} })) chunks.push(text);
+    return chunks;
+  }, AGENT_MODELS_SERVICE);
+  expect(chunks).toEqual(SSE);
+
+  await setup.getByRole("button", { name: "Sign out" }).click();
+  await expect(setup.getByText("Not signed in")).toBeVisible();
+  expect((await bridge(page)).keys).toEqual([]);
+});

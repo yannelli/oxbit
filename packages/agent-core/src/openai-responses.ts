@@ -1,4 +1,5 @@
-import type { ModelAdapter, ModelEvent } from "./model.js";
+import type { AgentModelApi } from "@oxbit/sdk";
+import type { ModelAdapter, ModelEvent, ModelInput } from "./model.js";
 import { jsonEvents } from "./sse.js";
 
 type Params = Record<string, any>;
@@ -10,30 +11,29 @@ function replayable(items: Params[]) {
     : kept.map((item) => item.type === "reasoning" ? item : Object.fromEntries(Object.entries(item).filter(([key]) => key !== "id")));
 }
 
-/** OpenAI Responses (`api: "openai"`), POST /v1/responses with stream: true and store: false; turns replay as input items. */
-export const openaiResponses: ModelAdapter = {
-  request({ model, system, turns, tools, effort }) {
-    const input: Params[] = [];
-    for (const turn of turns) {
-      if (turn.role === "user") input.push({ type: "message", role: "user", content: [{ type: "input_text", text: turn.text }] });
-      else if (turn.role === "tool")
-        for (const result of turn.results) input.push({ type: "function_call_output", call_id: result.id, output: result.output });
-      else if (turn.native?.api === "openai") input.push(...replayable(turn.native.items as Params[]));
-      else {
-        if (turn.text) input.push({ type: "message", role: "assistant", content: turn.text });
-        for (const call of turn.calls) input.push({ type: "function_call", call_id: call.id, name: call.name, arguments: call.arguments });
-      }
+/** A Responses request body with stream: true and store: false. Assistant turns saved by an API in `replay` resend their output items. */
+export function responsesBody({ model, system, turns, tools, effort }: ModelInput, replay: readonly AgentModelApi[]) {
+  const input: Params[] = [];
+  for (const turn of turns) {
+    if (turn.role === "user") input.push({ type: "message", role: "user", content: [{ type: "input_text", text: turn.text }] });
+    else if (turn.role === "tool")
+      for (const result of turn.results) input.push({ type: "function_call_output", call_id: result.id, output: result.output });
+    else if (turn.native && replay.includes(turn.native.api)) input.push(...replayable(turn.native.items as Params[]));
+    else {
+      if (turn.text) input.push({ type: "message", role: "assistant", content: turn.text });
+      for (const call of turn.calls) input.push({ type: "function_call", call_id: call.id, name: call.name, arguments: call.arguments });
     }
-    return {
-      method: "POST",
-      path: "/v1/responses",
-      body: {
-        model, instructions: system, input, stream: true, store: false,
-        ...(tools.length ? { tools: tools.map((tool) => ({ type: "function", ...tool, strict: false })) } : {}),
-        ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
-      },
-    };
-  },
+  }
+  return {
+    model, instructions: system, input, stream: true, store: false,
+    ...(tools.length ? { tools: tools.map((tool) => ({ type: "function", ...tool, strict: false })) } : {}),
+    ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
+  };
+}
+
+/** OpenAI Responses (`api: "openai"`), POST /v1/responses; turns replay as input items. */
+export const openaiResponses: ModelAdapter = {
+  request: (input) => ({ method: "POST", path: "/v1/responses", body: responsesBody(input, ["openai"]) }),
   async *events(chunks): AsyncGenerator<ModelEvent> {
     const items: Params[] = [];
     for await (const event of jsonEvents(chunks)) {

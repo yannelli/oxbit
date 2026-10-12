@@ -10,7 +10,8 @@ export interface BridgeAgentResponse { status?: number; chunks?: string[]; body?
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
 /** `notificationTapped` launches the app from a notification tap; `__iosTest.tapNotification()` taps one later. */
 /** `notificationPermission` seeds the iOS permission; `__iosTest.liveActivityToken(hex)` reports a Live Activity push token. */
-/** `agentResponses` answers model requests by path; a list answers successive requests and repeats its last entry. `agentKeys` seeds saved keys as `api origin`. */
+/** `agentResponses` answers model requests by path; a list answers successive requests and repeats its last entry. `agentKeys` seeds saved keys as `api origin`.
+ * `agentChatGPT` records `agent_models_chatgpt` calls; the first poll is `pending`, the next completes the sign-in. */
 export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[] } = {}) {
   await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
@@ -60,6 +61,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     const packs = new Map<string, unknown>();
     const closed: { id: string; title: string | null | undefined }[] = [];
     const copied: string[] = [];
+    const externals: string[] = [];
     let signing: { enabled: boolean; key?: Record<string, unknown> } = { enabled: false };
     let callback = 0;
     const notifications: { title: string; body?: string; tag?: string }[] = [];
@@ -81,11 +83,13 @@ export async function installBridge(page: Page, { repository = false, accounts =
     const agentKeys = new Map(seededKeys.map(account => [account, "sk-seeded"]));
     const agentRequests: { id: string; api: string; baseUrl?: string; method: string; path: string; body?: unknown }[] = [];
     const agentCancels: string[] = [];
+    const agentChatGPT: { operation: string; deviceAuthId?: string; userCode?: string }[] = [];
     const agentTimers = new Map<string, ReturnType<typeof setTimeout>>();
     const agentUses = new Map<string, number>();
     const agentAccount = (api: string, baseUrl?: string) => {
       if (api === "openai") return "openai https://api.openai.com";
       if (api === "anthropic") return "anthropic https://api.anthropic.com";
+      if (api === "chatgpt") return "chatgpt https://chatgpt.com";
       const url = new URL(baseUrl ?? "");
       if (api !== "openai-compatible" || url.protocol !== "https:")
         throw { code: "AGENT_MODELS", message: "Enter an https:// base URL without credentials, a query, or a fragment." };
@@ -169,6 +173,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return signing;
         }
         if (command === "plugin:clipboard-manager|write_text") { copied.push(args.text); return; }
+        if (command === "ios_open_external") { externals.push(args.url); return; }
         if (command === "plugin:oxbit-files|notification_permission") return { permission: notificationPermission };
         if (command === "plugin:oxbit-files|request_notification_permission") return { permission: notificationPermission = "granted" };
         if (command === "plugin:oxbit-files|register_remote_notifications") return { token: "a1b2c3d4", environment: "development" };
@@ -204,9 +209,18 @@ export async function installBridge(page: Page, { repository = false, accounts =
         if (command === "plugin:oxbit-files|agent_models_key") {
           const account = agentAccount(args.api, args.baseUrl);
           if (args.operation === "has") return { saved: agentKeys.has(account) };
+          if (args.operation === "save" && args.api === "chatgpt") throw { code: "AGENT_KEY", message: "Sign in with ChatGPT in Agent setup" };
           if (args.operation === "save") agentKeys.set(account, args.key);
           if (args.operation === "remove") agentKeys.delete(account);
           return;
+        }
+        if (command === "plugin:oxbit-files|agent_models_chatgpt") {
+          agentChatGPT.push({ operation: args.operation, deviceAuthId: args.deviceAuthId, userCode: args.userCode });
+          if (args.operation === "start")
+            return { deviceAuthId: "device-1", userCode: "ABCD-1234", verificationUrl: "https://auth.openai.com/codex/device", interval: 1, expiresAt: Date.now() + 900000 };
+          if (agentChatGPT.filter(call => call.operation === "poll").length === 1) return { status: "pending" };
+          agentKeys.set(agentAccount("chatgpt"), "chatgpt-signed-in");
+          return { status: "complete" };
         }
         if (command === "ios_storage_get") return storage.get(`${args.scope}:${args.key}`) ?? null;
         if (command === "ios_storage_set") { storage.set(`${args.scope}:${args.key}`, args.value); return; }
@@ -284,8 +298,8 @@ export async function installBridge(page: Page, { repository = false, accounts =
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
       __iosTest: {
-        closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
-        agentKeys, agentRequests, agentCancels, get opened() { return opened; }, get signing() { return signing; },
+        closed, copied, externals, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
+        agentKeys, agentRequests, agentCancels, agentChatGPT, get opened() { return opened; }, get signing() { return signing; },
       },
     });
   }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys });

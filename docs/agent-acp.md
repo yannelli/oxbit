@@ -1,6 +1,6 @@
 # Agent ACP
 
-Created: 2026-10-10. Last updated: 2026-10-11.
+Created: 2026-10-10. Last updated: 2026-10-12.
 
 Agent ACP is a bundled, **disabled-by-default** extension that runs agents
 speaking the [Agent Client Protocol](https://agentclientprotocol.com). Open
@@ -78,10 +78,14 @@ with the user's key:
 | `openai` (default) | OpenAI Responses |
 | `anthropic` | Anthropic Messages |
 | `openai-compatible` | Chat Completions at `agentACP.oxbit.baseUrl` |
+| `chatgpt` | Codex Responses of the ChatGPT plan, signed in with a device code |
 
 - **Agent setup** saves the key in the iOS Keychain; settings hold only the API,
   base URL and model. Start without a key shows "Add an API key in Agent setup".
-- The model list comes from `GET /v1/models`; the model and reasoning controls are
+- **ChatGPT plan** (when the host offers it) has no key field. **Sign in with ChatGPT**
+  shows a code and a link to the sign-in page, and polls until the sign-in completes
+  or the code expires. Start without a sign-in shows "Sign in with ChatGPT in Agent setup".
+- The model list comes from `GET /v1/models` (`GET /codex/models` for the ChatGPT plan); the model and reasoning controls are
   session settings, and the chosen model is saved to `agentACP.oxbit.model`.
 - Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
   and edits open the same review card as other agents. There is no shell.

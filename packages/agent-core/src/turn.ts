@@ -4,6 +4,7 @@ import { builtinTools, runTool } from "./tools.js";
 import { openaiResponses } from "./openai-responses.js";
 import { chatCompletions } from "./chat-completions.js";
 import { anthropicMessages } from "./anthropic-messages.js";
+import { chatgptResponses } from "./chatgpt.js";
 import { streamStep } from "./step.js";
 import { hookGate } from "./tool-gate.js";
 import { modeOf } from "./session-records.js";
@@ -30,6 +31,7 @@ export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
   openai: openaiResponses,
   "openai-compatible": chatCompletions,
   anthropic: anthropicMessages,
+  chatgpt: chatgptResponses,
 };
 const MAX_STEPS = 64;
 export const CONTEXT_LIMIT = 10000;

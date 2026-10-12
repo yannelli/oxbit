@@ -1033,5 +1033,20 @@
   "Auto-apply edits": "編集を自動適用",
   "Auto-apply on": "自動適用オン",
   "Agent edits save without review": "エージェントの編集は確認なしで保存されます",
-  "Save agent file changes without review. Permission prompts still ask.": "エージェントのファイル変更を確認なしで保存します。権限の確認は引き続き表示されます。"
+  "Save agent file changes without review. Permission prompts still ask.": "エージェントのファイル変更を確認なしで保存します。権限の確認は引き続き表示されます。",
+  "Runs in Oxbit with your API key or ChatGPT plan": "API キーまたは ChatGPT プランを使って Oxbit 内で実行します",
+  "Sign in with ChatGPT in Agent setup": "エージェントの設定で ChatGPT にサインインしてください",
+  "ChatGPT plan": "ChatGPT プラン",
+  "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.": "Oxbit Agent はアプリ内で動作し、ChatGPT プランの Codex モデルを呼び出します。サインインのトークンはシステムのキーチェーンに保存されます。",
+  "Sign in with ChatGPT": "ChatGPT でサインイン",
+  "Signed in with ChatGPT": "ChatGPT でサインイン済み",
+  "Not signed in": "サインインしていません",
+  "Sign out": "サインアウト",
+  "Open the sign-in page and enter this code.": "サインインページを開いて、このコードを入力してください。",
+  "ChatGPT sign-in code": "ChatGPT サインインコード",
+  "Copy code": "コードをコピー",
+  "Copied": "コピーしました",
+  "Open sign-in page": "サインインページを開く",
+  "Waiting for you to sign in": "サインインを待っています",
+  "The sign-in code expired. Sign in again.": "サインインコードの有効期限が切れました。もう一度サインインしてください。"
 }

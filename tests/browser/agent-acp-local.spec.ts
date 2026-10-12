@@ -14,17 +14,29 @@ const chatText = (text: string) => sse(
   { choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
 );
 
-/** The browser workspace has no runtime. `models` registers a fake agentModels service that keeps keys in page memory and streams `replies` in order. */
-async function open(page: Page, models: boolean, replies: string[][] = []) {
+/** The browser workspace has no runtime. `models` registers a fake agentModels service that keeps keys in page memory and streams `replies` in order.
+ * With `chatgpt`, the service signs in once `__models.approve` is set; `__models.expiresIn` shortens the code's lifetime. */
+async function open(page: Page, models: boolean, replies: string[][] = [], chatgpt = false) {
   await page.goto("/");
   await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
-  await page.evaluate(async ({ models, replies }) => {
+  await page.evaluate(async ({ models, replies, chatgpt }) => {
     const z = (window as any).__oxbit;
     const saved = new Map<string, string>();
     const calls: [string, unknown][] = [];
     const requests: unknown[] = [];
-    (window as any).__models = { saved, calls, requests };
+    const state: Record<string, any> = (window as any).__models = { saved, calls, requests, copied: [] };
     const id = (endpoint: unknown) => JSON.stringify(endpoint);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text: string) => void state.copied.push(text) } });
+    const signIn = {
+      start: async () => (calls.push(["start", null]), { deviceAuthId: "auth-1", userCode: "WXYZ-7K3Q", verificationUrl: "https://auth.openai.com/codex/device",
+        interval: 0.2, expiresAt: Date.now() + (state.expiresIn ?? 600000) }),
+      poll: async (device: { deviceAuthId: string }) => {
+        calls.push(["poll", device.deviceAuthId]);
+        if (!state.approve) return "pending";
+        saved.set(id({ api: "chatgpt" }), "chatgpt-tokens");
+        return "complete";
+      },
+    };
     if (models)
       z.kernel.services.register("agentModels", {
         async *stream(request: { method: string }) {
@@ -43,10 +55,11 @@ async function open(page: Page, models: boolean, replies: string[][] = []) {
             saved.delete(id(endpoint));
           },
         },
+        ...(chatgpt ? { chatgpt: signIn } : {}),
       });
     await z.kernel.extensions.activate("oxbit.agent-acp");
     z.workbench.run("agentACP.open");
-  }, { models, replies });
+  }, { models, replies, chatgpt });
   return page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
 }
 const savedKeys = (page: Page) =>
@@ -106,6 +119,70 @@ test("a local workspace offers the Oxbit agent, asks for a key on Start, and sav
   await setup.getByRole("button", { name: "Remove" }).click();
   await expect(setup.getByText("No key saved")).toBeVisible();
   expect(await savedKeys(page)).toEqual({ '{"api":"openai"}': "sk-local-test" });
+});
+
+test("the ChatGPT plan signs in with a device code, shows expiry inline, cancels, signs out, and starts on /codex endpoints", async ({ page }, info) => {
+  const panel = await open(page, true, [], true);
+  const state = (values: Record<string, unknown>) => page.evaluate((values) => Object.assign((window as any).__models, values), values);
+  await expect(panel.getByRole("radio", { name: /Runs in Oxbit with your API key or ChatGPT plan/ })).toBeVisible();
+  await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.oxbit.api", "chatgpt", "user"));
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  await expect(panel.getByRole("alert")).toHaveText("Sign in with ChatGPT in Agent setup");
+  await panel.getByRole("button", { name: "Agent setup", exact: true }).click();
+  const setup = panel.getByRole("form", { name: "Oxbit Agent setup" });
+  await expect(setup.getByText(/calls the Codex models in your ChatGPT plan\. The sign-in tokens are stored in the system keychain\./)).toBeVisible();
+  await expect(setup.getByText("Not signed in")).toBeVisible();
+  await expect(setup.getByLabel("API key", { exact: true })).toHaveCount(0);
+  await setup.getByRole("combobox", { name: "API" }).click();
+  await page.getByRole("option", { name: "OpenAI", exact: true }).click();
+  await expect(setup.getByLabel("API key", { exact: true })).toBeVisible();
+  await setup.getByRole("combobox", { name: "API" }).click();
+  await page.getByRole("option", { name: "ChatGPT plan" }).click();
+  const signIn = setup.getByRole("button", { name: "Sign in with ChatGPT" });
+  const code = setup.getByRole("status", { name: "ChatGPT sign-in code" });
+
+  await state({ expiresIn: 1500 });
+  await signIn.click();
+  await expect(code).toHaveText("WXYZ-7K3Q");
+  await expect(setup.getByRole("alert")).toHaveText("The sign-in code expired. Sign in again.");
+  await expect(code).toHaveCount(0);
+  await state({ expiresIn: undefined });
+  await signIn.click();
+  await expect(code).toBeVisible();
+  await expect(setup.getByRole("alert")).toHaveCount(0);
+  await setup.getByRole("button", { name: "Cancel" }).click();
+  await expect(code).toHaveCount(0);
+  await expect(setup.getByText("Not signed in")).toBeVisible();
+
+  await signIn.click();
+  await expect(code).toHaveText("WXYZ-7K3Q");
+  const link = setup.getByRole("link", { name: "Open sign-in page" });
+  await expect(link).toHaveAttribute("href", "https://auth.openai.com/codex/device");
+  await expect(link).toHaveAttribute("target", "_blank");
+  await expect(setup.getByText("Waiting for you to sign in")).toBeVisible();
+  await setup.getByRole("button", { name: "Copy code" }).click();
+  await expect(setup.getByRole("button", { name: "Copied" })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__models.copied)).toEqual(["WXYZ-7K3Q"]);
+  await fs.mkdir("/tmp/oxbit-chatgpt/shots", { recursive: true });
+  await code.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/oxbit-chatgpt/shots/${info.project.name}-1-code.png` });
+  await state({ approve: true });
+  await expect(setup.getByText("Signed in with ChatGPT")).toBeVisible();
+  await expect(code).toHaveCount(0);
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  expect(await savedKeys(page)).toEqual({ '{"api":"chatgpt"}': "chatgpt-tokens" });
+  await page.screenshot({ path: `/tmp/oxbit-chatgpt/shots/${info.project.name}-2-signed-in.png` });
+
+  await setup.getByRole("button", { name: "Sign out" }).click();
+  await expect(setup.getByText("Not signed in")).toBeVisible();
+  expect(await savedKeys(page)).toEqual({});
+  await signIn.click();
+  await expect(setup.getByText("Signed in with ChatGPT")).toBeVisible();
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  await expect(panel.getByRole("textbox", { name: "Message agent" })).toBeEnabled();
+  const requests = await page.evaluate(() => (window as any).__models.requests);
+  expect(requests[0]).toEqual({ api: "chatgpt", method: "GET", path: "/codex/models?client_version=0.162.1" });
+  expect(await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.provider)).toBe("oxbit");
 });
 
 test("without a model service the browser workspace keeps the runtime prompt and built-in agents", async ({ page }) => {

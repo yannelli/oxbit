@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MISSING_AGENT_KEY, type AgentModelRequest } from "@oxbit/sdk";
+import { MISSING_AGENT_KEY, type AgentModelRequest, type ChatGPTDeviceCode } from "@oxbit/sdk";
 import { IosAgentModels } from "./agent-models.js";
 import type { AgentModelStreamEvent } from "./native.js";
 
@@ -20,6 +20,11 @@ type StreamArgs = { id: string; channel: Channel } & Record<string, unknown>;
 const STREAM = "plugin:oxbit-files|agent_models_stream";
 const CANCEL = "plugin:oxbit-files|agent_models_cancel";
 const KEY = "plugin:oxbit-files|agent_models_key";
+const CHATGPT = "plugin:oxbit-files|agent_models_chatgpt";
+const deviceCode: ChatGPTDeviceCode = {
+  deviceAuthId: "deviceauth_1", userCode: "ABCD-1234", verificationUrl: "https://auth.openai.com/codex/device",
+  interval: 5, expiresAt: 1_800_000_900_000,
+};
 const request: AgentModelRequest = { api: "openai", method: "POST", path: "/v1/responses", body: { model: "gpt-5", stream: true } };
 const encode = (text: string) => btoa(String.fromCharCode(...new TextEncoder().encode(text)));
 const chunk = (data: string): AgentModelStreamEvent => ({ type: "chunk", data });
@@ -35,6 +40,7 @@ function device(start?: unknown) {
     }
     if (command === CANCEL) return null;
     if (command === KEY) return args.operation === "has" ? { saved: args.api === "anthropic" } : null;
+    if (command === CHATGPT) return args.operation === "start" ? deviceCode : { status: "complete" };
     throw new Error(`Unexpected native command ${command}`);
   });
   return streams;
@@ -64,6 +70,56 @@ describe("iOS agent models", () => {
       [KEY, { operation: "save", api: "openai", baseUrl: undefined, key: "sk-test" }],
       [KEY, { operation: "remove", api: "openai-compatible", baseUrl: "https://openrouter.ai/api" }],
     ]);
+  });
+
+  it("signs in with ChatGPT through the native command and keeps the sign-in behind keys", async () => {
+    device();
+    const models = new IosAgentModels();
+    const started = await models.chatgpt.start();
+    await expect(models.chatgpt.poll(started)).resolves.toBe("complete");
+    expect(started).toEqual(deviceCode);
+    await expect(models.keys.has({ api: "chatgpt" })).resolves.toBe(false);
+    await models.keys.remove({ api: "chatgpt" });
+    await expect(models.keys.save({ api: "chatgpt" }, "sk-test")).rejects.toThrow("Sign in with ChatGPT in Agent setup");
+    expect(invoke.mock.calls.map(([command, args]) => [command, args])).toEqual([
+      [CHATGPT, { operation: "start" }],
+      [CHATGPT, { operation: "poll", deviceAuthId: "deviceauth_1", userCode: "ABCD-1234" }],
+      [KEY, { operation: "has", api: "chatgpt", baseUrl: undefined }],
+      [KEY, { operation: "remove", api: "chatgpt", baseUrl: undefined }],
+    ]);
+  });
+
+  it("passes pending, slow_down and native errors through a ChatGPT poll", async () => {
+    const statuses = ["pending", "slow_down"];
+    invoke.mockImplementation(async () => {
+      const status = statuses.shift();
+      if (!status) throw { code: "AGENT_CHATGPT", message: "ChatGPT sign-in failed with status 400: expired" };
+      return { status };
+    });
+    const models = new IosAgentModels();
+    await expect(models.chatgpt.poll(deviceCode)).resolves.toBe("pending");
+    await expect(models.chatgpt.poll(deviceCode)).resolves.toBe("slow_down");
+    await expect(models.chatgpt.poll(deviceCode)).rejects.toMatchObject({
+      code: "AGENT_CHATGPT", message: "ChatGPT sign-in failed with status 400: expired",
+    });
+  });
+
+  it("rejects a ChatGPT start or poll with the abort reason and lets the native call finish", async () => {
+    device();
+    const models = new IosAgentModels();
+    const reason = new Error("closed");
+    await expect(models.chatgpt.start(AbortSignal.abort(reason))).rejects.toBe(reason);
+    expect(invoke).not.toHaveBeenCalled();
+
+    let release!: (value: unknown) => void;
+    invoke.mockImplementation(() => new Promise((resolve) => (release = resolve)));
+    const controller = new AbortController();
+    const poll = models.chatgpt.poll(deviceCode, controller.signal);
+    await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+    controller.abort(reason);
+    await expect(poll).rejects.toBe(reason);
+    release({ status: "complete" });
+    expect(invoke.mock.calls.map(([command]) => command)).toEqual([CHATGPT]);
   });
 
   it("starts the native request with a JSON body and yields decoded chunks in order", async () => {
