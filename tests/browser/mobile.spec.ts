@@ -430,7 +430,7 @@ test("one bottom bar reserves the home inset once and keeps all touch targets al
 
 test("phone navigation labels fit in each supported locale", async ({ page }, info) => {
   await ready(page);
-  for (const locale of ["en", "de", "es", "ja", "zh"]) {
+  for (const locale of ["en", "de", "es", "ja", "ko", "zh"]) {
     await page.evaluate(locale => {
       const app = (window as any).__oxbit;
       app.kernel.configuration.set("workbench.locale", locale);

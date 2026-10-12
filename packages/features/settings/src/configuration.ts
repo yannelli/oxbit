@@ -20,7 +20,7 @@ export const settingsConfiguration: Setting[] = [
     title: "Display Language",
     type: "string",
     default: "en",
-    enum: ["en", "de", "es", "ja", "zh"],
+    enum: ["en", "de", "es", "ja", "ko", "zh"],
     category: "Appearance",
   },
   {
