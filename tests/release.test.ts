@@ -71,6 +71,12 @@ describe("release version bumping", () => {
       lock.replace('name = "oxbit-desktop"\nversion = "0.1.0"', 'name = "oxbit-desktop"\nversion = "0.1.2"'),
     );
   });
+  it("rewrites the website's version label", () => {
+    const html = '<p class="eyebrow"><span class="dot"></span><span data-version>v0.11.1</span> · MIT licensed</p>';
+    expect(setVersion("website/public/index.html", html, "0.12.0")).toBe(
+      '<p class="eyebrow"><span class="dot"></span><span data-version>v0.12.0</span> · MIT licensed</p>',
+    );
+  });
   it("is a no-op when the file already carries the target version", () => {
     for (const [file, text] of [
       ["package.json", '{"version": "0.1.2"}'],

@@ -25,16 +25,19 @@
     <article class="privacy-article container">
       <p class="kicker">Oxbit</p>
       <h1>Privacy</h1>
-      <p class="privacy-date">Updated October 2, 2026</p>
+      <p class="privacy-date">Updated October 12, 2026</p>
       <p>Oxbit is published by Ryan Yannelli. This policy covers the Oxbit editor on iPhone, iPad, desktop, and in the browser, and the oxbit.dev website.</p>
 
       <h2>Information kept on your device</h2>
-      <p>Oxbit reads and edits files in workspaces you open. The iPhone and iPad app stores settings, recent workspaces, and workspace interface state in its app storage. It stores connection credentials and GitHub tokens in the device Keychain. Access to folders selected through Files uses security-scoped bookmarks. Files you choose through Files can be stored by your selected provider, including iCloud Drive.</p>
+      <p>Oxbit reads and edits files in workspaces you open. The iPhone and iPad app stores settings, recent workspaces, and workspace interface state in its app storage. It stores connection credentials, Git account tokens, SSH and commit signing keys, model API keys, and ChatGPT sign-in tokens in the device Keychain. Access to folders selected through Files uses security-scoped bookmarks. Files you choose through Files can be stored by your selected provider, including iCloud Drive.</p>
       <p>Browser workspaces can store files, settings, layout, and drafts in browser storage. Desktop and connected runtime workspaces use files and state on the computer running them. Oxbit uses this information to reopen workspaces and provide editing features.</p>
 
       <h2>Connections you choose</h2>
       <p>Connecting to a computer or remote runtime sends the requests needed to use that workspace, including file, terminal, Git, task, and language-service operations. SSH workspaces and collaboration connect to the hosts or people you select. Collaboration can share workspace content with participants you authorize.</p>
       <p>Git operations contact the remotes you configure. AI agents, extensions, and remote URLs you choose can send prompts, files, or other workspace data to their configured services. Those services handle received data under their own policies.</p>
+      <p>Oxbit Agent in the iPhone and iPad app sends your prompts, the conversation, and the file contents and diagnostics the agent reads to the model service you select: OpenAI, Anthropic, an OpenAI-compatible service at the address you enter, or OpenAI's ChatGPT service when you sign in with ChatGPT. Signing in with ChatGPT contacts auth.openai.com, and the app keeps the resulting tokens in Keychain until you sign out.</p>
+      <p>Dictation uses Apple speech recognition on the device when the language supports it. Otherwise Apple processes the audio under its own policies.</p>
+      <p>To notify you about an agent on a computer runtime while the app is in the background, the app registers its notification and Live Activity tokens with the Oxbit push relay, a Cloudflare Worker. The relay returns sealed handles that the runtime keeps for up to 30 days. The runtime sends the notification and Live Activity text, which holds the conversation title or agent name and the turn status, through the relay to Apple Push Notification service. The relay has no database for tokens or notification text; Cloudflare processes request information to operate it.</p>
       <p>HTML previews block external resources by default. If you allow external resources for a preview or open an external link, your device contacts those sites and they can receive request information such as your IP address.</p>
 
       <h2>Website and support</h2>

@@ -201,7 +201,7 @@ bun run release patch --dry-run
 bun run release:all
 ```
 
-The release script updates 8 version files and collects builds in
+The release script updates 10 version files, including the website version label, and collects builds in
 `release/v<version>/` with a manifest and SHA-256 checksums. Desktop and iOS
 builds run when the host has the required platform and toolchain; skipped builds
 print a reason. `bun run release:all` runs lint and tests before a patch release.
