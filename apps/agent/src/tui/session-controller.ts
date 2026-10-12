@@ -36,6 +36,10 @@ export interface ViewState {
   running: boolean;
   startedAt?: number;
   queued: string[];
+  /** Fullscreen transcript scrolled up: `top` row of the content, from the item with id `from`; unset follows the newest output. */
+  scroll?: { top: number; from: number };
+  /** Bumped by /clear so the inline <Static> prints the new transcript from the start. */
+  generation: number;
   status: Status;
   info: ConnectionInfo;
   hint?: string;
@@ -62,7 +66,7 @@ export class SessionController {
   onExit?: () => void;
 
   constructor(protected connection: TuiConnection, protected cwd: string) {
-    this.state = { cwd, transcript: emptyTranscript(), draft: emptyDraft, running: false, queued: [], status: emptyStatus(),
+    this.state = { cwd, transcript: emptyTranscript(), draft: emptyDraft, running: false, queued: [], generation: 0, status: emptyStatus(),
       info: connection.info() };
     this.stop = [connection.onUpdate(this.onUpdate), connection.onPermission(this.onPermission)];
   }

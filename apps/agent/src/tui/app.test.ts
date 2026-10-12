@@ -115,7 +115,7 @@ describe("tui", () => {
   test("completes slash commands from available_commands_update", async () => {
     const ui = await start([], { commands: [{ name: "compact", description: "Summarize the conversation" },
       { name: "goal", description: "Set a goal", input: { hint: "<objective>" } }] });
-    ui.type("/co");
+    ui.type("/com");
     await ui.until("Summarize the conversation");
     expect(ui.frame()).toContain("❯ /compact");
     ui.press(KEYS.tab);

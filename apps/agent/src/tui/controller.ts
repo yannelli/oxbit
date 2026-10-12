@@ -1,17 +1,26 @@
+import { writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { accept, commandItems, commandToken, fileItems, fileToken, rank, type Command, type Completion, type CompletionItem } from "./complete.js";
 import type { TuiConnection } from "./connection.js";
 import { draftOf, emptyDraft, insert, type Draft } from "./editor.js";
 import { isPanel, PanelController } from "./panel-controller.js";
-import type { Overlay, ViewState } from "./session-controller.js";
-import { expandable } from "./transcript.js";
+import { message, type Overlay, type ViewState } from "./session-controller.js";
+import { emptyTranscript, expandable } from "./transcript.js";
+import { lastReply, osc52, toMarkdown } from "./transcript-export.js";
 
 export type { Overlay, ViewState } from "./session-controller.js";
 export interface HistoryStore { load(): string[]; save(entry: string): void }
-export interface ControllerOptions { cwd: string; history?: HistoryStore }
+/** Terminal writes that bypass Ink: escape sequences, and clearing the screen before a redraw. */
+export interface Screen { write(sequence: string): void; clear(): void }
+export interface ControllerOptions { cwd: string; history?: HistoryStore; screen?: Screen }
+/** Fullscreen transcript size in rows, and the id of its first rendered item. */
+export interface Viewport { total: number; height: number; first: number }
 
 export const LOCAL_COMMANDS: Command[] = [
   { name: "model", description: "Choose the model and reasoning effort", hint: "[model]" },
   { name: "new", description: "Start a new session" },
+  { name: "clear", description: "Clear the conversation and the screen, and start a new session" },
   { name: "resume", description: "Resume a saved session" },
   { name: "config", description: "Settings: permission mode, auto-compact, hooks and MCP trust" },
   { name: "skills", description: "Turn skills on or off, or start a prompt with one" },
@@ -19,9 +28,15 @@ export const LOCAL_COMMANDS: Command[] = [
   { name: "mcp", description: "Add, remove, trust and sign in to MCP servers" },
   { name: "instructions", description: "Choose which AGENTS.md and CLAUDE.md files load" },
   { name: "providers", description: "Sign in to providers and set API keys" },
+  { name: "copy", description: "Copy the last agent reply to the clipboard" },
+  { name: "export", description: "Write the conversation to a Markdown file", hint: "[path]" },
+  { name: "init", description: "Ask the agent to create or update AGENTS.md for this repository" },
   { name: "help", description: "Show keys and commands" },
   { name: "exit", description: "Quit" },
 ];
+
+export const INIT_PROMPT = "Inspect this repository and create or update AGENTS.md at its root. Document the build, test and lint commands, "
+  + "the project layout, and the coding conventions an agent needs to work here. Keep existing content that is still accurate.";
 
 const picker = (overlay?: Overlay) => overlay?.kind === "models" || overlay?.kind === "sessions" ? overlay : undefined;
 
@@ -46,6 +61,8 @@ export class Controller extends PanelController {
   private fileTimer?: ReturnType<typeof setTimeout>;
   private files = new Map<string, string[]>();
   private lastInterrupt = 0;
+  /** Set by the fullscreen transcript view; reads the current layout. */
+  viewport?: () => Viewport;
 
   constructor(connection: TuiConnection, private options: ControllerOptions) {
     super(connection, options.cwd);
@@ -74,6 +91,10 @@ export class Controller extends PanelController {
     this.dismissed = undefined;
     this.set({ draft: emptyDraft, completion: undefined });
     if (text.startsWith("/") && this.local(text)) return;
+    this.prompt(text);
+  }
+
+  private prompt(text: string) {
     if (this.state.running) this.set({ queued: [...this.state.queued, text] });
     else void this.send(text);
   }
@@ -84,6 +105,10 @@ export class Controller extends PanelController {
     switch (name) {
       case "model": if (args) void this.chooseModel(args); else this.openModels(); return true;
       case "new": void this.open(undefined, "New session"); return true;
+      case "clear": void this.clear(); return true;
+      case "copy": this.copyReply(); return true;
+      case "export": void this.exportTo(args); return true;
+      case "init": this.prompt(INIT_PROMPT); return true;
       case "resume":
         if (!this.connection.listSessions && !args) return false;
         if (args) void this.open(args, "Resumed session"); else void this.openSessions();
@@ -204,6 +229,55 @@ export class Controller extends PanelController {
     const at = overlay?.kind === "details" ? items.findIndex((item) => item.id === overlay.id) : items.length;
     const next = items[Math.min(items.length - 1, Math.max(0, at + step - (overlay?.kind === "details" ? 0 : 1)))];
     this.set({ overlay: { kind: "details", id: next.id } });
+  }
+
+  /** /clear: empties the transcript, queue and screen, then opens a new session. */
+  async clear() {
+    if (this.state.running) return this.notice("Wait for the agent to finish, or press Esc to stop it", "warn");
+    this.options.screen?.clear();
+    this.set({ transcript: emptyTranscript(), queued: [], overlay: undefined, completion: undefined, scroll: undefined, generation: this.state.generation + 1 });
+    await this.open();
+  }
+
+  /** Ctrl+L: clears the terminal and draws the current frame again at the newest output. */
+  redraw() {
+    this.options.screen?.clear();
+    this.set({ scroll: undefined });
+  }
+
+  copyReply() {
+    const { flushed, live } = this.state.transcript;
+    const reply = lastReply([...flushed, ...live]);
+    if (!reply) return this.flash("There is no agent reply to copy yet");
+    this.options.screen?.write(osc52(reply));
+    this.flash("Copied the last reply to the clipboard");
+  }
+
+  /** Writes the conversation as Markdown; an existing file is left alone. */
+  async exportTo(path: string) {
+    const { transcript: { flushed, live }, status: { sessionId, title } } = this.state;
+    const target = resolve(this.options.cwd, path.replace(/^~(?=$|\/)/, homedir()) || `oxbit-session-${sessionId?.slice(0, 8) ?? "new"}.md`);
+    try {
+      await writeFile(target, toMarkdown([...flushed, ...live], title, sessionId), { flag: "wx" });
+      this.notice(`Exported the conversation to ${target}`);
+    } catch (error) {
+      this.notice((error as NodeJS.ErrnoException).code === "EEXIST" ? `${target} already exists. Choose another path.` : message(error), "error");
+    }
+  }
+
+  /** PageUp and PageDown in fullscreen; reaching the bottom follows the newest output again. */
+  scrollBy(pages: number) {
+    const viewport = this.viewport?.();
+    if (!viewport) return;
+    const { total, height, first } = viewport;
+    const max = Math.max(0, total - height);
+    const scroll = this.state.scroll;
+    const top = Math.min(max, Math.max(0, Math.min(scroll?.top ?? max, max) + pages * Math.max(1, height - 2)));
+    this.set({ scroll: top >= max ? undefined : { top, from: scroll?.from ?? first } });
+  }
+
+  scrollEnd() {
+    if (this.state.scroll) this.set({ scroll: undefined });
   }
 
   /** Ctrl+C: stop the turn, close or clear, and exit on a second press within two seconds. */

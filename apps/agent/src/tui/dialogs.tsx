@@ -15,6 +15,7 @@ const KEYS: [string, string][] = [
   ["enter", "send"], ["shift+enter, alt+enter, ctrl+j, \\ enter", "new line"], ["↑ ↓", "history, or move between lines"],
   ["esc", "stop the agent, close a menu"], ["ctrl+c", "stop, then press again to exit"], ["shift+tab", "switch the mode"],
   ["ctrl+o", "show tool output, diffs and thinking in full"], ["ctrl+p, /model", "choose the model"], ["/ and @", "complete commands and files"],
+  ["pgup pgdn, end", "scroll the transcript, then return to the latest (fullscreen)"], ["ctrl+l", "clear and redraw the screen"],
   ["ctrl+a e u k w", "line editing"],
 ];
 
@@ -86,7 +87,7 @@ export function OverlayView({ state, width }: { state: ViewState; width: number 
         ))}
         <Text bold>{"\n"}Modes</Text>
         {MODES.map((mode) => <Text key={mode.id} wrap="wrap"><Text color={theme.modes[mode.id]}>{mode.name}</Text><Text color={theme.muted}> · {mode.description}</Text></Text>)}
-        <Text color={theme.muted}>{"\n"}Type / to list commands. esc closes this help.</Text>
+        <Text color={theme.muted}>{"\n"}Type / to list commands: /clear, /copy, /export [path], /init and more. esc closes this help.</Text>
       </Box>
     );
   }
