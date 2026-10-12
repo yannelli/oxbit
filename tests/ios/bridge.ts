@@ -61,6 +61,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     const packs = new Map<string, unknown>();
     const closed: { id: string; title: string | null | undefined }[] = [];
     const copied: string[] = [];
+    const externals: string[] = [];
     let signing: { enabled: boolean; key?: Record<string, unknown> } = { enabled: false };
     let callback = 0;
     const notifications: { title: string; body?: string; tag?: string }[] = [];
@@ -172,6 +173,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
           return signing;
         }
         if (command === "plugin:clipboard-manager|write_text") { copied.push(args.text); return; }
+        if (command === "ios_open_external") { externals.push(args.url); return; }
         if (command === "plugin:oxbit-files|notification_permission") return { permission: notificationPermission };
         if (command === "plugin:oxbit-files|request_notification_permission") return { permission: notificationPermission = "granted" };
         if (command === "plugin:oxbit-files|register_remote_notifications") return { token: "a1b2c3d4", environment: "development" };
@@ -296,7 +298,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
       __iosTest: {
-        closed, copied, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
+        closed, copied, externals, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
         agentKeys, agentRequests, agentCancels, agentChatGPT, get opened() { return opened; }, get signing() { return signing; },
       },
     });
