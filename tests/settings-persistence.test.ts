@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createKernel } from "../packages/core/src/index.js";
-import { ScopedConfigurationPersistence } from "../packages/app-workbench/src/configuration.js";
+import { mirrorUserChanges, ScopedConfigurationPersistence } from "../packages/app-workbench/src/configuration.js";
 import { SettingsStore } from "../apps/runtime/src/settings.js";
 import { WorkspaceFiles } from "../apps/runtime/src/filesystem.js";
 import type { Persistence, RpcClient, FileSystem } from "@oxbit/sdk";
@@ -130,4 +130,17 @@ it("retains an upgrade conflict when the former workspace file changed while off
   expect(kernel.configuration.get("number")).toBe(7);
   expect(errors.some(message => message.includes("changed on disk"))).toBe(true);
   expect(JSON.parse(await fs.readFile(store.paths[1], "utf8"))).toEqual({ $schema: "../../schemas/settings.v1.schema.json", number: 9 });
+});
+it("copies User changes from a runtime session into the storage profile without replacing the profile's other User values", async () => {
+  const { values, create } = await fixture(), { kernel } = await create();
+  values.set("profile-settings", { user: { "editor.fontSize": 15 }, userLanguages: {} });
+  const notices: string[] = [], off = mirrorUserChanges(kernel, { get: async key => structuredClone(values.get(key)) as never, set: async (key, value) => void values.set(key, structuredClone(value)), delete: async key => void values.delete(key) }, message => void notices.push(message));
+  cleanup.push(off);
+  kernel.configuration.set("number", 3);
+  kernel.configuration.set("number", 4, "workspace");
+  kernel.configuration.set("number", 5, "user", "markdown");
+  await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15, number: 3 }, userLanguages: { markdown: { number: 5 } } });
+  kernel.configuration.reset("number", "user");
+  await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15 }, userLanguages: { markdown: { number: 5 } } });
+  expect(notices).toEqual([]);
 });

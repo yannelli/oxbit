@@ -22,6 +22,20 @@ function rebase(layers: SettingsLayers, changes: SettingsChange[]) {
   return { layers: settingsLayers(files.user, files.workspace), changes: rebased };
 }
 
+/** Copies User setting changes from a runtime session into the storage profile that sessions without a runtime read. */
+export function mirrorUserChanges(kernel: Kernel, storage: Persistence, notify: (message: string, type?: string) => void) {
+  let previous = kernel.configuration.export() as SettingsLayers, queue = Promise.resolve();
+  return kernel.configuration.subscribe(() => {
+    const current = kernel.configuration.export() as SettingsLayers;
+    const changes = settingsChanges(previous, current).filter(change => change.scope === "user");
+    previous = current;
+    if (changes.length) queue = queue.then(async () => {
+      const { layers } = rebase({ ...empty(), ...await storage.get<Pick<SettingsLayers, "user" | "userLanguages">>("profile-settings") }, changes);
+      await storage.set("profile-settings", { user: layers.user, userLanguages: layers.userLanguages });
+    }).catch(error => notify(error instanceof Error ? error.message : String(error), "error"));
+  });
+}
+
 /** Browser-only sessions use host storage; runtime sessions share the same JSON files. */
 export class ScopedConfigurationPersistence implements Persistence {
   readonly key: string;
