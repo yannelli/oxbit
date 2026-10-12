@@ -43,6 +43,16 @@
       "type": "boolean",
       "default": true
     },
+    "agentACP.oxbit-cli.command": {
+      "title": "Oxbit Agent CLI executable",
+      "type": "string",
+      "default": "oxbit-agent"
+    },
+    "agentACP.oxbit-cli.args": {
+      "title": "Oxbit Agent CLI arguments (JSON array)",
+      "type": "string",
+      "default": "[\"acp\"]"
+    },
     "agentACP.codex.command": {
       "title": "Codex ACP executable",
       "type": "string",
@@ -791,6 +801,12 @@
         },
         "agentACP.generateTitles": {
           "$ref": "#/properties/agentACP.generateTitles"
+        },
+        "agentACP.oxbit-cli.command": {
+          "$ref": "#/properties/agentACP.oxbit-cli.command"
+        },
+        "agentACP.oxbit-cli.args": {
+          "$ref": "#/properties/agentACP.oxbit-cli.args"
         },
         "agentACP.codex.command": {
           "$ref": "#/properties/agentACP.codex.command"

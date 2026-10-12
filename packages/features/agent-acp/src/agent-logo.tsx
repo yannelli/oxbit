@@ -1,12 +1,12 @@
-import { OXBIT_AGENT_PROVIDER, acpPreset } from "@oxbit/sdk";
+import { OXBIT_AGENT_PROVIDER, OXBIT_CLI_PROVIDER, acpPreset } from "@oxbit/sdk";
 import { Icon } from "@oxbit/ui";
 import { AGENT_LOGOS } from "./agent-logos.js";
 
 const masks = new Map<string, string>();
 
-/** CSS mask for a provider's ACP Registry icon: a preset's registry entry, or the registry ID itself. The Oxbit agent uses the Oxbit mark. */
+/** CSS mask for a provider's ACP Registry icon: a preset's registry entry, or the registry ID itself. Both Oxbit agents use the Oxbit mark. */
 export function agentLogoMask(provider: string) {
-  if (provider === OXBIT_AGENT_PROVIDER) return 'url("/brand/oxbit-mark.svg")';
+  if (provider === OXBIT_AGENT_PROVIDER || provider === OXBIT_CLI_PROVIDER) return 'url("/brand/oxbit-mark.svg")';
   const id = acpPreset(provider)?.registryId ?? provider;
   if (!Object.hasOwn(AGENT_LOGOS, id)) return undefined;
   let mask = masks.get(id);

@@ -1,8 +1,9 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { existsSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ACP_CUSTOM_PROVIDER, acpBuiltinForRegistry, acpPreset, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, OXBIT_CLI_PROVIDER, acpBuiltinForRegistry, acpPreset, type ACPConnection, type ACPLaunch, type ACPQueuedPrompt, type ACPSessionSnapshot } from "@oxbit/sdk";
 import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
@@ -68,6 +69,12 @@ const MAX_IMAGE_DATA = Math.ceil((5 * 1024 * 1024) / 3) * 4;
 const MAX_QUEUED_IMAGE_DATA = 16 * 1024 * 1024;
 const withoutImageData = (key: string, value: unknown) => key === "data" ? undefined : value;
 const EDITOR_UNSUPPORTED = "The connected editor does not support this tool; update Oxbit";
+/** The oxbit-agent bundle beside the desktop runtime, or apps/agent/dist from the repo and the npm package. */
+export function bundledAgent(base = import.meta.url) {
+  return ["./agent/index.js", "../../agent/dist/index.js"]
+    .map((relative) => fileURLToPath(new URL(relative, base)))
+    .find((file) => existsSync(file));
+}
 function strings(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
@@ -352,12 +359,11 @@ export class AgentACP {
     if (!command.trim() || command.includes("\0"))
       throw new RpcError("INVALID_PARAMS", "Invalid agent executable");
     const custom = typeof launch.name === "string" ? launch.name.trim().slice(0, 80) : "";
-    return {
-      provider,
-      name: preset?.name ?? (custom || "Custom agent"),
-      command,
-      args: strings(launch.args ?? (preset ? [...preset.args] : [])),
-    };
+    const name = preset?.name ?? (custom || "Custom agent");
+    const args = strings(launch.args ?? (preset ? [...preset.args] : []));
+    const bundled = provider === OXBIT_CLI_PROVIDER && command === preset?.command ? bundledAgent() : undefined;
+    if (bundled) return { provider, name, command: process.execPath, args: [bundled, ...args] };
+    return { provider, name, command, args };
   }
   async call(
     owner: string,

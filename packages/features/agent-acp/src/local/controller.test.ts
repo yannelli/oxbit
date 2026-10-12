@@ -3,7 +3,7 @@ import type { FeatureOptions } from "@oxbit/sdk";
 import { AgentController } from "../controller.js";
 import { sessionControls } from "../session-controls.js";
 import { LocalAgentRuntime } from "./runtime.js";
-import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "./test-models.js";
+import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
 function document(value: string) {
   const doc = {
@@ -42,7 +42,7 @@ describe("AgentController with LocalAgentRuntime", () => {
     const { agent, files } = setup([chatTool("call_1", "edit_file", { path: "a.ts", old_string: "a = 1", new_string: "a = 2" }), chatText("Done")]);
     await agent.connect({ provider: "oxbit" });
     expect(agent.connection).toEqual(expect.objectContaining({ provider: "oxbit", name: "Oxbit Agent", root: "/workspace", sessionId: expect.any(String) }));
-    expect(sessionControls(agent.connection).map((control) => [control.id, control.value])).toEqual([["model", "model-a"], ["reasoning", "default"]]);
+    expect(sessionControls(agent.connection).map((control) => [control.id, control.value])).toEqual([["model", "model-a"], ["reasoning", "default"], ["mode", "ask"]]);
     agent.draft = "Change a to 2";
     const sending = agent.send();
     await expect.poll(() => agent.requests.length).toBe(1);

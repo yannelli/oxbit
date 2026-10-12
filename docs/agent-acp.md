@@ -69,7 +69,8 @@ when the disabled extension is registered or when it is enabled.
 
 Added 2026-10-11. In iOS device folders, which have no runtime, the picker offers
 **Oxbit Agent** and marks the other agents "Needs a runtime workspace". The agent
-runs in the app (`packages/features/agent-acp/src/local/`) and calls a model API
+runs in the app (`packages/features/agent-acp/src/local/runtime.ts` hosts the
+`@oxbit/agent-core` loop) and calls a model API
 with the user's key:
 
 | `agentACP.oxbit.api` | API |

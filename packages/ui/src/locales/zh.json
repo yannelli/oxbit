@@ -934,6 +934,7 @@
   "Agent finished": "智能体已完成",
   "Agent turn failed": "智能体回合失败",
   "Open Agent": "打开智能体",
+  "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "随 Oxbit 提供。使用 ~/.oxbit/agent 中的设置。",
   "Runs with npx. Uses your Codex sign-in.": "通过 npx 运行。使用你的 Codex 登录。",
   "Runs with npx. Uses your Claude Code sign-in.": "通过 npx 运行。使用你的 Claude Code 登录。",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "通过 npx 运行。请登录或设置 GEMINI_API_KEY。",

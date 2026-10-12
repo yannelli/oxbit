@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cleanTitle } from "./title.js";
-import { openaiResponses } from "./openai-responses.js";
-import { anthropicMessages } from "./anthropic-messages.js";
-import { chatCompletions } from "./chat-completions.js";
+import { anthropicMessages, chatCompletions, openaiResponses } from "@oxbit/agent-core";
 
 describe("generated conversation titles", () => {
   it("keeps the first line without wrapping quotes or trailing punctuation, up to 80 characters", () => {

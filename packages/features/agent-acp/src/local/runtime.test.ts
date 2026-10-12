@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { MISSING_AGENT_KEY, type ACPConnection, type FeatureOptions } from "@oxbit/sdk";
 import { LocalAgentRuntime } from "./runtime.js";
-import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "./test-models.js";
+import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
 const EVENTS = ["acp.turnStarted", "acp.turnEnded", "acp.update", "acp.request", "acp.requestsExpired", "acp.cancelled", "acp.queue", "acp.exit"];
 function setup(replies: Reply[] = [], key = true) {

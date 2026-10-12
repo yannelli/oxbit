@@ -11,7 +11,7 @@ import {
   type AgentModels,
   type FeatureOptions,
 } from "@oxbit/sdk";
-import { chatText, fakeModels, settings as modelSettings, type Reply } from "./local/test-models.js";
+import { chatText, fakeModels, settings as modelSettings, type Reply } from "@oxbit/agent-core/test-models";
 function setup(document?: any, persistence?: any) {
   const listeners = new Map<string, (params: any) => void>();
   const runtime = {
@@ -1411,6 +1411,20 @@ describe("Auto-apply edits", () => {
     expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "Applied change: hello.txt" });
     expect(options.workbench.openFile).not.toHaveBeenCalled();
     expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    agent.dispose();
+  });
+  it("applies writes that an Oxbit agent marks with the accept-edits or full-auto mode", async () => {
+    const { agent, request, answers, text } = workspace();
+    const marked = (requestId: string, mode: string) =>
+      request(requestId, "fs/write_text_file", { path: "hello.txt", content: `after ${requestId}`, _meta: { oxbit: { mode } } });
+    marked("codex", "full-auto");
+    await expect.poll(() => agent.requests.length).toBe(1);
+    agent.connection = { ...agent.connection!, provider: "oxbit-cli" };
+    marked("ask", "ask");
+    await expect.poll(() => agent.requests.length).toBe(2);
+    marked("cli", "accept-edits");
+    await expect.poll(answers).toEqual(["cli"]);
+    expect(text()).toBe("after cli");
     agent.dispose();
   });
   it("undoes an auto-applied write and holds writes for review when off", async () => {

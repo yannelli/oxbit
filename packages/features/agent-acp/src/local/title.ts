@@ -1,13 +1,9 @@
 import type { AgentModelEndpoint, AgentModels } from "@oxbit/sdk";
-import { ADAPTERS } from "./agent.js";
+import { ADAPTERS, cleanTitle } from "@oxbit/agent-core";
+
+export { cleanTitle };
 
 const SYSTEM = "Write a 3 to 7 word title for this coding conversation. Reply with the title only.";
-
-/** The first non-empty line without wrapping quotes or trailing punctuation, at most 80 characters. */
-export function cleanTitle(text: string) {
-  const line = text.split("\n").map((item) => item.trim()).find(Boolean) ?? "";
-  return line.replace(/\s+/g, " ").replace(/^["'“”‘’\s]+|["'“”‘’.,;:!?…。\s]+$/g, "").slice(0, 80).trimEnd();
-}
 
 /** One model request for a conversation title from the first message and the start of the reply. */
 export async function generateTitle(models: AgentModels, endpoint: AgentModelEndpoint, model: string, prompt: string, reply: string) {

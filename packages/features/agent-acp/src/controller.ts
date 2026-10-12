@@ -3,6 +3,7 @@ import {
   AGENT_MODELS_SERVICE,
   OXBIT_AGENT_PROVIDER,
   OXBIT_AGENT_SETTINGS,
+  OXBIT_CLI_PROVIDER,
   acpPreset,
   type ACPConnection,
   type ACPRegistryListing,
@@ -65,6 +66,9 @@ export type AgentRequest = {
   error?: string;
 };
 export const FILE_REJECTED = "User rejected the file change";
+/** Oxbit agents mark writes made in the accept-edits and full-auto modes that the user picked in this panel. */
+const modeApplies = (provider: string | undefined, params: { _meta?: { oxbit?: { mode?: unknown } } } | undefined) =>
+  (provider === OXBIT_AGENT_PROVIDER || provider === OXBIT_CLI_PROVIDER) && ["accept-edits", "full-auto"].includes(params?._meta?.oxbit?.mode as string);
 const missingFile = (error: unknown) =>
   ["ENOENT", "NOT_FOUND"].includes((error as { code?: unknown } | null)?.code as string) ||
   (error instanceof DOMException && error.name === "NotFoundError") ||
@@ -1664,7 +1668,7 @@ export class AgentController {
         request.version = document?.version;
       }
       if (!this.disposed && valid() && this.connection?.id === request.id) {
-        if (request.method === "fs/write_text_file" && this.autoApply) {
+        if (request.method === "fs/write_text_file" && (this.autoApply || modeApplies(this.connection?.provider, request.params))) {
           await this.writeFile(request, false).catch((error) => {
             this.error = String(error);
             this.changed();

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs/promises";
 
 const shots = "/tmp/oxbit-agents/local-panel";
-const presets = ["Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
+const presets = ["Oxbit Agent CLI", "Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
 
 const sse = (...events: unknown[]) => [...events.map((event) => `data: ${JSON.stringify(event)}\n\n`), "data: [DONE]\n\n"];
 const chatTool = (id: string, name: string, args: unknown) => sse(
@@ -57,7 +57,7 @@ const setting = (page: Page, id: string) =>
 test("a local workspace offers the Oxbit agent, asks for a key on Start, and saves it through the host", async ({ page }, info) => {
   const panel = await open(page, true);
   const picker = panel.getByRole("radiogroup", { name: "Agent", exact: true });
-  const oxbit = picker.getByRole("radio", { name: /Oxbit Agent/ });
+  const oxbit = picker.getByRole("radio", { name: /Runs in Oxbit with your API key/ });
   await expect(oxbit).toBeEnabled();
   await expect(oxbit).toHaveAttribute("aria-checked", "true");
   await expect(oxbit.locator(".acp-agent-logo")).toHaveAttribute("data-agent", "oxbit");
@@ -112,8 +112,8 @@ test("without a model service the browser workspace keeps the runtime prompt and
   const panel = await open(page, false);
   await expect(panel.getByText("Connect to a runtime workspace to use agents.")).toBeVisible();
   const picker = panel.getByRole("radiogroup", { name: "Agent", exact: true });
-  await expect(picker.getByRole("radio")).toHaveCount(6);
-  await expect(picker.getByRole("radio", { name: /Oxbit Agent/ })).toHaveCount(0);
+  await expect(picker.getByRole("radio")).toHaveCount(7);
+  await expect(picker.getByRole("radio", { name: /Runs in Oxbit with your API key/ })).toHaveCount(0);
   await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toBeEnabled();
   await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toHaveAttribute("aria-checked", "true");
   await expect(panel.getByRole("button", { name: "Start Codex ACP" })).toBeDisabled();

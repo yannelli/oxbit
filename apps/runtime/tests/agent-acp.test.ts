@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { AgentACP } from "../src/agent-acp.js";
+import { pathToFileURL } from "node:url";
+import { AgentACP, bundledAgent } from "../src/agent-acp.js";
 import { WorkspaceFiles } from "../src/filesystem.js";
 const fixture = path.resolve("tests/fixtures/agent-acp/agent.mjs");
 describe("ACP runtime bridge", () => {
@@ -358,5 +359,23 @@ describe("ACP runtime bridge", () => {
         .rejects.toThrow("Invalid image attachment");
     await expect(agent.call("client", connection.id, "session/prompt", { text: "look", context: Array(5).fill(image) }))
       .rejects.toThrow("up to 4 images");
+  });
+});
+
+describe("bundled Oxbit Agent CLI", () => {
+  it("finds the agent beside the desktop runtime and under the npm or repo layout", async () => {
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "oxbit-agent-bundle-")));
+    try {
+      const runtime = pathToFileURL(path.join(root, "runtime/dist/index.js")).href;
+      const desktop = pathToFileURL(path.join(root, "desktop.js")).href;
+      expect(bundledAgent(runtime)).toBeUndefined();
+      await fs.mkdir(path.join(root, "agent/dist"), { recursive: true });
+      await fs.writeFile(path.join(root, "agent/dist/index.js"), "");
+      expect(bundledAgent(runtime)).toBe(path.join(root, "agent/dist/index.js"));
+      await fs.writeFile(path.join(root, "agent/index.js"), "");
+      expect(bundledAgent(desktop)).toBe(path.join(root, "agent/index.js"));
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 });

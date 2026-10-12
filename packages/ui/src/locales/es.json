@@ -934,6 +934,7 @@
   "Agent finished": "El agente terminó",
   "Agent turn failed": "Falló el turno del agente",
   "Open Agent": "Abrir agente",
+  "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Incluido con Oxbit. Usa la configuración de ~/.oxbit/agent.",
   "Runs with npx. Uses your Codex sign-in.": "Se ejecuta con npx. Usa tu sesión de Codex.",
   "Runs with npx. Uses your Claude Code sign-in.": "Se ejecuta con npx. Usa tu sesión de Claude Code.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "Se ejecuta con npx. Inicia sesión o define GEMINI_API_KEY.",

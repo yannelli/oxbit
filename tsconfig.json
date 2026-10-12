@@ -35,6 +35,9 @@
       "path": "apps/runtime"
     },
     {
+      "path": "apps/agent"
+    },
+    {
       "path": "apps/push-relay"
     },
     {
@@ -99,6 +102,9 @@
     },
     {
       "path": "packages/icon-themes"
+    },
+    {
+      "path": "packages/agent-core"
     },
     {
       "path": "packages/features/agent-acp"

@@ -38,6 +38,10 @@ Tagged releases also publish the command as `@oxbit/cli`. Install it with Node 2
 using `npm install -g @oxbit/cli` after removing a checkout-linked `oxbit`.
 See [npm packages](docs/npm.md).
 
+The same tags publish the Oxbit Agent as `@oxbit/agent`, a terminal coding agent with
+a TUI, print mode and an ACP server: `npm install -g @oxbit/agent`, then run
+`oxbit-agent`. See [Oxbit Agent CLI](docs/oxbit-agent.md).
+
 | Command | Effect |
 | --- | --- |
 | `oxbit --status` | Report the runtime serving this workspace |

@@ -1,5 +1,17 @@
+/** The oxbit-agent CLI over ACP. The runtime starts its bundled copy when the command is the default. */
+export const OXBIT_CLI_PROVIDER = "oxbit-cli";
 /** ACP launch presets. Downloads happen only when the user connects an agent. */
 export const ACP_PROVIDERS = [
+  {
+    id: OXBIT_CLI_PROVIDER,
+    name: "Oxbit Agent CLI",
+    command: "oxbit-agent",
+    args: ["acp"],
+    setup:
+      "Runs the oxbit-agent CLI that ships with Oxbit. It reads providers, keys, MCP servers, skills and hooks from ~/.oxbit/agent. Elsewhere, install @oxbit/agent from npm.",
+    url: "https://github.com/yannelli/oxbit/tree/main/apps/agent",
+    registryId: "oxbit-agent",
+  },
   {
     id: "codex",
     name: "Codex ACP",

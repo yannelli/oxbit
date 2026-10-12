@@ -1,4 +1,4 @@
-import type { AgentModelRequest, AgentModels } from "@oxbit/sdk";
+import type { AgentModelApi, AgentModelEndpoint, AgentModelRequest, AgentModels } from "@oxbit/sdk";
 
 /** Test doubles for the host's AgentModels service and the Oxbit agent settings. */
 export type Reply = string[] | ((signal?: AbortSignal) => AsyncIterable<string>);
@@ -16,6 +16,10 @@ export const chatText = (text: string) => sse(
 export const chatTool = (id: string, name: string, args: unknown) => sse(
   { choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id, type: "function", function: { name, arguments: "" } }] } }] },
   { choices: [{ index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(args) } }] } }] },
+  { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+);
+export const chatTools = (...calls: [id: string, name: string, args: unknown][]) => sse(
+  { choices: [{ index: 0, delta: { tool_calls: calls.map(([id, name, args], index) => ({ index, id, type: "function", function: { name, arguments: JSON.stringify(args) } })) } }] },
   { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
 );
 /** Streams `first`, then waits until the request is aborted. */
@@ -45,4 +49,10 @@ export function settings(values: Record<string, unknown> = {}) {
     "agentACP.oxbit.api": "openai-compatible", "agentACP.oxbit.baseUrl": "https://models.test/api", "agentACP.oxbit.model": "model-a", ...values,
   };
   return { store, get: (id: string) => store[id], set: (id: string, value: unknown) => void (store[id] = value) };
+}
+
+/** The endpoint the `settings` double describes, read the way the app reads OXBIT_AGENT_SETTINGS. */
+export function endpointOf(config: ReturnType<typeof settings>): AgentModelEndpoint {
+  const api = (config.get("agentACP.oxbit.api") || "openai") as AgentModelApi;
+  return api === "openai-compatible" ? { api, baseUrl: String(config.get("agentACP.oxbit.baseUrl") ?? "") } : { api };
 }
