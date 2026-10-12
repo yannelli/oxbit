@@ -26,10 +26,14 @@ async function open(page: Page, args: string[] = []) {
     await (window as any).__oxbit.connectRuntime(url, "acp-composer");
   }, `http://127.0.0.1:${runtime.port}`);
   await page.waitForFunction(() => (window as any).__oxbit.runtime?.connected);
-  await page.evaluate(async ({ command, args }) => {
+  await page.evaluate(async () => {
     const z = (window as any).__oxbit;
     await z.runtime.trust(true);
     await z.kernel.extensions.activate("oxbit.agent-acp");
+  });
+  // Opening the panel inside the async evaluate made Chromium drop its promise on CI.
+  await page.evaluate(({ command, args }) => {
+    const z = (window as any).__oxbit;
     z.kernel.services.get("agentACP").selection = { provider: "codex", command, args };
     z.workbench.set({ sidebarWidth: 420 });
     z.workbench.openFile("hello.txt", { preview: false });
