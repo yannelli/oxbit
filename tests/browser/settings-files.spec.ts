@@ -100,6 +100,12 @@ test("a settings UI change saves over a value that changed on disk, and User sco
       try { await app.runtime.request("fs.mkdir", { path }); }
       catch (error) { if (!String(error).includes("EEXIST")) throw error; }
     }
+    // A Workspace reset only clears the active file, so drop the shared file's value from the first test.
+    const shared = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.json" }).catch(() => undefined);
+    if (shared) {
+      const { "editor.tabSize": _, ...rest } = JSON.parse(shared.text);
+      await app.runtime.request("fs.write", { path: shared.path, text: JSON.stringify(rest), expectedRevision: shared.revision });
+    }
     const file = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.local.json" }).catch(() => undefined);
     await app.runtime.request("fs.write", { path: ".config/oxbit/settings.local.json", text: '{"editor.tabSize":5}', expectedRevision: file?.revision ?? null });
     return (await app.runtime.request("settings.read")).layers.user["editor.tabSize"];

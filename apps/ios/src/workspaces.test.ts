@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@oxbit/app-workbench", () => ({
   createWorkbenchSession: mocks.createSession,
+  mirrorUserChanges: () => () => {},
   RuntimeFileSystem: class { constructor(readonly runtime: unknown, readonly id: string) {} },
 }));
 vi.mock("@oxbit/host-ios", () => ({

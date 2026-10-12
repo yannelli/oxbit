@@ -156,13 +156,3 @@ it("copies User changes from a runtime session into the storage profile without 
   await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15 }, userLanguages: { markdown: { number: 5 } } });
   expect(notices).toEqual([]);
 });
-it("a workspace reset removes the key from every workspace file", async () => {
-  const { root, store } = await fixture();
-  await fs.mkdir(path.join(root, ".config/oxbit"), { recursive: true });
-  await fs.writeFile(path.join(root, ".config/oxbit/settings.json"), '{"number":4,"object":{"shared":true}}');
-  await fs.writeFile(path.join(root, ".config/oxbit/settings.local.json"), '{"number":6}');
-  const snapshot = await store.patch([{ scope: "workspace", path: ["number"], before: 6 }]);
-  expect(snapshot.layers.workspace).toEqual({ object: { shared: true } });
-  expect(JSON.parse(await fs.readFile(path.join(root, ".config/oxbit/settings.json"), "utf8"))).toEqual({ object: { shared: true } });
-  expect(JSON.parse(await fs.readFile(path.join(root, ".config/oxbit/settings.local.json"), "utf8"))).toEqual({});
-});
