@@ -39,6 +39,17 @@ describe("task tool", () => {
     expect(t.metaStates()).toEqual(["running", "completed"]);
   });
 
+  it("clips the task in _meta and sends the full prompt to the child", async () => {
+    const prompt = "x".repeat(5000);
+    const t = subagentHost([task("t1", prompt), chatText("Done with x"), chatText("Done")]);
+    const agent = new Agent(t.host);
+    await agent.prompt(await start(agent), text("Go"));
+    expect((t.posts()[1].body as Params).messages[1]).toEqual({ role: "user", content: prompt });
+    const tasks = t.sent.map(([, update]) => update._meta?.oxbit?.subagent?.task).filter((value) => value !== undefined);
+    expect(tasks).toHaveLength(3);
+    expect(tasks.every((value) => value === prompt.slice(0, 4096))).toBe(true);
+  });
+
   it("forwards child tool calls on the parent session without a child-session client", async () => {
     const t = subagentHost([task("t1"), chatTool("c1", "write_file", { path: "a.ts", content: "x" }), chatText("Wrote a.ts"), chatText("Done")]);
     const agent = new Agent(t.host);

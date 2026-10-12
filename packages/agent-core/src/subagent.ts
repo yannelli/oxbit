@@ -14,6 +14,7 @@ type SubagentState = NonNullable<OxbitSubagentMeta["state"]>;
 
 const RESULT_LIMIT = 40000;
 const PROMPT_LIMIT = 100000;
+const TASK_META_LIMIT = 4096;
 const CANCELLED = "Cancelled by the user";
 export const SUBAGENT_PROMPT = [
   "You are a subagent. Another agent delegated the task in the user message to you.",
@@ -39,7 +40,7 @@ function report(child: LiveSession, stopReason: string) {
 /** The blocking task tool: runs a subagent with a fresh context and returns its final message. */
 export function taskTool({ host, parent, runChild }: SubagentOptions): AgentTool {
   const meta = (args: Params, state: SubagentState, sessionId?: string): Params => {
-    const subagent: OxbitSubagentMeta = { name: field(args, "description").trim().slice(0, 200), task: field(args, "prompt").slice(0, PROMPT_LIMIT),
+    const subagent: OxbitSubagentMeta = { name: field(args, "description").trim().slice(0, 200), task: field(args, "prompt").slice(0, TASK_META_LIMIT),
       model: parent.model, ...sessionId ? { sessionId } : {}, state };
     return { oxbit: { subagent } };
   };
