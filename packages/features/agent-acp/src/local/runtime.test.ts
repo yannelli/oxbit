@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MISSING_AGENT_KEY, type ACPConnection, type FeatureOptions } from "@oxbit/sdk";
+import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, type ACPConnection, type FeatureOptions } from "@oxbit/sdk";
 import { LocalAgentRuntime } from "./runtime.js";
 import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
@@ -46,6 +46,11 @@ describe("LocalAgentRuntime", () => {
     expect(runtime.connected).toBe(true);
     unavailable();
     expect(runtime.connected).toBe(false);
+  });
+  it("asks for a ChatGPT sign-in when the chatgpt endpoint has no tokens", async () => {
+    const options = { kernel: { configuration: settings({ "agentACP.oxbit.api": "chatgpt" }) }, filesystem: { id: "fs", root: "/root/" } } as unknown as FeatureOptions;
+    const runtime = new LocalAgentRuntime(options, () => fakeModels([], { key: false }).models);
+    await expect(runtime.request("acp.start", { provider: "oxbit" })).rejects.toThrow(MISSING_CHATGPT_SIGN_IN);
   });
   it("forwards git methods to the workspace git client when there is one", async () => {
     const git = { connected: true, subscribe: () => () => {}, request: vi.fn(async () => ({ files: [] })) };

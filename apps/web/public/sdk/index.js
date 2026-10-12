@@ -270,13 +270,14 @@ var settings_schema_default = {
     },
     "agentACP.oxbit.api": {
       title: "Oxbit Agent API",
-      description: "openai uses the Responses API, anthropic the Messages API, and openai-compatible Chat Completions at the base URL.",
+      description: "openai uses the Responses API, anthropic the Messages API, openai-compatible Chat Completions at the base URL, and chatgpt the ChatGPT plan's Codex models after a ChatGPT sign-in.",
       type: "string",
       default: "openai",
       enum: [
         "openai",
         "anthropic",
-        "openai-compatible"
+        "openai-compatible",
+        "chatgpt"
       ]
     },
     "agentACP.oxbit.baseUrl": {
@@ -1475,6 +1476,7 @@ var AGENT_ACTIVITY_SERVICE = "agentActivity";
 var OXBIT_AGENT_PROVIDER = "oxbit";
 var AGENT_MODELS_SERVICE = "agentModels";
 var MISSING_AGENT_KEY = "Add an API key in Agent setup";
+var MISSING_CHATGPT_SIGN_IN = "Sign in with ChatGPT in Agent setup";
 var OXBIT_AGENT_SETTINGS = {
   api: "agentACP.oxbit.api",
   baseUrl: "agentACP.oxbit.baseUrl",
@@ -1544,6 +1546,7 @@ export {
   AGENT_ACTIVITY_SERVICE,
   AGENT_MODELS_SERVICE,
   MISSING_AGENT_KEY,
+  MISSING_CHATGPT_SIGN_IN,
   OXBIT_AGENT_PROVIDER,
   OXBIT_AGENT_SETTINGS,
   OXBIT_CLI_PROVIDER,

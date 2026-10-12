@@ -1006,5 +1006,20 @@
   "Auto-apply edits": "Änderungen automatisch anwenden",
   "Auto-apply on": "Automatisch anwenden aktiv",
   "Agent edits save without review": "Agentenänderungen werden ohne Prüfung gespeichert",
-  "Save agent file changes without review. Permission prompts still ask.": "Dateiänderungen des Agenten ohne Prüfung speichern. Berechtigungsanfragen fragen weiterhin nach."
+  "Save agent file changes without review. Permission prompts still ask.": "Dateiänderungen des Agenten ohne Prüfung speichern. Berechtigungsanfragen fragen weiterhin nach.",
+  "Runs in Oxbit with your API key or ChatGPT plan": "Läuft in Oxbit mit Ihrem API-Schlüssel oder ChatGPT-Abo",
+  "Sign in with ChatGPT in Agent setup": "Melden Sie sich unter „Agent einrichten“ mit ChatGPT an",
+  "ChatGPT plan": "ChatGPT-Abo",
+  "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.": "Oxbit Agent läuft in der App und ruft die Codex-Modelle Ihres ChatGPT-Abos auf. Die Anmeldetokens werden im Schlüsselbund des Systems gespeichert.",
+  "Sign in with ChatGPT": "Mit ChatGPT anmelden",
+  "Signed in with ChatGPT": "Mit ChatGPT angemeldet",
+  "Not signed in": "Nicht angemeldet",
+  "Sign out": "Abmelden",
+  "Open the sign-in page and enter this code.": "Öffnen Sie die Anmeldeseite und geben Sie diesen Code ein.",
+  "ChatGPT sign-in code": "ChatGPT-Anmeldecode",
+  "Copy code": "Code kopieren",
+  "Copied": "Kopiert",
+  "Open sign-in page": "Anmeldeseite öffnen",
+  "Waiting for you to sign in": "Warten auf Ihre Anmeldung",
+  "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an."
 }

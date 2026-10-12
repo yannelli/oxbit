@@ -1033,5 +1033,20 @@
   "Auto-apply edits": "自动应用编辑",
   "Auto-apply on": "自动应用已开启",
   "Agent edits save without review": "代理编辑无需审核即保存",
-  "Save agent file changes without review. Permission prompts still ask.": "无需审核即保存代理的文件更改。权限请求仍会询问。"
+  "Save agent file changes without review. Permission prompts still ask.": "无需审核即保存代理的文件更改。权限请求仍会询问。",
+  "Runs in Oxbit with your API key or ChatGPT plan": "使用你的 API 密钥或 ChatGPT 套餐在 Oxbit 中运行",
+  "Sign in with ChatGPT in Agent setup": "请在智能体设置中登录 ChatGPT",
+  "ChatGPT plan": "ChatGPT 套餐",
+  "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.": "Oxbit Agent 在应用内运行，并调用你的 ChatGPT 套餐中的 Codex 模型。登录令牌保存在系统钥匙串中。",
+  "Sign in with ChatGPT": "使用 ChatGPT 登录",
+  "Signed in with ChatGPT": "已使用 ChatGPT 登录",
+  "Not signed in": "未登录",
+  "Sign out": "退出登录",
+  "Open the sign-in page and enter this code.": "打开登录页面并输入此代码。",
+  "ChatGPT sign-in code": "ChatGPT 登录代码",
+  "Copy code": "复制代码",
+  "Copied": "已复制",
+  "Open sign-in page": "打开登录页面",
+  "Waiting for you to sign in": "正在等待你登录",
+  "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。"
 }

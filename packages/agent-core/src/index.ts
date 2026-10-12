@@ -6,6 +6,7 @@ export * from "./extensions.js";
 export { Agent } from "./agent.js";
 export { MODES, modeOf, sessionTitle } from "./session-records.js";
 export { openaiResponses } from "./openai-responses.js";
+export { CHATGPT_CLIENT_VERSION, CHATGPT_MODELS, chatgptResponses } from "./chatgpt.js";
 export { chatCompletions } from "./chat-completions.js";
 export { anthropicMessages, DEFAULT_MAX_TOKENS } from "./anthropic-messages.js";
 export { ADAPTERS } from "./turn.js";

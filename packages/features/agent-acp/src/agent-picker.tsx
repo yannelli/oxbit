@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, OXBIT_AGENT_PROVIDER, acpPreset } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, AGENT_MODELS_SERVICE, OXBIT_AGENT_PROVIDER, acpPreset, type AgentModels } from "@oxbit/sdk";
 import { Icon, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
@@ -30,6 +30,7 @@ export function AgentPicker({
 }) {
   const current = agent.chosen.provider;
   const local = agent.local;
+  const chatgpt = !!agent.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE)?.chatgpt;
   const select = (provider: string) =>
     void agent.action(() => agent.select({ provider }));
   const row = (id: string, name: string, hint: string, title = hint) => {
@@ -57,7 +58,7 @@ export function AgentPicker({
     <section className="acp-agent-picker" aria-label={tr("Choose an agent")}>
       <h2>{tr("Choose an agent")}</h2>
       <div role="radiogroup" aria-label={tr("Agent")}>
-        {local && row(OXBIT_AGENT_PROVIDER, OXBIT_AGENT_NAME, tr("Runs in Oxbit with your API key"))}
+        {local && row(OXBIT_AGENT_PROVIDER, OXBIT_AGENT_NAME, tr(chatgpt ? "Runs in Oxbit with your API key or ChatGPT plan" : "Runs in Oxbit with your API key"))}
         {ACP_PROVIDERS.map((preset) =>
           row(preset.id, preset.name, tr(HINTS[preset.id] ?? preset.setup), tr(preset.setup)),
         )}

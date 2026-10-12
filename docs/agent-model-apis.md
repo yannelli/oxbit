@@ -1,6 +1,6 @@
 # Model APIs for the built-in Oxbit agent
 
-Created: 2026-10-10. Last updated: 2026-10-11.
+Created: 2026-10-10. Last updated: 2026-10-12.
 
 The Oxbit agent loop and model adapters live in `packages/agent-core/src/` (`@oxbit/agent-core`). `packages/features/agent-acp/src/local/runtime.ts` runs it in the app and sends model requests through the host's `AgentModels` service (`packages/sdk/src/agent-models.ts`). The host adds the saved key, pins the request to the API origin, and adds provider headers such as `anthropic-version`. JavaScript does not see the key. Each adapter builds the request body and turns the streamed body into text, reasoning, tool call, usage, and stop events.
 
@@ -9,8 +9,9 @@ The Oxbit agent loop and model adapters live in `packages/agent-core/src/` (`@ox
 | `openai` | `agent-core/src/openai-responses.ts` | `POST /v1/responses`, `stream: true` |
 | `openai-compatible` | `agent-core/src/chat-completions.ts` | `POST {baseUrl}/v1/chat/completions`, `stream: true` |
 | `anthropic` | `agent-core/src/anthropic-messages.ts` | `POST /v1/messages`, `stream: true` |
+| `chatgpt` | `agent-core/src/chatgpt.ts` | `POST /codex/responses` under `https://chatgpt.com/backend-api`, `stream: true` |
 
-All three use `GET /v1/models` for the model list. Use this page when changing an adapter, the SSE parser (`agent-core/src/sse.ts`), or the ACP updates the agent sends.
+`openai`, `openai-compatible` and `anthropic` use `GET /v1/models` for the model list; `chatgpt` uses `GET /codex/models`. Use this page when changing an adapter, the SSE parser (`agent-core/src/sse.ts`), or the ACP updates the agent sends.
 
 ## Server-sent events
 
@@ -41,6 +42,13 @@ Stream events the adapter reads:
 `GET /v1/models` returns `{object: "list", data: [{id, object, created, owned_by}]}` with no context window, so OpenAI sessions send no `usage_update`.
 
 References: [Create a response](https://developers.openai.com/api/reference/resources/responses/methods/create), [Responses streaming events](https://developers.openai.com/api/reference/resources/responses/streaming-events), [Reasoning guide](https://developers.openai.com/api/docs/guides/reasoning), [List models](https://developers.openai.com/api/reference/resources/models/methods/list).
+
+## ChatGPT plan (`chatgpt`)
+
+Added 2026-10-12. The host signs in with a device code (`AgentModels.chatgpt`), keeps the tokens in the keychain and adds the auth headers. `keys.has` reports a sign-in and `keys.remove` signs out.
+
+- Request: the OpenAI Responses body plus `include: ["reasoning.encrypted_content"]` and `tool_choice: "auto"`, with `store: false` (the backend rejects `true`) and without `max_output_tokens`. `instructions` is required. Events use the OpenAI Responses parser. Output items saved by the `openai` or `chatgpt` adapter replay; the `openai` adapter replays only its own.
+- Models: `GET /codex/models?client_version=0.162.1` returns `{models: ModelInfo[]}` (openai/codex `codex-rs/protocol/src/openai_models.rs`). The list keeps `visibility: "list"`, sorts by `priority`, and maps `slug`, `display_name` and `context_window`. A failed request or an empty list uses `CHATGPT_MODELS`, taken from openai/codex `codex-rs/models-manager/models.json` on 2026-10-12.
 
 ## Chat Completions (`openai-compatible`)
 
