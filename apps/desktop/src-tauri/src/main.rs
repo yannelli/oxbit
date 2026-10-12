@@ -462,7 +462,10 @@ fn preview_shell<R: tauri::Runtime>(
     _request: tauri::http::Request<Vec<u8>>,
 ) -> tauri::http::Response<&'static [u8]> {
     tauri::http::Response::builder()
-        .header(tauri::http::header::CONTENT_TYPE, "text/html; charset=utf-8")
+        .header(
+            tauri::http::header::CONTENT_TYPE,
+            "text/html; charset=utf-8",
+        )
         .body(include_str!("../../../web/public/preview-shell.html").as_bytes())
         .expect("static preview shell response")
 }
