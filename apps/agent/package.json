@@ -11,7 +11,9 @@
   },
   "scripts": {
     "build": "vite build",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run --root ../.. apps/agent",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@oxbit/agent-core": "workspace:*",
