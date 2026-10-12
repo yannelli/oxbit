@@ -130,7 +130,7 @@ describe("Agent hooks", () => {
     ], { extensions: { snapshots, sessions: { save: async (record) => void saved.push(record.meta), load: async () => undefined, list: async () => [] } } });
     const agent = new Agent(t.host);
     await agent.prompt(await start(agent), text("Write"));
-    expect(vi.mocked(snapshots.capture).mock.calls).toEqual([["Write a.ts"], ["Edit a.ts"]]);
+    expect(vi.mocked(snapshots.capture).mock.calls).toEqual([["Write a.ts", "/root"], ["Edit a.ts", "/root"]]);
     expect(saved.at(-1)!.snapshots).toEqual([{ id: "snap-Write a.ts", label: "Write a.ts", turn: 2 }, { id: "snap-Edit a.ts", label: "Edit a.ts", turn: 4 }]);
   });
 });

@@ -211,7 +211,10 @@ export const bash: AgentTool = {
 };
 
 export const TOOLS: AgentTool[] = [listFiles, search, readFile, writeFile, editFile, diagnostics, updatePlan];
-export const builtinTools = (capabilities: HostCapabilities) => capabilities.terminal ? [...TOOLS, bash] : TOOLS;
+export const builtinTools = (capabilities: HostCapabilities) => [
+  ...TOOLS.filter((tool) => tool !== diagnostics || capabilities.diagnostics !== false),
+  ...capabilities.terminal ? [bash] : [],
+];
 
 export interface ToolGate {
   /** Returns the arguments to run with. Throwing fails the call with the error message. */

@@ -19,7 +19,7 @@ export async function testSetup(replies: Reply[], options: { root?: string; exte
   const fake = fakeModels(replies);
   const provider: ProviderChoice = { id: "openai-compatible", endpoint: { api: "openai-compatible", baseUrl: "https://models.test/api" },
     base: "https://models.test/api", model: "model-a" };
-  const setup: AgentSetup = { root, config, provider, models: fake.models, generateTitles: false, extensions: options.extensions };
+  const setup: AgentSetup = { root, config, provider, models: fake.models, generateTitles: false, extensions: options.extensions, userHome: home };
   return { home, root, config, setup, fake, factory: agentFactory(setup) };
 }
 

@@ -73,14 +73,15 @@ export class GitSnapshotStore implements SnapshotStore {
   }
 }
 
-/** One GitSnapshotStore per cwd under `<dir>/<cwd-hash>`. */
-export function snapshotStores(dir: string, log?: (text: string) => void) {
+/** One GitSnapshotStore per session cwd under `<dir>/<cwd-hash>`. */
+export function snapshotStores(dir: string, log?: (text: string) => void): SnapshotStore {
   const stores = new Map<string, GitSnapshotStore>();
-  return (cwd: string) => {
+  const storeFor = (cwd: string) => {
     let store = stores.get(cwd);
     if (!store) stores.set(cwd, store = new GitSnapshotStore(cwd, join(dir, cwdHash(cwd)), log));
     return store;
   };
+  return { capture: (label, cwd) => storeFor(cwd).capture(label), restore: (id, cwd) => storeFor(cwd).restore(id) };
 }
 
 interface Snapshot { id: string; label: string; turn: number }
@@ -90,7 +91,7 @@ const notice = (context: CommandContext, text: string) =>
   context.update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text } });
 
 /** /undo restores files to before the last prompt that changed them and drops that prompt; /redo reverses it. */
-export function undoCommands(storeFor: (cwd: string) => SnapshotStore): CommandProvider {
+export function undoCommands(store: SnapshotStore): CommandProvider {
   const undo: AgentCommand = {
     name: "undo",
     description: "Restore files to before the last prompt that changed them and remove that prompt",
@@ -105,10 +106,9 @@ export function undoCommands(storeFor: (cwd: string) => SnapshotStore): CommandP
       const turns = [...session.turns];
       const user = Math.max(0, turns.slice(0, last.turn).map((turn) => turn.role).lastIndexOf("user"));
       const group = snapshots.filter((snapshot) => snapshot.turn > user);
-      const store = storeFor(session.cwd);
-      const current = await store.capture("Before /undo");
+      const current = await store.capture("Before /undo", session.cwd);
       if (!current) throw new Error("Snapshots are unavailable, so /undo cannot restore files");
-      await store.restore(group[0].id);
+      await store.restore(group[0].id, session.cwd);
       context.replaceTurns(turns.slice(0, user));
       session.meta.snapshots = snapshots.slice(0, snapshots.length - group.length);
       const entry: RedoEntry = { id: current, turns: turns.slice(user), snapshots: group, at: user };
@@ -129,7 +129,7 @@ export function undoCommands(storeFor: (cwd: string) => SnapshotStore): CommandP
         notice(context, entry ? "Nothing to redo: the conversation changed after /undo." : "Nothing to redo.");
         return { done: "end_turn" };
       }
-      await storeFor(session.cwd).restore(entry.id);
+      await store.restore(entry.id, session.cwd);
       context.replaceTurns([...session.turns, ...entry.turns]);
       session.meta.snapshots = [...list<Snapshot>(session.meta.snapshots), ...entry.snapshots];
       session.meta.redo = entries.slice(0, -1);

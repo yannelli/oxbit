@@ -8,6 +8,7 @@ import { missingKey, needsKey, nodeModels, type ProviderChoice } from "./provide
 import { JsonlSessionStore } from "./sessions.js";
 import { Terminals } from "./shell.js";
 import { snapshotStores, undoCommands } from "./snapshots.js";
+import { coreExtensions } from "./extensions.js";
 
 const MAX_BYTES = 1024 * 1024;
 const WRITE_OPTIONS = [
@@ -89,8 +90,10 @@ export interface AgentSetup {
   provider: ProviderChoice;
   /** Replaces the fetch transport, for tests. */
   models?: AgentModels;
-  /** Merged over the default session store, snapshots and /undo, /redo. */
+  /** Merged over the default session store, snapshots, /undo, /redo and the core extensions. */
   extensions?: AgentExtensions;
+  /** The user's home for ~/.claude, ~/.codex and ~/.agents lookups. */
+  userHome?: string;
   generateTitles?: boolean;
   ripgrep?: boolean;
   log?(text: string): void;
@@ -101,18 +104,23 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
   const { root, config, provider, log } = setup;
   const local = new LocalClient((params) => link.request("session/request_permission", params));
   const transport = setup.models ?? nodeModels(provider, { save: config.saveKey, remove: config.removeKey });
-  const storeFor = snapshotStores(config.paths.snapshots, log);
+  const snapshots = snapshotStores(config.paths.snapshots, log);
   const filesystems = new Map<string, FileSystem>();
   const filesystemFor = (cwd: string) => {
     let filesystem = filesystems.get(cwd);
     if (!filesystem) filesystems.set(cwd, filesystem = nodeFilesystem(cwd, { ripgrep: setup.ripgrep }));
     return filesystem;
   };
+  const core = coreExtensions(config, (sessionId, update) => link.update(sessionId, update), { home: setup.userHome, log });
   const extensions: AgentExtensions = {
     sessions: new JsonlSessionStore(config.paths.sessions),
-    snapshots: storeFor(root),
+    snapshots,
+    ...core,
     ...setup.extensions,
-    commands: [undoCommands(storeFor), ...setup.extensions?.commands ?? []],
+    context: [...core.context ?? [], ...setup.extensions?.context ?? []],
+    tools: [...core.tools ?? [], ...setup.extensions?.tools ?? []],
+    commands: [undoCommands(snapshots), ...core.commands ?? [], ...setup.extensions?.commands ?? []],
+    continuations: [...core.continuations ?? [], ...setup.extensions?.continuations ?? []],
   };
   const host: AgentHost = {
     models: () => {
@@ -127,7 +135,9 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
       config.saveSettings({ providers: { ...providers, [provider.id]: { ...providers[provider.id], model } } })
         .catch((error) => log?.(`Could not save the model: ${error.message}`));
     },
-    capabilities: { fs: true, terminal: true },
+    get capabilities() {
+      return { fs: true, terminal: true, diagnostics: !!link.capabilities()._meta?.oxbit?.diagnostics };
+    },
     filesystem: filesystemFor(root),
     filesystemFor,
     root,

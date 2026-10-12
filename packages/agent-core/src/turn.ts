@@ -166,7 +166,7 @@ export class PromptTurn {
     const store = this.host.extensions?.snapshots;
     if (!store || this.snapshotted) return;
     this.snapshotted = true;
-    const snapshot = await store.capture(label);
+    const snapshot = await store.capture(label, this.session.cwd);
     const list = Array.isArray(this.session.meta.snapshots) ? this.session.meta.snapshots : [];
     if (snapshot) this.session.meta.snapshots = [...list, { id: snapshot, label, turn: this.session.turns.length }];
   }

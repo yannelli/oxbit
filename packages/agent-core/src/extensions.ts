@@ -86,9 +86,10 @@ export interface Compactor {
   shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number, maxOutput?: number): boolean;
   compact(session: SessionView, summarize: (system: string, turns: Turn[]) => Promise<string>, signal: AbortSignal): Promise<Turn[]>;
 }
+/** `cwd` is the session's working directory, so one store can serve sessions in several directories. */
 export interface SnapshotStore {
-  capture(label: string): Promise<string | undefined>;
-  restore(id: string): Promise<void>;
+  capture(label: string, cwd: string): Promise<string | undefined>;
+  restore(id: string, cwd: string): Promise<void>;
 }
 export interface SessionRecord {
   id: string;

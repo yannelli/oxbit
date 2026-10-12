@@ -7,6 +7,8 @@ export type ModelCatalog = ModelInfo[] | Promise<ModelInfo[]>;
 export interface HostCapabilities {
   fs: boolean;
   terminal: boolean;
+  /** false hides the diagnostics tool when nothing answers oxbit/diagnostics. */
+  diagnostics?: boolean;
 }
 
 export interface AgentHost {

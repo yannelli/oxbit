@@ -94,8 +94,11 @@ describe("bash", () => {
     return { context, request, updates, abort, methods: () => request.mock.calls.map(([method]) => method) };
   }
   it("is offered only with the terminal capability", () => {
-    expect(builtinTools({ fs: true, terminal: false })).toBe(TOOLS);
+    expect(builtinTools({ fs: true, terminal: false })).toEqual(TOOLS);
     expect(builtinTools({ fs: false, terminal: true }).at(-1)).toBe(bash);
+  });
+  it("leaves out diagnostics when the host has nothing to answer it", () => {
+    expect(builtinTools({ fs: true, terminal: false, diagnostics: false }).map((tool) => tool.spec.name)).not.toContain("diagnostics");
   });
   it("runs bash -c through ACP terminal requests and embeds the terminal in the tool call", async () => {
     const t = terminal(Promise.resolve({ exitCode: 0, signal: null }));
