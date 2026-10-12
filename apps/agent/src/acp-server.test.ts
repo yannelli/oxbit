@@ -42,7 +42,7 @@ describe("ACP server over NDJSON streams", () => {
     const c = client(t.factory);
     const init = await c.call("initialize", { protocolVersion: 1, clientCapabilities: {} });
     expect(init.result).toEqual(expect.objectContaining({ protocolVersion: 1,
-      agentCapabilities: expect.objectContaining({ loadSession: true, sessionCapabilities: { fork: {}, list: {} } }) }));
+      agentCapabilities: expect.objectContaining({ loadSession: true, sessionCapabilities: { fork: {}, list: {}, subagents: {} } }) }));
     const created = await c.call("session/new", { cwd: t.root, mcpServers: [] });
     const sessionId = created.result.sessionId;
     expect(created.result.models.currentModelId).toBe("model-a");
@@ -100,6 +100,40 @@ describe("ACP server over NDJSON streams", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     c.send({ jsonrpc: "2.0", method: "session/cancel", params: { sessionId: result.sessionId } });
     expect((await prompt).result).toEqual({ stopReason: "cancelled" });
+    c.input.end();
+    await c.done;
+  });
+
+  it("runs a task without asking and asks for the child's write on the parent session in ask mode", async () => {
+    const t = await testSetup([chatTool("t1", "task", { description: "Write b", prompt: "Write b.txt" }),
+      chatTool("c1", "write_file", { path: "b.txt", content: "beta" }), chatText("Wrote b.txt"), chatText("Done")]);
+    const c = client(t.factory, () => ({ outcome: { outcome: "selected", optionId: "allow" } }));
+    await c.call("initialize", { protocolVersion: 1, clientCapabilities: {} });
+    const { result } = await c.call("session/new", { cwd: t.root, mcpServers: [] });
+    await c.call("session/prompt", { sessionId: result.sessionId, prompt: [{ type: "text", text: "Delegate" }] });
+    expect(c.asked).toHaveLength(1);
+    expect(c.asked[0][0]).toBe("session/request_permission");
+    expect(c.asked[0][1]).toEqual(expect.objectContaining({ sessionId: result.sessionId, toolCall: expect.objectContaining({ toolCallId: "t1/c1" }) }));
+    expect(await readFile(join(t.root, "b.txt"), "utf8")).toBe("beta");
+    expect(c.updates()).toContainEqual(expect.objectContaining({ sessionUpdate: "tool_call", toolCallId: "t1/c1", _meta: { oxbit: { subagentOf: "t1" } } }));
+    expect(c.updates()).toContainEqual(expect.objectContaining({ toolCallId: "t1", status: "completed", rawOutput: "Wrote b.txt" }));
+    c.input.end();
+    await c.done;
+  });
+
+  it("sends child updates and fs/* on the child session to a client that advertised subagents", async () => {
+    const t = await testSetup([chatTool("t1", "task", { description: "Write b", prompt: "Write b.txt" }),
+      chatTool("c1", "write_file", { path: "b.txt", content: "beta" }), chatText("Wrote b.txt"), chatText("Done")]);
+    const c = client(t.factory, (method) => method === "fs/read_text_file" ? { content: "" } : {});
+    await c.call("initialize", { protocolVersion: 1, clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, subagents: {} } });
+    const { result } = await c.call("session/new", { cwd: t.root, mcpServers: [] });
+    await c.call("session/prompt", { sessionId: result.sessionId, prompt: [{ type: "text", text: "Delegate" }] });
+    const childId = c.updates().find((update) => update.sessionUpdate === "subagent_spawned")!.subagentSessionId;
+    expect(childId).not.toBe(result.sessionId);
+    expect(c.asked.map(([method, params]) => [method, params.sessionId])).toEqual([["fs/read_text_file", childId], ["fs/write_text_file", childId]]);
+    expect(c.lines).toContainEqual(expect.objectContaining({ method: "session/update",
+      params: { sessionId: childId, update: expect.objectContaining({ sessionUpdate: "tool_call", toolCallId: "c1" }) } }));
+    expect(c.updates()).toContainEqual({ sessionUpdate: "subagent_state_update", subagentSessionId: childId, state: "completed" });
     c.input.end();
     await c.done;
   });

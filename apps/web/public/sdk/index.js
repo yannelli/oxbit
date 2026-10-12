@@ -1511,6 +1511,7 @@ var ACP_CUSTOM_PROVIDER = "custom";
 var ACP_REGISTRY_URL = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
 var acpPreset = (id) => ACP_PROVIDERS.find((provider) => provider.id === id);
 var acpBuiltinForRegistry = (registryId) => ACP_PROVIDERS.find((provider) => provider.registryId === registryId);
+var OXBIT_SUBAGENT_TOOL = "task";
 var AGENT_ACTIVITY_SERVICE = "agentActivity";
 
 // packages/sdk/src/agent-models.ts
@@ -1591,6 +1592,7 @@ export {
   OXBIT_AGENT_PROVIDER,
   OXBIT_AGENT_SETTINGS,
   OXBIT_CLI_PROVIDER,
+  OXBIT_SUBAGENT_TOOL,
   PUSH_COLLAPSE_ID,
   PUSH_RELAY_URL,
   SDK_VERSION,

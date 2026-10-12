@@ -28,7 +28,7 @@ export class Agent {
     const saved = !!this.host.extensions?.sessions;
     return {
       protocolVersion: 1,
-      agentCapabilities: { loadSession: saved, sessionCapabilities: { fork: {}, ...saved ? { list: {} } : {} }, promptCapabilities: { embeddedContext: true },
+      agentCapabilities: { loadSession: saved, sessionCapabilities: { fork: {}, ...saved ? { list: {} } : {}, ...this.host.subagents ? { subagents: {} } : {} }, promptCapabilities: { embeddedContext: true },
         ...this.host.capabilities.mcp ? { mcpCapabilities: this.host.capabilities.mcp } : {} },
       agentInfo: { name: "oxbit", title: "Oxbit Agent" },
       authMethods: [],

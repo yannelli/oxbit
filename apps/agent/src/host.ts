@@ -26,6 +26,8 @@ const WRITE_OPTIONS = [
 export interface ClientCapabilities {
   fs?: { readTextFile?: boolean; writeTextFile?: boolean };
   terminal?: boolean;
+  /** The client accepts subagent child sessions. */
+  subagents?: object;
   _meta?: Params;
 }
 /** The ACP client side of a connection, as the host sees it. */
@@ -154,7 +156,8 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
         .catch((error) => log?.(`Could not save the model: ${error.message}`));
     },
     get capabilities() {
-      return { fs: true, terminal: true, diagnostics: !!link.capabilities()._meta?.oxbit?.diagnostics, mcp: { http: true, sse: true } };
+      const client = link.capabilities();
+      return { fs: true, terminal: true, diagnostics: !!client._meta?.oxbit?.diagnostics, mcp: { http: true, sse: true }, childSessions: !!client.subagents };
     },
     filesystem: filesystemFor(root),
     filesystemFor,
@@ -165,6 +168,7 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     configOptions: compactOptions.configOptions,
     setConfigOption: (_session, configId, value) => compactOptions.setConfigOption(configId, value),
     extensions,
+    subagents: {},
   };
   const dispose = async () => {
     local.dispose();

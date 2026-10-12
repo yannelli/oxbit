@@ -11,6 +11,8 @@ export { CHATGPT_CLIENT_VERSION, CHATGPT_MODELS, chatgptResponses } from "./chat
 export { chatCompletions } from "./chat-completions.js";
 export { anthropicMessages, DEFAULT_MAX_TOKENS } from "./anthropic-messages.js";
 export { ADAPTERS } from "./turn.js";
+export { OXBIT_SUBAGENT_TOOL } from "@oxbit/sdk";
+export { SUBAGENT_PROMPT, taskTool, type SubagentOptions } from "./subagent.js";
 export { cleanTitle } from "./title.js";
 export * from "./hooks.js";
 export * from "./goal.js";

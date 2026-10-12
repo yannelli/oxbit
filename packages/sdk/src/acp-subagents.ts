@@ -1,11 +1,31 @@
-import type {
-  ACPProviderId,
-  ACPSubagent,
-  ACPSubagentPhase,
-  ACPSubagentState,
-} from "@oxbit/sdk";
+import {
+  OXBIT_CLI_PROVIDER,
+  type ACPProviderId,
+  type ACPSubagent,
+  type ACPSubagentPhase,
+  type ACPSubagentState,
+  type OxbitSubagentMeta,
+} from "./agent-acp.js";
+import { OXBIT_AGENT_PROVIDER } from "./agent-models.js";
 
 type Data = Record<string, any>;
+/** Providers whose subagents run as ACP child sessions (`subagent_spawned`). */
+export const NATIVE_SESSIONS = new Set<ACPProviderId>([
+  "codex",
+  OXBIT_CLI_PROVIDER,
+  OXBIT_AGENT_PROVIDER,
+]);
+const OXBIT_PROVIDERS = new Set<ACPProviderId>([
+  OXBIT_CLI_PROVIDER,
+  OXBIT_AGENT_PROVIDER,
+]);
+const OXBIT_STATES = new Set<ACPSubagentState>([
+  "pending",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
 type Observation = {
   providerId?: string;
   toolId: string;
@@ -75,7 +95,8 @@ export function normalizeDelegation(
   update: Data,
 ): Observation[] {
   const raw = object(update.rawInput),
-    meta = object(update._meta?.codex);
+    meta = object(update._meta?.codex),
+    oxbit = object(update._meta?.oxbit);
   const toolId = update.toolCallId;
   if (!identity(toolId)) return [];
   if (provider === "codex") {
@@ -174,6 +195,30 @@ export function normalizeDelegation(
         model: str(raw.model, 200),
         state: update.status === "failed" ? "failed" : "unknown",
         evidence: "tool",
+        spawn: true,
+      },
+    ];
+  }
+  if (OXBIT_PROVIDERS.has(provider) && oxbit.subagent) {
+    const sub: Partial<OxbitSubagentMeta> = object(oxbit.subagent);
+    const reported = OXBIT_STATES.has(sub.state as ACPSubagentState)
+      ? sub.state
+      : undefined;
+    return [
+      {
+        toolId,
+        providerId: identity(sub.sessionId) ? sub.sessionId : undefined,
+        name: str(sub.name, 200),
+        task: str(sub.task),
+        model: str(sub.model, 200),
+        // Replay sends the tool's original pending _meta, then a status without _meta.
+        state:
+          reported && terminal(reported)
+            ? reported
+            : update.status === "completed" || update.status === "failed"
+              ? update.status
+              : (reported ?? "pending"),
+        evidence: "provider",
         spawn: true,
       },
     ];
@@ -329,7 +374,7 @@ export class SubagentRegistry {
     if (!this.accepts(sessionId)) {
       // Never authorize an unknown session. Only replay this bounded data if its parent later registers it.
       if (
-        this.provider === "codex" &&
+        NATIVE_SESSIONS.has(this.provider) &&
         identity(sessionId) &&
         this.early.size < 32 &&
         JSON.stringify(update).length <= 16384
@@ -341,7 +386,7 @@ export class SubagentRegistry {
       return false;
     }
     if (
-      this.provider === "codex" &&
+      NATIVE_SESSIONS.has(this.provider) &&
       update.sessionUpdate === "subagent_spawned"
     ) {
       const child = update.subagentSessionId;
@@ -392,7 +437,7 @@ export class SubagentRegistry {
       return true;
     }
     if (
-      this.provider === "codex" &&
+      NATIVE_SESSIONS.has(this.provider) &&
       update.sessionUpdate === "subagent_state_update"
     ) {
       const child = update.subagentSessionId,
@@ -422,6 +467,16 @@ export class SubagentRegistry {
     }
     const childId = this.idForSession(sessionId);
     if (childId) this.activity(sessionId, update);
+    const spawnTool = object(update._meta?.oxbit).subagentOf;
+    if (
+      OXBIT_PROVIDERS.has(this.provider) &&
+      identity(spawnTool) &&
+      identity(update.toolCallId) &&
+      ["tool_call", "tool_call_update"].includes(update.sessionUpdate)
+    ) {
+      this.forwarded(sessionId, spawnTool, update);
+      return true;
+    }
     if (
       ["tool_call", "tool_call_update", "cursor/task"].includes(
         update.sessionUpdate,
@@ -526,6 +581,27 @@ export class SubagentRegistry {
       }
     }
     return true;
+  }
+  /** A child tool card that an Oxbit agent forwarded on the parent session. */
+  private forwarded(sessionId: string, spawnTool: string, update: Data) {
+    const id = this.idForTool(sessionId, spawnTool),
+      record = id && this.records.get(id);
+    if (!record) return;
+    this.aliases.set(`tool:${toolKey(sessionId, update.toolCallId)}`, id);
+    while (this.aliases.size > 2048)
+      this.aliases.delete(this.aliases.keys().next().value!);
+    this.toolActivity(record, update);
+    if (!terminal(record.state)) {
+      const status = record.activity.find(
+        (a) => a.id === `tool:${update.toolCallId}`,
+      )?.status;
+      record.phase = this.waits.get(id)?.size
+        ? "awaiting_input"
+        : ["pending", "in_progress"].includes(status ?? "")
+          ? "executing_tools"
+          : "unknown";
+    }
+    this.publish(record);
   }
   private toolActivity(record: ACPSubagent, update: Data) {
     const id = `tool:${update.toolCallId}`;

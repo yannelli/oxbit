@@ -87,8 +87,10 @@ with the user's key:
   or the code expires. Start without a sign-in shows "Sign in with ChatGPT in Agent setup".
 - The model list comes from `GET /v1/models` (`GET /codex/models` for the ChatGPT plan); the model and reasoning controls are
   session settings, and the chosen model is saved to `agentACP.oxbit.model`.
-- Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
-  and edits open the same review card as other agents. There is no shell.
+- Tools: list, search, read, write and edit files, diagnostics, a plan, and `task`,
+  which runs a subagent with a fresh context (see [Dispatched subagents](#dispatched-subagents)).
+  Writes and edits, including a subagent's, open the same review card as other agents.
+  There is no shell.
 - Commands and settings are listed under [In-app commands and sessions](#in-app-commands-and-sessions).
 - **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
   `@` commits use `git.log`, `git.show` and `git.commitDiff` from the same client.
@@ -521,6 +523,7 @@ both surfaces. Requests expand their ancestor path without stealing focus.
 | Codex ACP 1.10.0 | Negotiated native child sessions, nested descendants, child messages/thinking/tools, lifecycle outcomes, and reopened generations; structured collaboration metadata is retained as a fallback. |
 | Cursor ACP | `cursor/task` metadata correlated with tool calls, including agent identity, task, model, duration, returned output, and explicit outcomes when provided. |
 | Amp ACP 0.9.0 | Adapter-specific `Task` tool recognition, task inputs, tool status and returned output. |
+| Oxbit Agent (in-app) and Oxbit Agent CLI | `task` tool calls with `_meta.oxbit.subagent`, negotiated native child sessions with child messages, tools and requests, and lifecycle outcomes. Up to 4 subagents run at once; subagents do not start their own. See [Subagents](oxbit-agent.md#subagents). |
 
 The UI distinguishes native child events, provider metadata, and delegation-tool
 observations. Cursor and Amp usually provide **Limited visibility**: tool

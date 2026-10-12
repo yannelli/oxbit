@@ -1,6 +1,6 @@
 # Oxbit agent core
 
-Created: 2026-10-11. Last updated: 2026-10-11.
+Created: 2026-10-11. Last updated: 2026-10-12.
 
 `@oxbit/agent-core` (`packages/agent-core`) holds the Oxbit agent loop, the model adapters, the tools, and the extension seams. It imports only `@oxbit/sdk` types and runs in the app, the runtime, and the `oxbit-agent` CLI. It has no `node:*` imports, no DOM use, and no console output.
 
@@ -12,10 +12,11 @@ Created: 2026-10-11. Last updated: 2026-10-11.
 | --- | --- |
 | `models()`, `endpoint()` | Model transport and the provider's `api`/`baseUrl`. |
 | `catalog?()`, `model?()`, `saveModel?()` | Model list (else `GET /v1/models`), the saved model for new sessions, and where `session/set_model` saves it. |
-| `capabilities` | `fs: true` adds the write review line to the system prompt; `terminal: true` adds the `bash` tool. |
+| `capabilities` | `fs: true` adds the write review line to the system prompt; `terminal: true` adds the `bash` tool; `childSessions: true` sends subagents as child sessions. |
 | `filesystem`, `filesystemFor?(cwd)`, `root` | Listing and search. A `session/new` `cwd` other than `root` needs `filesystemFor`. |
 | `update`, `request` | ACP `session/update` notifications and client requests (`fs/*`, `terminal/*`, `session/request_permission`, `oxbit/diagnostics`). |
 | `generateTitles` | `false` turns off model-written session titles. The in-app host sets it. |
+| `subagents` | Adds the `task` tool. `concurrency` caps parallel subagents (default 4). |
 | `extensions` | Tool, context, command, hook, continuation, compaction, snapshot, and session store seams (`src/extensions.ts`). |
 
 `LocalAgentRuntime` (`packages/features/agent-acp/src/local/runtime.ts`) is the in-app host: `capabilities {fs: true, terminal: false}`, endpoint and model from `agentACP.oxbit.*`.
@@ -29,6 +30,7 @@ Created: 2026-10-11. Last updated: 2026-10-11.
 - Modes `ask`, `accept-edits`, `full-auto` appear as `modes` and as a `mode` config option. `ask` keeps the write review and asks before `execute` tools through `session/request_permission`; `accept-edits` adds `_meta: { oxbit: { mode } }` to `fs/write_text_file` so the client applies the write; `full-auto` asks only when a PreToolUse hook returns `ask`. A change sends `current_mode_update`. The mode lives in `meta.mode`.
 - After the first finished turn the agent asks the session model for a 3 to 7 word title (no tools, `maxTokens: 30`; the OpenAI adapters do not send a token cap), stores it in `meta.title`, and sends `session_info_update`. Failures leave no title.
 - A prompt whose first text block starts with `/name` of a provided command runs that command. Commands are advertised with `available_commands_update` after session creation and after each turn when the list changes.
+- `task` runs a subagent with a fresh context and returns its final message; see [Subagents](oxbit-agent.md#subagents). Consecutive calls to tools marked `parallel` run at the same time, and `initialize` reports `sessionCapabilities.subagents` when the host sets `subagents`.
 - `bash` sends `terminal/create` with `command: "bash"`, `args: ["-c", command]`, an absolute `cwd`, and `outputByteLimit: 100000`, embeds `{type: "terminal", terminalId}` in the tool call, then calls `terminal/wait_for_exit`, `terminal/output`, and `terminal/release`; it sends `terminal/kill` on cancel or after `timeout_ms` (default 120000, at most 600000).
 
 ## Hooks

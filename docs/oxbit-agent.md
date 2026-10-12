@@ -235,6 +235,31 @@ and `.codex/hooks.json`.
   or cancelling the turn ends it.
 - Each continuation gets a fresh budget of 64 model steps.
 
+## Subagents
+
+The model delegates work with the `task` tool (`description`, `prompt`). The
+subagent starts with a fresh context: a subagent system prompt, the delegated
+prompt, the session's model and reasoning level, and the same tools except
+`task`, so subagents do not start their own subagents. It follows the session's
+permission mode, so its writes and shell commands go through the same review and
+prompts, and `/undo` reverts its edits with the prompt that started it. Its final
+message, clipped to 40,000 characters, returns as the tool result. Several `task`
+calls in one response run at the same time, up to 4. Cancelling the turn cancels
+its subagents.
+
+Subagents share the session's MCP connections, instructions and skills, and have
+no goal or loop tools. PreToolUse, PostToolUse, PostToolUseFailure, PreCompact and
+PostCompact hooks run for their tools with the parent's `session_id` plus
+`agent_id`; other hook events do not run for subagents.
+
+ACP clients that send `clientCapabilities.subagents` get each subagent as a child
+session: `subagent_spawned` and `subagent_state_update` on the parent session, and
+the subagent's messages and tool calls on its own session ID. Other clients,
+including the terminal UI, get the subagent's tool calls on the parent session
+with tool call IDs `<task call>/<subagent call>` and `_meta.oxbit.subagentOf`. The
+`task` tool call carries `_meta.oxbit.subagent` with its name, task (first 4,096
+characters), model, state and child session ID.
+
 ## Model request retries
 
 A model request that fails before any of its output streamed is retried 4 times with

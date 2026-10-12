@@ -266,6 +266,17 @@ export interface ACPSubagent {
   truncated?: boolean;
   historical?: boolean;
 }
+/** The Oxbit agents' blocking subagent tool. */
+export const OXBIT_SUBAGENT_TOOL = "task";
+/** `_meta.oxbit.subagent` on the task tool_call and its tool_call_update messages from the Oxbit agents. */
+export interface OxbitSubagentMeta {
+  name: string;
+  task: string;
+  model?: string;
+  /** The child ACP session, sent only to clients that advertise `clientCapabilities.subagents`. */
+  sessionId?: string;
+  state?: "pending" | "running" | "completed" | "failed" | "cancelled";
+}
 export interface ACPSubagentEvent {
   id: string;
   rootSessionId: string;

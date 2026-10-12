@@ -8,7 +8,7 @@ import { RpcError, requireString } from "@oxbit/protocol";
 import { WorkspaceFiles } from "./filesystem.js";
 import { killProcess } from "./process-lifecycle.js";
 import { trackChild } from "./owned-processes.js";
-import { SubagentRegistry } from "./acp-subagents.js";
+import { NATIVE_SESSIONS, SubagentRegistry } from "@oxbit/sdk/acp-subagents";
 import { AgentMCP } from "./agent-mcp.js";
 import { runtimeVersion } from "./version.js";
 import { REGISTRY_ID, type ACPRegistry } from "./acp-registry.js";
@@ -313,7 +313,7 @@ export class AgentACP {
         clientCapabilities: {
           fs: { readTextFile: true, writeTextFile: true },
           terminal: true,
-          ...(resolved.provider === "codex" ? { subagents: {} } : {}),
+          ...(NATIVE_SESSIONS.has(resolved.provider) ? { subagents: {} } : {}),
         },
         clientInfo: { name: "oxbit", title: "Oxbit", version: runtimeVersion() },
       });

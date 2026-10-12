@@ -37,8 +37,9 @@ export function replay(turns: readonly Turn[], tools: readonly AgentTool[], upda
         }
         const tool = tools.find((item) => item.spec.name === call.name);
         const args = rawInput && typeof rawInput === "object" ? rawInput as Params : {};
+        const meta = tool?.meta?.(args);
         update({ sessionUpdate: "tool_call", toolCallId: call.id, title: (tool?.title(args) ?? call.name).slice(0, 200), kind: tool?.kind ?? "other",
-          status: "in_progress", rawInput });
+          status: "in_progress", rawInput, ...(meta ? { _meta: meta } : {}) });
       }
     } else
       for (const result of turn.results)

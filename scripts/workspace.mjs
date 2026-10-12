@@ -171,7 +171,9 @@ for (const [path, [name, dependencies]] of Object.entries(entries)) {
                 "./tokens.css": "./src/tokens.css",
                 "./workbench.css": "./src/workbench.css",
               }
-            : entry,
+            : name === "sdk"
+              ? { ".": entry, "./acp-subagents": "./src/acp-subagents.ts" }
+              : entry,
         scripts,
         dependencies,
       },

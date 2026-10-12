@@ -36,6 +36,10 @@ export interface AgentTool {
   title(args: Params): string;
   /** Mutating tools trigger a snapshot before they run. */
   mutates?: boolean;
+  /** Consecutive calls to parallel tools in one response run at the same time. */
+  parallel?: boolean;
+  /** `_meta` for the tool_call notification and its replay. */
+  meta?(args: Params): Params | undefined;
   run(args: Params, context: ToolContext): Promise<string>;
 }
 export interface ToolProvider { tools(session: SessionView): AgentTool[] | Promise<AgentTool[]> }

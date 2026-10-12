@@ -253,12 +253,17 @@ export class AgentController {
             event.subagent.toolCallIds.includes(tool),
           ),
       );
-      this.activity = this.activity.flatMap((a) => {
-        if (a.kind !== "subagent" || !event.removedIds.includes(a.id))
-          return [a];
-        return mergedIds.includes(a.id)
-          ? [{ kind: "subagent" as const, id: event.subagent.id }]
-          : [];
+      const listed = new Set<string>();
+      this.activity = this.activity.flatMap<Activity>((a) => {
+        if (a.kind !== "subagent") return [a];
+        const id = !event.removedIds.includes(a.id)
+          ? a.id
+          : mergedIds.includes(a.id)
+            ? event.subagent.id
+            : undefined;
+        if (!id || listed.has(id)) return [];
+        listed.add(id);
+        return [{ kind: "subagent", id }];
       });
       if (this.selectedSubagent && mergedIds.includes(this.selectedSubagent))
         this.selectedSubagent = event.subagent.id;
