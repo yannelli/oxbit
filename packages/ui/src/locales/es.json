@@ -1062,5 +1062,6 @@
   "Waiting for you to sign in": "Esperando a que inicies sesión",
   "The sign-in code expired. Sign in again.": "El código de inicio de sesión ha caducado. Vuelve a iniciar sesión.",
   "The Workspace value {0} overrides this setting.": "El valor {0} del espacio de trabajo reemplaza este ajuste.",
-  "Remove Workspace value": "Quitar el valor del espacio de trabajo"
+  "Remove Workspace value": "Quitar el valor del espacio de trabajo",
+  "The app reloaded. The agent restarted and loaded this conversation.": "La app se recargó. El agente se reinició y cargó esta conversación."
 }

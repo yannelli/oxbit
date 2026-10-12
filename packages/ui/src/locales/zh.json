@@ -1062,5 +1062,6 @@
   "Waiting for you to sign in": "正在等待你登录",
   "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。",
   "The Workspace value {0} overrides this setting.": "工作区的值 {0} 覆盖了此设置。",
-  "Remove Workspace value": "移除工作区的值"
+  "Remove Workspace value": "移除工作区的值",
+  "The app reloaded. The agent restarted and loaded this conversation.": "应用已重新加载。代理已重新启动并加载了此对话。"
 }

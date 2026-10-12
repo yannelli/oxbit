@@ -1062,5 +1062,6 @@
   "Waiting for you to sign in": "サインインを待っています",
   "The sign-in code expired. Sign in again.": "サインインコードの有効期限が切れました。もう一度サインインしてください。",
   "The Workspace value {0} overrides this setting.": "ワークスペースの値 {0} がこの設定を上書きしています。",
-  "Remove Workspace value": "ワークスペースの値を削除"
+  "Remove Workspace value": "ワークスペースの値を削除",
+  "The app reloaded. The agent restarted and loaded this conversation.": "アプリが再読み込みされました。エージェントを再起動し、この会話を読み込みました。"
 }

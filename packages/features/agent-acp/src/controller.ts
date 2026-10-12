@@ -187,6 +187,7 @@ export class AgentController {
       for (const entry of this.history.entries)
         if (!acpPreset(entry.provider)) rememberAgentName(entry.provider, entry.name);
       this.changed();
+      void this.resumeInApp();
     });
     const runtime = options.runtime;
     if (!runtime) return;
@@ -393,12 +394,19 @@ export class AgentController {
         subagents: [...this.subagents.values()],
         subagentsTruncated: this.subagentsTruncated,
         autoApplyEdits: this.autoApply,
+        inAppAgent: this.inAppSession,
       }),
     ) as Conversation;
     const generation = this.historyGeneration;
     await this.history.ready;
     if (generation !== this.historyGeneration) return;
     await this.history.save(snapshot);
+  }
+  /** True while the in-app Oxbit agent has the open conversation loaded. */
+  private get inAppSession() {
+    const sessionId = this.connection?.sessionId;
+    return this.local && this.connection?.provider === OXBIT_AGENT_PROVIDER && !this.sessionStarting &&
+      !!sessionId && sessionId === this.activeConversation?.sessionId;
   }
   private resetConversation() {
     this.messages = [];
@@ -455,7 +463,6 @@ export class AgentController {
       }
     }
     this.activeSubagentCount = 0;
-    void this.saveConversation();
     this.connectionGeneration++;
     this.requestGeneration++;
     this.startAbort?.abort();
@@ -472,11 +479,12 @@ export class AgentController {
     this.queuePaused = false;
     this.activeTurnId = undefined;
     this.status = status;
+    void this.saveConversation();
   }
-  /** The open conversation to load into a new agent process after a crash, at most 3 times a minute. */
-  private reconnectTarget() {
+  /** The open conversation to load into a new agent process, at most 3 times a minute. `loadable` defaults to the live agent's `loadSession`. */
+  private reconnectTarget(loadable = !!this.connection?.capabilities?.loadSession) {
     const conversation = this.activeConversation;
-    if (this.archived || !conversation?.sessionId || !this.connection?.capabilities?.loadSession) return undefined;
+    if (this.archived || !conversation?.sessionId || !loadable) return undefined;
     const now = Date.now();
     this.reconnects = this.reconnects.filter((time) => now - time < 60000);
     if (this.reconnects.length >= 3) return undefined;
@@ -497,6 +505,32 @@ export class AgentController {
     if (target.prompt && !this.draft.trim() && this.messages.findLast((message) => message.role === "user")?.text !== target.prompt)
       this.draft = target.prompt;
     void this.saveConversation();
+  }
+  /** After a reload, starts the in-app Oxbit agent and loads the conversation it had open. A failed resume leaves that conversation read-only. */
+  private async resumeInApp() {
+    const entry = this.history.entries[0];
+    if (entry?.inAppAgent !== true || entry.provider !== OXBIT_AGENT_PROVIDER || !this.localRuntime) return;
+    // The iOS host registers the model service after this extension activates.
+    for (let waited = 0; !this.local; waited += 100) {
+      if (waited >= 10000 || this.disposed) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    if (this.disposed || this.connection || this.connecting || this.activeConversation || this.history.entries[0]?.id !== entry.id) return;
+    this.restoreSnapshot(entry);
+    this.launch = { provider: OXBIT_AGENT_PROVIDER };
+    const target = this.reconnectTarget(true);
+    if (!target) return;
+    await this.action(() => this.reconnect(target, "The app reloaded"));
+    await this.keepReadOnly(entry);
+  }
+  /** The conversation stays read-only when the agent did not load it, as after a failed History open. */
+  private async keepReadOnly(entry: Conversation) {
+    if (this.disposed || this.activeConversation?.id !== entry.id || this.connection?.sessionId) return;
+    if (this.connection) await this.disconnect().catch(() => {});
+    this.restoreSnapshot(entry);
+    this.archived = true;
+    this.status = "Conversation could not be restored";
+    this.changed();
   }
   private request<T = any>(
     method: string,

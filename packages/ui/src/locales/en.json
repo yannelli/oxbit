@@ -1062,5 +1062,6 @@
   "Waiting for you to sign in": "Waiting for you to sign in",
   "The sign-in code expired. Sign in again.": "The sign-in code expired. Sign in again.",
   "The Workspace value {0} overrides this setting.": "The Workspace value {0} overrides this setting.",
-  "Remove Workspace value": "Remove Workspace value"
+  "Remove Workspace value": "Remove Workspace value",
+  "The app reloaded. The agent restarted and loaded this conversation.": "The app reloaded. The agent restarted and loaded this conversation."
 }
