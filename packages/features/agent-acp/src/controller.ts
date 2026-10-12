@@ -1,6 +1,8 @@
 import {
   ACP_CUSTOM_PROVIDER,
+  AGENT_MODELS_SERVICE,
   OXBIT_AGENT_PROVIDER,
+  OXBIT_AGENT_SETTINGS,
   acpPreset,
   type ACPConnection,
   type ACPRegistryListing,
@@ -12,6 +14,7 @@ import {
   type ACPSessionInfo,
   type ACPSubagent,
   type ACPSubagentEvent,
+  type AgentModels,
   type FeatureOptions,
   type GitLog,
 } from "@oxbit/sdk";
@@ -35,7 +38,8 @@ import {
 } from "./launch.js";
 import { AGENT_VIEW, Attention } from "./attention.js";
 import { AGENT_LIMIT_STATUS, agentLimit, backgroundRequests } from "./threads.js";
-import { settingId } from "./configuration.js";
+import { oxbitEndpoint, settingId } from "./configuration.js";
+import { generateTitle } from "./local/title.js";
 export type { Message } from "./history.js";
 import { encodeImage, imageContext, imageError, withoutImageData } from "./images.js";
 import { branchChanges, commitChanges, uncommittedChanges } from "./changes.js";
@@ -98,6 +102,9 @@ export class AgentController {
   /** The runtime connection to reattach when the runtime reconnects, while its conversation stays open. */
   private reattachOnReconnect?: { id: string; conversationId?: string };
   private checkpointing = false;
+  private autoApplyValue?: boolean;
+  private titleRequested = false;
+  private agentTitled = false;
   readonly attention: Attention;
   readonly checkpoints: Checkpoints;
   readonly history: ConversationHistory;
@@ -209,6 +216,7 @@ export class AgentController {
       if (error) this.error = String(error);
       if (!this.replaying && stopReason !== "cancelled")
         this.attention.turnEnded(this.title, !!error);
+      if (!this.replaying && !error && stopReason !== "cancelled") void this.nameConversation();
     });
     on("acp.queue", ({ queue, paused }) => {
       this.queueRevision++;
@@ -374,6 +382,7 @@ export class AgentController {
         tools: [...this.tools],
         subagents: [...this.subagents.values()],
         subagentsTruncated: this.subagentsTruncated,
+        autoApplyEdits: this.autoApply,
       }),
     ) as Conversation;
     const generation = this.historyGeneration;
@@ -407,6 +416,16 @@ export class AgentController {
     this.queueRevision = 0;
     this.activeTurnId = undefined;
     this.archived = false;
+    this.autoApplyValue = undefined;
+    this.titleRequested = this.agentTitled = false;
+  }
+  /** Agent writes apply without review. A conversation keeps the value it started with or the user chose. */
+  get autoApply() {
+    return this.autoApplyValue ?? this.options.kernel.configuration?.get<boolean>("agentACP.autoApplyEdits") === true;
+  }
+  setAutoApply(value: boolean) {
+    this.autoApplyValue = value;
+    this.changed();
   }
   private get documents() {
     return this.options.documents as DocumentService;
@@ -639,6 +658,7 @@ export class AgentController {
           name: agentName(result.provider, result),
           launch: this.savedLaunch(this.launch),
         };
+        this.autoApplyValue = this.autoApply;
         this.status = "Ready";
       }
     } catch (error) {
@@ -746,6 +766,8 @@ export class AgentController {
         name: agentName(snapshot.connection.provider, snapshot.connection),
         launch: this.savedLaunch(this.launch),
       };
+      const saved = this.history.entries.find((entry) => entry.id === this.activeConversation?.id);
+      this.autoApplyValue = saved ? saved.autoApplyEdits === true : this.autoApply;
       this.replayTruncated = snapshot.truncated;
       this.status = snapshot.busy ? "Working…" : "Ready";
       this.replaying = true;
@@ -754,6 +776,7 @@ export class AgentController {
       } finally {
         this.replaying = false;
       }
+      if (saved && !this.agentTitled && saved.title !== "New conversation") this.title = saved.title;
       this.lastSequence = Math.max(this.lastSequence, snapshot.sequence);
       this.queue = snapshot.queue;
       this.queuePaused = snapshot.queuePaused;
@@ -848,6 +871,8 @@ export class AgentController {
       launch: copy.launch,
     };
     this.title = copy.title;
+    this.titleRequested = true;
+    this.autoApplyValue = copy.autoApplyEdits === true;
     this.draft = copy.draft;
     this.context = copy.context;
     this.activity = copy.activity;
@@ -1245,12 +1270,14 @@ export class AgentController {
     if (!this.connection) {
       const draft = this.draft;
       const context = this.context;
+      const autoApply = this.autoApplyValue;
       try {
         await this.connectSelected();
       } finally {
         // Starting a conversation resets the composer; the pending draft belongs to it.
         this.draft = draft;
         this.context = context;
+        this.autoApplyValue = autoApply ?? this.autoApplyValue;
         this.changed();
       }
       const connection = this.connection as ACPConnection | undefined;
@@ -1519,8 +1546,10 @@ export class AgentController {
     } else if (
       update.sessionUpdate === "session_info_update" &&
       typeof update.title === "string"
-    )
+    ) {
       this.title = update.title.slice(0, 200);
+      this.agentTitled = true;
+    }
     else if (update.sessionUpdate === "usage_update") {
       const usage = update.usage ?? update;
       if (Number.isFinite(usage.used) && Number.isFinite(usage.size) && usage.size > 0)
@@ -1635,6 +1664,13 @@ export class AgentController {
         request.version = document?.version;
       }
       if (!this.disposed && valid() && this.connection?.id === request.id) {
+        if (request.method === "fs/write_text_file" && this.autoApply) {
+          await this.writeFile(request, false).catch((error) => {
+            this.error = String(error);
+            this.changed();
+          });
+          return;
+        }
         this.requests.push(request);
         this.attention.requestArrived(this.title);
         this.changed();
@@ -1681,6 +1717,11 @@ export class AgentController {
       );
       return false;
     }
+    return this.writeFile(request, true);
+  }
+  /** Saves the agent's write, records it for Undo and answers the agent. `open` shows the file in the editor. */
+  private async writeFile(request: AgentRequest, open: boolean) {
+    const document = this.documents.get(request.params.path);
     this.fileActions.add(request.requestId);
     try {
       if (document) {
@@ -1712,7 +1753,7 @@ export class AgentController {
         text: `Applied change: ${request.params.path}`,
       });
       await this.respond(request, null);
-      if (!this.panelCoversEditor())
+      if (open && !this.panelCoversEditor())
         await this.options.workbench.openFile(request.params.path, {
           preview: false,
         });
@@ -1847,6 +1888,30 @@ export class AgentController {
     this.context = thread ? [thread] : [];
     if (restore) this.activity.push(restoredNotice(message));
     this.changed();
+  }
+  /** After the first turn, asks the Oxbit Agent model for a title when the agent sent none. */
+  private async nameConversation() {
+    const config = this.options.kernel.configuration;
+    const models = this.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
+    const model = config?.get<string>(OXBIT_AGENT_SETTINGS.model)?.trim();
+    const endpoint = oxbitEndpoint(config);
+    const users = this.messages.filter((message) => message.role === "user");
+    if (this.titleRequested || this.agentTitled || users.length !== 1 || !this.connection || this.connection.provider === OXBIT_AGENT_PROVIDER ||
+      config?.get<boolean>("agentACP.generateTitles") === false || !models || !model || (endpoint.api === "openai-compatible" && !endpoint.baseUrl))
+      return;
+    this.titleRequested = true;
+    const conversation = this.activeConversation?.id;
+    const generation = this.connectionGeneration;
+    const reply = this.messages.slice(this.messages.indexOf(users[0]) + 1)
+      .filter((message) => message.role === "agent").map((message) => message.text).join("\n\n");
+    try {
+      const title = await generateTitle(models, endpoint, model, users[0].text, reply);
+      if (!title || this.agentTitled || this.disposed || generation !== this.connectionGeneration || conversation !== this.activeConversation?.id) return;
+      this.title = title;
+      this.changed();
+    } catch {
+      // The first message stays the title.
+    }
   }
   private isChildRequest(request: AgentRequest) {
     return (

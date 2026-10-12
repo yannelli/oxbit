@@ -39,7 +39,7 @@ export const anthropicMessages: ModelAdapter = {
       path: "/v1/messages",
       body: {
         model, system, messages, stream: true, max_tokens: maxTokens ?? DEFAULT_MAX_TOKENS,
-        tools: tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })),
+        ...(tools.length ? { tools: tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.parameters })) } : {}),
         ...(effort ? { output_config: { effort } } : {}),
       },
     };

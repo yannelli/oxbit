@@ -22,7 +22,7 @@ export const openaiResponses: ModelAdapter = {
       path: "/v1/responses",
       body: {
         model, instructions: system, input, stream: true,
-        tools: tools.map((tool) => ({ type: "function", ...tool, strict: false })),
+        ...(tools.length ? { tools: tools.map((tool) => ({ type: "function", ...tool, strict: false })) } : {}),
         ...(effort ? { reasoning: { effort, summary: "auto" } } : {}),
       },
     };

@@ -857,6 +857,12 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               agent.changed();
             }}
           />
+          {agent.autoApply && !agent.archived && (
+            <span className="acp-auto-apply-on" title={tr("Agent edits save without review")}>
+              <Icon name="check" size={12} />
+              {tr("Auto-apply on")}
+            </span>
+          )}
           <SendHint configuration={kernel.configuration} />
           {agent.busy && (
             <IconButton
@@ -910,6 +916,13 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               else void agent.action(() => agent.select({ provider: value }));
             }}
           />
+        )}
+        {!agent.archived && (
+          <label className="acp-auto-apply" title={tr("Save agent file changes without review. Permission prompts still ask.")}>
+            <input type="checkbox" role="switch" className="setting-switch" checked={agent.autoApply}
+              onChange={(event) => agent.setAutoApply(event.target.checked)} />
+            <span>{tr("Auto-apply edits")}</span>
+          </label>
         )}
         {controls.length > 0 && (
           <details className="acp-session-options">

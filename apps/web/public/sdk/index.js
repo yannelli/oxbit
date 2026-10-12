@@ -171,6 +171,18 @@ var settings_schema_default = {
         "never"
       ]
     },
+    "agentACP.autoApplyEdits": {
+      title: "Auto-apply agent edits",
+      description: "New conversations save agent file changes without review. Undo stays available, and permission prompts still ask.",
+      type: "boolean",
+      default: false
+    },
+    "agentACP.generateTitles": {
+      title: "Generate conversation titles",
+      description: "When an agent does not name a conversation, ask the Oxbit Agent model for a short title after the first reply.",
+      type: "boolean",
+      default: true
+    },
     "agentACP.codex.command": {
       title: "Codex ACP executable",
       type: "string",
@@ -913,6 +925,12 @@ var settings_schema_default = {
         },
         "agentACP.notifications": {
           $ref: "#/properties/agentACP.notifications"
+        },
+        "agentACP.autoApplyEdits": {
+          $ref: "#/properties/agentACP.autoApplyEdits"
+        },
+        "agentACP.generateTitles": {
+          $ref: "#/properties/agentACP.generateTitles"
         },
         "agentACP.codex.command": {
           $ref: "#/properties/agentACP.codex.command"

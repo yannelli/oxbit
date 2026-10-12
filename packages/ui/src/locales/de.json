@@ -1001,5 +1001,9 @@
   "Restore files and fork": "Dateien wiederherstellen und abzweigen",
   "Fork conversation": "Unterhaltung abzweigen",
   "Forked from “{title}”. The agent keeps the earlier context.": "Von „{title}“ abgezweigt. Der Agent behält den bisherigen Kontext.",
-  "Update the runtime to fork conversations": "Aktualisieren Sie die Runtime, um Unterhaltungen abzuzweigen"
+  "Update the runtime to fork conversations": "Aktualisieren Sie die Runtime, um Unterhaltungen abzuzweigen",
+  "Auto-apply edits": "Änderungen automatisch anwenden",
+  "Auto-apply on": "Automatisch anwenden aktiv",
+  "Agent edits save without review": "Agentenänderungen werden ohne Prüfung gespeichert",
+  "Save agent file changes without review. Permission prompts still ask.": "Dateiänderungen des Agenten ohne Prüfung speichern. Berechtigungsanfragen fragen weiterhin nach."
 }
