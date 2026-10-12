@@ -4,27 +4,8 @@ import { describe, expect, it } from "vitest";
 import { chatText, chatTool } from "@oxbit/agent-core/test-models";
 import { MemoryConnection } from "./connection.js";
 import { nodeSpawn, projectTrusted } from "./mcp.js";
-import { tempDir, testSetup } from "./testing.js";
+import { echoServer as serverScript, tempDir, testSetup } from "./testing.js";
 
-/** A 2025-06-18 stdio MCP server with one `echo` tool. */
-const SERVER = `import { createInterface } from "node:readline";
-const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...message }) + "\\n");
-createInterface({ input: process.stdin }).on("line", (line) => {
-  const message = JSON.parse(line);
-  if (message.id === undefined) return;
-  if (message.method === "initialize")
-    return send({ id: message.id, result: { protocolVersion: "2025-06-18", capabilities: { tools: {} }, serverInfo: { name: "echo", version: "1" } } });
-  if (message.method === "tools/list")
-    return send({ id: message.id, result: { tools: [{ name: "echo", description: "Echo text", inputSchema: { type: "object", properties: { text: { type: "string" } } } }] } });
-  if (message.method === "tools/call") return send({ id: message.id, result: { content: [{ type: "text", text: "echo: " + message.params.arguments.text }] } });
-  send({ id: message.id, error: { code: -32601, message: "Method not found" } });
-});
-`;
-const serverScript = async () => {
-  const path = join(await tempDir("oxa-mcp-"), "server.mjs");
-  await writeFile(path, SERVER);
-  return path;
-};
 const text = (updates: any[]) => updates.filter((update) => update.sessionUpdate === "agent_message_chunk").map((update) => update.content.text).join("");
 
 describe("MCP in the Node host", () => {

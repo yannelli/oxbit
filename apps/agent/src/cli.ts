@@ -8,8 +8,9 @@ import { MemoryConnection } from "./connection.js";
 import { agentFactory, type AgentSetup } from "./host.js";
 import { UsageError, login, logout, models, readAll, type AuthCommand } from "./login.js";
 import { runPrint } from "./print.js";
-import { PROVIDER_IDS, selectProvider, type ProviderChoice, type ProviderInput } from "./providers.js";
+import { PROVIDER_IDS, selectProvider, type ProviderInput } from "./providers.js";
 import { JsonlSessionStore } from "./sessions.js";
+import { createSettingsManager, type SettingsDeps } from "./settings/index.js";
 import { agentVersion } from "./version.js";
 
 export const USAGE = `Usage: oxbit-agent [options] [prompt]     Terminal UI
@@ -73,13 +74,19 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     const commandContext: AuthCommand = { config, auth, io, input };
     const [command, ...rest] = positionals;
     switch (command) {
-      case "acp": return await acp(config, await selectProvider(input), io, log);
       case "models": return await models(commandContext);
       case "login": return await login(commandContext, rest);
       case "logout": return await logout(commandContext, rest);
     }
-    const provider = await selectProvider(input);
-    const setup = (generateTitles: boolean, quiet = false): AgentSetup => ({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log, provider });
+    let provider = await selectProvider(input);
+    const deps: SettingsDeps = { config, auth, env: io.env, fetch: io.fetch, open: io.open, provider: () => provider };
+    const settings = createSettingsManager(deps);
+    const setup = (generateTitles: boolean, quiet = false): AgentSetup =>
+      ({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log, provider, settings });
+    if (command === "acp") {
+      await serveStdio({ input: io.stdin, output: io.stdout, factory: agentFactory(setup(true)), log });
+      return 0;
+    }
     const sessionId = await resumeId(config, values, io.cwd);
     const mode = (values.mode ?? config.settings.mode) as PermissionMode | undefined;
     if (values.print !== undefined) {
@@ -99,14 +106,23 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     }
     if (!io.stdout.isTTY) throw new UsageError("stdout is not a terminal. Use -p <prompt> for one reply or `oxbit-agent acp` for ACP");
     // Loaded on demand so ACP and print mode run without ink and react installed.
-    const tui = await import("./tui/index.js");
-    const connected = setup(true, true);
-    const connection = await MemoryConnection.open(agentFactory(connected));
+    const [tui, memory] = await Promise.all([import("./tui/index.js"), import("./tui/memory.js")]);
+    const label = () => ({ provider: provider.runtime.label, usingChatGPTPlan: provider.runtime.method === "chatgpt" });
+    const panels = createSettingsManager({ ...deps, rebuild: async (id) => {
+      await config.reload();
+      const next = await selectProvider({ ...input, settings: config.settings, provider: id, model: id === provider.id ? provider.model : undefined });
+      const connection = await MemoryConnection.open(agentFactory({ ...setup(true, true), provider: next }));
+      provider = next;
+      await adapter.replace(connection, label());
+    } });
+    const adapter = memory.memoryTuiConnection(await MemoryConnection.open(agentFactory(setup(true, true))), { ...label(), mode, settings: panels });
     try {
-      return await tui.runTui({ connection, cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, mode, version: agentVersion(),
-        providerLabel: connected.provider.runtime.label, usingChatGPTPlan: connected.provider.runtime.method === "chatgpt", historyPath: config.paths.history });
+      const { sessionId: last } = await tui.run(adapter, { cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, version: agentVersion(),
+        history: memory.fileHistory(config.paths.history) });
+      if (last) io.stderr.write(`Resume this session with: oxbit-agent -r ${last}\n`);
+      return 0;
     } finally {
-      await connection.close();
+      await adapter.connection.close();
     }
   } catch (error) {
     io.stderr.write(`oxbit-agent: ${error instanceof Error ? error.message : String(error)}\n`);
@@ -126,7 +142,3 @@ async function resumeId(config: AgentConfig, values: Values, cwd: string) {
   return values.resume;
 }
 
-async function acp(config: AgentConfig, provider: ProviderChoice, io: CliIO, log: (text: string) => void) {
-  await serveStdio({ input: io.stdin, output: io.stdout, factory: agentFactory({ root: io.cwd, config, provider, log }), log });
-  return 0;
-}

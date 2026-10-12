@@ -2,7 +2,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { chatText, chatTool } from "@oxbit/agent-core/test-models";
+import type { Compaction } from "@oxbit/agent-core";
 import { MemoryConnection } from "./connection.js";
+import { coreExtensions } from "./extensions.js";
 import { testSetup } from "./testing.js";
 
 const system = (request: { body?: unknown }) => JSON.stringify((request.body as { messages?: { role: string; content: string }[] }).messages?.find((message) => message.role === "system")?.content ?? "");
@@ -30,5 +32,31 @@ describe("core extensions in the Node host", () => {
     const names = updates.filter((update) => update.sessionUpdate === "available_commands_update").at(-1)?.availableCommands?.map((command) => command.name);
     expect(names).toEqual(expect.arrayContaining(["undo", "redo", "compact", "goal", "loop", "skills", "release"]));
     connection.close();
+  });
+
+  it("reads settings on each turn: hidden skills, skipped instruction files and hooks, the global prompt and the compact threshold", async () => {
+    const t = await testSetup([chatText("One"), chatText("Two")]);
+    await writeFile(join(t.root, "AGENTS.md"), "Use tabs in this repo.");
+    await mkdir(join(t.home, ".claude", "skills", "release"), { recursive: true });
+    await writeFile(join(t.home, ".claude", "skills", "release", "SKILL.md"), "---\nname: release\ndescription: Cut a release\n---\nRun it.");
+    await writeFile(t.config.paths.settings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "echo hook-context" }] }] } }));
+    await t.config.reload();
+    const connection = await MemoryConnection.open(t.factory);
+    const { sessionId } = await connection.newSession({ cwd: t.root });
+    await connection.prompt(sessionId, "First");
+    await t.config.saveSettings({ disabledSkills: ["release"], disabledInstructions: [join(t.root, "AGENTS.md")], appendSystemPrompt: "Be brief.",
+      disabledHooks: [`oxbit|${t.config.paths.settings}|UserPromptSubmit||echo hook-context`] });
+    await connection.prompt(sessionId, "Second");
+    const [first, second] = t.fake.requests.filter((request) => request.method === "POST");
+    expect([system(first), system(second)].map((text) => [text.includes("Use tabs"), text.includes("<name>release</name>"), text.includes("Be brief.")]))
+      .toEqual([[true, true, false], [false, false, true]]);
+    const users = (request: typeof first) => JSON.stringify((request.body as { messages: { role: string }[] }).messages.filter((message) => message.role === "user").at(-1));
+    expect([users(first).includes("hook-context"), users(second).includes("hook-context")]).toEqual([true, false]);
+    await connection.close();
+
+    const compaction = coreExtensions(t.config, () => {}).compactor as Compaction;
+    expect(compaction.threshold(200000)).toBe(180000);
+    await t.config.saveSettings({ autoCompactAt: 60 });
+    expect(compaction.threshold(200000)).toBe(120000);
   });
 });

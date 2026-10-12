@@ -1,5 +1,5 @@
-import type { AgentModelEndpoint, AgentModels, FileSystem } from "@oxbit/sdk";
-import type { AgentExtensions, Params } from "./extensions.js";
+import type { ACPConfigOption, AgentModelEndpoint, AgentModels, FileSystem } from "@oxbit/sdk";
+import type { AgentExtensions, Params, SessionView } from "./extensions.js";
 import type { ModelInfo } from "./model.js";
 
 /** Model list with context windows and output limits. */
@@ -37,5 +37,9 @@ export interface AgentHost {
   request(method: string, params: Params): Promise<any>;
   /** Ask the model for a title after a session's first turn. Defaults to true. */
   generateTitles?: boolean;
+  /** Session config options listed after model, reasoning and mode. */
+  configOptions?(session: SessionView): ACPConfigOption[];
+  /** Applies a value to one of configOptions(); resolves false for an ID it does not own. */
+  setConfigOption?(session: SessionView, configId: string, value: string): Promise<boolean>;
   extensions?: AgentExtensions;
 }

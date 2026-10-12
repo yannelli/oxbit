@@ -121,8 +121,21 @@ describe("Agent modes and titles", () => {
     expect(t.updates.at(-1)).toEqual({ sessionUpdate: "current_mode_update", currentModeId: "accept-edits" });
     await agent.prompt(session.sessionId, text("Write"));
     expect(t.client.at(-1)).toEqual(["fs/write_text_file", expect.objectContaining({ content: "x", _meta: { oxbit: { mode: "accept-edits" } } })]);
-    const result = agent.setConfigOption(session.sessionId, "mode", "full-auto");
+    const result = await agent.setConfigOption(session.sessionId, "mode", "full-auto");
     expect(result.configOptions.find((option) => option.id === "mode")?.currentValue).toBe("full-auto");
+  });
+  it("lists host config options after the built-in ones and passes their changes to the host", async () => {
+    let value = "on";
+    const t = testHost([], { host: {
+      configOptions: () => [{ id: "auto-compact", name: "Auto-compact", type: "select", currentValue: value, options: [{ value: "on", name: "On" }, { value: "off", name: "Off" }] }],
+      setConfigOption: async (_session, configId, next) => configId === "auto-compact" && !!(value = next),
+    } });
+    const agent = new Agent(t.host);
+    const session = await agent.newSession();
+    expect(session.configOptions.map((option) => option.id)).toEqual(["model", "reasoning", "mode", "auto-compact"]);
+    const result = await agent.setConfigOption(session.sessionId, "auto-compact", "off");
+    expect(result.configOptions.find((option) => option.id === "auto-compact")?.currentValue).toBe("off");
+    await expect(agent.setConfigOption(session.sessionId, "nope", "x")).rejects.toThrow("Unknown agent setting");
   });
   it("asks before execute tools unless the mode is full-auto", async () => {
     const terminal = (method: string) => method === "terminal/create" ? { terminalId: "t1" } : method === "terminal/wait_for_exit" ? { exitCode: 0, signal: null }

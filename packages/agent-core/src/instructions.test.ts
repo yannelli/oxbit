@@ -69,6 +69,17 @@ describe("Instructions", () => {
     const loose = memoryFiles({ "/tmp/AGENTS.md": "Parent", "/tmp/x/AGENTS.md": "Here" });
     expect((await new Instructions({ files: loose }).load("/tmp/x")).map((file) => file.path)).toEqual(["/tmp/x/AGENTS.md"]);
   });
+  it("lists missing global files as candidates and skips files in the system prompt", async () => {
+    const instructions = new Instructions({ files, global: "/home/.oxbit/agent/AGENTS.md", claude: "/home/.claude/missing.md",
+      skip: (path) => path === "/repo/AGENTS.md" });
+    expect((await instructions.candidates("/repo/a")).map(({ path, scope, text }) => [path, scope, text])).toEqual([
+      ["/home/.oxbit/agent/AGENTS.md", "global", "Global rules"], ["/home/.claude/missing.md", "claude", undefined],
+      ["/repo/AGENTS.md", "project", "Root agents"], ["/repo/a/AGENTS.override.md", "project", "Override"]]);
+    const text = await instructions.system(session("/repo/a"));
+    expect(text).toContain("Global rules");
+    expect(text).toContain("Override");
+    expect(text).not.toContain("Root agents");
+  });
   it("returns the append alone, or nothing when there is no text", async () => {
     const empty = memoryFiles({});
     expect(await new Instructions({ files: empty }).system(session("/w"))).toBeUndefined();

@@ -3,7 +3,7 @@ import { readFile, realpath } from "node:fs/promises";
 import { basename, isAbsolute, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { McpTools, type Spawn } from "@oxbit/agent-core";
-import { readJson, type AgentConfig, type AgentSettings } from "./config.js";
+import { readJson, stringList, type AgentConfig, type AgentSettings } from "./config.js";
 import { agentVersion } from "./version.js";
 
 /** Starts a stdio MCP server with PATH lookup. kill() sends SIGTERM, then SIGKILL after `killAfterMs`. */
@@ -66,7 +66,7 @@ export async function projectTrusted(settingsPath: string, cwd: string) {
   return false;
 }
 
-/** MCP servers from ~/.oxbit/agent/mcp.json, trusted `.mcp.json` files and ACP session/new. */
+/** MCP servers from ~/.oxbit/agent/mcp.json, trusted `.mcp.json` files and ACP session/new, without `disabledMcpServers`. */
 export function nodeMcp(config: AgentConfig, log?: (text: string) => void) {
   return new McpTools({
     fetch: (url, init) => fetch(url, init),
@@ -76,6 +76,7 @@ export function nodeMcp(config: AgentConfig, log?: (text: string) => void) {
     env: process.env,
     trustProject: (cwd) => projectTrusted(config.paths.settings, cwd),
     trustHint: `Add the project path to "trustedProjects" in ${config.paths.settings} to run them.`,
+    skip: (server) => stringList(config.settings.disabledMcpServers).includes(server.name),
     clientInfo: { name: "oxbit-agent", version: agentVersion() },
   });
 }

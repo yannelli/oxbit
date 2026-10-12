@@ -23,7 +23,11 @@ export interface HookRunnerOptions {
   exec: HookExec;
   transcriptPath?(sessionId: string): string;
   onWarning?(message: string): void;
+  /** Called on every event; true leaves the hook out. */
+  skip?(hook: HookEntry): boolean;
 }
+/** One command hook from a source. `id` is `dialect|path|event|matcher|command`. */
+export interface HookEntry { id: string; dialect: HookDialect; path: string; event: string; matcher: string; command: string }
 export interface CommandHookRunner extends HookRunner { readonly warnings: readonly string[] }
 
 /** Claude Code names that hook matchers and `if` rules accept for Oxbit tools. The first name goes in `tool_name`. */
@@ -50,12 +54,7 @@ export function hookSourcePaths(home: string, project: string, options: { claude
   return paths;
 }
 
-interface Handler {
-  dialect: HookDialect;
-  path: string;
-  event: string;
-  matcher: string;
-  command: string;
+interface Handler extends HookEntry {
   timeoutMs: number;
   rule?: string;
   async: boolean;
@@ -82,13 +81,23 @@ function parse(source: HookSource, warn: (message: string) => void): Handler[] {
         }
         const args = Array.isArray(entry.args) ? entry.args.filter((arg: unknown) => typeof arg === "string") : undefined;
         const seconds = typeof entry.timeout === "number" && entry.timeout > 0 ? entry.timeout : event === "UserPromptSubmit" ? 30 : 600;
-        handlers.push({ dialect: source.dialect, path: source.path, event, matcher: typeof group.matcher === "string" ? group.matcher : "",
-          command: args ? [entry.command, ...args].map(quote).join(" ") : entry.command, timeoutMs: seconds * 1000,
-          rule: typeof entry.if === "string" ? entry.if : undefined, async: entry.async === true, failBlocks: entry.onFailure === "block" });
+        const matcher = typeof group.matcher === "string" ? group.matcher : "";
+        const command = args ? [entry.command, ...args].map(quote).join(" ") : entry.command;
+        handlers.push({ id: [source.dialect, source.path, event, matcher, command].join("|"), dialect: source.dialect, path: source.path, event, matcher,
+          command, timeoutMs: seconds * 1000, rule: typeof entry.if === "string" ? entry.if : undefined, async: entry.async === true,
+          failBlocks: entry.onFailure === "block" });
       }
     }
   }
   return handlers;
+}
+
+/** The command hooks of `sources` in load order, and the warnings from parsing them. */
+export function listHooks(sources: HookSource[]): { hooks: HookEntry[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const hooks = sources.flatMap((source) => parse(source, (message) => warnings.push(message)))
+    .map(({ id, dialect, path, event, matcher, command }) => ({ id, dialect, path, event, matcher, command }));
+  return { hooks, warnings };
 }
 
 /** `*`, empty: all. Letters, digits, `_`, `-`, space, `,` and `|` only: exact names. Anything else: unanchored regex. */
@@ -250,7 +259,7 @@ export function createHookRunner(options: HookRunnerOptions): CommandHookRunner 
       const values = names ?? (field && typeof input[field] === "string" ? [input[field] as string] : undefined);
       const selected = new Map<string, Handler>();
       for (const handler of sources.flatMap(handlersOf)) {
-        if (handler.event !== event || (values && !matchesHook(handler.matcher, values))) continue;
+        if (handler.event !== event || (values && !matchesHook(handler.matcher, values)) || options.skip?.(handler)) continue;
         if (handler.rule !== undefined && !(names && ruleAllows(handler.rule, names, isObject(input.tool_input) ? input.tool_input : {}))) continue;
         const key = `${handler.command}\0${handler.rule ?? ""}`;
         if (!selected.has(key)) selected.set(key, handler);
