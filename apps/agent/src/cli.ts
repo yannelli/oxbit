@@ -1,13 +1,11 @@
 import type { Readable, Writable } from "node:stream";
 import { parseArgs } from "node:util";
 import { MODES, type Fetch, type PermissionMode } from "@oxbit/agent-core";
-import type { FileSystem } from "@oxbit/sdk";
 import { serveStdio } from "./acp-server.js";
 import { FileAuthStore, FileCatalogCache } from "./auth.js";
 import { AgentConfig, agentHome } from "./config.js";
 import { MemoryConnection } from "./connection.js";
 import { agentFactory, type AgentSetup } from "./host.js";
-import { nodeFilesystem } from "./fs.js";
 import { UsageError, login, logout, models, readAll, type AuthCommand } from "./login.js";
 import { runPrint } from "./print.js";
 import { PROVIDER_IDS, selectProvider, type ProviderChoice, type ProviderInput } from "./providers.js";
@@ -51,11 +49,6 @@ export interface CliIO {
   fetch?: Fetch;
   /** Replaces the system browser for Sign in with ChatGPT; resolves false when no browser opened. */
   open?(url: string): Promise<boolean>;
-}
-/** What `./tui/index.js` exports. `providerLabel` is "Using ChatGPT plan" for plan requests, else the provider name. */
-export interface TuiModule {
-  runTui(options: { connection: MemoryConnection; cwd: string; sessionId?: string; prompt?: string; mode?: PermissionMode;
-    files: FileSystem; provider: string; providerLabel?: string; version: string }): Promise<number>;
 }
 
 export async function main(argv: string[], io: CliIO): Promise<number> {
@@ -105,19 +98,13 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
       }
     }
     if (!io.stdout.isTTY) throw new UsageError("stdout is not a terminal. Use -p <prompt> for one reply or `oxbit-agent acp` for ACP");
-    const specifier = "./tui/index.js";
-    let tui: TuiModule;
-    try {
-      tui = await import(/* @vite-ignore */ specifier);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ERR_MODULE_NOT_FOUND") throw error;
-      throw new Error("The terminal UI is not in this build yet. Use -p <prompt> or `oxbit-agent acp`");
-    }
+    // Loaded on demand so ACP and print mode run without ink and react installed.
+    const tui = await import("./tui/index.js");
     const connected = setup(true, true);
     const connection = await MemoryConnection.open(agentFactory(connected));
     try {
-      return await tui.runTui({ connection, cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, mode,
-        files: nodeFilesystem(io.cwd), provider: connected.provider.id, providerLabel: connected.provider.runtime.label, version: agentVersion() });
+      return await tui.runTui({ connection, cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, mode, version: agentVersion(),
+        providerLabel: connected.provider.runtime.label, usingChatGPTPlan: connected.provider.runtime.method === "chatgpt", historyPath: config.paths.history });
     } finally {
       await connection.close();
     }

@@ -36,6 +36,7 @@ export function agentPaths(home: string) {
     instructions: join(home, "AGENTS.md"),
     skills: join(home, "skills"),
     sessions: join(home, "sessions"),
+    history: join(home, "history.jsonl"),
     snapshots: join(home, "snapshots"),
   };
 }
