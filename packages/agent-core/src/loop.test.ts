@@ -37,6 +37,8 @@ describe("loop", () => {
     expect((await loop.tools(session)).map((tool) => tool.spec.name)).toEqual(["schedule_next"]);
     expect(notes(updates)).toEqual(["Usage: /loop [interval] <prompt>, for example /loop 5m check the deploy.", "Loop 1/100, every 5m. Cancel to stop it.",
       'Loop running: 1/100 iterations of "check the deploy".', "Loop stopped.", "Loop 1/100, paced by the model. Cancel to stop it."]);
+    expect(updates.filter((update) => update.sessionUpdate === "session_info_update").map((update) => update._meta.oxbit.loop))
+      .toEqual([{ status: "running", iteration: 1, max: 100, interval: "5m" }, null, { status: "running", iteration: 1, max: 100 }]);
   });
   it("ends at the iteration cap, on cancel, without a scheduled run and for a loop from an earlier prompt", async () => {
     const capped = fixture();

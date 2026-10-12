@@ -9,6 +9,9 @@ export interface ControlOptions {
 export type ControlExtension = CommandProvider & ToolProvider & ContextProvider & ContinuationProvider;
 export const agentNote = (options: ControlOptions, sessionId: string, text: string) =>
   options.update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: `\n\n${text}\n\n` } });
+/** Goal or loop state as `_meta.oxbit.<key>` on session_info_update for status lines; null clears it. */
+export const statusUpdate = (options: ControlOptions, sessionId: string, key: "goal" | "loop", value: Params | null) =>
+  options.update(sessionId, { sessionUpdate: "session_info_update", _meta: { oxbit: { [key]: value } } });
 
 export type GoalStatus = "active" | "paused" | "blocked" | "complete" | "budget_limited";
 /** `meta.goal`. `tokensUsed` is an estimate at 4 characters per token of the turns added since the goal was set. */
@@ -87,6 +90,10 @@ export function createGoal(options: GoalOptions): ControlExtension {
     }
     goal.tokensUsed += Math.ceil(chars / 4);
   };
+  const publish = (session: SessionView) => {
+    const goal = goalOf(session.meta);
+    statusUpdate(options, session.id, "goal", goal ? { objective: goal.objective, status: goal.status, turns: goal.continuations, tokens: goal.tokensUsed } : null);
+  };
   const done = (context: CommandContext, text: string) => {
     agentNote(options, context.session.id, text);
     return { done: "end_turn" };
@@ -102,6 +109,7 @@ export function createGoal(options: GoalOptions): ControlExtension {
       if (!args) return done(context, goal ? describe(goal) : "No goal is set. Start one with /goal <objective>.");
       if (args === "clear") {
         delete session.meta.goal;
+        publish(session);
         return done(context, goal ? "Goal cleared." : "No goal is set.");
       }
       if (args === "pause" || args === "resume") {
@@ -109,9 +117,11 @@ export function createGoal(options: GoalOptions): ControlExtension {
         if (goal.status === "complete") return done(context, "The goal is complete. Set a new one with /goal <objective>.");
         if (args === "pause") {
           goal.status = "paused";
+          publish(session);
           return done(context, "Goal paused.");
         }
         goal.status = "active";
+        publish(session);
         agentNote(options, session.id, "Goal resumed.");
         return { prompt: continuationPrompt(goal) };
       }
@@ -119,6 +129,7 @@ export function createGoal(options: GoalOptions): ControlExtension {
       session.meta.goal = { objective: args, status: "active", tokensUsed: 0, continuations: 0, setAt: new Date().toISOString(),
         ...options.tokenBudget ? { tokenBudget: options.tokenBudget } : {} } satisfies GoalState;
       seen.set(session, new WeakSet(session.turns));
+      publish(session);
       agentNote(options, session.id, `Goal set: ${args}`);
       return { prompt: args };
     },
@@ -138,6 +149,7 @@ export function createGoal(options: GoalOptions): ControlExtension {
       account(session, goal);
       goal.status = args.status;
       if (typeof args.note === "string" && args.note.trim()) goal.note = args.note.trim().slice(0, 2000);
+      publish(session);
       agentNote(options, context.sessionId, `Goal ${goal.status}${goal.note ? `: ${goal.note}` : "."}`);
       return `Goal status: ${goal.status}. ${budgetLines(goal)}`;
     },
@@ -158,6 +170,7 @@ export function createGoal(options: GoalOptions): ControlExtension {
       account(session, goal);
       if (goal.tokenBudget && goal.tokensUsed >= goal.tokenBudget) {
         goal.status = "budget_limited";
+        publish(session);
         agentNote(options, session.id, `Goal stopped: about ${goal.tokensUsed} tokens used of the ${goal.tokenBudget} token budget.`);
         return undefined;
       }
@@ -168,6 +181,7 @@ export function createGoal(options: GoalOptions): ControlExtension {
         return undefined;
       }
       goal.continuations++;
+      publish(session);
       agentNote(options, session.id, `Continuing the goal (${count + 1}/${max}).`);
       return continuationPrompt(goal);
     },

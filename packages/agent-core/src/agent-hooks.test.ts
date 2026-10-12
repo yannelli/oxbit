@@ -74,7 +74,7 @@ describe("Agent hooks", () => {
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "Run the tests" });
     expect(calls.filter(([event]) => event === "Stop").map(([, input]) => [input.stop_hook_active, input.last_assistant_message]))
       .toEqual([[false, "Done"], [true, "Tests pass"]]);
-    expect(t.updates).toContainEqual({ sessionUpdate: "user_message_chunk", content: { type: "text", text: "Run the tests" } });
+    expect(t.updates).toContainEqual({ sessionUpdate: "user_message_chunk", content: { type: "text", text: "Run the tests" }, _meta: { oxbit: { continuation: true } } });
   });
   it("stops the turn when a hook returns continue: false and skips the remaining tools", async () => {
     const { runner } = hooks((event) => event === "PreToolUse" ? { continue: false, stopReason: "Budget reached" } : undefined);

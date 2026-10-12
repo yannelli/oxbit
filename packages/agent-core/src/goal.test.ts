@@ -74,6 +74,9 @@ describe("goal", () => {
     expect(users.slice(1).every((content) => content.startsWith("Continue working toward the active goal."))).toBe(true);
     expect(t.messages().at(-1)).toEqual({ role: "tool", tool_call_id: "call_1", content: expect.stringContaining("Goal status: complete.") });
     expect(notes(updates)).toEqual(["Goal set: Fix the parser", "Continuing the goal (1/50).", "Continuing the goal (2/50).", "Goal complete: Tests pass"]);
+    const statuses = updates.filter((update) => update.sessionUpdate === "session_info_update").map((update) => update._meta.oxbit.goal);
+    expect(statuses.map((status) => [status.status, status.turns])).toEqual([["active", 0], ["active", 1], ["active", 2], ["complete", 2]]);
+    expect(t.updates.filter((update) => update.sessionUpdate === "user_message_chunk").map((update) => update._meta?.oxbit?.continuation)).toEqual([true, true]);
     expect((await goal.tools({ id: sessionId, cwd: "/root", model: "", turns: [], meta: { goal: { status: "complete" } as GoalState } }))).toEqual([]);
   });
 });

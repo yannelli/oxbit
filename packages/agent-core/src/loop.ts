@@ -1,5 +1,5 @@
 import type { AgentCommand, AgentTool, CommandContext, SessionView } from "./extensions.js";
-import { createGoal, agentNote, type ControlExtension, type ControlOptions, type GoalOptions } from "./goal.js";
+import { createGoal, agentNote, statusUpdate, type ControlExtension, type ControlOptions, type GoalOptions } from "./goal.js";
 
 export type LoopStatus = "running" | "stopped" | "done" | "cancelled";
 /** `meta.loop`. Without `intervalMs` the model paces the loop with schedule_next, which sets `nextDelayMs`. */
@@ -57,10 +57,13 @@ export function createLoop(options: LoopOptions): ControlExtension {
     const loop = loopOf(session.meta);
     return loop?.status === "running" && owners.has(session.id) ? loop : undefined;
   };
+  const publish = (session: SessionView, loop: LoopState) => statusUpdate(options, session.id, "loop", loop.status === "running"
+    ? { status: loop.status, iteration: loop.iteration, max: loop.max, ...loop.intervalMs ? { interval: format(loop.intervalMs) } : {} } : null);
   const finish = (session: SessionView, loop: LoopState, status: LoopStatus, text?: string) => {
     loop.status = status;
     delete loop.nextDelayMs;
     owners.delete(session.id);
+    publish(session, loop);
     if (text) agentNote(options, session.id, text);
     return undefined;
   };
@@ -87,9 +90,11 @@ export function createLoop(options: LoopOptions): ControlExtension {
       const interval = match ? parseInterval(match[1]) : parseInterval(args);
       const prompt = interval === undefined ? args : match?.[2].trim();
       if (!prompt) return done(context, "Usage: /loop [interval] <prompt>, for example /loop 5m check the deploy.");
-      session.meta.loop = { prompt, ...interval ? { intervalMs: interval } : {}, iteration: 1, max, status: "running",
-        startedAt: new Date().toISOString() } satisfies LoopState;
+      const started: LoopState = { prompt, ...interval ? { intervalMs: interval } : {}, iteration: 1, max, status: "running",
+        startedAt: new Date().toISOString() };
+      session.meta.loop = started;
       owners.set(session.id, context.signal);
+      publish(session, started);
       agentNote(options, session.id, `Loop 1/${max}, ${interval ? `every ${format(interval)}` : "paced by the model"}. Cancel to stop it.`);
       return { prompt };
     },
@@ -137,6 +142,7 @@ export function createLoop(options: LoopOptions): ControlExtension {
       if (!await sleep(delay, signal)) return finish(session, loop, "cancelled", "Loop cancelled.");
       if (loop.status !== "running") return undefined;
       loop.iteration++;
+      publish(session, loop);
       return loop.prompt;
     },
   };

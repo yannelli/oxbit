@@ -121,7 +121,7 @@ export class PromptTurn {
       if (this.halt) return this.halted();
       if (next === undefined) return { stopReason: result.stop === "tool_use" ? "end_turn" : result.stop! };
       session.turns.push({ role: "user", text: next });
-      update({ sessionUpdate: "user_message_chunk", content: { type: "text", text: next } });
+      update({ sessionUpdate: "user_message_chunk", content: { type: "text", text: next }, _meta: { oxbit: { continuation: true } } });
       // Each continuation gets a full step budget; goal and loop cap their own runs.
       steps = 0;
     }
