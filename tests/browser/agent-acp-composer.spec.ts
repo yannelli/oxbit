@@ -427,3 +427,74 @@ test("the microphone dictates into the draft and stops when the draft changes", 
     await close();
   }
 });
+
+test("the composer toolbar keeps the Auto-apply label whole and has no Review changes button", async ({ page }) => {
+  const app = await open(page);
+  try {
+    await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").setAutoApply(true));
+    const pill = app.panel.locator(".acp-auto-apply-on");
+    await expect(pill).toHaveText("Auto-apply on");
+    // A running turn with a draft adds Stop and Interrupt & send to the toolbar.
+    await app.input.fill("wait");
+    await app.input.press("Enter");
+    await expect(app.panel.locator(".acp-status")).toHaveText("Working…");
+    await app.input.fill("next message");
+    await expect(app.panel.getByRole("button", { name: "Interrupt & send" })).toBeVisible();
+    const clipped: number[] = [];
+    for (let width = 500; width <= 640; width += 20) {
+      await page.evaluate((width) => {
+        const side = document.querySelector(".acp-panel")!.closest("[data-dock]")!.getAttribute("data-dock");
+        (window as any).__oxbit.workbench.resizeDock(side, width);
+      }, width);
+      await expect.poll(() => app.panel.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBeGreaterThan(width - 40);
+      const overflows = await app.panel.locator(".acp-composer-toolbar").evaluate((toolbar) =>
+        [toolbar, toolbar.querySelector(".acp-auto-apply-on")!].some((el) => el.scrollWidth > el.clientWidth));
+      if (overflows) clipped.push(width);
+      if (width === 500) await app.panel.locator(".acp-composer").screenshot({ path: "evidence/agent-acp/composer-toolbar-500.png" });
+    }
+    expect(clipped).toEqual([]);
+    await expect(app.panel.getByRole("button", { name: "Review changes" })).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test("the transcript stays on the latest message as it grows and stops following after a scroll up", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 640 });
+  const app = await open(page);
+  const { panel, input, log, ready } = app;
+  try {
+    const content = panel.locator(".acp-content");
+    const distance = () => content.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight);
+    for (let turn = 1; turn <= 8; turn++) {
+      await input.fill(`message ${turn}\n\n${"line\n".repeat(4)}`);
+      await input.press("Enter");
+      await expect(log.locator(".acp-user-text")).toHaveCount(turn);
+      await ready();
+    }
+    expect(await content.evaluate((el) => el.scrollHeight > el.clientHeight * 2)).toBe(true);
+    await expect.poll(distance).toBeLessThan(2);
+
+    // Content that grows after the render that added it, such as a loaded image, keeps the view at the end.
+    await log.locator(".acp-user-text").last().evaluate((el) => {
+      const image = document.createElement("div");
+      image.style.height = "400px";
+      el.append(image);
+    });
+    await expect.poll(distance).toBeLessThan(2);
+
+    await content.evaluate((el) => el.scrollTo({ top: 0 }));
+    const jump = panel.getByRole("button", { name: "Jump to latest" });
+    await expect(jump).toBeVisible();
+    await input.fill("after scrolling up");
+    await input.press("Enter");
+    await expect(log.locator(".acp-user-text")).toHaveCount(9);
+    await ready();
+    expect(await content.evaluate((el) => el.scrollTop)).toBeLessThan(2);
+    await jump.click();
+    await expect.poll(distance).toBeLessThan(2);
+    await expect(jump).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});

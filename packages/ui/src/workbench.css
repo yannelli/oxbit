@@ -310,7 +310,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-provider { display:flex; align-items:center; gap:6px; flex:1; min-width:0; min-height:28px; }
 .acp-provider > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .acp-auto-apply { display:flex; align-items:center; gap:6px; min-height:28px; white-space:nowrap; cursor:pointer; }
-.acp-auto-apply-on { display:inline-flex; align-items:center; gap:4px; min-width:0; padding:1px 6px; border:1px solid var(--accent); border-radius:9px; color:var(--accent); font-size:var(--font-small-font-size); white-space:nowrap; }
+.acp-auto-apply-on { display:inline-flex; flex:none; align-items:center; gap:4px; padding:1px 6px; border:1px solid var(--accent); border-radius:9px; color:var(--accent); font-size:var(--font-small-font-size); white-space:nowrap; }
 .acp-settings { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:8px 12px; margin:6px 0; }
 .acp-setting { display:grid; align-content:start; gap:4px; min-width:0; }
 .acp-setting-label { color:var(--fg-2); font-size:var(--font-small-font-size); overflow-wrap:anywhere; }
@@ -355,7 +355,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-choice { display:flex; align-items:center; gap:6px; margin:8px 0; }
 .acp-choice input { width:auto; }
 .acp-panel fieldset { min-width:0; border:1px solid var(--bd); margin:10px 0; }
-.acp-hint { font-size:calc(var(--font-body-font-size) * 0.833333); margin-left:auto; padding:0 8px; white-space:nowrap; }
+.acp-hint { font-size:calc(var(--font-body-font-size) * 0.833333); margin-left:auto; padding:0 8px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @container(max-width:480px) { .acp-hint { display:none; } .acp-header { padding-inline:8px; } .acp-thread-heading { gap:3px; } .acp-status { max-width:24%; } }
 @media(pointer:coarse) { .acp-panel .icon-button { width:36px; height:36px; min-width:36px; min-height:36px; } .acp-message-heading > .icon-button { opacity:1; } .acp-context-menu .button,.acp-session-options > summary,.acp-auto-apply { min-height:36px; } }
 /* Agent ACP composer, tool rows and approvals */
