@@ -6,7 +6,7 @@ import type { FileAuthStore } from "./auth.js";
 import type { CliIO } from "./cli.js";
 import type { AgentConfig } from "./config.js";
 import { nodeLoopback } from "./loopback.js";
-import { chatgptSignedIn, missingKey, normalizeBase, selectProvider, type ProviderInput } from "./providers.js";
+import { chatgptSignedIn, missingKey, normalizeBase, selectProvider, type ProviderChoice, type ProviderInput } from "./providers.js";
 
 export class UsageError extends Error {}
 
@@ -18,8 +18,67 @@ export interface AuthCommand {
   input: ProviderInput;
 }
 
-const SIGN_IN_TIMEOUT_MS = 10 * 60000;
-const fetchOf = (io: CliIO): Fetch => io.fetch ?? ((url, init) => fetch(url, init));
+export const SIGN_IN_TIMEOUT_MS = 10 * 60000;
+export const fetchOr = (custom?: Fetch): Fetch => custom ?? ((url, init) => fetch(url, init));
+
+/** The selection that stores `id`'s API key. Throws for a provider without keys and for openai-compatible without a base URL. */
+export async function apiKeyChoice(input: ProviderInput, id: string) {
+  const spec = providerSpec(id);
+  if (!spec) throw new UsageError(`Unknown provider ${id}`);
+  if (!spec.methods.some((method) => method.id === "api-key")) throw new UsageError(`${spec.name} does not use an API key`);
+  return selectProvider({ ...input, provider: spec.id, method: "api-key" });
+}
+/** Saves `key` in auth.json and switches a saved non-key method for the provider to api-key. */
+export async function saveApiKey(config: AgentConfig, choice: ProviderChoice, key: string) {
+  await choice.runtime.models().keys.save(choice.runtime.endpoint(), key);
+  const own = config.settings.providers?.[choice.id];
+  if (own?.method && own.method !== "api-key")
+    await config.saveSettings({ providers: { ...config.settings.providers, [choice.id]: { ...own, method: "api-key" } } });
+}
+/** Deletes saved API keys for `id`, or for every provider without it; openai-compatible without a base URL drops every origin's key. Returns the removed slot names. */
+export async function removeApiKeys(auth: FileAuthStore, input: Pick<ProviderInput, "settings" | "env">, id?: string) {
+  const removed: string[] = [];
+  const drop = async (slot: string) => {
+    if (!await auth.get(slot)) return;
+    await auth.delete(slot);
+    removed.push(slot.slice("apikey:".length));
+  };
+  const spec = id === undefined ? undefined : providerSpec(id);
+  if (id !== undefined && !spec) throw new UsageError(`Unknown provider ${id}`);
+  const base = spec?.id === "openai-compatible" ? input.settings.providers?.[spec.id]?.baseUrl || input.env.OXBIT_AGENT_BASE_URL : undefined;
+  if (spec && spec.id !== "openai-compatible") await drop(apiKeySlot(spec.id));
+  else if (base) await drop(apiKeySlot("openai-compatible", normalizeBase(base)));
+  else for (const slot of await auth.keys()) if (slot.startsWith(spec ? `apikey:${spec.id} ` : "apikey:")) await drop(slot);
+  return removed;
+}
+/** Signs out of ChatGPT. Resolves undefined without a sign-in, else whether OpenAI confirmed the revocation. */
+export async function signOutChatGPT(auth: FileAuthStore, fetch: Fetch) {
+  if (!await chatgptSignedIn(auth)) return undefined;
+  return (await new ChatGPTAuth({ fetch, store: auth }).signOut()).revoked;
+}
+export interface ChatGPTSignIn {
+  config: AgentConfig;
+  auth: FileAuthStore;
+  fetch: Fetch;
+  signal: AbortSignal;
+  /** Shows or opens the sign-in page. */
+  open(url: string): void | Promise<void>;
+  paste?(signal: AbortSignal): Promise<string>;
+}
+/** Runs Sign in with ChatGPT. With plan use allowed, saves providers.openai.method = chatgpt, and provider = openai when settings name none. */
+export async function signInChatGPT({ config, auth, fetch, signal, open, paste }: ChatGPTSignIn) {
+  const chatgpt = new ChatGPTAuth({ fetch, store: auth });
+  const record = await chatgpt.record();
+  const account = await chatgpt.signIn({ loopback: nodeLoopback, account: record.active, paste, signal, open: (address) => {
+    const url = new URL(address);
+    url.searchParams.delete("id_token_hint");
+    return open(url.toString());
+  } });
+  if (!planEnabled(account)) return { account, enabled: false };
+  const providers = config.settings.providers ?? {};
+  await config.saveSettings({ ...config.settings.provider ? {} : { provider: "openai" }, providers: { ...providers, openai: { ...providers.openai, method: "chatgpt" } } });
+  return { account, enabled: true };
+}
 
 export async function readAll(stream: Readable) {
   let text = "";
@@ -97,44 +156,33 @@ export async function login({ config, auth, io, input }: AuthCommand, rest: stri
   if (!input.provider) return void io.stdout.write(methodList()), 0;
   const spec = providerSpec(input.provider);
   if (!spec) throw new UsageError(`Unknown provider ${input.provider}`);
-  if (!spec.methods.some((method) => method.id === "api-key")) throw new UsageError(`${spec.name} does not use an API key`);
-  const choice = await selectProvider({ ...input, method: "api-key" });
+  const choice = await apiKeyChoice(input, spec.id);
   const key = (await readSecret(io, `${spec.methods.find((method) => method.id === "api-key")!.label}: `)).trim();
   if (!key) throw new UsageError("No API key on stdin");
-  await choice.runtime.models().keys.save(choice.runtime.endpoint(), key);
-  const own = config.settings.providers?.[spec.id];
-  if (own?.method && own.method !== "api-key")
-    await config.saveSettings({ providers: { ...config.settings.providers, [spec.id]: { ...own, method: "api-key" } } });
+  await saveApiKey(config, choice, key);
   io.stdout.write(`Saved the ${spec.name} API key in ${auth.path}\n`);
   return 0;
 }
 
 async function loginChatGPT({ config, auth, io }: AuthCommand) {
-  const chatgpt = new ChatGPTAuth({ fetch: fetchOf(io), store: auth });
-  const record = await chatgpt.record();
   let noBrowser!: () => void;
   const failed = new Promise<void>((resolve) => (noBrowser = resolve));
   io.stderr.write(`${CHATGPT_LABELS.signIn}\n`);
-  const account = await chatgpt.signIn({
-    loopback: nodeLoopback,
-    account: record.active,
-    open: async (address) => {
-      const url = new URL(address);
-      url.searchParams.delete("id_token_hint");
+  const { account, enabled } = await signInChatGPT({
+    config, auth, fetch: fetchOr(io.fetch),
+    open: async (url) => {
       io.stderr.write(`Open this page to sign in:\n${url}\n`);
-      if (await (io.open ?? ((target: string) => openBrowser(target, io.env)))(url.toString())) return;
-      io.stderr.write(`No browser opened. After you sign in, paste the address the browser lands on (it starts with ${url.searchParams.get("redirect_uri")}):\n`);
+      if (await (io.open ?? ((target: string) => openBrowser(target, io.env)))(url)) return;
+      io.stderr.write(`No browser opened. After you sign in, paste the address the browser lands on (it starts with ${new URL(url).searchParams.get("redirect_uri")}):\n`);
       noBrowser();
     },
     paste: (signal) => failed.then(() => pastedLine(io.stdin, signal)),
     signal: AbortSignal.timeout(SIGN_IN_TIMEOUT_MS),
   });
-  if (!planEnabled(account)) {
+  if (!enabled) {
     io.stderr.write("You are signed in, but ChatGPT plan use was not allowed. Run oxbit-agent login chatgpt again and allow it, or use an OpenAI API key.\n");
     return 1;
   }
-  const providers = config.settings.providers ?? {};
-  await config.saveSettings({ ...config.settings.provider ? {} : { provider: "openai" }, providers: { ...providers, openai: { ...providers.openai, method: "chatgpt" } } });
   io.stdout.write(`${CHATGPT_LABELS.welcome}${account.email ? ` (${account.email})` : ""}.\n${CHATGPT_LABELS.manage}: ${CHATGPT.usageUrl}\n`);
   if (config.settings.provider !== "openai") io.stdout.write(`settings.json selects ${config.settings.provider}; run with --provider openai to use your ChatGPT plan.\n`);
   return 0;
@@ -143,28 +191,10 @@ async function loginChatGPT({ config, auth, io }: AuthCommand) {
 export async function logout({ auth, io, input }: AuthCommand, rest: string[]) {
   if (rest.length > 1) throw new UsageError(`Unexpected argument ${rest[1]}`);
   const target = rest[0] ?? input.provider;
-  const removed: string[] = [];
-  const signOut = async () => {
-    if (!await chatgptSignedIn(auth)) return;
-    const { revoked } = await new ChatGPTAuth({ fetch: fetchOf(io), store: auth }).signOut();
-    removed.push(revoked ? "ChatGPT" : "ChatGPT (signed out here; OpenAI did not confirm the revocation)");
-  };
-  const drop = async (slot: string) => {
-    if (!await auth.get(slot)) return;
-    await auth.delete(slot);
-    removed.push(slot.slice("apikey:".length));
-  };
-  if (target === "chatgpt") await signOut();
-  else if (target) {
-    const spec = providerSpec(target);
-    if (!spec) throw new UsageError(`Unknown provider ${target}`);
-    const base = spec.id === "openai-compatible" ? input.settings.providers?.[spec.id]?.baseUrl || input.env.OXBIT_AGENT_BASE_URL : undefined;
-    if (spec.id !== "openai-compatible") await drop(apiKeySlot(spec.id));
-    else if (base) await drop(apiKeySlot(spec.id, normalizeBase(base)));
-    else for (const slot of await auth.keys()) if (slot.startsWith(`apikey:${spec.id} `)) await drop(slot);
-  } else {
-    for (const slot of await auth.keys()) if (slot.startsWith("apikey:")) await drop(slot);
-    await signOut();
+  const removed = target === "chatgpt" ? [] : await removeApiKeys(auth, input, target);
+  if (!target || target === "chatgpt") {
+    const revoked = await signOutChatGPT(auth, fetchOr(io.fetch));
+    if (revoked !== undefined) removed.push(revoked ? "ChatGPT" : "ChatGPT (signed out here; OpenAI did not confirm the revocation)");
   }
   io.stdout.write(removed.length ? `Removed ${removed.join(", ")}\n` : "Nothing to remove\n");
   return 0;

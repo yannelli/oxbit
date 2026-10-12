@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, isAbsolute } from "node:path";
 import { Agent, type AgentExtensions, type AgentHost, type ModelInfo, type Params } from "@oxbit/agent-core";
 import type { AgentModels, FileSystem } from "@oxbit/sdk";
+import { FileAuthStore } from "./auth.js";
 import type { AgentConfig } from "./config.js";
 import { nodeFilesystem } from "./fs.js";
 import { nodeMcp } from "./mcp.js";
@@ -10,6 +12,8 @@ import { JsonlSessionStore } from "./sessions.js";
 import { Terminals } from "./shell.js";
 import { snapshotStores, undoCommands } from "./snapshots.js";
 import { coreExtensions } from "./extensions.js";
+import { compactConfigOptions, createSettingsManager, settingsCommands } from "./settings/index.js";
+import type { SettingsManager } from "./tui/connection.js";
 
 const MAX_BYTES = 1024 * 1024;
 const WRITE_OPTIONS = [
@@ -97,6 +101,8 @@ export interface AgentSetup {
   userHome?: string;
   generateTitles?: boolean;
   ripgrep?: boolean;
+  /** Backs the /config, /skills, /hooks, /mcp, /instructions and /providers commands; defaults to one over `config` and process.env. */
+  settings?: SettingsManager;
   log?(text: string): void;
 }
 
@@ -115,6 +121,9 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     return filesystem;
   };
   const core = coreExtensions(config, (sessionId, update) => link.update(sessionId, update), { home: setup.userHome, log });
+  const settings = setup.settings ?? createSettingsManager({ config, auth: new FileAuthStore(config.paths.auth), env: process.env,
+    home: setup.userHome ?? homedir(), provider: () => provider });
+  const compactOptions = compactConfigOptions(config);
   const extensions: AgentExtensions = {
     sessions: new JsonlSessionStore(config.paths.sessions),
     snapshots,
@@ -122,7 +131,7 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     ...setup.extensions,
     context: [...core.context ?? [], ...setup.extensions?.context ?? []],
     tools: [...core.tools ?? [], mcp, ...setup.extensions?.tools ?? []],
-    commands: [undoCommands(snapshots), ...core.commands ?? [], mcp, ...setup.extensions?.commands ?? []],
+    commands: [undoCommands(snapshots), settingsCommands(settings, mcp), ...core.commands ?? [], ...setup.extensions?.commands ?? []],
     continuations: [...core.continuations ?? [], ...setup.extensions?.continuations ?? []],
     hooks: mcp.hooks(setup.extensions?.hooks ?? core.hooks),
   };
@@ -153,6 +162,8 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     update: (sessionId, update) => link.update(sessionId, update),
     request: routeRequests(link, local),
     generateTitles: setup.generateTitles,
+    configOptions: compactOptions.configOptions,
+    setConfigOption: (_session, configId, value) => compactOptions.setConfigOption(configId, value),
     extensions,
   };
   const dispose = async () => {

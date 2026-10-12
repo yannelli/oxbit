@@ -3,7 +3,9 @@ import { dirname } from "node:path";
 import type { PermissionMode } from "@oxbit/agent-core";
 import type { MemoryConnection } from "../connection.js";
 import { walkFiles } from "../fs.js";
-import type { ConfigOption, PermissionRequest, SessionState, SessionUpdate, TuiConnection } from "./connection.js";
+import type {
+  ConfigOption, ConnectionInfo, PermissionOutcome, PermissionRequest, SessionState, SessionUpdate, SettingsManager, TuiConnection,
+} from "./connection.js";
 import type { HistoryStore } from "./controller.js";
 
 const FILE_LIST_TTL_MS = 10_000;
@@ -14,9 +16,18 @@ export interface MemoryTuiOptions {
   /** Provider name for the status line. */
   provider?: string;
   usingChatGPTPlan?: boolean;
-  /** Applied to each new session. */
+  /** Applied to each new session; a mode chosen in /config replaces it. */
   mode?: PermissionMode;
+  settings?: SettingsManager;
 }
+export interface MemoryTuiConnection extends TuiConnection {
+  /** The connection in use. */
+  readonly connection: MemoryConnection;
+  /** Moves update listeners and the permission handler to `next`, then closes the previous connection. */
+  replace(next: MemoryConnection, info: ConnectionInfo): Promise<void>;
+}
+type UpdateListener = (sessionId: string, update: SessionUpdate) => void;
+type PermissionHandler = (request: PermissionRequest) => Promise<PermissionOutcome>;
 
 const subsequence = (query: string, path: string) => {
   let at = 0;
@@ -27,8 +38,26 @@ const subsequence = (query: string, path: string) => {
   return true;
 };
 
-/** The TUI's connection over the in-memory ACP client, with @file listing from the working tree. */
-export function memoryTuiConnection(connection: MemoryConnection, options: MemoryTuiOptions = {}): TuiConnection {
+/** The TUI's connection over the in-memory ACP client, with @file listing from the working tree. replace() swaps the client after a rebuild. */
+export function memoryTuiConnection(initial: MemoryConnection, options: MemoryTuiOptions = {}): MemoryTuiConnection {
+  let connection = initial;
+  let info: ConnectionInfo = { provider: options.provider, usingChatGPTPlan: options.usingChatGPTPlan };
+  let mode = options.mode;
+  const listeners = new Set<UpdateListener>();
+  let permission: PermissionHandler | undefined;
+  const attach = (target: MemoryConnection) => [
+    target.onUpdate((sessionId, update) => {
+      for (const listener of [...listeners]) {
+        try {
+          listener(sessionId, update as SessionUpdate);
+        } catch {
+          // One failing listener must not stop the others.
+        }
+      }
+    }),
+    target.onPermission(async (request) => permission ? (await permission(request as PermissionRequest)).outcome : { outcome: "cancelled" }),
+  ];
+  let detach = attach(connection);
   const listed = new Map<string, { at: number; files: Promise<string[]> }>();
   const files = (cwd: string) => {
     const cached = listed.get(cwd);
@@ -37,13 +66,25 @@ export function memoryTuiConnection(connection: MemoryConnection, options: Memor
     listed.set(cwd, entry);
     return entry.files;
   };
+  const settings = options.settings;
   return {
-    info: () => ({ provider: options.provider, usingChatGPTPlan: options.usingChatGPTPlan }),
+    get connection() {
+      return connection;
+    },
+    async replace(next, nextInfo) {
+      const previous = connection;
+      for (const stop of detach) stop();
+      connection = next;
+      detach = attach(next);
+      info = { ...nextInfo };
+      await previous.close();
+    },
+    info: () => ({ ...info }),
     async newSession(cwd) {
       const state = await connection.newSession({ cwd }) as SessionState;
-      if (!options.mode || !state.modes || state.modes.currentModeId === options.mode) return state;
-      await connection.setMode(state.sessionId, options.mode);
-      return { ...state, modes: { ...state.modes, currentModeId: options.mode } };
+      if (!mode || !state.modes || state.modes.currentModeId === mode) return state;
+      await connection.setMode(state.sessionId, mode);
+      return { ...state, modes: { ...state.modes, currentModeId: mode } };
     },
     loadSession: async (sessionId, cwd) => await connection.loadSession(sessionId, { cwd }) as SessionState,
     listSessions: async (cwd) => (await connection.listSessions(cwd)).sessions,
@@ -53,12 +94,30 @@ export function memoryTuiConnection(connection: MemoryConnection, options: Memor
     setModel: async (sessionId, modelId) => await connection.setModel(sessionId, modelId) as { configOptions?: ConfigOption[] },
     setConfigOption: async (sessionId, configId, value) =>
       await connection.setConfigOption(sessionId, configId, value) as { configOptions?: ConfigOption[] },
-    onUpdate: (listener) => connection.onUpdate((sessionId, update) => listener(sessionId, update as SessionUpdate)),
-    onPermission: (handler) => connection.onPermission(async (request) => (await handler(request as PermissionRequest)).outcome),
+    onUpdate(listener) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
+    onPermission(handler) {
+      permission = handler;
+      return () => {
+        if (permission === handler) permission = undefined;
+      };
+    },
     async listFiles(query, cwd) {
       const term = query.toLowerCase();
       return (await files(cwd)).filter((path) => subsequence(term, path.toLowerCase())).slice(0, FILE_MATCHES);
     },
+    ...settings ? { settings: {
+      panel: (id, context) => settings.panel(id, context),
+      toggle: (id, rowId, enabled, context) => settings.toggle(id, rowId, enabled, context),
+      async choose(id, rowId, value, context) {
+        const change = await settings.choose(id, rowId, value, context);
+        if (change.mode) mode = change.mode as PermissionMode;
+        return change;
+      },
+      act: (id, rowId, actionId, inputs, context) => settings.act(id, rowId, actionId, inputs, context),
+    } satisfies SettingsManager } : {},
   };
 }
 
