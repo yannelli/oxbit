@@ -122,6 +122,31 @@ describe("McpTools lifecycle", () => {
     expect(mcp.status("a").warnings).toEqual(["/work/.mcp.json is not trusted, so its servers are off: local, remote. Trust it in settings."]);
   });
 
+  it("reconnects when the server list changes and leaves out skipped servers", async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") return new Response(null);
+      const body = JSON.parse(String(init?.body));
+      if (body.method === "server/discover") return Response.json({ jsonrpc: "2.0", id: body.id, result: { supportedVersions: ["2026-07-28"], capabilities: {} } });
+      return Response.json({ jsonrpc: "2.0", id: body.id, result: { tools: [{ name: new URL(url).hostname.split(".")[0] }] } });
+    });
+    const servers: Record<string, object> = { one: { type: "http", url: "https://one.example.com/mcp" } };
+    const skipped = new Set<string>();
+    const mcp = new McpTools({ fetch, read: async () => JSON.stringify({ mcpServers: servers }), globalConfig: "/home/.oxbit/mcp.json", idleMs: 0,
+      skip: (server) => skipped.has(server.name) });
+    const names = async () => (await mcp.tools(view("a"))).map((tool) => tool.spec.name);
+    expect(await names()).toEqual(["mcp__one__one"]);
+    const discovers = () => fetch.mock.calls.filter(([, init]) => String(init?.body).includes("server/discover")).length;
+    await names();
+    expect(discovers()).toBe(1);
+    servers.two = { type: "http", url: "https://two.example.com/mcp" };
+    expect(await names()).toEqual(["mcp__one__one", "mcp__two__two"]);
+    skipped.add("one");
+    expect(await names()).toEqual(["mcp__two__two"]);
+    expect(mcp.status("a").servers.map((server) => server.name)).toEqual(["two"]);
+    expect(mcp.report("a")).toBe("MCP servers (1):\n- two (global, http, 2026-07-28): connected, 1 tools");
+    await mcp.closeAll();
+  });
+
   it("closes idle sessions and connects again on the next step", async () => {
     vi.useFakeTimers();
     try {

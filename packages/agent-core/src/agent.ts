@@ -66,7 +66,7 @@ export class Agent {
       options: EFFORTS.map((value) => ({ value, name: value === "default" ? "Model default" : value[0].toUpperCase() + value.slice(1) })) };
     const mode: ACPConfigOption = { id: "mode", name: "Mode", category: "mode", type: "select", currentValue: modeOf(session.meta),
       options: MODES.map(({ id, name }) => ({ value: id, name })) };
-    return session.catalog.length ? [models, reasoning, mode] : [reasoning, mode];
+    return [...session.catalog.length ? [models] : [], reasoning, mode, ...this.host.configOptions?.(session) ?? []];
   }
   private state(session: LiveSession) {
     return {
@@ -167,13 +167,14 @@ export class Agent {
     this.host.update(sessionId, { sessionUpdate: "current_mode_update", currentModeId: modeId });
     return {};
   }
-  setConfigOption(sessionId: string, configId: string, value: string) {
+  async setConfigOption(sessionId: string, configId: string, value: string) {
     const session = this.session(sessionId);
     if (configId === "model") return this.setModel(sessionId, value);
     if (configId === "mode") {
       this.setMode(sessionId, value);
       return { configOptions: this.options(session) };
     }
+    if (configId !== "reasoning" && await this.host.setConfigOption?.(session, configId, value)) return { configOptions: this.options(session) };
     if (configId !== "reasoning" || !EFFORTS.includes(value as Effort)) throw new Error("Unknown agent setting");
     session.effort = value as Effort | "default";
     return { configOptions: this.options(session) };

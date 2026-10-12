@@ -26,10 +26,14 @@ export interface SkillOptions {
   files: HostFiles;
   /** User skill directories in precedence order, for example ~/.oxbit/agent/skills, ~/.agents/skills, ~/.claude/skills. */
   roots: string[];
+  /** Called on each use; true leaves the skill out of the catalog, the skill tool and the slash commands. */
+  hidden?(name: string): boolean;
 }
 
 const KEY = /^([\w-]+):(?:[ \t]+(.*))?$/;
 const NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** a-z, 0-9 and single hyphens, 64 characters at most. */
+export const isSkillName = (name: string) => name.length <= 64 && NAME.test(name);
 const OUTPUT_LIMIT = 100000;
 const scalar = (text: string): string | boolean => {
   const quoted = /^(["'])(.*)\1\s*(?:#.*)?$/s.exec(text);
@@ -88,7 +92,7 @@ function toSkill(text: string, path: string, folder: string, warnings: string[])
   }
   const name = string("name") || folder;
   if (!string("name")) warnings.push(`${path}: the frontmatter has no name, so the skill uses the directory name ${folder}`);
-  if (name.length > 64 || !NAME.test(name)) warnings.push(`${path}: the name ${name} breaks the Agent Skills rules (a-z, 0-9 and single hyphens, 64 characters at most)`);
+  if (!isSkillName(name)) warnings.push(`${path}: the name ${name} breaks the Agent Skills rules (a-z, 0-9 and single hyphens, 64 characters at most)`);
   else if (name !== folder) warnings.push(`${path}: the name ${name} differs from the directory name ${folder}`);
   if (description.length > 1024) warnings.push(`${path}: the description is longer than 1024 characters`);
   const tools = data["allowed-tools"];
@@ -152,8 +156,11 @@ export class Skills implements ContextProvider, ToolProvider, CommandProvider {
     this.sets.set(cwd, set);
     return set;
   }
+  private shown(skills: Skill[]) {
+    return this.options.hidden ? skills.filter((skill) => !this.options.hidden!(skill.name)) : skills;
+  }
   async system(session: SessionView) {
-    const visible = (await this.discover(session.cwd)).skills.filter((skill) => skill.model);
+    const visible = this.shown((await this.discover(session.cwd)).skills).filter((skill) => skill.model);
     if (!visible.length) return undefined;
     return ["Skills hold instructions for specific tasks. When a task matches a skill's description, call the skill tool with its name before you act and follow the instructions it returns.",
       "<available_skills>",
@@ -161,7 +168,7 @@ export class Skills implements ContextProvider, ToolProvider, CommandProvider {
       "</available_skills>"].join("\n");
   }
   async tools(session: SessionView): Promise<AgentTool[]> {
-    const { skills } = this.sets.get(session.cwd) ?? await this.discover(session.cwd);
+    const skills = this.shown((this.sets.get(session.cwd) ?? await this.discover(session.cwd)).skills);
     return skills.length ? [this.tool(skills)] : [];
   }
   private tool(skills: Skill[]): AgentTool {
@@ -201,7 +208,7 @@ export class Skills implements ContextProvider, ToolProvider, CommandProvider {
     const set = this.sets.get(session.cwd);
     if (!set) void this.discover(session.cwd).catch(() => {});
     const list: AgentCommand = { name: "skills", description: "List skills and skill warnings", run: (_args, context) => this.list(context) };
-    return [list, ...(set?.skills ?? []).filter((skill) => skill.user && skill.name !== list.name).map((skill): AgentCommand => ({
+    return [list, ...this.shown(set?.skills ?? []).filter((skill) => skill.user && skill.name !== list.name).map((skill): AgentCommand => ({
       name: skill.name, description: skill.description.slice(0, 200), hint: skill.hint,
       run: async (args) => ({ prompt: invokeSkill(skill, args) }),
     }))];

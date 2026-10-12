@@ -18,7 +18,11 @@ export interface InstructionOptions {
   claude?: string;
   /** System prompt text from settings, added after the instruction files. */
   append?: string;
+  /** Called on each system prompt; true leaves the file out. */
+  skip?(path: string): boolean;
 }
+/** A file that Instructions reads; `text` is undefined for a global file that is missing or empty. */
+export interface InstructionFile { path: string; scope: "global" | "claude" | "project"; text?: string }
 
 export const FILE_LIMIT = 32 * 1024;
 export const TOTAL_LIMIT = 64 * 1024;
@@ -69,20 +73,25 @@ const clipBytes = (text: string, limit: number) => {
 /** System prompt section from AGENTS.md and CLAUDE.md files, each labeled with its path. */
 export class Instructions implements ContextProvider {
   constructor(private options: InstructionOptions) {}
-  /** Global files, then from the git root (or cwd) down to cwd the first non-empty AGENTS.override.md, AGENTS.md or CLAUDE.md. */
-  async load(cwd: string) {
+  /** The global and Claude files whether or not they exist, then the project files that load, without repeated paths. */
+  async candidates(cwd: string): Promise<InstructionFile[]> {
     const { files, global, claude } = this.options;
     const dirs = ancestors(cwd, (await findGitRoot(files, cwd)) ?? cwd).reverse();
-    const found = [...await Promise.all([global, claude].map((path) => path ? readText(files, path) : undefined)),
-      ...await Promise.all(dirs.map((dir) => firstOf(files, dir)))];
-    return found.filter((file, index): file is { path: string; text: string } =>
-      !!file && found.findIndex((other) => other?.path === file.path) === index);
+    const own = async (path: string | undefined, scope: "global" | "claude") => path ? { path, scope, text: (await readText(files, path))?.text } : undefined;
+    const found: (InstructionFile | undefined)[] = [...await Promise.all([own(global, "global"), own(claude, "claude")]),
+      ...(await Promise.all(dirs.map((dir) => firstOf(files, dir)))).map((file) => file && { ...file, scope: "project" as const })];
+    return found.filter((file, index): file is InstructionFile => !!file && found.findIndex((other) => other?.path === file.path) === index);
+  }
+  /** Global files, then from the git root (or cwd) down to cwd the first non-empty AGENTS.override.md, AGENTS.md or CLAUDE.md. */
+  async load(cwd: string) {
+    return (await this.candidates(cwd)).flatMap(({ path, text }) => text === undefined ? [] : [{ path, text }]);
   }
   async system(session: SessionView) {
     const sections: string[] = [];
     let used = 0;
     let skipped = 0;
     for (const file of await this.load(session.cwd)) {
+      if (this.options.skip?.(file.path)) continue;
       const room = Math.min(FILE_LIMIT, TOTAL_LIMIT - used);
       if (room <= 0) {
         skipped++;

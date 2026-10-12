@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Agent } from "./agent.js";
 import { parentPath, type HostFiles } from "./instructions.js";
-import { Skills, invokeSkill, parseFrontmatter } from "./skills.js";
+import { Skills, invokeSkill, isSkillName, parseFrontmatter } from "./skills.js";
 import type { CommandContext, Params, SessionView } from "./extensions.js";
 import { chatText } from "./test-models.js";
 import { start, testHost, text } from "./test-host.js";
@@ -125,6 +125,18 @@ describe("Skills", () => {
     expect(await new Skills({ files, roots: ROOTS }).commands(session("/repo/pkg"))[0].run("", context)).toEqual({ done: "end_turn" });
     expect(updates[0].content.text).toMatch(/^- review: Review <code> & tests \(\/home\/\.oxbit\/agent\/skills\/review\/SKILL\.md\)\n/);
     expect(updates[0].content.text).toContain("\n\nWarnings:\n- /home/.claude/skills/review/SKILL.md: the skill review is hidden by");
+  });
+  it("hides skills from the catalog, the skill tool and the commands while discover() still lists them", async () => {
+    const hidden = new Set(["review"]);
+    const skills = new Skills({ files, roots: ROOTS, hidden: (name) => hidden.has(name) });
+    expect((await skills.discover("/repo/pkg")).skills.map((item) => item.name)).toContain("review");
+    expect(await skills.system(session("/repo/pkg"))).not.toContain("<name>review</name>");
+    const [tool] = await skills.tools(session("/repo/pkg"));
+    await expect(tool.run({ name: "review" }, {} as any)).rejects.toThrow("Unknown skill review");
+    expect(skills.commands(session("/repo/pkg")).map((command) => command.name)).not.toContain("review");
+    hidden.clear();
+    expect(skills.commands(session("/repo/pkg")).map((command) => command.name)).toContain("review");
+    expect([isSkillName("pdf-tools"), isSkillName("Bad_Name"), isSkillName("a--b"), isSkillName("a".repeat(65))]).toEqual([true, false, false, false]);
   });
   it("runs through the agent: catalog in the system prompt, skill tool, and /name expansion", async () => {
     const skills = new Skills({ files: memoryFiles({ "/root/.git/HEAD": "", "/root/.agents/skills/deploy/SKILL.md": skill("name: deploy\ndescription: Deploy it") }), roots: [] });
