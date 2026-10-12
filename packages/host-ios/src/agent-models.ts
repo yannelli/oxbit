@@ -1,5 +1,5 @@
 import { Channel } from "@tauri-apps/api/core";
-import type { AgentModelEndpoint, AgentModelError, AgentModelRequest, AgentModels } from "@oxbit/sdk";
+import type { AgentModelEndpoint, AgentModelError, AgentModelRequest, AgentModels, ChatGPTSignIn } from "@oxbit/sdk";
 import { native, type AgentModelStreamEvent } from "./native.js";
 
 function endpointArgs({ api, baseUrl }: AgentModelEndpoint) {
@@ -24,17 +24,38 @@ function modelError(status: number, body: string): AgentModelError {
   return Object.assign(new Error(`The model API answered ${status}${detail(body)}`), { name: "AgentModelError", status, body });
 }
 
+/** Rejects with the signal's reason on abort and leaves `call` to finish in the background. */
+async function abortable<T>(call: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return call();
+  signal.throwIfAborted();
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    signal.addEventListener("abort", abort, { once: true });
+    call()
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
 /** `AgentModels` over the oxbit-files plugin, which reads the key from Keychain and sends the request with URLSession. */
 export class IosAgentModels implements AgentModels {
   readonly keys = {
     has: async (endpoint: AgentModelEndpoint) =>
       (await native.agentModelsKey({ operation: "has", ...endpointArgs(endpoint) }))?.saved === true,
     save: async (endpoint: AgentModelEndpoint, key: string) => {
+      if (endpoint.api === "chatgpt") throw new Error("Sign in with ChatGPT in Agent setup");
       await native.agentModelsKey({ operation: "save", ...endpointArgs(endpoint), key });
     },
     remove: async (endpoint: AgentModelEndpoint) => {
       await native.agentModelsKey({ operation: "remove", ...endpointArgs(endpoint) });
     },
+  };
+
+  /** Swift keeps the tokens in Keychain; `keys.has` and `keys.remove` with `api: "chatgpt"` check and end the sign-in. */
+  readonly chatgpt: ChatGPTSignIn = {
+    start: (signal) => abortable(() => native.agentModelsChatGPT({ operation: "start" }), signal),
+    poll: async ({ deviceAuthId, userCode }, signal) =>
+      (await abortable(() => native.agentModelsChatGPT({ operation: "poll", deviceAuthId, userCode }), signal)).status,
   };
 
   /** Aborting `signal` or leaving the loop early cancels the native request; abort rethrows the signal's reason. */

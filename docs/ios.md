@@ -105,6 +105,7 @@ Device folders (the Oxbit Documents folder and Files app folders) register the `
 | `agent_models_key` | `operation` (`has`, `save`, `remove`), `api`, `baseUrl`, `key` for `save` | `has` returns `{ saved }`. No command returns the key. |
 | `agent_models_stream` | `id`, `api`, `baseUrl`, `method` (`GET` or `POST`), `path`, `body` as JSON text, `channel` | Resolves once the task starts. The channel receives `chunk` events with base64 body bytes, then `end` with the status, or `failed` with the URLSession error. For a non-2xx status, `end` carries the first 64 KiB of the body. A missing key rejects with code `MISSING_KEY` and `Add an API key in Agent setup`. |
 | `agent_models_cancel` | `id` | Cancels the task and drops its remaining events. Resolves for finished and unknown ids. |
+| `agent_models_chatgpt` | `operation` (`start`, `poll`), `deviceAuthId` and `userCode` for `poll` | `start` returns `{ deviceAuthId, userCode, verificationUrl, interval, expiresAt }`. `poll` returns `{ status }` (`pending`, `slow_down`, `complete`); on `complete` Swift has exchanged the code and saved the tokens. Other answers reject with code `AGENT_CHATGPT`. |
 
 `IosAgentModels.stream` decodes the chunks with `TextDecoder`, so a character split across two network reads arrives whole. A non-2xx status throws an `AgentModelError` with `status` and `body`. Aborting its `AbortSignal`, or leaving the `for await` loop early, sends `agent_models_cancel`; an abort rethrows the signal's reason.
 
@@ -115,10 +116,13 @@ Keys are Keychain generic passwords under the service `com.yannelli.oxbit.agent`
 | `openai` | `https://api.openai.com` | `Authorization: Bearer <key>` |
 | `anthropic` | `https://api.anthropic.com` | `x-api-key: <key>` and `anthropic-version: 2023-06-01` |
 | `openai-compatible` | The `https://` `baseUrl`, origin plus optional path prefix | `Authorization: Bearer <key>` |
+| `chatgpt` | `https://chatgpt.com/backend-api` | `Authorization: Bearer <access token>`, `chatgpt-account-id`, `OpenAI-Beta: responses=experimental`, `originator: oxbit`, and `Accept: text/event-stream` on `POST` |
+
+`chatgpt` signs in with the Codex CLI device code flow and OAuth client (`ChatGPTAuth.swift`). The account `chatgpt https://chatgpt.com` holds JSON with the access, refresh, and ID tokens, the expiry, and the account ID from the token's `https://api.openai.com/auth` claim. `ChatGPTTokens.swift` refreshes the token when it expires within 5 minutes, one refresh at a time, and once more when a request answers 401; the 401 request is then sent again. A missing or rejected sign-in rejects with code `MISSING_KEY` and `Sign in with ChatGPT in Agent setup`, and `agent_models_key` refuses `save` for `chatgpt`.
 
 Requests stay on the endpoint's origin. A `baseUrl` with credentials, a query, or a fragment is rejected. The `path` must start with `/` and cannot contain `..`, `%2e`, a backslash, a fragment, or whitespace; the final URL must keep the base's scheme, host, and port and stay under its path prefix. The URLSession delegate refuses redirects, so a 3xx ends the request as a non-2xx error. The session is ephemeral, without cookies or a URL cache. Anthropic lists `Authorization: Bearer` as its primary header and `x-api-key` as a supported legacy fallback; Oxbit sends `x-api-key`.
 
-`tests/ios/bridge.ts` mocks the three commands: `agentResponses` scripts SSE answers by path, and `agentKeys` seeds saved keys as `api origin`. `tests/ios/agent-models.spec.ts` reaches the service through `window.__oxbit`, which `main.tsx` sets in Vite dev builds.
+`tests/ios/bridge.ts` mocks `agent_models_stream`, `agent_models_cancel`, and `agent_models_key`: `agentResponses` scripts SSE answers by path, and `agentKeys` seeds saved keys as `api origin`. `tests/ios/agent-models.spec.ts` reaches the service through `window.__oxbit`, which `main.tsx` sets in Vite dev builds.
 
 ### References
 

@@ -1,7 +1,7 @@
 import { Channel, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
-import type { AgentActivityUpdate, AgentModelApi, FileEntry, PushEnvironment } from "@oxbit/sdk";
+import type { AgentActivityUpdate, AgentModelApi, ChatGPTDeviceCode, FileEntry, PushEnvironment } from "@oxbit/sdk";
 
 export interface NativeError {
   code: string;
@@ -130,6 +130,7 @@ export type AgentModelKeyRequest = {
   baseUrl?: string;
   key?: string;
 };
+export type AgentModelChatGPTRequest = { operation: "start" } | { operation: "poll"; deviceAuthId: string; userCode: string };
 /** Workspace storage key holding the account ID that native Git uses for the workspace root. */
 export const GIT_ACCOUNT_KEY = "git-account";
 /** Workspace storage key holding the SSH key ID that native Git uses for SSH remotes. */
@@ -272,6 +273,12 @@ export const native = {
   agentModelsCancel: (id: string) => call<void>("plugin:oxbit-files|agent_models_cancel", { id }),
   agentModelsKey: (request: AgentModelKeyRequest) =>
     call<{ saved: boolean } | null>("plugin:oxbit-files|agent_models_key", request),
+  /** `start` requests a device code; `poll` polls once, and on `complete` Swift has saved the tokens. No result carries a token. */
+  agentModelsChatGPT: <R extends AgentModelChatGPTRequest>(request: R) =>
+    call<R extends { operation: "start" } ? ChatGPTDeviceCode : { status: "pending" | "slow_down" | "complete" }>(
+      "plugin:oxbit-files|agent_models_chatgpt",
+      request,
+    ),
   registerRemoteNotifications: () =>
     call<RemoteNotificationRegistration>("plugin:oxbit-files|register_remote_notifications"),
   /** Runs `listener` for each tap on a posted notification, including the tap that launched the app. */

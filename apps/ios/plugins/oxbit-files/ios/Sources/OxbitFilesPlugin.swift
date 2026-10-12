@@ -143,6 +143,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
     agentModels.key(invoke)
   }
 
+  @objc public func agentModelsChatgpt(_ invoke: Invoke) {
+    agentModels.chatgpt(invoke)
+  }
+
   @objc public func pickFolder(_ invoke: Invoke) {
     DispatchQueue.main.async {
       guard let controller = self.manager.viewController else {
