@@ -1896,7 +1896,7 @@ export class AgentController {
     const model = config?.get<string>(OXBIT_AGENT_SETTINGS.model)?.trim();
     const endpoint = oxbitEndpoint(config);
     const users = this.messages.filter((message) => message.role === "user");
-    if (this.titleRequested || this.agentTitled || users.length !== 1 || !this.connection || this.connection.provider === OXBIT_AGENT_PROVIDER ||
+    if (this.titleRequested || this.agentTitled || users.length !== 1 || !this.connection ||
       config?.get<boolean>("agentACP.generateTitles") === false || !models || !model || (endpoint.api === "openai-compatible" && !endpoint.baseUrl))
       return;
     this.titleRequested = true;

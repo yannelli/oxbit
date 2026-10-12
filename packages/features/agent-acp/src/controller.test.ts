@@ -1545,7 +1545,7 @@ describe("Generated conversation titles", () => {
       agent.dispose();
     }
   });
-  it("skips generation when the agent sends a title, for the Oxbit agent, without a model and when turned off", async () => {
+  it("skips generation when the agent sends a title, without a model and when turned off", async () => {
     const titled = await conversation([chatText("Unused")]);
     titled.turn("Why does login fail?", "Token expired.", [{ sessionUpdate: "session_info_update", title: "Login failure" }]);
     await flush();
@@ -1553,7 +1553,7 @@ describe("Generated conversation titles", () => {
     expect(titled.agent.title).toBe("Login failure");
     titled.agent.dispose();
     const cases: [Record<string, unknown>, string][] = [
-      [{ "agentACP.generateTitles": false }, "codex"], [{}, OXBIT_AGENT_PROVIDER], [{ [OXBIT_AGENT_SETTINGS.model]: "" }, "codex"],
+      [{ "agentACP.generateTitles": false }, "codex"], [{ [OXBIT_AGENT_SETTINGS.model]: "" }, "codex"],
       [{ [OXBIT_AGENT_SETTINGS.baseUrl]: "" }, "codex"],
     ];
     for (const [values, provider] of cases) {
