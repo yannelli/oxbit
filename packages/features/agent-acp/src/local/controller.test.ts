@@ -122,6 +122,9 @@ describe("AgentController with LocalAgentRuntime", () => {
     expect(agent.messages.map((message) => [message.role, message.text])).toEqual([["user", "Delegate the change"], ["agent", "Done"]]);
     const bodies = fake.requests.filter((request) => request.method === "POST").map((request) => request.body as any);
     expect(bodies[1].tools.map((tool: any) => tool.function.name)).not.toContain("task");
+    agent.draft = "/undo";
+    await agent.send();
+    expect(files.get("a.ts")!.value).toBe("const a = 1;\n");
     agent.dispose();
   });
   it("cancelling during a child's pending write expires the request and cancels the subagent", async () => {
