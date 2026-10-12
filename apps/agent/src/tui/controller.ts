@@ -148,7 +148,10 @@ export class Controller extends SessionController {
     const index = this.historyIndex < 0 ? this.history.length - 1 : this.historyIndex + step;
     if (index < 0) return true;
     this.historyIndex = index >= this.history.length ? -1 : index;
-    this.setDraft(this.historyIndex < 0 ? this.stash : draftOf(this.history[index]));
+    const draft = this.historyIndex < 0 ? this.stash : draftOf(this.history[index]);
+    // A recalled "/command" would open the menu and take over the arrow keys.
+    this.dismissed = draft.text;
+    this.setDraft(draft);
     return true;
   }
 
