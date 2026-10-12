@@ -1,7 +1,7 @@
 /* @jsxRuntime automatic */
 import { Box, Static, Text, useInput, usePaste, useWindowSize } from "ink";
 import { useSyncExternalStore } from "react";
-import type { Controller } from "./controller.js";
+import type { Controller, ViewState } from "./controller.js";
 import { Details } from "./details.js";
 import { OverlayView, PermissionDialog, PickList } from "./dialogs.js";
 import { ItemView, type ItemContext } from "./items.js";
@@ -9,22 +9,15 @@ import { handleKey } from "./keys.js";
 import { PanelView } from "./panel.js";
 import { PromptBox, StatusLine, Working } from "./prompt.js";
 import { ThemeContext, useTheme, type Theme } from "./theme.js";
+import { Viewport } from "./viewport.js";
 import { truncate } from "./width.js";
 
-function Screen({ controller, version }: { controller: Controller; version?: string }) {
-  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+/** The prompt or whatever replaces it (permission dialog, details, panel, picker), and the status line. */
+function Bottom({ controller, state, context }: { controller: Controller; state: ViewState; context: ItemContext }) {
   const theme = useTheme();
-  const { columns, rows } = useWindowSize();
-  const width = Math.max(20, columns);
-  useInput((input, key) => handleKey(controller, input, key));
-  usePaste((text) => controller.paste(text));
-  const context: ItemContext = { width, rows, expanded: false, cwd: state.cwd, version, awaiting: state.permission?.request.toolCall.toolCallId };
+  const { width } = context;
   return (
-    <Box flexDirection="column" width={width}>
-      <Static items={state.transcript.flushed}>
-        {(item) => <Box key={item.id} width={width} flexDirection="column"><ItemView item={item} context={context} /></Box>}
-      </Static>
-      {state.transcript.live.map((item) => <ItemView key={item.id} item={item} live context={context} />)}
+    <Box flexDirection="column" width={width} flexShrink={0}>
       {state.permission ? <PermissionDialog pending={state.permission} controller={controller} width={width} cwd={state.cwd} />
         : state.overlay?.kind === "details" ? <Details key={state.overlay.id} id={state.overlay.id} transcript={state.transcript} context={context} />
           : state.overlay?.kind === "panel" ? <PanelView overlay={state.overlay} width={width} />
@@ -44,6 +37,32 @@ function Screen({ controller, version }: { controller: Controller; version?: str
   );
 }
 
-export function App({ controller, theme, version }: { controller: Controller; theme: Theme; version?: string }) {
-  return <ThemeContext.Provider value={theme}><Screen controller={controller} version={version} /></ThemeContext.Provider>;
+function Screen({ controller, version, fullscreen }: { controller: Controller; version?: string; fullscreen: boolean }) {
+  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+  const { columns, rows } = useWindowSize();
+  const width = Math.max(20, columns);
+  useInput((input, key) => handleKey(controller, input, key));
+  usePaste((text) => controller.paste(text));
+  const context: ItemContext = { width, rows, expanded: false, cwd: state.cwd, version, awaiting: state.permission?.request.toolCall.toolCallId };
+  if (fullscreen) {
+    return (
+      <Box flexDirection="column" width={width} height={rows}>
+        <Viewport controller={controller} state={state} context={context} />
+        <Bottom controller={controller} state={state} context={context} />
+      </Box>
+    );
+  }
+  return (
+    <Box flexDirection="column" width={width}>
+      <Static key={state.generation} items={state.transcript.flushed}>
+        {(item) => <Box key={item.id} width={width} flexDirection="column"><ItemView item={item} context={context} /></Box>}
+      </Static>
+      {state.transcript.live.map((item) => <ItemView key={item.id} item={item} live context={context} />)}
+      <Bottom controller={controller} state={state} context={context} />
+    </Box>
+  );
+}
+
+export function App({ controller, theme, version, fullscreen = false }: { controller: Controller; theme: Theme; version?: string; fullscreen?: boolean }) {
+  return <ThemeContext.Provider value={theme}><Screen controller={controller} version={version} fullscreen={fullscreen} /></ThemeContext.Provider>;
 }

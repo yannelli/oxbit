@@ -29,6 +29,7 @@ Options:
       --mode <mode>      ${MODES.map((mode) => mode.id).join(", ")}
   -c, --continue         Continue the latest session in this directory
   -r, --resume <id>      Resume a saved session
+      --inline           Render the terminal UI inline instead of fullscreen
   -v, --version          Print the version
   -h, --help             Print this help
 
@@ -36,7 +37,7 @@ Settings, keys, sessions and skills live in ~/.oxbit/agent (OXBIT_AGENT_HOME).
 `;
 const OPTIONS = {
   print: { type: "string", short: "p" }, model: { type: "string", short: "m" }, provider: { type: "string" }, mode: { type: "string" },
-  continue: { type: "boolean", short: "c" }, resume: { type: "string", short: "r" }, version: { type: "boolean", short: "v" }, help: { type: "boolean", short: "h" },
+  continue: { type: "boolean", short: "c" }, resume: { type: "string", short: "r" }, inline: { type: "boolean" }, version: { type: "boolean", short: "v" }, help: { type: "boolean", short: "h" },
 } as const;
 type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositionals: true }>>["values"];
 
@@ -125,7 +126,7 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     const adapter = memory.memoryTuiConnection(await MemoryConnection.open(agentFactory(setup(true, true))), { ...label(), mode, settings: panels });
     try {
       const { sessionId: last } = await tui.run(adapter, { cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, version: agentVersion(),
-        history: memory.fileHistory(config.paths.history) });
+        history: memory.fileHistory(config.paths.history), fullscreen: !values.inline });
       if (last) io.stderr.write(`Resume this session with: oxbit-agent -r ${last}\n`);
       return 0;
     } finally {

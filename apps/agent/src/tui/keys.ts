@@ -68,14 +68,17 @@ function overlayKey(controller: Controller, input: string, key: Key) {
   if (input && !key.ctrl && !key.meta && !key.tab) controller.filter(overlay.filter + input);
 }
 
-/** Routes one key press: Ctrl+C first, then the permission dialog, an open overlay, completion, and the editor. */
+/** Routes one key press: Ctrl+C and Ctrl+L first, then the permission dialog, an open overlay, completion, and the editor. */
 export function handleKey(controller: Controller, input: string, key: Key) {
   const state = controller.getState();
   const draft = state.draft;
   const edit = controller.setDraft.bind(controller);
   if (key.ctrl && input === "c") return controller.interrupt();
+  if (key.ctrl && input === "l") return controller.redraw();
   if (state.permission) return permissionKey(controller, input, key);
   if (state.overlay) return overlayKey(controller, input, key);
+  if (key.pageUp || key.pageDown) return controller.scrollBy(key.pageUp ? -1 : 1);
+  if (key.end && !draft.text && state.scroll) return controller.scrollEnd();
   if (key.tab && key.shift) return controller.cycleMode();
   if (key.ctrl && input === "o") return controller.showDetails();
   if (key.ctrl && input === "p") return controller.openModels();

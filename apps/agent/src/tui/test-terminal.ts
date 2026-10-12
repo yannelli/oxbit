@@ -3,7 +3,8 @@ import { stripAnsi } from "./width.js";
 
 export const KEYS = {
   enter: "\r", escape: "\x1b", up: "\x1b[A", down: "\x1b[B", left: "\x1b[D", right: "\x1b[C", tab: "\t", shiftTab: "\x1b[Z",
-  ctrlC: "\x03", ctrlO: "\x0f", ctrlU: "\x15", altEnter: "\x1b\r", shiftEnter: "\x1b[13;2u", backspace: "\x7f",
+  ctrlC: "\x03", ctrlO: "\x0f", ctrlU: "\x15", ctrlL: "\x0c", altEnter: "\x1b\r", shiftEnter: "\x1b[13;2u", backspace: "\x7f",
+  pageUp: "\x1b[5~", pageDown: "\x1b[6~", end: "\x1b[F",
 };
 
 /** A TTY-like stdout that records every write; Ink's debug mode writes each frame in full. */

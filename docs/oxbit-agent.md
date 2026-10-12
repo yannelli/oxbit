@@ -21,7 +21,8 @@ entry in the agent picker.
 | `oxbit-agent logout [provider\|chatgpt]` | Removes saved keys, or signs out of ChatGPT; no argument does both |
 
 Options: `-m/--model`, `--provider`, `--mode ask|accept-edits|full-auto`,
-`-c/--continue` (latest session in this directory), `-r/--resume <id>`.
+`-c/--continue` (latest session in this directory), `-r/--resume <id>`,
+`--inline` (terminal UI without the alternate screen).
 
 Print mode starts in `ask` and denies permission prompts; pass
 `--mode accept-edits` or `--mode full-auto` for unattended edits or commands.
@@ -37,12 +38,35 @@ Print mode starts in `ask` and denies permission prompts; pass
 | Shift+Tab | Cycle ask, accept-edits, full-auto |
 | Ctrl+P | Model and reasoning picker |
 | Ctrl+O | Details viewer for thinking, tool output and diffs |
+| PageUp, PageDown | Scroll the transcript by most of a page (fullscreen) |
+| End | With an empty input, return to the newest output (fullscreen) |
+| Ctrl+L | Clear the screen and redraw; fullscreen also returns to the newest output |
 | `/` and `@` | Complete commands and files |
 
-Local commands: `/model`, `/new`, `/resume`, `/help`, `/exit`, and the settings
-panels below. `/context` draws the context window as a colored grid. The status line shows
-the mode, goal and loop state, title, model, provider and context use. On exit the
-TUI prints the `oxbit-agent -r <id>` command that resumes the session.
+The TUI runs fullscreen when stdout is a terminal: it uses the alternate screen,
+the transcript fills the space above, and the working line, queued messages,
+prompt or open dialog, completion list and status line stay on the bottom rows.
+The transcript follows the newest output until PageUp; while scrolled up the
+status line says so, and PageDown to the bottom or End resumes following. The
+view renders the newest 200 transcript items; Ctrl+O reaches every item. On exit
+the shell screen comes back. `--inline` keeps the older layout, where finished
+output goes to the terminal scrollback and the prompt follows the output.
+
+Local commands:
+
+| Command | Effect |
+| --- | --- |
+| `/model`, `/new`, `/resume`, `/help`, `/exit` | Model picker, new session, session picker, keys and commands, quit |
+| `/clear` | Clears the conversation, queued messages and screen, and starts a new session; inline mode also clears the scrollback |
+| `/copy` | Copies the last agent reply to the clipboard with OSC 52 |
+| `/export [path]` | Writes user and agent messages and tool call titles and statuses as Markdown; default `oxbit-session-<id prefix>.md` in the working directory; an existing file is left alone |
+| `/init` | Asks the agent to inspect the repository and create or update `AGENTS.md` with build, test and lint commands, layout and conventions |
+
+The settings panels are below. `/context` draws the context window as a colored grid. The status line shows
+the mode, goal and loop state, title, model, provider and context use. The
+terminal title shows the session title, with `●` in front while the agent
+works, and is reset on exit. On exit the TUI prints the `oxbit-agent -r <id>`
+command that resumes the session.
 
 ## Files
 

@@ -73,7 +73,9 @@ export function StatusLine({ state, width }: { state: ViewState; width: number }
   const loopText = status.loop && [`↻ loop`, status.loop.iteration ? ` ${status.loop.iteration}${status.loop.max ? `/${status.loop.max}` : ""}` : "",
     status.loop.status ? ` ${status.loop.status}` : "", status.loop.interval ? ` · every ${status.loop.interval}` : ""].join("");
   const left = fitSegments([
-    hint ? { text: hint, color: theme.warning, priority: 0 } : { text: `${MODE_LABELS[status.mode] ?? status.mode}${width >= 80 ? " (shift+tab)" : ""}`, color: theme.modes[status.mode], priority: 0 },
+    hint ? { text: hint, color: theme.warning, priority: 0 }
+      : state.scroll ? { text: "↑ scrolled up · pgdn or end returns to the latest", color: theme.warning, priority: 0 }
+      : { text: `${MODE_LABELS[status.mode] ?? status.mode}${width >= 80 ? " (shift+tab)" : ""}`, color: theme.modes[status.mode], priority: 0 },
     ...status.goal ? [{ text: `◎ goal ${status.goal.status}`, color: theme.accent, priority: 1 }] : [],
     ...loopText ? [{ text: loopText, color: theme.accent, priority: 2 }] : [],
   ], budget, "  ");
