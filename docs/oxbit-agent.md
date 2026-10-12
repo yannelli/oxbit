@@ -82,8 +82,8 @@ Everything lives in `~/.oxbit/agent` (`OXBIT_AGENT_HOME` overrides it):
 ## Settings commands
 
 `/config`, `/skills`, `/hooks`, `/mcp`, `/instructions` and `/providers` change
-`settings.json`, `mcp.json` and `auth.json`. Changes apply on the next turn;
-switching the provider rebuilds the agent and keeps the open session.
+`settings.json`, `mcp.json` and `auth.json`. Changes apply on the next turn. In the
+terminal UI, switching the provider rebuilds the agent and keeps the open session.
 
 In the terminal UI the bare command opens a panel: arrows move, space turns a
 row on or off, left and right change a choice, Enter runs a row's action (set an
