@@ -88,3 +88,48 @@ test("settings JSON offers project and language completions with schema download
   await expect.poll(() => page.evaluate(() => ((window as any).__oxbit.kernel.services.get("language").diagnostics.get(".config/oxbit/settings.local.json") ?? []).some((item: any) => item.message.includes("number")))).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test("settings UI saves User scope while a workspace conflict is held and reports the conflict once", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/#pair=oxbit-acceptance-2026");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready);
+  const original = await page.evaluate(async () => {
+    const app = (window as any).__oxbit, notify = app.workbench.notify.bind(app.workbench), notices: string[] = (window as any).__notices = [];
+    app.workbench.notify = (message: string, ...rest: unknown[]) => { notices.push(message); return notify(message, ...rest); };
+    for (const path of [".config", ".config/oxbit"]) {
+      try { await app.runtime.request("fs.mkdir", { path }); }
+      catch (error) { if (!String(error).includes("EEXIST")) throw error; }
+    }
+    const file = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.local.json" }).catch(() => undefined);
+    await app.runtime.request("fs.write", { path: ".config/oxbit/settings.local.json", text: '{"editor.tabSize":5}', expectedRevision: file?.revision ?? null });
+    return (await app.runtime.request("settings.read")).layers.user["editor.tabSize"];
+  });
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.configuration.get("editor.tabSize"))).toBe(5);
+  // The UI edit is sent with the old value before the runtime reports the disk change, so the runtime rejects it.
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit, file = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.local.json" });
+    await app.runtime.request("fs.write", { path: file.path, text: '{"editor.tabSize":9}', expectedRevision: file.revision });
+    app.kernel.configuration.set("editor.tabSize", 7, "workspace"); await app.kernel.configuration.flush();
+  });
+  const conflicts = () => page.evaluate(() => (window as any).__notices.filter((message: string) => message.includes("changed on disk")).length);
+  await expect.poll(conflicts).toBe(1);
+  await page.evaluate(() => (window as any).__oxbit.kernel.commands.execute("settings.open"));
+  await page.getByRole("textbox", { name: "Search settings" }).fill("editor.tabSize");
+  const input = page.locator('input[type="number"]');
+  await expect(page.getByRole("button", { name: "User", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await input.fill("2"); await input.blur();
+  await expect.poll(() => page.evaluate(async () => (await (window as any).__oxbit.runtime.request("settings.read")).layers.user["editor.tabSize"])).toBe(2);
+  await page.evaluate(async () => {
+    const app = (window as any).__oxbit, file = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.local.json" });
+    await app.runtime.request("fs.write", { path: file.path, text: '{"editor.tabSize":9,"editor.wordWrap":"on"}', expectedRevision: file.revision });
+  });
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.configuration.get("editor.wordWrap"))).toBe("on");
+  expect(await page.evaluate(() => (window as any).__oxbit.kernel.configuration.get("editor.tabSize"))).toBe(7);
+  expect(await conflicts()).toBe(1);
+  await page.evaluate(async (value) => {
+    const app = (window as any).__oxbit, file = await app.runtime.request("fs.read", { path: ".config/oxbit/settings.local.json" });
+    await app.runtime.request("fs.delete", { path: file.path, expectedRevision: file.revision });
+    await app.runtime.request("settings.patch", { changes: [{ scope: "user", path: ["editor.tabSize"], before: 2, ...(value === undefined ? {} : { value }) }] });
+  }, original);
+  expect(errors).toEqual([]);
+});
