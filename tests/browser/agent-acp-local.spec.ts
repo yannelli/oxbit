@@ -244,6 +244,43 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review, a
   expect(JSON.stringify(requests)).not.toContain("sk-test");
 });
 
+test("the Oxbit agent delegates a task to a subagent whose file write is applied from the Agents view", async ({ page }) => {
+  const prompt = "Write agent note to notes.md";
+  const panel = await open(page, true, [
+    chatTool("call_1", "task", { description: "Write the note", prompt }),
+    chatTool("child_1", "write_file", { path: "notes.md", content: "agent note\n" }),
+    chatText("Wrote notes.md."),
+    chatText("The subagent wrote the note."),
+    chatText("Delegated note"),
+  ]);
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  const composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await composer.fill("Delegate a note");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+
+  await panel.getByRole("button", { name: "Delegated: Write the note" }).click();
+  const agents = page.locator(".acp-agents-view");
+  await expect(agents.getByRole("tree", { name: "Dispatched subagents" }).getByRole("treeitem", { name: /^Write the note/ })).toBeVisible();
+  const details = agents.getByRole("region", { name: "Subagent details" });
+  await expect(details.getByRole("heading", { name: "Write the note" })).toBeVisible();
+  await expect(details.getByText(prompt).first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.filesystem.read("notes.md").then(() => true, () => false))).toBe(false);
+  await details.getByRole("button", { name: "Apply change", exact: true }).click();
+  await expect(details.getByText("Wrote notes.md.").first()).toBeVisible();
+  expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
+
+  await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp"));
+  await expect(panel.getByText("The subagent wrote the note.")).toBeVisible();
+  const requests = await page.evaluate(() => (window as any).__models.requests);
+  expect(requests.map((request: any) => [request.method, request.path])).toEqual([["GET", "/v1/models"], ...Array(5).fill(["POST", "/v1/chat/completions"])]);
+  const tools = (request: any) => request.body.tools.map((tool: any) => tool.function.name);
+  expect(tools(requests[1])).toContain("task");
+  expect(tools(requests[2])).not.toContain("task");
+  expect(requests[2].body.messages.filter((message: any) => message.role === "user").map((message: any) => message.content)).toEqual([prompt]);
+});
+
 test("the Oxbit agent lists its slash commands and reopens a saved conversation after a reload", async ({ page }, info) => {
   let panel = await open(page, true, [chatText("The door is blue."), chatText("Blue door")]);
   await page.evaluate(() => (window as any).__oxbit.filesystem.write(".agents/skills/review/SKILL.md",

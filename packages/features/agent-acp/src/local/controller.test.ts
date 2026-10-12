@@ -33,8 +33,9 @@ function setup(replies: Reply[]) {
     kernel: { configuration: settings(), services: { optional: () => undefined, get: () => undefined } },
   } as unknown as FeatureOptions;
   const fake = fakeModels(replies);
-  const agent = new AgentController({ ...options, runtime: new LocalAgentRuntime(options, () => fake.models) });
-  return { agent, files, fake };
+  const runtime = new LocalAgentRuntime(options, () => fake.models);
+  const agent = new AgentController({ ...options, runtime });
+  return { agent, files, fake, runtime };
 }
 
 describe("AgentController with LocalAgentRuntime", () => {
@@ -68,6 +69,52 @@ describe("AgentController with LocalAgentRuntime", () => {
     await sending;
     expect(agent.busy).toBe(false);
     expect(agent.status).toBe("Stopped");
+    agent.dispose();
+  });
+  it("runs a task subagent whose write carries its id and child session, then completes with the child's result", async () => {
+    const { agent, files, fake } = setup([chatTool("t1", "task", { description: "Bump a", prompt: "Change a to 2 in a.ts" }),
+      chatTool("c1", "edit_file", { path: "a.ts", old_string: "a = 1", new_string: "a = 2" }), chatText("Changed"), chatText("Done")]);
+    await agent.connect({ provider: "oxbit" });
+    agent.draft = "Delegate the change";
+    const sending = agent.send();
+    await expect.poll(() => agent.requests.length).toBe(1);
+    const [child] = [...agent.subagents.values()];
+    expect(child).toEqual(expect.objectContaining({ provider: "oxbit", name: "Bump a", task: "Change a to 2 in a.ts", state: "running",
+      sessionId: expect.any(String), rootSessionId: agent.connection!.sessionId }));
+    expect(child.sessionId).not.toBe(agent.connection!.sessionId);
+    expect(agent.activeSubagentCount).toBe(1);
+    expect(agent.requests[0]).toEqual(expect.objectContaining({ method: "fs/write_text_file", subagentId: child.id, sessionId: child.sessionId,
+      params: expect.objectContaining({ path: "a.ts", content: "const a = 2;\n" }) }));
+    await agent.applyFile(agent.requests[0]);
+    await sending;
+    expect(files.get("a.ts")!.value).toBe("const a = 2;\n");
+    expect(agent.subagents.get(child.id)).toEqual(expect.objectContaining({ state: "completed", result: expect.stringContaining("Changed") }));
+    expect(agent.activeSubagentCount).toBe(0);
+    expect(agent.activity.filter((entry) => entry.kind === "subagent")).toEqual([{ kind: "subagent", id: child.id }]);
+    expect(agent.messages.map((message) => [message.role, message.text])).toEqual([["user", "Delegate the change"], ["agent", "Done"]]);
+    const bodies = fake.requests.filter((request) => request.method === "POST").map((request) => request.body as any);
+    expect(bodies[1].tools.map((tool: any) => tool.function.name)).not.toContain("task");
+    agent.dispose();
+  });
+  it("cancelling during a child's pending write expires the request and cancels the subagent", async () => {
+    const { agent, files, runtime } = setup([chatTool("t1", "task", { description: "Bump a", prompt: "Change a to 2 in a.ts" }),
+      chatTool("c1", "edit_file", { path: "a.ts", old_string: "a = 1", new_string: "a = 2" })]);
+    await agent.connect({ provider: "oxbit" });
+    const expired: string[] = [];
+    runtime.subscribe("acp.requestsExpired", ({ requestIds }) => expired.push(...requestIds));
+    agent.draft = "Delegate the change";
+    const sending = agent.send();
+    await expect.poll(() => agent.requests.length).toBe(1);
+    const [child] = [...agent.subagents.values()];
+    const { requestId } = agent.requests[0];
+    await agent.cancel();
+    await sending;
+    expect(expired).toEqual([requestId]);
+    expect(agent.requests).toEqual([]);
+    await expect.poll(() => agent.subagents.get(child.id)?.state).toBe("cancelled");
+    expect(agent.activeSubagentCount).toBe(0);
+    expect(files.get("a.ts")!.value).toBe("const a = 1;\n");
+    expect(agent.busy).toBe(false);
     agent.dispose();
   });
 });
