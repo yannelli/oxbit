@@ -10,11 +10,11 @@ describe("nodeLoopback", () => {
     const response = fetch(`${base}/auth/callback?code=c1&state=s1`);
     const request = await server.next(new AbortController().signal);
     expect(request.query).toEqual({ code: "c1", state: "s1" });
+    await expect(nodeLoopback.listen(server.port, "/auth/callback")).rejects.toThrow(/EADDRINUSE/);
     request.respond(200, "<p>Done</p>");
+    await server.close();
     const answered = await response;
     expect([answered.status, await answered.text(), answered.headers.get("content-type")]).toEqual([200, "<p>Done</p>", "text/html; charset=utf-8"]);
-    await expect(nodeLoopback.listen(server.port, "/auth/callback")).rejects.toThrow(/EADDRINUSE/);
-    await server.close();
   });
 
   it("queues a callback that arrives before next() and rejects next() on abort", async () => {
