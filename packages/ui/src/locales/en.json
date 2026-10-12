@@ -996,6 +996,8 @@
   "Allow speech recognition for Oxbit to dictate": "Allow speech recognition for Oxbit to dictate",
   "No microphone is available": "No microphone is available",
   "Dictation needs a network connection": "Dictation needs a network connection",
+  "Dictation failed: {0}": "Dictation failed: {0}",
+  "Dictation failed": "Dictation failed",
   "Dictation does not support this language": "Dictation does not support this language",
   "No speech was detected": "No speech was detected",
   "1 request needs an answer": "1 request needs an answer",

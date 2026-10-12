@@ -39,3 +39,16 @@ bun run deploy   # publishes https://oxbit-push.<account>.workers.dev
 ```
 
 Tests run from the repo root: `bunx vitest run apps/push-relay`.
+
+## Trying it before a deploy
+
+APNs answers only over HTTP/2. `wrangler dev --local` runs workerd, which sends HTTP/1.1, so `/v1/push` cannot reach APNs there ([workerd #4841](https://github.com/cloudflare/workerd/issues/4841)). Use a remote preview, which runs on Cloudflare's edge without changing the deployed Worker:
+
+```sh
+cd apps/push-relay
+npx -y wrangler@4.149.0 dev --remote --env-file /tmp/relay.vars   # HANDLE_SECRET and the APNS_* values
+```
+
+An APNs key limited to the sandbox environment works only for development-signed builds and simulators. TestFlight and App Store builds register production tokens, which need a key enabled for production.
+
+Checked 2026-10-11: a remote preview returned `{sent: true}` for an iOS 26.5 simulator token through the APNs sandbox, and `{sent: false, gone: true, reason: "BadDeviceToken"}` for a made-up token.

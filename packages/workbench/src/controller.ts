@@ -103,6 +103,11 @@ export interface WorkbenchState {
     resolve: (value: string | undefined, input?: string) => void;
   };
 }
+/** Runtime request errors while the socket is down or closing. */
+const runtimeOffline = (error: unknown) =>
+  ["OFFLINE", "CONNECTION_LOST"].includes(
+    (error as { code?: unknown } | undefined)?.code as string,
+  );
 const initial = (): WorkbenchState => ({
   viewBadges: {},
   groups: [{ id: "g1", tabs: [] }],
@@ -538,6 +543,8 @@ export class WorkbenchController {
         }
       } catch (error) {
         if (generation !== this.refreshGeneration || this.disposed) return;
+        // The tree stays as it was and refreshes when the runtime reconnects.
+        if (runtimeOffline(error)) return;
         this.notify(
           `${directory || this.state.projectName}: ${String(error)}`,
           "error",

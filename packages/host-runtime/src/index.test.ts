@@ -11,6 +11,22 @@ class Socket {
   close(){this.readyState=3;this.onclose?.({code:1000});}
 }
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();Socket.instances=[];});
+describe('request timeouts',()=>{
+  it('waits for an agent turn past the default timeout and still times out other requests', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('WebSocket', Socket);
+    const client = new RuntimeClient('http://runtime.test'); await client.connect();
+    const prompt = client.request('acp.call', { id: 'agent', method: 'session/prompt', params: { text: 'long task' } });
+    const other = client.request('acp.call', { id: 'agent', method: 'session/set_mode', params: {} });
+    const timedOut = expect(other).rejects.toMatchObject({ code: 'TIMEOUT' });
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    await timedOut;
+    const socket = Socket.instances[0];
+    const sent = socket.sent.find(message => message.params?.method === 'session/prompt');
+    socket.receive({ v: 1, type: 'response', id: sent.id, result: { stopReason: 'end_turn' } });
+    await expect(prompt).resolves.toEqual({ stopReason: 'end_turn' });
+    client.dispose();
+  });
+});
 describe('runtime connection recovery',()=>{
   it('uses the advertised epoch for new operations and preserves an explicit replay ID', async () => {
     const firstEpoch = crypto.randomUUID(), nextEpoch = crypto.randomUUID();

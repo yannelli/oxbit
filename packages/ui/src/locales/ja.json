@@ -996,6 +996,8 @@
   "Allow speech recognition for Oxbit to dictate": "音声入力するには Oxbit に音声認識を許可してください",
   "No microphone is available": "使用できるマイクがありません",
   "Dictation needs a network connection": "音声入力にはネットワーク接続が必要です",
+  "Dictation failed: {0}": "音声入力に失敗しました: {0}",
+  "Dictation failed": "音声入力に失敗しました",
   "Dictation does not support this language": "音声入力はこの言語に対応していません",
   "No speech was detected": "音声が検出されませんでした",
   "1 request needs an answer": "1 件のリクエストが回答を待っています",

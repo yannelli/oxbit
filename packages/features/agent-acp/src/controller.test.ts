@@ -525,6 +525,41 @@ describe("ACP session lifecycle", () => {
     expect(agent.status).toContain("Runtime disconnected");
     agent.dispose();
   });
+  it("reattaches the conversation when the runtime reconnects", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.activeConversation = { id: "conversation", sessionId: "session", root: "/workspace", provider: "codex", name: "Codex" } as any;
+    agent.busy = true;
+    listeners.get("connection.change")!({ state: "reconnecting" });
+    listeners.get("connection.change")!({ state: "reconnecting" });
+    expect(agent.connection).toBeUndefined();
+    expect(agent.status).toContain("Runtime disconnected");
+    runtime.request.mockResolvedValueOnce({
+      connection: { id: "connection", root: "/workspace", provider: "codex", sessionId: "session", authMethods: [] },
+      events: [
+        { name: "acp.turnStarted", params: { messageId: "m1", text: "long task" } },
+        { name: "acp.turnEnded", params: { stopReason: "end_turn" } },
+      ],
+      sequence: 2, queue: [], queuePaused: false, busy: false, requests: [], truncated: false,
+    });
+    listeners.get("connection.change")!({ state: "connected" });
+    await vi.waitFor(() => expect(agent.connection?.id).toBe("connection"));
+    expect(runtime.request).toHaveBeenCalledWith("acp.attach", { id: "connection", clientCapabilities: { editorTools: true } });
+    expect(agent.activeConversation?.id).toBe("conversation");
+    expect(agent.status).toBe("Ready");
+    expect(agent.messages.map((message) => message.text)).toEqual(["long task"]);
+    agent.dispose();
+  });
+  it("does not reattach after another conversation opens during the outage", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.activeConversation = { id: "conversation", sessionId: "session", root: "/workspace", provider: "codex", name: "Codex" } as any;
+    listeners.get("connection.change")!({ state: "reconnecting" });
+    agent.activeConversation = { id: "other", sessionId: "", root: "/workspace", provider: "codex", name: "Codex" } as any;
+    listeners.get("connection.change")!({ state: "connected" });
+    await Promise.resolve();
+    expect(runtime.request).not.toHaveBeenCalledWith("acp.attach", expect.anything());
+    expect(agent.connection).toBeUndefined();
+    agent.dispose();
+  });
   it("does not reinsert an in-flight file review after disconnect", async () => {
     const { agent, options, listeners } = setup();
     const pending = deferred();

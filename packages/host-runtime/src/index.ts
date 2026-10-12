@@ -297,7 +297,7 @@ export class RuntimeClient implements RpcClient {
             { id },
           ),
         );
-      }, method.startsWith("tasks.worktree") ? 21 * 60 * 1000 : 120000);
+      }, requestTimeout(method, params));
       const cleanup = () => {
         clearTimeout(timer);
         options.signal?.removeEventListener("abort", abort);
@@ -358,6 +358,12 @@ export class RuntimeClient implements RpcClient {
     this.disconnect();
     this.listeners.clear();
   }
+}
+/** The runtime answers an agent's `session/prompt` when the turn ends, and gives the agent 30 minutes. */
+function requestTimeout(method: string, params: Record<string, unknown>) {
+  if (method.startsWith("tasks.worktree")) return 21 * 60 * 1000;
+  if (method === "acp.call" && params.method === "session/prompt") return 31 * 60 * 1000;
+  return 120000;
 }
 function decodeBase64(value: string): Uint8Array {
   const binary = atob(value);

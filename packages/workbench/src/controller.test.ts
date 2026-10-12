@@ -134,6 +134,18 @@ describe("on-demand explorer listings", () => {
       "Permission denied",
     );
   });
+  it("keeps the tree without an error while the runtime is offline", async () => {
+    const { workbench, list } = await explorer();
+    await workbench.refreshFiles();
+    list.mockRejectedValue(
+      Object.assign(new Error("Connect to the runtime first"), {
+        code: "OFFLINE",
+      }),
+    );
+    await workbench.refreshFiles();
+    expect(workbench.state.files).toEqual(tree[""]);
+    expect(workbench.state.notifications).toEqual([]);
+  });
 });
 async function setup() {
   vi.stubGlobal("requestAnimationFrame", () => 0);

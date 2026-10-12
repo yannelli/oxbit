@@ -70,7 +70,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | `@` mentions | All | Files, folders, workspace symbols from running language servers, selection, diagnostics, uncommitted changes, the branch diff, commits and earlier threads | `agent-acp-composer`: mentions, `@Changes`, workspace symbol, earlier thread; `agent-acp-context-fork`: branch diff, commit, folder |
 | Image paste and drop | All | Yes, when the agent advertises image prompts | `agent-acp-composer`: paste, drop and resize |
 | Badges and in-app alerts when an agent waits or finishes | VS Code, Zed, Cursor | Activity and phone tab badges, status item, toast | `agent-acp-start`: status item and toast, request badge |
-| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Selecting a macOS or iOS notification opens the agent panel, also when it launches Oxbit. The runtime pushes to a suspended iOS app through the Oxbit push relay; device delivery unchecked | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: plugin and native paths; `ssh-runtime` (iOS): notification tap after relaunch; `tests/ios/push.spec.ts`, `apps/runtime/tests/push.test.ts`, `apps/push-relay/tests` |
+| OS or push notifications | VS Code, Cursor, Claude, Codex, GitHub | System notifications when the window is hidden or unfocused: native in the macOS and iOS apps, Web Notification in browsers. Selecting a macOS or iOS notification opens the agent panel, also when it launches Oxbit. The runtime pushes to a suspended iOS app through the Oxbit push relay; delivery ran in the iOS simulator with a sandbox APNs key, unchecked on a device | `agent-acp-start`: system notification; `tests/desktop/agent.e2e.mjs`: plugin and native paths; `ssh-runtime` (iOS): notification tap after relaunch; `tests/ios/push.spec.ts`, `apps/runtime/tests/push.test.ts`, `apps/push-relay/tests` |
 | Agent panel docked right | Zed, VS Code, Cursor | Yes, for new layouts | `panel-docking`: right-dock view |
 | Agent in the phone tab bar | Claude, Codex, GitHub, Cursor | Yes | `mobile`: phoneBar slot with a badge |
 | Checkpoints and restore | Zed, VS Code, Cursor | Git checkpoint per message with Restore checkpoint; files only, the agent's context is unchanged. Fork from here starts a new conversation with the earlier messages attached. Fork conversation forks the agent session through ACP `session/fork` | `agent-acp-checkpoints`: restore, restore files and fork; `agent-acp-context-fork`: fork; `agent-acp-fork-session`: session fork; OpenCode 1.18.18 with a local model: session fork, run by hand |
@@ -79,7 +79,7 @@ Zed documentation pages carry no date; they are cited as accessed on 2026-10-10.
 | Parallel threads in tabs | Zed, VS Code, Cursor | Thread strip with status per thread, up to 3 agents per device; background requests badge the Agent button | `agent-acp-threads` |
 | Context-usage meter | Zed, VS Code, JetBrains, Cursor | Ring with percent and token counts; warning color from 85% | `agent-acp-workflows`: 85% of context used |
 | Voice input | Cursor, Codex, Happy | Microphone button in the composer: Web Speech API in browsers and the macOS app, Apple's Speech framework in the iOS app. Recognition in the apps has not run past the permission prompts | `agent-acp-composer`: microphone; `tests/desktop/agent.e2e.mjs`: speech recognition; `packages/host-ios/src/speech.test.ts` |
-| Live Activities | Codex, GitHub | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs and by push while iOS suspends it; push delivery unchecked on a device | `agent-acp-start`: activity service; `attention.test.ts`: 5-minute refresh; `apps/runtime/tests/push.test.ts`: activity pushes |
+| Live Activities | Codex, GitHub | Lock Screen and Dynamic Island activity for the connected thread: working with elapsed time, needs input, finished or failed. Updated by the app while it runs and by push while iOS suspends it; push end ran in the iOS simulator, unchecked on a device | `agent-acp-start`: activity service; `attention.test.ts`: 5-minute refresh; `apps/runtime/tests/push.test.ts`: activity pushes |
 | Agent icons from the ACP Registry | Paseo | Picker, registry browser, header, thread chips, runtime sessions and history | `agent-acp-start`: picker and registry icons |
 
 ## Side by side
@@ -107,17 +107,20 @@ specs, `tests/ios` and `packages/host-ios` unit tests.
 | Badges for waiting agents | – | – | Yes | – | – | – | – | – | Yes | Yes |
 | OS notification while the app runs | Setting | – | Yes | Yes | – | – | – | – | Yes | Yes |
 | Selecting the notification opens the agent | – | – | – | – | – | Yes | – | – | macOS app (selection unchecked) | Yes |
-| Push while the phone app is suspended | n/a | n/a | n/a | n/a | Yes | Yes | Yes | Yes | n/a | Built; device delivery unchecked |
+| Push while the phone app is suspended | n/a | n/a | n/a | n/a | Yes | Yes | Yes | Yes | n/a | Yes in the iOS simulator; device unchecked |
 | Voice input | – | – | – | – | – | Yes | – | Yes | Yes | Yes |
-| Live Activity | n/a | n/a | n/a | n/a | – | Yes | Yes | – | n/a | Yes; push updates unchecked on a device |
+| Live Activity | n/a | n/a | n/a | n/a | – | Yes | Yes | – | n/a | Yes; push end checked in the iOS simulator, unchecked on a device |
 
 Rows where another client documents more than Oxbit are listed under the gaps below.
 
 ## Gaps against other tools
 
-- Push to a suspended phone and Live Activity push updates have not run on a device:
-  the relay needs an APNs key and the app needs a TestFlight build with the push entitlement.
+- Push to a suspended phone and Live Activity push updates ran in the iOS simulator with a
+  sandbox APNs key on 2026-10-11 (`docs/agent-acp.md`, Push). A device run needs the
+  production APNs key in the deployed relay.
 - Selecting a macOS notification has not run with notifications allowed.
 - VS Code forks the agent session at a checkpoint. ACP `session/fork` copies the whole session, so Oxbit forks the session only from the latest message (`agent-acp-fork-session`); forking from an earlier message attaches the earlier messages as text (`agent-acp-context-fork`). Session fork with Claude Agent and Codex has not run.
-- In iOS device folders `@` has no branch diff, which needs a runtime (`agent-acp-context-fork`); `@` commits through the native Git client have not run on a device.
-- Dictation, iOS notification taps, the Agent finished toast and the Live Activity have not run on a physical device.
+- In iOS device folders `@` has no branch diff, which needs a runtime (`agent-acp-context-fork`); `@` commits through the native Git client ran in the iOS simulator on 2026-10-11 and have not run on a device.
+- Dictation, iOS notification taps, the Agent finished toast and the Live Activity ran in the
+  iOS simulator on 2026-10-11 and have not run on a physical device. The simulator's speech
+  recognizer fails to start, so dictation there shows its error.

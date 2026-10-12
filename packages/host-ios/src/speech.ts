@@ -8,7 +8,8 @@ export type SpeechErrorCode =
   | "no-speech"
   | "network"
   | "aborted"
-  | "language-not-supported";
+  | "language-not-supported"
+  | "unknown";
 
 export interface SpeechAlternative {
   readonly transcript: string;

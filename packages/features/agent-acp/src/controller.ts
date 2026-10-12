@@ -95,6 +95,8 @@ export class AgentController {
   };
   private replaying = false;
   private threadConversations = new Map<string, string>();
+  /** The runtime connection to reattach when the runtime reconnects, while its conversation stays open. */
+  private reattachOnReconnect?: { id: string; conversationId?: string };
   private checkpointing = false;
   readonly attention: Attention;
   readonly checkpoints: Checkpoints;
@@ -293,12 +295,22 @@ export class AgentController {
       this.clearConnection(reason);
     });
     on("connection.change", ({ state }) => {
-      if (state !== "connected") {
-        this.liveSessions = [];
-        this.clearConnection(
-          "Runtime disconnected. Open Runtime sessions after reconnecting to reattach.", true,
-        );
+      if (state === "connected") {
+        const target = this.reattachOnReconnect;
+        this.reattachOnReconnect = undefined;
+        if (target && !this.connection && this.activeConversation?.id === target.conversationId) {
+          if (target.conversationId) this.threadConversations.set(target.id, target.conversationId);
+          void this.attachLive(target.id).catch(() => this.changed());
+        }
+        return;
       }
+      const id = this.local ? undefined : this.connection?.id;
+      const conversationId = this.activeConversation?.id;
+      this.liveSessions = [];
+      this.clearConnection(
+        "Runtime disconnected. Open Runtime sessions after reconnecting to reattach.", true,
+      );
+      if (id) this.reattachOnReconnect = { id, conversationId };
     });
     on("workspace.trust", ({ trusted }) => {
       if (!trusted) {

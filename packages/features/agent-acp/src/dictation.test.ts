@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { joinDictation, recognitionConstructor, spokenText, type RecognitionEvent } from "./dictation.js";
+import { dictationError, joinDictation, recognitionConstructor, spokenText, type RecognitionEvent } from "./dictation.js";
 
 const event = (...parts: [string, boolean][]): RecognitionEvent => ({
   resultIndex: 0,
@@ -7,6 +7,12 @@ const event = (...parts: [string, boolean][]): RecognitionEvent => ({
 });
 
 describe("dictation", () => {
+  it("shows the native description for an unknown recognition error", () => {
+    expect(dictationError({ error: "unknown", message: "Speech assets are missing" })).toBe("Dictation failed: Speech assets are missing");
+    expect(dictationError({ error: "unknown" })).toBe("Dictation failed");
+    expect(dictationError({ error: "network", message: "ignored" })).toBe("Dictation needs a network connection");
+    expect(dictationError({ error: "aborted" })).toBeUndefined();
+  });
   it("joins every result and trims the edges", () => {
     expect(spokenText(event(["fix the", true], [" login bug ", false]))).toBe("fix the login bug");
     expect(spokenText(event())).toBe("");
