@@ -89,6 +89,7 @@ with the user's key:
   session settings, and the chosen model is saved to `agentACP.oxbit.model`.
 - Tools: list, search, read, write and edit files, diagnostics, and a plan. Writes
   and edits open the same review card as other agents. There is no shell.
+- Commands and settings are listed under [In-app commands and sessions](#in-app-commands-and-sessions).
 - **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
   `@` commits use `git.log`, `git.show` and `git.commitDiff` from the same client.
 - The registry, runtime sessions, checkpoints and `@` **Branch diff** need a runtime workspace.
@@ -101,6 +102,53 @@ with the user's key:
   simulator through the Swift `AgentModels` path (OpenRouter, `openai/gpt-oss-20b`): Keychain
   save and `has` after relaunch, three URLSession requests answered 200, and base URLs and
   paths outside the endpoint rejected. No physical device run yet.
+
+#### In-app commands and sessions
+
+Added 2026-10-12. `local/extensions.ts` gives the in-app agent the `@oxbit/agent-core`
+extensions that need no process or network access beyond the model API. The composer's
+slash menu lists them from `available_commands_update`:
+
+| Command | Does |
+| --- | --- |
+| `/compact [focus]` | Summarizes older turns. Auto-compaction uses the same summary. |
+| `/context` | Shows context window usage. |
+| `/goal` | Sets a goal the agent works toward across turns, or shows, pauses, resumes or clears it. |
+| `/loop [30s\|5m\|1h] <prompt>` | Runs a prompt again on an interval, or when the model schedules the next run; `/loop stop` ends it. |
+| `/config [setting value]` | Lists or sets `mode`, `auto-compact` (on, off) and `compact-at` (default, 50 to 90). |
+| `/skills`, `/<skill> [args]` | Lists skills and runs one. |
+
+- Instructions come from `AGENTS.override.md`, `AGENTS.md` and `CLAUDE.md` in the workspace
+  folder and its parents up to the Git root. Skills come from `.agents/skills/<name>/SKILL.md`
+  and `.claude/skills/<name>/SKILL.md` on the same path. Both are read through the workspace
+  `FileSystem`, so paths outside the workspace folder are skipped.
+- Auto-compaction follows `agentACP.oxbit.autoCompact` (default on) and `agentACP.oxbit.compactAt`.
+  The session controls **Auto-compact** and **Compact at** and `/config` change the same settings.
+  It runs when the model list reports a context window (`max_input_tokens`, `context_length`
+  or `context_window`, and 272,000 tokens for the ChatGPT plan). OpenAI's `/v1/models` reports none,
+  so OpenAI models compact on `/compact` only.
+- Sessions are saved in the workbench's host storage (`ui.json` per workspace on iOS) under
+  `oxbit-agent-session:<folder id>:<session id>`, with an index under
+  `oxbit-agent-sessions:<folder id>`. A workspace keeps its 16 newest sessions. A session over
+  2 MiB of JSON drops old tool outputs; when it is still too large the turn ends with
+  "The session was not saved" and `/compact` makes it fit. The agent advertises `loadSession` and `sessionCapabilities.list`, so
+  **Find provider conversations** lists saved sessions and **Open conversation** replays one
+  after the app relaunches.
+- A model request that fails before any of its output streamed is retried 4 times, 1, 2, 4 and
+  8 s apart, for HTTP 408, 409, 429 and 5xx other than 501 and 505, overloaded or rate limit
+  messages, and network failures. Quota errors are not retried. Each retry adds a line to the
+  reply. Stop ends the wait. The iOS `AgentModels` error has no headers, so iOS waits the
+  backoff in place of `Retry-After`.
+- A failed or stopped turn pauses the queue. Sending a message resumes it.
+
+Not in the app, and why:
+
+- Command hooks, stdio MCP servers and `bash` start processes, and the app has no process API.
+- HTTP MCP servers: the iOS content security policy limits `connect-src` to the app, IPC and
+  the push relay, and model requests go through the Swift plugin.
+- `/undo` and `/redo` need the snapshot store that `oxbit-agent` keeps under its agent home.
+- `/new` and `/resume` are terminal commands of `oxbit-agent`; the panel's **New conversation**
+  and **History** do the same.
 
 ### ACP Registry agents
 
@@ -528,6 +576,11 @@ loads the provider session when supported. Loading replaces the local preview wi
 the provider's replay, retaining the unsent draft; agents supporting only resume
 keep the local preview. Unsupported providers show an explanation and still allow
 reading local history. Prompts are never automatically resent after a failure.
+
+When an agent process exits, times out or breaks the protocol, the runtime marks `acp.exit`
+`unexpected`. If the agent advertised `loadSession`, the panel starts it again and loads the
+open conversation, at most 3 times a minute. A prompt that was running and is missing from
+the replay returns to an empty composer.
 
 For providers advertising session discovery, **Find provider conversations** lists
 sessions for the current runtime workspace, with pagination. Opening a known
