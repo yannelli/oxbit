@@ -34,6 +34,8 @@ export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
   chatgpt: chatgptResponses,
 };
 const MAX_STEPS = 64;
+/** Stop hook blocks per prompt before the turn ends anyway. */
+export const STOP_BLOCK_LIMIT = 10;
 export const CONTEXT_LIMIT = 10000;
 export const basePrompt = (root: string, reviewed: boolean, shell: boolean) => [
   `You are Oxbit Agent, a coding agent inside the Oxbit editor. You work in the workspace "${root.split("/").pop()}" through tools.`,
@@ -50,13 +52,20 @@ export class PromptTurn {
   /** Set by a hook that returns continue: false. */
   halt?: string;
   private stopHookActive = false;
+  private stopBlocks = 0;
   private snapshotted = false;
   constructor(private host: AgentHost, private session: LiveSession, readonly signal: AbortSignal) {}
   async hook(event: HookEvent, input: Params): Promise<HookOutcome> {
     const runner = this.host.extensions?.hooks;
     if (!runner) return {};
-    const outcome = await runner.run(event, { session_id: this.session.id, cwd: this.session.cwd, hook_event_name: event,
-      permission_mode: CLAUDE_PERMISSION_MODES[modeOf(this.session.meta)], ...input }, this.signal);
+    let outcome: HookOutcome;
+    try {
+      outcome = await runner.run(event, { session_id: this.session.id, cwd: this.session.cwd, hook_event_name: event,
+        permission_mode: CLAUDE_PERMISSION_MODES[modeOf(this.session.meta)], ...input }, this.signal);
+    } catch (error) {
+      if (!this.signal.aborted) this.notice(`The ${event} hooks failed: ${error instanceof Error ? error.message : String(error)}`);
+      return {};
+    }
     if (outcome.systemMessage) this.notice(outcome.systemMessage);
     if (outcome.continue === false) this.halt ??= outcome.stopReason || "A hook stopped the agent";
     return outcome;
@@ -94,7 +103,7 @@ export class PromptTurn {
     while (steps++ < MAX_STEPS) {
       const tools = await this.tools();
       this.snapshotted = false;
-      const result = await streamStep({ adapter, models, endpoint, signal, update, turns: session.turns, contextWindow: info?.contextWindow,
+      const result = await streamStep({ adapter, models, endpoint, signal, update, turns: session.turns, contextWindow: info?.contextWindow, retry: this.host.retry,
         input: { model: session.model, system: prompt, turns: session.turns, tools: tools.map((tool) => tool.spec),
           effort: session.effort === "default" ? undefined : session.effort, maxTokens: info?.maxOutput } });
       usage = result.usage ?? usage;
@@ -138,6 +147,10 @@ export class PromptTurn {
     const outcome = await this.hook("Stop", { stop_hook_active: this.stopHookActive, last_assistant_message: last?.role === "assistant" ? last.text : "" });
     if (this.halt) return undefined;
     if (outcome.block) {
+      if (++this.stopBlocks > STOP_BLOCK_LIMIT) {
+        this.notice(`Stop hooks blocked the end of this turn ${STOP_BLOCK_LIMIT} times, so the turn ends here.`);
+        return undefined;
+      }
       this.stopHookActive = true;
       return outcome.reason || "A stop hook asked you to continue.";
     }
@@ -150,7 +163,7 @@ export class PromptTurn {
   /** The compactor sends older turns as one transcript message, so the request carries no tools. */
   summarizer(adapter: ModelAdapter, models: AgentModels, endpoint: AgentModelEndpoint): Summarize {
     return async (prompt, turns) => {
-      const result = await streamStep({ adapter, models, endpoint, signal: this.signal, update: () => {}, turns: [],
+      const result = await streamStep({ adapter, models, endpoint, signal: this.signal, update: () => {}, turns: [], retry: this.host.retry,
         input: { model: this.session.model, system: prompt, turns, tools: [] } });
       if (!result.stop) throw new Error("Cancelled");
       return result.turn.text;

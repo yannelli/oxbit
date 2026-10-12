@@ -1,6 +1,7 @@
 import type { ACPConfigOption, AgentModelEndpoint, AgentModels, FileSystem } from "@oxbit/sdk";
 import type { AgentExtensions, Params, SessionView } from "./extensions.js";
 import type { ModelInfo } from "./model.js";
+import type { RetryPolicy } from "./retry.js";
 
 /** Model list with context windows and output limits. */
 export type ModelCatalog = ModelInfo[] | Promise<ModelInfo[]>;
@@ -42,4 +43,6 @@ export interface AgentHost {
   /** Applies a value to one of configOptions(); resolves false for an ID it does not own. */
   setConfigOption?(session: SessionView, configId: string, value: string): Promise<boolean>;
   extensions?: AgentExtensions;
+  /** Retries of model requests that fail before any output. Defaults to DEFAULT_RETRY. */
+  retry?: RetryPolicy;
 }
