@@ -14,3 +14,5 @@ export * from "./loop.js";
 export { Compaction, COMPACT_FOCUS, type CompactionOptions } from "./compaction.js";
 export { Instructions, findGitRoot, type HostFiles, type InstructionOptions } from "./instructions.js";
 export { Skills, parseFrontmatter, type Skill, type SkillOptions, type SkillSet } from "./skills.js";
+export * from "./mcp/index.js";
+export * from "./providers/index.js";
