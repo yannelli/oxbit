@@ -1040,6 +1040,7 @@
   "Restore files and fork": "恢复文件并分叉",
   "Fork conversation": "分叉对话",
   "Forked from “{title}”. The agent keeps the earlier context.": "已从“{title}”分叉。代理保留之前的上下文。",
+  "No agent edits to undo.": "没有可撤消的代理编辑。",
   "Update the runtime to fork conversations": "请更新运行时以分叉对话",
   "Auto-apply edits": "自动应用编辑",
   "Auto-apply on": "自动应用已开启",
@@ -1061,5 +1062,6 @@
   "Waiting for you to sign in": "正在等待你登录",
   "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。",
   "The Workspace value {0} overrides this setting.": "工作区的值 {0} 覆盖了此设置。",
-  "Remove Workspace value": "移除工作区的值"
+  "Remove Workspace value": "移除工作区的值",
+  "The app reloaded. The agent restarted and loaded this conversation.": "应用已重新加载。代理已重新启动并加载了此对话。"
 }

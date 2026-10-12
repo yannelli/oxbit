@@ -15,8 +15,8 @@ const chatText = (text: string) => sse(
 );
 
 /** The browser workspace has no runtime. `models` registers a fake agentModels service that keeps keys in page memory and streams `replies` in order.
- * With `chatgpt`, the service signs in once `__models.approve` is set; `__models.expiresIn` shortens the code's lifetime. */
-async function open(page: Page, models: boolean, replies: string[][] = [], chatgpt = false) {
+ * With `chatgpt`, the service signs in once `__models.approve` is set; `__models.expiresIn` shortens the code's lifetime. `before` runs before the extension activates. */
+async function open(page: Page, models: boolean, replies: string[][] = [], chatgpt = false, before?: (page: Page) => Promise<unknown>) {
   await page.goto("/");
   await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
   await page.evaluate(async ({ models, replies, chatgpt }) => {
@@ -57,9 +57,13 @@ async function open(page: Page, models: boolean, replies: string[][] = [], chatg
         },
         ...(chatgpt ? { chatgpt: signIn } : {}),
       });
+  }, { models, replies, chatgpt });
+  await before?.(page);
+  await page.evaluate(async () => {
+    const z = (window as any).__oxbit;
     await z.kernel.extensions.activate("oxbit.agent-acp");
     z.workbench.run("agentACP.open");
-  }, { models, replies, chatgpt });
+  });
   return page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
 }
 /** Selects openai-compatible at models.test with a saved key and model-b. */
@@ -262,6 +266,13 @@ test("the Oxbit agent lists its slash commands and reopens a saved conversation 
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("The door is blue.")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").title)).toBe("Blue door");
+  // A conversation still connected at the reload starts again on its own; after Disconnect it opens from History.
+  await panel.getByRole("button", { name: "More agent actions" }).click();
+  await page.getByRole("menuitem", { name: "Disconnect" }).click();
+  await expect.poll(() => page.evaluate(async () => {
+    const z = (window as any).__oxbit;
+    return (await z.kernel.services.get("persistence").get(`acp-history:${z.filesystem.id}`))?.entries[0]?.inAppAgent;
+  })).toBe(false);
 
   await page.reload();
   panel = await open(page, true, []);
@@ -277,6 +288,32 @@ test("the Oxbit agent lists its slash commands and reopens a saved conversation 
   await expect(panel.getByText("The door is blue.")).toBeVisible();
   await expect(panel.locator(".acp-user-text").filter({ hasText: "Remember the blue door" })).toHaveCount(1);
   await page.screenshot({ path: `${shots}/${info.project.name}-4-reopened.png` });
+});
+
+test("after a reload the Oxbit agent starts again and loads the conversation it had open", async ({ page }, info) => {
+  let panel = await open(page, true, [chatText("The kettle is green."), chatText("Green kettle")]);
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  let composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await composer.fill("Remember the green kettle");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("The kettle is green.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").title)).toBe("Green kettle");
+
+  await page.reload();
+  panel = await open(page, true, [chatText("It sits on the stove.")], false, useCompatible);
+  await expect(panel.getByText("The app reloaded. The agent restarted and loaded this conversation.")).toBeVisible();
+  await expect(panel.getByText("The kettle is green.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.sessionId)).toBeTruthy();
+  composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await fs.mkdir(shots, { recursive: true });
+  await page.screenshot({ path: `${shots}/${info.project.name}-5-resumed.png` });
+  await composer.fill("Where is it?");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("It sits on the stove.")).toBeVisible();
+  await expect(panel.locator(".acp-user-text").filter({ hasText: "Remember the green kettle" })).toHaveCount(1);
 });
 
 test("with the keyboard open the @ list sits between the status bar and the composer, and tapping an entry attaches it", async ({ page }, info) => {

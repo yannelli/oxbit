@@ -52,6 +52,8 @@ import { folderText } from "./folders.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 const FORKED_NOTICE = "Forked from “{title}”. The agent keeps the earlier context.";
+/** The in-app agent has no snapshot store, so the panel runs `/undo` through the review card's undo. */
+const UNDO_COMMAND = { name: "undo", description: "Undo the agent's edits from the latest turn" };
 
 export type AgentRequest = {
   id: string;
@@ -134,6 +136,7 @@ export class AgentController {
     revision?: string | null;
     undone?: boolean;
     created: boolean;
+    turn?: string;
   }[] = [];
   connection?: ACPConnection;
   launch: ACPLaunch = { provider: "codex" };
@@ -184,6 +187,7 @@ export class AgentController {
       for (const entry of this.history.entries)
         if (!acpPreset(entry.provider)) rememberAgentName(entry.provider, entry.name);
       this.changed();
+      void this.resumeInApp();
     });
     const runtime = options.runtime;
     if (!runtime) return;
@@ -390,12 +394,19 @@ export class AgentController {
         subagents: [...this.subagents.values()],
         subagentsTruncated: this.subagentsTruncated,
         autoApplyEdits: this.autoApply,
+        inAppAgent: this.inAppSession,
       }),
     ) as Conversation;
     const generation = this.historyGeneration;
     await this.history.ready;
     if (generation !== this.historyGeneration) return;
     await this.history.save(snapshot);
+  }
+  /** True while the in-app Oxbit agent has the open conversation loaded. */
+  private get inAppSession() {
+    const sessionId = this.connection?.sessionId;
+    return this.local && this.connection?.provider === OXBIT_AGENT_PROVIDER && !this.sessionStarting &&
+      !!sessionId && sessionId === this.activeConversation?.sessionId;
   }
   private resetConversation() {
     this.messages = [];
@@ -452,7 +463,6 @@ export class AgentController {
       }
     }
     this.activeSubagentCount = 0;
-    void this.saveConversation();
     this.connectionGeneration++;
     this.requestGeneration++;
     this.startAbort?.abort();
@@ -469,11 +479,12 @@ export class AgentController {
     this.queuePaused = false;
     this.activeTurnId = undefined;
     this.status = status;
+    void this.saveConversation();
   }
-  /** The open conversation to load into a new agent process after a crash, at most 3 times a minute. */
-  private reconnectTarget() {
+  /** The open conversation to load into a new agent process, at most 3 times a minute. `loadable` defaults to the live agent's `loadSession`. */
+  private reconnectTarget(loadable = !!this.connection?.capabilities?.loadSession) {
     const conversation = this.activeConversation;
-    if (this.archived || !conversation?.sessionId || !this.connection?.capabilities?.loadSession) return undefined;
+    if (this.archived || !conversation?.sessionId || !loadable) return undefined;
     const now = Date.now();
     this.reconnects = this.reconnects.filter((time) => now - time < 60000);
     if (this.reconnects.length >= 3) return undefined;
@@ -494,6 +505,32 @@ export class AgentController {
     if (target.prompt && !this.draft.trim() && this.messages.findLast((message) => message.role === "user")?.text !== target.prompt)
       this.draft = target.prompt;
     void this.saveConversation();
+  }
+  /** After a reload, starts the in-app Oxbit agent and loads the conversation it had open. A failed resume leaves that conversation read-only. */
+  private async resumeInApp() {
+    const entry = this.history.entries[0];
+    if (entry?.inAppAgent !== true || entry.provider !== OXBIT_AGENT_PROVIDER || !this.localRuntime) return;
+    // The iOS host registers the model service after this extension activates.
+    for (let waited = 0; !this.local; waited += 100) {
+      if (waited >= 10000 || this.disposed) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    if (this.disposed || this.connection || this.connecting || this.activeConversation || this.history.entries[0]?.id !== entry.id) return;
+    this.restoreSnapshot(entry);
+    this.launch = { provider: OXBIT_AGENT_PROVIDER };
+    const target = this.reconnectTarget(true);
+    if (!target) return;
+    await this.action(() => this.reconnect(target, "The app reloaded"));
+    await this.keepReadOnly(entry);
+  }
+  /** The conversation stays read-only when the agent did not load it, as after a failed History open. */
+  private async keepReadOnly(entry: Conversation) {
+    if (this.disposed || this.activeConversation?.id !== entry.id || this.connection?.sessionId) return;
+    if (this.connection) await this.disconnect().catch(() => {});
+    this.restoreSnapshot(entry);
+    this.archived = true;
+    this.status = "Conversation could not be restored";
+    this.changed();
   }
   private request<T = any>(
     method: string,
@@ -1298,6 +1335,12 @@ export class AgentController {
       !this.draft.trim()
     )
       return;
+    if (this.local && this.draft.trim() === `/${UNDO_COMMAND.name}`) {
+      await this.undoLastTurn();
+      this.draft = "";
+      this.changed();
+      return;
+    }
     if (!this.connection) {
       const draft = this.draft;
       const context = this.context;
@@ -1591,7 +1634,7 @@ export class AgentController {
     }
     else if (update.sessionUpdate === "plan") this.updatePlan(update.entries ?? []);
     else if (update.sessionUpdate === "available_commands_update")
-      this.commands = update.availableCommands ?? [];
+      this.commands = [...(update.availableCommands ?? []), ...(this.local ? [UNDO_COMMAND] : [])];
     else if (
       update.sessionUpdate === "current_mode_update" &&
       this.connection?.modes
@@ -1786,6 +1829,7 @@ export class AgentController {
         after: request.params.content,
         revision: saved?.savedRevision,
         created: request.revision === null,
+        turn: this.activeTurnId,
       });
       while (this.changes.length > 30) this.changes.shift();
       this.activity.push({
@@ -1849,6 +1893,18 @@ export class AgentController {
       this.reviewingAll = false;
       this.changed();
     }
+  }
+  /** In-app `/undo`: undoes the applied edits of the latest turn that has any, newest first. */
+  async undoLastTurn() {
+    const latest = this.undoableChanges.at(-1);
+    if (!latest) {
+      this.activity.push({ kind: "notice", text: "No agent edits to undo." });
+      return this.changed();
+    }
+    const changes = this.undoableChanges.filter((change) => change.turn === latest.turn).reverse();
+    await this.reviewAll(changes.map((change) => change.id), async () => {
+      for (const change of changes) await this.undoChange(change.id);
+    });
   }
   async undoChange(id: string) {
     const change = this.changes.find((c) => c.id === id);
