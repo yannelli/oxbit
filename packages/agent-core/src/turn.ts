@@ -7,6 +7,7 @@ import { anthropicMessages } from "./anthropic-messages.js";
 import { streamStep } from "./step.js";
 import { hookGate } from "./tool-gate.js";
 import { modeOf } from "./session-records.js";
+import { COMPACT_FOCUS } from "./compaction.js";
 import type { AgentHost } from "./host.js";
 import type { AgentTool, HookEvent, HookOutcome, Params, SessionView } from "./extensions.js";
 
@@ -106,8 +107,9 @@ export class PromptTurn {
       if (signal.aborted) return { stopReason: "cancelled" };
       try {
         const compactor = this.host.extensions?.compactor;
-        if (!this.halt && compactor?.shouldCompact(session, usage, info?.contextWindow))
-          await this.compact("auto", this.summarizer(adapter, models, endpoint, tools));
+        if (!this.halt && compactor?.shouldCompact(session, usage, info?.contextWindow, info?.maxOutput) &&
+          await this.compact("auto", this.summarizer(adapter, models, endpoint)))
+          this.notice("Compacted the conversation to stay within the context window.");
       } catch (error) {
         if (signal.aborted) return { stopReason: "cancelled" };
         throw error;
@@ -140,10 +142,11 @@ export class PromptTurn {
     }
     return undefined;
   }
-  summarizer(adapter: ModelAdapter, models: AgentModels, endpoint: AgentModelEndpoint, tools: AgentTool[]): Summarize {
+  /** The compactor sends older turns as one transcript message, so the request carries no tools. */
+  summarizer(adapter: ModelAdapter, models: AgentModels, endpoint: AgentModelEndpoint): Summarize {
     return async (prompt, turns) => {
       const result = await streamStep({ adapter, models, endpoint, signal: this.signal, update: () => {}, turns: [],
-        input: { model: this.session.model, system: prompt, turns, tools: tools.map((tool) => tool.spec) } });
+        input: { model: this.session.model, system: prompt, turns, tools: [] } });
       if (!result.stop) throw new Error("Cancelled");
       return result.turn.text;
     };
@@ -152,7 +155,8 @@ export class PromptTurn {
   async compact(trigger: "auto" | "manual", summarize: Summarize) {
     const compactor = this.host.extensions?.compactor;
     if (!compactor) return false;
-    const before = await this.hook("PreCompact", { trigger, custom_instructions: "" });
+    const focus = this.session.meta[COMPACT_FOCUS];
+    const before = await this.hook("PreCompact", { trigger, custom_instructions: typeof focus === "string" ? focus : "" });
     if (before.block || this.halt) return false;
     this.session.turns = await compactor.compact(this.session, summarize, this.signal);
     await this.hook("PostCompact", { trigger });

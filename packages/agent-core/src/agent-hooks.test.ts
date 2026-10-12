@@ -112,9 +112,10 @@ describe("Agent hooks", () => {
     const agent = new Agent(t.host);
     const sessionId = await start(agent);
     await agent.prompt(sessionId, text("Ask"));
-    expect(compactor.shouldCompact).toHaveBeenCalledWith(expect.objectContaining({ id: sessionId }), { input: 10, output: 2 }, 1000);
+    expect(compactor.shouldCompact).toHaveBeenCalledWith(expect.objectContaining({ id: sessionId }), { input: 10, output: 2 }, 1000, undefined);
     expect(t.messages(1)).toEqual([{ role: "system", content: "Summarize" }, { role: "user", content: "all" }]);
     expect(events()).toEqual(["SessionStart", "UserPromptSubmit", "PreCompact", "PostCompact", "Stop"]);
+    expect(t.updates.some((update) => update.content?.text?.includes("Compacted the conversation"))).toBe(true);
     vi.mocked(compactor.shouldCompact).mockReturnValue(false);
     await agent.prompt(sessionId, text("Again"));
     expect(t.messages().slice(1)).toEqual([{ role: "user", content: "Summary: The summary" }, { role: "user", content: "Again" }]);

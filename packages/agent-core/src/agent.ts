@@ -128,7 +128,7 @@ export class Agent {
     const start = await new PromptTurn(this.host, session, new AbortController().signal).hook("SessionStart", { source, model: session.model });
     if (start.additionalContext) session.context.push(start.additionalContext.slice(0, CONTEXT_LIMIT));
     this.sessions.set(session.id, session);
-    setTimeout(() => this.publishCommands(session), 0);
+    setTimeout(() => void this.publishCommands(session), 0);
     return this.state(session);
   }
   /** A new session with a copy of the source's turns. Like newSession, it drops the other idle sessions. */
@@ -139,7 +139,7 @@ export class Agent {
       context: [...source.context], commands: undefined };
     this.dropIdle();
     this.sessions.set(session.id, session);
-    setTimeout(() => this.publishCommands(session), 0);
+    setTimeout(() => void this.publishCommands(session), 0);
     return this.state(session);
   }
   /** Without a SessionStore an idle session cannot be loaded again, so a new session replaces it. */
@@ -208,13 +208,13 @@ export class Agent {
         turn.notice(`The session was not saved: ${error instanceof Error ? error.message : String(error)}`);
       }
       session.abort = undefined;
-      this.publishCommands(session);
+      void this.publishCommands(session);
     }
   }
   private async turn(session: LiveSession, blocks: Params[], turn: PromptTurn) {
     const first = blocks.find((block) => block.type === "text");
     const match = typeof first?.text === "string" ? COMMAND.exec(first.text) : null;
-    const command = match ? this.commandList(session).find((item) => item.name === match[1]) : undefined;
+    const command = match ? (await this.commandList(session)).find((item) => item.name === match[1]) : undefined;
     if (command) {
       const result = await command.run((match![2] ?? "").trim(), this.commandContext(session, turn));
       if ("done" in result) return { stopReason: result.done };
@@ -249,8 +249,9 @@ export class Agent {
       await this.host.extensions?.sessions?.save(toRecord(session));
     }).catch(() => {});
   }
-  private commandList(session: LiveSession): AgentCommand[] {
-    return (this.host.extensions?.commands ?? []).flatMap((provider) => provider.commands(session));
+  private async commandList(session: LiveSession): Promise<AgentCommand[]> {
+    const lists = await Promise.all((this.host.extensions?.commands ?? []).map((provider) => provider.commands(session)));
+    return lists.flat();
   }
   private commandContext(session: LiveSession, turn: PromptTurn): CommandContext {
     return {
@@ -260,14 +261,16 @@ export class Agent {
       replaceTurns: (turns) => void (session.turns = turns),
       compact: async () => {
         const endpoint = this.host.endpoint();
-        return turn.compact("manual", turn.summarizer(ADAPTERS[endpoint.api], this.service(), endpoint, await turn.tools()));
+        return turn.compact("manual", turn.summarizer(ADAPTERS[endpoint.api], this.service(), endpoint));
       },
     };
   }
   /** Sends available_commands_update when the session's command list differs from the last one sent. */
-  private publishCommands(session: LiveSession) {
+  private async publishCommands(session: LiveSession) {
     if (this.sessions.get(session.id) !== session) return;
-    const available = this.commandList(session).map((command) => ({ name: command.name, description: command.description,
+    const commands = await this.commandList(session).catch(() => []);
+    if (this.sessions.get(session.id) !== session) return;
+    const available = commands.map((command) => ({ name: command.name, description: command.description,
       ...command.hint ? { input: { hint: command.hint } } : {} }));
     const key = JSON.stringify(available);
     if (key === (session.commands ?? "[]")) return;

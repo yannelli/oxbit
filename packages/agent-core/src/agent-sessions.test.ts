@@ -77,6 +77,7 @@ describe("Agent sessions", () => {
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "Say hello to Bob" });
     expect(await agent.prompt(sessionId, text("/status"))).toEqual({ stopReason: "end_turn" });
     expect(t.posts()).toHaveLength(1);
+    await tick();
     expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["greet", "status", "reset"]);
     await agent.prompt(sessionId, text("/etc/hosts is missing"));
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "/etc/hosts is missing" });

@@ -59,7 +59,7 @@ export interface AgentCommand {
   /** `prompt` turns the command into a model turn; `done` ends it with that ACP stop reason. */
   run(args: string, context: CommandContext): Promise<{ prompt: string } | { done: string }>;
 }
-export interface CommandProvider { commands(session: SessionView): AgentCommand[] }
+export interface CommandProvider { commands(session: SessionView): AgentCommand[] | Promise<AgentCommand[]> }
 
 export type HookEvent = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "PostToolUseFailure" | "Stop"
   | "PreCompact" | "PostCompact" | "SessionEnd";
@@ -83,7 +83,7 @@ export interface HookRunner { run(event: HookEvent, input: Params, signal: Abort
 /** Called when the model ends a turn without tool calls; text continues the turn as a user message. */
 export interface ContinuationProvider { next(session: SessionView, signal: AbortSignal): Promise<string | undefined> }
 export interface Compactor {
-  shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number): boolean;
+  shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number, maxOutput?: number): boolean;
   compact(session: SessionView, summarize: (system: string, turns: Turn[]) => Promise<string>, signal: AbortSignal): Promise<Turn[]>;
 }
 export interface SnapshotStore {
