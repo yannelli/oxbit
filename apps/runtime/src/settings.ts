@@ -149,22 +149,31 @@ export class SettingsStore {
     const logical = { user: settingsFile(current, "user"), workspace: settingsFile(current, "workspace") };
     const workspace = loaded.slice(1).findLast(item => item.exists) ?? loaded[1];
     const targets = new Map<Loaded, SettingsObject>();
+    const defines = (item: Loaded, path: string[]) => {
+      let cursor: unknown = targets.get(item) ?? item.value;
+      for (const key of path) { if (!settingsObject(cursor) || !Object.hasOwn(cursor, key)) return false; cursor = cursor[key]; }
+      return true;
+    };
     for (const change of changes) {
-      const target = change.scope === "user" ? loaded[0] : workspace;
+      // A workspace reset removes the key from every workspace file, so a lower file cannot take over.
+      const resets = change.scope === "workspace" && !Object.hasOwn(change, "value") ? loaded.slice(1).filter(item => item.exists && defines(item, change.path)) : [];
+      const files = change.scope === "user" ? [loaded[0]] : resets.length ? resets : [workspace];
       if (loaded.filter(item => item.scope === change.scope).some(item => item.error)) throw new RpcError("CONFLICT", "Fix invalid settings JSON before saving this scope");
       let existing: unknown = logical[change.scope];
       for (const key of change.path) existing = settingsObject(existing) ? existing[key] : undefined;
       if (!same(existing, change.before) && !same(existing, change.value)) throw new RpcError("CONFLICT", `Setting ${change.path.join(" / ")} changed on disk. Reload settings or retry your change.`);
-      const value = targets.get(target) ?? structuredClone(target.value);
-      targets.set(target, value);
-      let cursor = value;
-      for (const key of change.path.slice(0, -1)) {
-        if (!settingsObject(cursor[key])) cursor[key] = {};
-        cursor = cursor[key] as SettingsObject;
-      }
       const key = change.path.at(-1)!;
-      if (Object.hasOwn(change, "value")) cursor[key] = structuredClone(change.value);
-      else delete cursor[key];
+      for (const target of files) {
+        const value = targets.get(target) ?? structuredClone(target.value);
+        targets.set(target, value);
+        let cursor = value;
+        for (const part of change.path.slice(0, -1)) {
+          if (!settingsObject(cursor[part])) cursor[part] = {};
+          cursor = cursor[part] as SettingsObject;
+        }
+        if (Object.hasOwn(change, "value")) cursor[key] = structuredClone(change.value);
+        else delete cursor[key];
+      }
       let next = logical[change.scope];
       for (const part of change.path.slice(0, -1)) {
         if (!settingsObject(next[part])) next[part] = {};

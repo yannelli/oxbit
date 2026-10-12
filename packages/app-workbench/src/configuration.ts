@@ -1,9 +1,11 @@
-import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSettings, type SettingsChange, type SettingsLayers, type SettingsSnapshot, type FileSystem, type Kernel, type Persistence, type RpcClient } from "@oxbit/sdk";
+import { settingsChanges, settingsLayers, settingsFile, settingsObject, parseSettings, type SettingsChange, type SettingsLayers, type SettingsSnapshot, type FileSystem, type Kernel, type NotifyOptions, type Persistence, type RpcClient } from "@oxbit/sdk";
 
 interface Recovery { snapshot: SettingsSnapshot; local: SettingsLayers; pending: SettingsChange[] }
 const empty = () => settingsLayers({}, {});
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const reason = (error: unknown) => error instanceof Error ? error.message : String(error);
+type Notify = (message: string, type?: string, options?: NotifyOptions) => void;
+const CONFLICT_ACTIONS: NotifyOptions = { ttl: 0, actions: [{ title: "Save Local Settings", command: "settings.saveWorkspace" }, { title: "Reload from Disk", command: "settings.reloadWorkspace" }] };
 /** Mirrors the runtime patch check: the change's scope has an invalid file, or disk matches neither side of the change. */
 const conflicting = (latest: SettingsSnapshot, change: SettingsChange) => {
   const existing = change.path.reduce<unknown>((value, key) => settingsObject(value) ? value[key] : undefined, settingsFile(latest.layers, change.scope));
@@ -46,8 +48,10 @@ export class ScopedConfigurationPersistence implements Persistence {
   private pending: SettingsChange[] = [];
   private queue: Promise<void> = Promise.resolve();
   private kernel?: Kernel;
-  private notify?: (message: string, type?: string) => void;
-  private errors: string[] = [];
+  private notify?: Notify;
+  private errors: Parameters<Notify>[] = [];
+  /** Changes made while connected: the user chose these values, so a conflict saves them over the disk value. */
+  private live = new Set<SettingsChange>();
   private reported = new Set<string>();
   private subscriptions: (() => void)[] = [];
   private disposed = false;
@@ -87,7 +91,7 @@ export class ScopedConfigurationPersistence implements Persistence {
       this.reportFiles(snapshot);
       await this.flush();
       await this.cache();
-    } catch (error) { this.report(`Settings are retained locally: ${reason(error)}`, reason(error)); }
+    } catch (error) { this.failed("Settings are retained locally", error); }
     await this.cache();
     return this.local;
   }
@@ -103,10 +107,11 @@ export class ScopedConfigurationPersistence implements Persistence {
     const changes = settingsChanges(this.local, layers);
     this.local = layers;
     this.pending.push(...changes);
+    if (this.runtime?.connected && this.snapshot?.files.length) for (const change of changes) this.live.add(change);
     if (this.snapshot && !settingsChanges(this.snapshot.layers, this.local).length) this.pending = [];
     this.queue = this.queue.catch(() => {}).then(async () => {
       await this.cache();
-      try { await this.flush(); } catch (error) { this.report(`Settings are retained locally: ${reason(error)}`, reason(error)); }
+      try { await this.flush(); } catch (error) { this.failed("Settings are retained locally", error); }
     });
     await this.queue;
   }
@@ -124,16 +129,20 @@ export class ScopedConfigurationPersistence implements Persistence {
     let snapshot: SettingsSnapshot, held: SettingsChange[] = [], failure: unknown;
     try { snapshot = await this.runtime.request<SettingsSnapshot>("settings.patch", { changes }); }
     catch (error) {
-      // The runtime rejects the whole batch, so hold only the conflicting changes and save the rest.
+      // The runtime rejects the whole batch. Hold conflicting offline changes; save the rest over the latest files.
       if ((error as { code?: string }).code !== "CONFLICT") throw error;
       const latest = await this.runtime.request<SettingsSnapshot>("settings.read");
-      held = changes.filter(change => conflicting(latest, change));
-      if (!held.length) throw error;
-      const clean = changes.filter(change => !held.includes(change));
+      const conflicts = changes.filter(change => conflicting(latest, change));
+      if (!conflicts.length) throw error;
+      const invalid = (change: SettingsChange) => latest.files.some(file => file.scope === change.scope && file.error);
+      const replaced = (change: SettingsChange) => changes.slice(changes.indexOf(change) + 1).some(later => this.live.has(later) && later.scope === change.scope && same(later.path, change.path));
+      held = conflicts.filter(change => invalid(change) || !this.live.has(change) && !replaced(change));
+      const clean = rebase(latest.layers, changes.filter(change => !held.includes(change) && !(conflicts.includes(change) && replaced(change)))).changes;
       snapshot = clean.length ? await this.runtime.request<SettingsSnapshot>("settings.patch", { changes: clean }) : latest;
-      failure = error;
+      if (held.length) failure = error;
     }
     this.pending.splice(0, changes.length, ...held);
+    for (const change of changes) this.live.delete(change);
     this.snapshot = snapshot;
     // A newer UI change can already be queued in the kernel. Do not replace it.
     if (this.pending.length === held.length && (!this.kernel || !settingsChanges(saved, this.kernel.configuration.export() as SettingsLayers).length)) this.apply(snapshot, held);
@@ -150,16 +159,19 @@ export class ScopedConfigurationPersistence implements Persistence {
   private reportFiles(snapshot: SettingsSnapshot) {
     for (const file of snapshot.files) if (file.error) this.report(`${file.path}: ${file.error}. Keeping the last valid settings.`);
   }
+  private failed(prefix: string, error: unknown) {
+    this.report(`${prefix}: ${reason(error)}`, reason(error), (error as { code?: string }).code === "CONFLICT" ? CONFLICT_ACTIONS : undefined);
+  }
   /** Reports each distinct failure once until settings save and load cleanly again. */
-  private report(message: string, key = message) {
+  private report(message: string, key = message, options?: NotifyOptions) {
     if (this.reported.has(key)) return;
     this.reported.add(key);
-    if (this.notify) this.notify(message, "error");
-    else this.errors.push(message);
+    if (this.notify) this.notify(message, "error", options);
+    else this.errors.push([message, "error", options]);
   }
-  attach(kernel: Kernel, notify: (message: string, type?: string) => void) {
+  attach(kernel: Kernel, notify: Notify) {
     this.kernel = kernel; this.notify = notify;
-    for (const message of this.errors) notify(message, "error");
+    for (const error of this.errors) notify(...error);
     this.errors = [];
     if (!this.fileSettings) return;
     const refresh = () => {
@@ -170,7 +182,7 @@ export class ScopedConfigurationPersistence implements Persistence {
           if (this.pending.length || settingsChanges(this.local, kernel.configuration.export() as SettingsLayers).length) return;
           this.apply(await this.runtime!.request<SettingsSnapshot>("settings.read"));
           await this.cache();
-        } catch (error) { this.report(`Settings reload failed: ${reason(error)}`, reason(error)); }
+        } catch (error) { this.failed("Settings reload failed", error); }
       });
     };
     this.subscriptions.push(this.runtime!.subscribe("settings.changed", refresh));

@@ -119,8 +119,8 @@ export async function createWorkbenchSession({
     filesystem,
     persistence,
   );
-  configurationPersistence.attach(kernel, (message, type) =>
-    workbench.notify(message, type),
+  configurationPersistence.attach(kernel, (message, type, options) =>
+    workbench.notify(message, type, options),
   );
   if (runtime) {
     kernel.commands.register({

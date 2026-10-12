@@ -1021,5 +1021,7 @@
   "Copied": "Kopiert",
   "Open sign-in page": "Anmeldeseite öffnen",
   "Waiting for you to sign in": "Warten auf Ihre Anmeldung",
-  "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an."
+  "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an.",
+  "The Workspace value {0} overrides this setting.": "Der Arbeitsbereich-Wert {0} überschreibt diese Einstellung.",
+  "Remove Workspace value": "Arbeitsbereich-Wert entfernen"
 }

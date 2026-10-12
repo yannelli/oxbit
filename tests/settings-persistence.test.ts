@@ -27,9 +27,10 @@ async function fixture() {
     kernel.configuration.register({ id: "object", title: "Object", type: "object", default: {} });
     kernel.configuration.register({ id: "number", title: "Number", type: "number", default: 1 });
     kernel.configuration.import(data, { persist: false });
-    const errors: string[] = []; persistence.attach(kernel, message => errors.push(message));
+    const errors: string[] = [], actions: string[][] = [];
+    persistence.attach(kernel, (message, _type, options) => { errors.push(message); actions.push(options?.actions?.map(action => action.command) ?? []); });
     cleanup.push(() => persistence.dispose()); cleanup.push(() => kernel.dispose());
-    return { kernel, persistence, errors };
+    return { kernel, persistence, errors, actions };
   };
   return { root, store, runtime, emit, create, values };
 }
@@ -61,10 +62,11 @@ it("recovers offline changes after recreating the client without replacing unrel
   await expect.poll(() => second.kernel.configuration.get("object")).toEqual({ external: true });
 });
 it("keeps conflicting UI edits until explicitly reloaded, without overwriting disk", async () => {
-  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors } = await create();
+  const { store, runtime, create, emit } = await fixture(), { kernel, persistence, errors, actions } = await create();
   runtime.connected = false; kernel.configuration.set("number", 7); await kernel.configuration.flush!();
   await fs.writeFile(store.paths[0], '{"number":9}'); runtime.connected = true; emit("connection.change", { state: "connected" });
   await expect.poll(() => errors.some(message => message.includes("changed on disk")), { timeout: 3000 }).toBe(true);
+  expect(actions[errors.findIndex(message => message.includes("changed on disk"))]).toEqual(["settings.saveWorkspace", "settings.reloadWorkspace"]);
   expect(kernel.configuration.get("number")).toBe(7);
   expect(JSON.parse(await fs.readFile(store.paths[0], "utf8")).number).toBe(9);
   await persistence.resolveWorkspaceSettings("disk"); expect(kernel.configuration.get("number")).toBe(9);
@@ -83,11 +85,21 @@ it("reports a held conflict once while settings events repeat", async () => {
   runtime.connected = false; kernel.configuration.set("number", 7, "workspace"); await kernel.configuration.flush!();
   await fs.writeFile(store.paths[1], '{"number":9}'); runtime.connected = true;
   for (let index = 0; index < 5; index++) { emit("connection.change", { state: "connected" }); emit("settings.changed"); }
-  kernel.configuration.set("number", 8, "workspace"); await kernel.configuration.flush!();
-  expect(errors.filter(message => message.includes("changed on disk"))).toHaveLength(1);
+  await expect.poll(() => errors.filter(message => message.includes("changed on disk")).length, { timeout: 3000 }).toBe(1);
   expect(errors.filter(message => message.includes("Reconnect"))).toHaveLength(1);
+  kernel.configuration.set("number", 8, "workspace"); await kernel.configuration.flush!();
   expect(kernel.configuration.get("number")).toBe(8);
-  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8")).number).toBe(9);
+  expect(JSON.parse(await fs.readFile(store.paths[1], "utf8")).number).toBe(8);
+  expect(errors.filter(message => message.includes("changed on disk"))).toHaveLength(1);
+});
+it("saves a change made while connected over a value that changed on disk", async () => {
+  const { store, create } = await fixture(), { kernel, errors } = await create();
+  await fs.writeFile(store.paths[0], '{"number":9,"object":{"external":true}}');
+  kernel.configuration.set("number", 7); await kernel.configuration.flush!();
+  expect(JSON.parse(await fs.readFile(store.paths[0], "utf8"))).toEqual({ number: 7, object: { external: true } });
+  expect(kernel.configuration.get("number")).toBe(7);
+  expect(kernel.configuration.get("object")).toEqual({ external: true });
+  expect(errors).toEqual([]);
 });
 it("saves user-scope changes and follows the user file while a workspace conflict is held", async () => {
   const { store, runtime, create, emit } = await fixture(), { kernel, errors } = await create();
@@ -143,4 +155,14 @@ it("copies User changes from a runtime session into the storage profile without 
   kernel.configuration.reset("number", "user");
   await expect.poll(() => values.get("profile-settings")).toEqual({ user: { "editor.fontSize": 15 }, userLanguages: { markdown: { number: 5 } } });
   expect(notices).toEqual([]);
+});
+it("a workspace reset removes the key from every workspace file", async () => {
+  const { root, store } = await fixture();
+  await fs.mkdir(path.join(root, ".config/oxbit"), { recursive: true });
+  await fs.writeFile(path.join(root, ".config/oxbit/settings.json"), '{"number":4,"object":{"shared":true}}');
+  await fs.writeFile(path.join(root, ".config/oxbit/settings.local.json"), '{"number":6}');
+  const snapshot = await store.patch([{ scope: "workspace", path: ["number"], before: 6 }]);
+  expect(snapshot.layers.workspace).toEqual({ object: { shared: true } });
+  expect(JSON.parse(await fs.readFile(path.join(root, ".config/oxbit/settings.json"), "utf8"))).toEqual({ object: { shared: true } });
+  expect(JSON.parse(await fs.readFile(path.join(root, ".config/oxbit/settings.local.json"), "utf8"))).toEqual({});
 });

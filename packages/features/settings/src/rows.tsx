@@ -6,14 +6,15 @@ import { scopedSetting } from "./scopes.js";
 
 export interface SettingAction { category: string; title: string; description: string; label: string; command: string }
 
-function Row({ className = "", id, title, description, actions, children, error }: {
-  className?: string; id?: string; title: string; description?: string; actions?: ReactNode; children: ReactNode; error?: string;
+function Row({ className = "", id, title, description, notice, actions, children, error }: {
+  className?: string; id?: string; title: string; description?: string; notice?: ReactNode; actions?: ReactNode; children: ReactNode; error?: string;
 }) {
   return (
     <section className={`setting-row setting-field ${className}`.trim()} data-setting-id={id}>
       <div className="setting-text">
         <div className="setting-title"><strong>{title}</strong>{actions}</div>
         {description && <p>{description}</p>}
+        {notice}
       </div>
       <div className="setting-control">{children}</div>
       {error && <p role="alert" className="error-text">{error}</p>}
@@ -91,6 +92,16 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
       <IconButton className="icon-button setting-copy" icon="copy" label={tr("Copy setting ID")} onClick={copy} />
     </span>
   );
+  const effective = kernel.configuration.inspect(s.id, language);
+  const notice = scope === "user" && effective.scope === "workspace" && (
+    <p className="setting-override" role="note">
+      {tr("The Workspace value {0} overrides this setting.", { "0": JSON.stringify(effective.value) })}{" "}
+      <button className="text-button" onClick={() => {
+        kernel.configuration.reset(s.id, "workspace", language);
+        workbench.touch();
+      }}>{tr("Remove Workspace value")}</button>
+    </p>
+  );
   const iconTheme = s.id === "workbench.iconTheme" || s.id === "workbench.productIconTheme";
   const stringList = s.type === "array" && s.items === "string" && Array.isArray(value);
   const stacked = stringList || s.type === "object" || s.type === "array" || iconTheme || s.id === "workbench.colorTheme";
@@ -127,7 +138,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   const compact = !stacked && (s.type === "boolean" || s.type === "number" || !!s.enum);
   const variant = [stacked ? "stacked" : "", compact ? "compact" : "", s.type === "boolean" ? "switch-row" : "", modified ? "modified" : ""].filter(Boolean).join(" ");
   return (
-    <Row className={variant} id={s.id} title={title} description={s.description ? tr(s.description) : undefined} actions={actions} error={error}>
+    <Row className={variant} id={s.id} title={title} description={s.description ? tr(s.description) : undefined} notice={notice} actions={actions} error={error}>
       {control}
     </Row>
   );
