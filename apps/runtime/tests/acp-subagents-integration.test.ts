@@ -135,6 +135,17 @@ describe("subagent subprocess integration", () => {
       ),
     ).toBe(true);
   });
+  it("routes Oxbit CLI child sessions and attributes their requests", async () => {
+    const { events, prompt } = await setup("oxbit-cli");
+    await prompt("delegate");
+    await expect
+      .poll(() => events.some((e) => e.name === "acp.request"))
+      .toBe(true);
+    expect(events.find((e) => e.name === "acp.request")!.params).toMatchObject({
+      sessionId: "reviewer",
+      subagentId: "oxbit-cli:reviewer",
+    });
+  });
   it.each(["cursor", "amp"] as const)(
     "normalizes %s through the real transport",
     async (provider) => {

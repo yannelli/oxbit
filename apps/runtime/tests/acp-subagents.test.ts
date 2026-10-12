@@ -365,3 +365,160 @@ describe("dispatched subagent registry", () => {
     expect(registry.activeCount).toBe(259);
   });
 });
+const task = (
+  status: string | undefined,
+  subagent: Record<string, any>,
+  sessionUpdate = "tool_call_update",
+  extra: Record<string, any> = {},
+) => ({
+  sessionUpdate,
+  toolCallId: "call_1",
+  title: "Agent: Review routing",
+  kind: "other",
+  ...(status ? { status } : {}),
+  ...extra,
+  _meta: {
+    oxbit: {
+      subagent: {
+        name: "Review routing",
+        task: "Inspect the router",
+        model: "model-a",
+        ...subagent,
+      },
+    },
+  },
+});
+describe("Oxbit task subagents", () => {
+  it("merges the task card into its child session and closes requests on the state update", () => {
+    const { registry, record, events } = setup("oxbit-cli");
+    registry.observe("root", task("pending", { state: "pending" }, "tool_call"));
+    const placeholder = `tool:${JSON.stringify(["root", "call_1"])}`;
+    expect(registry.records.get(placeholder)).toMatchObject({
+      state: "pending",
+      evidence: "provider",
+      name: "Review routing",
+    });
+    registry.observe("root", {
+      sessionUpdate: "subagent_spawned",
+      subagentSessionId: "C",
+      name: "Review routing",
+      task: "Inspect the router",
+    });
+    registry.observe("C", {
+      sessionUpdate: "user_message_chunk",
+      content: { type: "text", text: "Inspect the router" },
+    });
+    registry.observe("root", task(undefined, { sessionId: "C", state: "running" }));
+    expect(
+      events.some(
+        (e) => e.subagent.id === "oxbit-cli:C" && e.removedIds.includes(placeholder),
+      ),
+    ).toBe(true);
+    registry.observe("C", {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text: "Routing is fine" },
+    });
+    expect(registry.acceptsRequest("C")).toBe(true);
+    expect(registry.activeCount).toBe(1);
+    registry.observe("root", {
+      sessionUpdate: "subagent_state_update",
+      subagentSessionId: "C",
+      state: "completed",
+    });
+    registry.observe("root", task(undefined, { sessionId: "C", state: "completed" }));
+    registry.observe("root", {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call_1",
+      status: "completed",
+      rawOutput: "Routing is fine",
+    });
+    expect(registry.acceptsRequest("C")).toBe(false);
+    expect(registry.activeCount).toBe(0);
+    expect([...registry.records.keys()]).toEqual(["oxbit-cli:C"]);
+    expect(record("C")).toMatchObject({
+      sessionId: "C",
+      toolCallIds: ["call_1"],
+      evidence: "native",
+      visibility: "full",
+      state: "completed",
+      name: "Review routing",
+      task: "Inspect the router",
+      model: "model-a",
+      result: "Routing is fine",
+    });
+    expect(record("C").activity.map((a) => a.kind)).toEqual(["message", "tool", "message"]);
+  });
+  it("attributes forwarded child cards and requests in fallback mode", () => {
+    const { registry } = setup("oxbit");
+    registry.observe("root", task("in_progress", { state: "running" }, "tool_call"));
+    const id = `tool:${JSON.stringify(["root", "call_1"])}`;
+    registry.observe("root", {
+      sessionUpdate: "tool_call",
+      toolCallId: "call_1/c1",
+      title: "Edit a.ts",
+      kind: "edit",
+      status: "pending",
+      _meta: { oxbit: { subagentOf: "call_1" } },
+    });
+    expect(registry.idForTool("root", "call_1/c1")).toBe(id);
+    expect(registry.records.get(id)).toMatchObject({ state: "running", phase: "executing_tools" });
+    registry.waiting("root", "r1", true, "call_1/c1");
+    expect(registry.records.get(id)!.phase).toBe("awaiting_input");
+    registry.waiting("root", "r1", false, "call_1/c1");
+    registry.observe("root", task(undefined, { state: "cancelled" }));
+    registry.observe("root", {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call_1",
+      status: "failed",
+      rawOutput: "Cancelled by the user",
+    });
+    expect(registry.records.get(id)).toMatchObject({ state: "cancelled" });
+    expect(registry.records.get(id)!.activity.map((a) => a.id)).toEqual([
+      "tool:call_1",
+      "tool:call_1/c1",
+    ]);
+    expect(registry.activeCount).toBe(0);
+  });
+  it("reads the state from _meta on updates without a status and falls back to the tool status", () => {
+    const { registry } = setup("oxbit-cli");
+    const id = `tool:${JSON.stringify(["root", "call_1"])}`;
+    registry.observe("root", task("in_progress", { state: "pending" }, "tool_call"));
+    expect(registry.records.get(id)!.state).toBe("pending");
+    registry.observe("root", task(undefined, { state: "running" }));
+    expect(registry.records.get(id)!.state).toBe("running");
+    registry.observe("root", task(undefined, { state: "failed" }));
+    expect(registry.records.get(id)!.state).toBe("failed");
+    expect(registry.activeCount).toBe(0);
+    const other = setup("oxbit").registry;
+    other.observe("root", task("in_progress", {}, "tool_call"));
+    other.observe("root", { sessionUpdate: "tool_call_update", toolCallId: "call_1", status: "completed" });
+    expect(other.records.get(id)!.state).toBe("completed");
+  });
+  it("replays a finished task as a historical record with its tool result", () => {
+    const { registry } = setup("oxbit-cli");
+    registry.replaying = true;
+    registry.observe("root", task("in_progress", { state: "pending" }, "tool_call"));
+    registry.observe("root", {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call_1",
+      status: "completed",
+      rawOutput: "Report: ok",
+    });
+    expect([...registry.records.values()]).toMatchObject([
+      { historical: true, state: "completed", result: "Report: ok" },
+    ]);
+    expect(registry.activeCount).toBe(0);
+  });
+  it("ignores Oxbit metadata and child sessions from other providers", () => {
+    const { registry, spawn } = setup("amp");
+    registry.observe("root", task("in_progress", { state: "running" }, "tool_call"));
+    registry.observe("root", {
+      sessionUpdate: "tool_call",
+      toolCallId: "call_1/c1",
+      _meta: { oxbit: { subagentOf: "call_1" } },
+    });
+    spawn("C");
+    expect(registry.records.size).toBe(0);
+    expect(registry.accepts("C")).toBe(false);
+  });
+});

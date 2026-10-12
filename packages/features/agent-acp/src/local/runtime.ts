@@ -1,5 +1,6 @@
 import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, OXBIT_AGENT_PROVIDER, OXBIT_AGENT_SETTINGS, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
   type FeatureOptions, type Persistence, type RpcClient, type Unsubscribe } from "@oxbit/sdk";
+import { SubagentRegistry } from "@oxbit/sdk/acp-subagents";
 import { Agent, relativePath, resolvePath, type RetryPolicy } from "@oxbit/agent-core";
 import { oxbitEndpoint } from "../configuration.js";
 import { compactSettings, localExtensions } from "./extensions.js";
@@ -18,6 +19,7 @@ interface Connection {
   queuePaused: boolean;
   queueRunning: boolean;
   approvals: Map<string, Approval>;
+  subagents?: SubagentRegistry;
 }
 
 const MAX_BYTES = 1024 * 1024;
@@ -27,6 +29,7 @@ const text = (params: Params, key: string, limit = MAX_BYTES) => {
   if (typeof value !== "string" || value.length > limit) throw new Error(`Invalid ${key}`);
   return value;
 };
+const toolCallId = (params: Params): string | undefined => params.toolCallId ?? params.toolCall?.toolCallId;
 const optionalId = (params: Params) => params.messageId === undefined ? crypto.randomUUID() : text(params, "messageId", 256);
 
 /** The workspace root: the host filesystem's absolute root, or a stable path from its ID. */
@@ -119,14 +122,18 @@ export class LocalAgentRuntime implements RpcClient {
     const configuration = this.options.kernel.configuration;
     const update = (sessionId: string, update: Record<string, any>) => {
       const connection = live();
-      if (!connection || sessionId !== connection.connection.sessionId) return;
-      if (update.sessionUpdate === "current_mode_update" && connection.connection.modes) connection.connection.modes.currentModeId = update.currentModeId;
-      // The controller accepts updates whose sessionId is the root, which covers the replay of session/load.
-      this.publish(connection, "acp.update", { rootSessionId: sessionId, sessionId, update });
+      const registry = connection?.subagents;
+      if (!connection || !registry?.observe(sessionId, update)) return;
+      if (sessionId === registry.root && update.sessionUpdate === "current_mode_update" && connection.connection.modes)
+        connection.connection.modes.currentModeId = update.currentModeId;
+      // The controller shows root updates, which covers the replay of session/load; child updates reach it as acp.subagent.
+      this.publish(connection, "acp.update", { rootSessionId: registry.root, sessionId, update });
+      if (update.sessionUpdate === "subagent_state_update" && !registry.acceptsRequest(update.subagentSessionId))
+        this.expire(connection, update.subagentSessionId);
     };
     const { extensions, settings } = localExtensions({ filesystem: this.options.filesystem, root: this.root, configuration, sessions: this.sessions, update });
     const agent = new Agent({
-      models: this.models, endpoint: () => oxbitEndpoint(configuration), capabilities: { fs: true, terminal: false },
+      models: this.models, endpoint: () => oxbitEndpoint(configuration), capabilities: { fs: true, terminal: false, childSessions: true }, subagents: {},
       model: () => configuration.get<string>(OXBIT_AGENT_SETTINGS.model),
       saveModel: (model) => configuration.set(OXBIT_AGENT_SETTINGS.model, model, "user"),
       filesystem: this.options.filesystem, root: this.root, generateTitles: false, update,
@@ -151,24 +158,33 @@ export class LocalAgentRuntime implements RpcClient {
     if (connection.busy) throw new Error("Wait for the current agent operation or stop it first");
     if (method === "session/list") return { sessions: (await connection.agent.listSessions({ cwd: this.root })).sessions.slice(0, 200) };
     if (method === "session/new" || method === "session/fork" || method === "session/load") {
+      if (connection.subagents?.activeCount) throw new Error("Wait for active subagents or disconnect before changing conversations");
       if (connection.approvals.size) throw new Error("Resolve pending requests before changing conversations");
       if (connection.queue.length) throw new Error("Remove queued messages before changing conversations");
       const source = connection.connection.sessionId;
       if (method === "session/fork" && !source) throw new Error("Start a conversation first");
       const { sessionId, modes, models, configOptions } = connection.connection;
+      const previousRegistry = connection.subagents;
       connection.busy = true;
       try {
         let result;
         if (method === "session/load") {
-          // The agent replays the conversation before it answers; updates reach the client for the current sessionId only.
+          // The agent replays the conversation before it answers; updates reach the client for the loaded session and its children only.
           connection.connection.sessionId = text(params, "sessionId", 128);
+          connection.subagents = this.registry(connection, connection.connection.sessionId, true);
           result = await connection.agent.loadSession({ sessionId: connection.connection.sessionId, cwd: this.root });
-        } else result = method === "session/fork" ? connection.agent.forkSession(source!) : await connection.agent.newSession();
+          connection.subagents.replaying = false;
+        } else {
+          connection.subagents = undefined;
+          result = method === "session/fork" ? connection.agent.forkSession(source!) : await connection.agent.newSession();
+          connection.subagents = this.registry(connection, result.sessionId);
+        }
         Object.assign(connection.connection, result);
         connection.queuePaused = false;
         return structuredClone(connection.connection);
       } catch (error) {
         Object.assign(connection.connection, { sessionId, modes, models, configOptions });
+        connection.subagents = previousRegistry;
         throw error;
       } finally {
         connection.busy = false;
@@ -252,7 +268,18 @@ export class LocalAgentRuntime implements RpcClient {
     connection.connection.configOptions = next;
     this.publish(connection, "acp.update", { sessionId, update: { sessionUpdate: "config_option_update", configOptions: next } });
   }
+  private registry(connection: Connection, root: string, replaying = false) {
+    const registry = new SubagentRegistry(OXBIT_AGENT_PROVIDER, root, (event) =>
+      this.publish(connection, "acp.subagent", { rootSessionId: root, ...event }));
+    registry.replaying = replaying;
+    return registry;
+  }
+  private settle(connection: Connection, requestId: string, params: Params) {
+    connection.subagents?.waiting(params.sessionId, requestId, false, toolCallId(params));
+  }
   private clientRequest(connection: Connection, method: string, params: Params): Promise<any> {
+    const registry = connection.subagents;
+    if (!registry?.acceptsRequest(params.sessionId)) return Promise.reject(new Error("Unknown ACP session"));
     if (connection.approvals.size >= 32) return Promise.reject(new Error("Too many pending agent requests"));
     const request = { ...params };
     try {
@@ -263,14 +290,18 @@ export class LocalAgentRuntime implements RpcClient {
     for (const key of Object.keys(request)) if (request[key] === undefined) delete request[key];
     return new Promise((resolve, reject) => {
       const requestId = crypto.randomUUID();
+      const sessionId = request.sessionId;
       connection.approvals.set(requestId, { method, params: request, resolve, reject });
-      this.publish(connection, "acp.request", { requestId, sessionId: request.sessionId, rootSessionId: connection.connection.sessionId, method, params: request });
+      if (method !== "fs/read_text_file" && !method.startsWith("oxbit/")) registry.waiting(sessionId, requestId, true, toolCallId(request));
+      this.publish(connection, "acp.request", { requestId, sessionId, rootSessionId: registry.root,
+        subagentId: registry.idForSession(sessionId) ?? registry.idForTool(sessionId, toolCallId(request)!), method, params: request });
     });
   }
   private respond(connection: Connection, requestId: string, result: unknown, error: unknown) {
     const request = connection.approvals.get(requestId);
     if (!request) throw new Error("Agent request has expired");
     connection.approvals.delete(requestId);
+    this.settle(connection, requestId, request.params);
     if (error !== undefined && error !== null) request.reject(new Error(String(error).slice(0, 4096)));
     else request.resolve(result);
     return {};
@@ -280,6 +311,7 @@ export class LocalAgentRuntime implements RpcClient {
     for (const [id, request] of connection.approvals) {
       if (request.params.sessionId !== sessionId) continue;
       connection.approvals.delete(id);
+      this.settle(connection, id, request.params);
       request.reject(new Error("Session turn ended"));
       requestIds.push(id);
     }
@@ -293,6 +325,7 @@ export class LocalAgentRuntime implements RpcClient {
     for (const [id, request] of connection.approvals) {
       if (request.params.sessionId !== sessionId) continue;
       connection.approvals.delete(id);
+      this.settle(connection, id, request.params);
       request.reject(new Error("Cancelled"));
     }
     this.publish(connection, "acp.cancelled", { sessionId });
@@ -308,6 +341,7 @@ export class LocalAgentRuntime implements RpcClient {
     connection.agent.cancel();
     for (const request of connection.approvals.values()) request.reject(new Error(reason));
     connection.approvals.clear();
+    connection.subagents?.disconnect();
     this.connections.delete(connection.connection.id);
     this.publish(connection, "acp.exit", { reason });
     return {};
