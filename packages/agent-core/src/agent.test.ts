@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { LocalAgent, type AgentHost } from "./agent.js";
+import { Agent } from "./agent.js";
+import type { AgentHost } from "./host.js";
 import { chatText, chatTool, endpointOf, fakeModels, settings, type Reply } from "./test-models.js";
 
 function setup(replies: Reply[], values?: Record<string, unknown>, list?: unknown) {
@@ -7,21 +8,23 @@ function setup(replies: Reply[], values?: Record<string, unknown>, list?: unknow
   const config = settings(values);
   const updates: Record<string, any>[] = [];
   const host: AgentHost = {
-    models: () => fake.models, endpoint: () => endpointOf(config), configuration: config as any, filesystem: { list: async () => [] } as any, root: "/root",
+    models: () => fake.models, endpoint: () => endpointOf(config), generateTitles: false, capabilities: { fs: true, terminal: false },
+    model: () => config.get("agentACP.oxbit.model") as string | undefined, saveModel: (model) => config.set("agentACP.oxbit.model", model),
+    filesystem: { list: async () => [] } as any, root: "/root",
     update: (_sessionId, update) => updates.push(update),
     request: async (method, params) => method === "fs/read_text_file" ? { content: `text of ${params.path}` } : null,
   };
-  return { agent: new LocalAgent(host), updates, config, ...fake };
+  return { agent: new Agent(host), updates, config, ...fake };
 }
 const kinds = (updates: Record<string, any>[]) => updates.map((update) => update.sessionUpdate + (update.status ? `:${update.status}` : ""));
 
-describe("LocalAgent", () => {
+describe("Agent", () => {
   it("lists models for a new session with model and reasoning config options", async () => {
     const { agent, requests } = setup([]);
     const session = await agent.newSession();
     expect(requests[0]).toEqual({ api: "openai-compatible", baseUrl: "https://models.test/api", method: "GET", path: "/v1/models" });
     expect(session.models).toEqual({ currentModelId: "model-a", availableModels: [{ modelId: "model-a", name: "model-a" }, { modelId: "model-b", name: "model-b" }] });
-    expect(session.configOptions.map((option) => [option.id, option.category, option.currentValue])).toEqual([["model", "model", "model-a"], ["reasoning", "thought_level", "default"]]);
+    expect(session.configOptions.map((option) => [option.id, option.category, option.currentValue])).toEqual([["model", "model", "model-a"], ["reasoning", "thought_level", "default"], ["mode", "mode", "ask"]]);
   });
   it("falls back to the saved model when the list fails and persists a chosen model", async () => {
     const { agent, config } = setup([], { "agentACP.oxbit.model": "typed-id" }, { error: "no list" });

@@ -1,13 +1,13 @@
-import { MISSING_AGENT_KEY, OXBIT_AGENT_PROVIDER, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
+import { MISSING_AGENT_KEY, OXBIT_AGENT_PROVIDER, OXBIT_AGENT_SETTINGS, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
   type FeatureOptions, type RpcClient, type Unsubscribe } from "@oxbit/sdk";
-import { LocalAgent, relativePath, resolvePath } from "@oxbit/agent-core";
+import { Agent, relativePath, resolvePath } from "@oxbit/agent-core";
 import { oxbitEndpoint } from "../configuration.js";
 
 type Params = Record<string, any>;
 type Approval = { method: string; params: Params; resolve: (result: unknown) => void; reject: (error: Error) => void };
 interface Connection {
   connection: ACPConnection;
-  agent: LocalAgent;
+  agent: Agent;
   seq: number;
   busy: boolean;
   stopped: boolean;
@@ -109,8 +109,12 @@ export class LocalAgentRuntime implements RpcClient {
     if (signal?.aborted) throw new Error("Agent connection cancelled");
     const id = crypto.randomUUID();
     const live = () => this.connections.get(id);
-    const agent = new LocalAgent({
-      models: this.models, endpoint: () => oxbitEndpoint(this.options.kernel.configuration), configuration: this.options.kernel.configuration, filesystem: this.options.filesystem, root: this.root,
+    const configuration = this.options.kernel.configuration;
+    const agent = new Agent({
+      models: this.models, endpoint: () => oxbitEndpoint(configuration), capabilities: { fs: true, terminal: false },
+      model: () => configuration.get<string>(OXBIT_AGENT_SETTINGS.model),
+      saveModel: (model) => configuration.set(OXBIT_AGENT_SETTINGS.model, model, "user"),
+      filesystem: this.options.filesystem, root: this.root, generateTitles: false,
       update: (sessionId, update) => {
         const connection = live();
         if (connection && sessionId === connection.connection.sessionId) this.publish(connection, "acp.update", { sessionId, update });
@@ -148,6 +152,11 @@ export class LocalAgentRuntime implements RpcClient {
     }
     const sessionId = connection.connection.sessionId;
     if (!sessionId) throw new Error("Start a conversation first");
+    if (method === "session/set_mode") {
+      const result = connection.agent.setMode(sessionId, text(params, "modeId"));
+      if (connection.connection.modes) connection.connection.modes.currentModeId = params.modeId;
+      return result;
+    }
     if (method === "session/set_model" || method === "session/set_config_option") {
       const result = method === "session/set_model"
         ? connection.agent.setModel(sessionId, text(params, "modelId"))
@@ -155,6 +164,8 @@ export class LocalAgentRuntime implements RpcClient {
       connection.connection.configOptions = result.configOptions;
       const model = result.configOptions.find((option) => option.id === "model")?.currentValue;
       if (connection.connection.models && model) connection.connection.models.currentModelId = model;
+      const mode = result.configOptions.find((option) => option.id === "mode")?.currentValue;
+      if (connection.connection.modes && mode) connection.connection.modes.currentModeId = mode;
       return structuredClone(result);
     }
     if (method !== "session/prompt") throw new Error("Unsupported ACP client method");

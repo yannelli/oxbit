@@ -42,7 +42,7 @@ describe("AgentController with LocalAgentRuntime", () => {
     const { agent, files } = setup([chatTool("call_1", "edit_file", { path: "a.ts", old_string: "a = 1", new_string: "a = 2" }), chatText("Done")]);
     await agent.connect({ provider: "oxbit" });
     expect(agent.connection).toEqual(expect.objectContaining({ provider: "oxbit", name: "Oxbit Agent", root: "/workspace", sessionId: expect.any(String) }));
-    expect(sessionControls(agent.connection).map((control) => [control.id, control.value])).toEqual([["model", "model-a"], ["reasoning", "default"]]);
+    expect(sessionControls(agent.connection).map((control) => [control.id, control.value])).toEqual([["model", "model-a"], ["reasoning", "default"], ["mode", "ask"]]);
     agent.draft = "Change a to 2";
     const sending = agent.send();
     await expect.poll(() => agent.requests.length).toBe(1);

@@ -18,6 +18,10 @@ export const chatTool = (id: string, name: string, args: unknown) => sse(
   { choices: [{ index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(args) } }] } }] },
   { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
 );
+export const chatTools = (...calls: [id: string, name: string, args: unknown][]) => sse(
+  { choices: [{ index: 0, delta: { tool_calls: calls.map(([id, name, args], index) => ({ index, id, type: "function", function: { name, arguments: JSON.stringify(args) } })) } }] },
+  { choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+);
 /** Streams `first`, then waits until the request is aborted. */
 export const hanging = (first: string[] = []) => async function* (signal?: AbortSignal) {
   yield* first;

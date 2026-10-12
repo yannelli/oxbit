@@ -1,77 +1,52 @@
-import { OXBIT_AGENT_SETTINGS, type ACPConfigOption, type AgentModelApi, type AgentModelEndpoint, type AgentModels, type ConfigurationService, type FileSystem } from "@oxbit/sdk";
-import { listModels, modelError, type Effort, type ModelAdapter, type ModelInfo, type StopReason, type ToolCall, type Turn } from "./model.js";
-import { TOOLS, runTool } from "./tools.js";
-import { openaiResponses } from "./openai-responses.js";
-import { chatCompletions } from "./chat-completions.js";
-import { anthropicMessages } from "./anthropic-messages.js";
+import type { ACPConfigOption } from "@oxbit/sdk";
+import { listModels, type Effort, type ModelInfo, type Turn } from "./model.js";
+import { MODES, modeOf, replay, toRecord } from "./session-records.js";
+import { generateTitle, titleInput } from "./title.js";
+import { ADAPTERS, CONTEXT_LIMIT, PromptTurn, normalize, type LiveSession } from "./turn.js";
+import type { AgentHost } from "./host.js";
+import type { AgentCommand, CommandContext, Params, PermissionMode } from "./extensions.js";
 
-type Params = Record<string, any>;
-export interface AgentHost {
-  models(): AgentModels | undefined;
-  endpoint(): AgentModelEndpoint;
-  configuration?: ConfigurationService;
-  filesystem: FileSystem;
-  root: string;
-  update(sessionId: string, update: Params): void;
-  request(method: string, params: Params): Promise<any>;
-}
-interface Session {
-  id: string;
-  turns: Turn[];
-  model: string;
-  effort: Effort | "default";
-  catalog: ModelInfo[];
-  abort?: AbortController;
-}
-
-const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
-  openai: openaiResponses,
-  "openai-compatible": chatCompletions,
-  anthropic: anthropicMessages,
-};
-const MAX_STEPS = 64;
 const EFFORTS = ["default", "low", "medium", "high"] as const;
-const system = (root: string) => `You are Oxbit Agent, a coding agent inside the Oxbit editor. You work in the workspace "${root.split("/").pop()}" through tools.
-Paths are relative to the workspace root. Read a file before you edit it. edit_file replaces an exact string; write_file replaces a whole file.
-The user reviews each write before it is saved; a rejected write returns an error, so ask what to change instead of retrying it.
-Use update_plan for work with several steps. Keep replies short and use Markdown.`;
-
-/** Ends iteration when `signal` aborts, even if the host stream ignores the signal. */
-async function* abortable<T>(source: AsyncIterable<T>, signal: AbortSignal): AsyncGenerator<T> {
-  const iterator = source[Symbol.asyncIterator]();
-  const aborted = new Promise<never>((_, reject) => {
-    if (signal.aborted) reject(new Error("Cancelled"));
-    else signal.addEventListener("abort", () => reject(new Error("Cancelled")), { once: true });
-  });
-  aborted.catch(() => {});
-  try {
-    for (;;) {
-      const next = await Promise.race([iterator.next(), aborted]);
-      if (next.done) return;
-      yield next.value;
-    }
-  } finally {
-    void iterator.return?.()?.catch(() => {});
-  }
-}
+const COMMAND = /^\/([\w:.-]+)(?:\s+([\s\S]*))?$/;
+const id = (params: Params, key: string) => {
+  if (typeof params[key] !== "string" || !params[key]) throw new Error(`Invalid ${key}`);
+  return params[key] as string;
+};
 
 /** Text of ACP prompt blocks: text, and embedded resources from attached editor context. */
 const promptText = (blocks: Params[]) =>
   blocks.map((block) => block.type === "text" ? block.text : block.type === "resource" ? block.resource?.text : undefined)
     .filter((text): text is string => typeof text === "string" && !!text).join("\n\n");
 
-/** An ACP agent that runs in the app and calls a model API through the host's AgentModels service. */
-export class LocalAgent {
-  private sessions = new Map<string, Session>();
+/** An ACP agent that calls a model API through the host's AgentModels service. */
+export class Agent {
+  private sessions = new Map<string, LiveSession>();
   private catalog?: Promise<ModelInfo[]>;
   constructor(private host: AgentHost) {}
   initialize() {
+    const saved = !!this.host.extensions?.sessions;
     return {
       protocolVersion: 1,
-      agentCapabilities: { loadSession: false, sessionCapabilities: { fork: {} }, promptCapabilities: { embeddedContext: true } },
+      agentCapabilities: { loadSession: saved, sessionCapabilities: { fork: {}, ...saved ? { list: {} } : {} }, promptCapabilities: { embeddedContext: true } },
       agentInfo: { name: "oxbit", title: "Oxbit Agent" },
       authMethods: [],
     };
+  }
+  /** Dispatches an ACP agent method. */
+  async handle(method: string, params: Params = {}): Promise<unknown> {
+    switch (method) {
+      case "initialize": return this.initialize();
+      case "session/new": return this.newSession(params);
+      case "session/load": return this.loadSession(params);
+      case "session/list": return this.listSessions(params);
+      case "session/fork": return this.forkSession(id(params, "sessionId"));
+      case "session/prompt": return this.prompt(id(params, "sessionId"), Array.isArray(params.prompt) ? params.prompt : []);
+      case "session/set_model": return this.setModel(id(params, "sessionId"), id(params, "modelId"));
+      case "session/set_mode": return this.setMode(id(params, "sessionId"), id(params, "modeId"));
+      case "session/set_config_option": return this.setConfigOption(id(params, "sessionId"), id(params, "configId"), id(params, "value"));
+      case "session/cancel": return this.cancel(id(params, "sessionId"));
+    }
+    throw Object.assign(new Error(`Method not found: ${method}`), { code: -32601 });
   }
   private service() {
     const models = this.host.models();
@@ -83,55 +58,121 @@ export class LocalAgent {
     if (!session) throw new Error("Unknown ACP session");
     return session;
   }
-  private options(session: Session) {
+  private options(session: LiveSession) {
     const models: ACPConfigOption = { id: "model", name: "Model", category: "model", type: "select", currentValue: session.model,
       options: session.catalog.map((model) => ({ value: model.id, name: model.name })) };
     const reasoning: ACPConfigOption = { id: "reasoning", name: "Reasoning", category: "thought_level", type: "select", currentValue: session.effort,
       options: EFFORTS.map((value) => ({ value, name: value === "default" ? "Model default" : value[0].toUpperCase() + value.slice(1) })) };
-    return session.catalog.length ? [models, reasoning] : [reasoning];
+    const mode: ACPConfigOption = { id: "mode", name: "Mode", category: "mode", type: "select", currentValue: modeOf(session.meta),
+      options: MODES.map(({ id, name }) => ({ value: id, name })) };
+    return session.catalog.length ? [models, reasoning, mode] : [reasoning, mode];
   }
-  private state(session: Session) {
+  private state(session: LiveSession) {
     return {
       sessionId: session.id,
       ...(session.catalog.length ? { models: { currentModelId: session.model,
         availableModels: session.catalog.map((model) => ({ modelId: model.id, name: model.name })) } } : {}),
+      modes: { currentModeId: modeOf(session.meta), availableModes: MODES },
       configOptions: this.options(session),
     };
   }
-  async newSession() {
-    const models = this.service();
-    const endpoint = this.host.endpoint();
-    const saved = this.host.configuration?.get<string>(OXBIT_AGENT_SETTINGS.model)?.trim() ?? "";
-    const listed = this.catalog ??= listModels(models, endpoint);
-    let catalog = await listed.catch(() => {
+  private cwd(input: unknown) {
+    if (input === undefined || input === null) return normalize(this.host.root);
+    if (typeof input !== "string" || !input.startsWith("/") || input.includes("\0")) throw new Error("cwd must be an absolute path");
+    const cwd = normalize(input);
+    if (cwd !== normalize(this.host.root) && !this.host.filesystemFor) throw new Error(`This agent serves ${this.host.root} only`);
+    return cwd;
+  }
+  /** The host catalog or `GET /v1/models`, with `model` first when the list lacks it. */
+  private async models(model: string) {
+    const listed = this.host.catalog ? Promise.resolve().then(() => this.host.catalog!()) : this.catalog ??= listModels(this.service(), this.host.endpoint());
+    const catalog = await listed.catch(() => {
       if (this.catalog === listed) this.catalog = undefined;
       return [];
     });
-    if (saved && !catalog.some((model) => model.id === saved)) catalog = [{ id: saved, name: saved }, ...catalog];
-    for (const [id, session] of this.sessions) if (!session.abort) this.sessions.delete(id);
-    const session: Session = { id: crypto.randomUUID(), turns: [], model: saved || catalog[0]?.id || "", effort: "default", catalog };
+    return model && !catalog.some((item) => item.id === model) ? [{ id: model, name: model }, ...catalog] : catalog;
+  }
+  async newSession(params: Params = {}) {
+    const cwd = this.cwd(params.cwd);
+    this.service();
+    const saved = this.host.model?.()?.trim() ?? "";
+    const catalog = await this.models(saved);
+    this.dropIdle();
+    return this.open({ id: crypto.randomUUID(), cwd, turns: [], model: saved || catalog[0]?.id || "", effort: "default", catalog,
+      meta: { mode: "ask", mcpServers: Array.isArray(params.mcpServers) ? params.mcpServers : [] }, context: [] }, "startup");
+  }
+  /** Replays a saved session as session/update notifications, then opens it. */
+  async loadSession(params: Params) {
+    const store = this.host.extensions?.sessions;
+    if (!store) throw new Error("This agent does not save sessions");
+    const sessionId = id(params, "sessionId");
+    if (this.sessions.get(sessionId)?.abort) throw new Error("Wait for the agent to finish before loading this session");
+    const record = await store.load(sessionId);
+    if (!record) throw new Error("Unknown ACP session");
+    this.service();
+    const catalog = await this.models(record.model);
+    const meta = { ...record.meta, ...Array.isArray(params.mcpServers) ? { mcpServers: params.mcpServers } : {} };
+    const session: LiveSession = { id: sessionId, cwd: this.cwd(params.cwd ?? record.cwd), turns: record.turns, model: record.model || catalog[0]?.id || "",
+      effort: "default", catalog, meta, context: [], titled: record.turns.length > 0 };
+    const tools = await new PromptTurn(this.host, session, new AbortController().signal).tools();
+    replay(session.turns, tools, (update) => this.host.update(sessionId, update));
+    return this.open(session, "resume");
+  }
+  async listSessions(params: Params = {}) {
+    const store = this.host.extensions?.sessions;
+    if (!store) throw new Error("This agent does not save sessions");
+    const records = await store.list(normalize(typeof params.cwd === "string" ? params.cwd : this.host.root));
+    return { sessions: records.map((record) => ({ sessionId: record.id, cwd: record.cwd, title: record.title, updatedAt: record.updatedAt })) };
+  }
+  private async open(session: LiveSession, source: "startup" | "resume") {
+    const start = await new PromptTurn(this.host, session, new AbortController().signal).hook("SessionStart", { source, model: session.model });
+    if (start.additionalContext) session.context.push(start.additionalContext.slice(0, CONTEXT_LIMIT));
     this.sessions.set(session.id, session);
+    setTimeout(() => this.publishCommands(session), 0);
     return this.state(session);
   }
   /** A new session with a copy of the source's turns. Like newSession, it drops the other idle sessions. */
   forkSession(sessionId: string) {
     const source = this.session(sessionId);
     if (source.abort) throw new Error("Wait for the agent to finish before forking");
-    const session: Session = { ...source, id: crypto.randomUUID(), turns: structuredClone(source.turns) };
-    for (const [id, other] of this.sessions) if (!other.abort) this.sessions.delete(id);
+    const session: LiveSession = { ...source, id: crypto.randomUUID(), turns: structuredClone(source.turns), meta: structuredClone(source.meta),
+      context: [...source.context], commands: undefined };
+    this.dropIdle();
     this.sessions.set(session.id, session);
+    setTimeout(() => this.publishCommands(session), 0);
     return this.state(session);
+  }
+  /** Without a SessionStore an idle session cannot be loaded again, so a new session replaces it. */
+  private dropIdle() {
+    if (this.host.extensions?.sessions) return;
+    for (const [sessionId, session] of this.sessions) {
+      if (session.abort) continue;
+      this.sessions.delete(sessionId);
+      void this.end(session, "clear");
+    }
   }
   setModel(sessionId: string, modelId: string) {
     const session = this.session(sessionId);
     if (!session.catalog.some((model) => model.id === modelId)) throw new Error("This model is not in the model list");
     session.model = modelId;
-    this.host.configuration?.set(OXBIT_AGENT_SETTINGS.model, modelId, "user");
+    this.host.saveModel?.(modelId);
     return { configOptions: this.options(session) };
+  }
+  /** Stores the mode in session meta and sends current_mode_update. */
+  setMode(sessionId: string, modeId: string) {
+    const session = this.session(sessionId);
+    if (!MODES.some((mode) => mode.id === modeId)) throw new Error("Unknown agent mode");
+    session.meta.mode = modeId as PermissionMode;
+    this.host.update(sessionId, { sessionUpdate: "current_mode_update", currentModeId: modeId });
+    return {};
   }
   setConfigOption(sessionId: string, configId: string, value: string) {
     const session = this.session(sessionId);
     if (configId === "model") return this.setModel(sessionId, value);
+    if (configId === "mode") {
+      this.setMode(sessionId, value);
+      return { configOptions: this.options(session) };
+    }
     if (configId !== "reasoning" || !EFFORTS.includes(value as Effort)) throw new Error("Unknown agent setting");
     session.effort = value as Effort | "default";
     return { configOptions: this.options(session) };
@@ -140,68 +181,97 @@ export class LocalAgent {
     for (const session of this.sessions.values())
       if (!sessionId || session.id === sessionId) session.abort?.abort();
   }
+  /** Cancels every session and runs SessionEnd hooks. */
+  async dispose(reason = "other") {
+    const sessions = [...this.sessions.values()];
+    this.sessions.clear();
+    for (const session of sessions) session.abort?.abort();
+    await Promise.all(sessions.map((session) => this.end(session, reason)));
+  }
+  private async end(session: LiveSession, reason: string) {
+    await new PromptTurn(this.host, session, new AbortController().signal).hook("SessionEnd", { reason }).catch(() => {});
+  }
   async prompt(sessionId: string, blocks: Params[]): Promise<{ stopReason: string }> {
     const session = this.session(sessionId);
     if (session.abort) throw new Error("Wait for the current agent operation or stop it first");
+    const abort = new AbortController();
+    session.abort = abort;
+    const turn = new PromptTurn(this.host, session, abort.signal);
+    try {
+      const result = await this.turn(session, blocks, turn);
+      if (result.stopReason !== "cancelled") this.title(session);
+      return result;
+    } finally {
+      try {
+        await this.host.extensions?.sessions?.save(toRecord(session));
+      } catch (error) {
+        turn.notice(`The session was not saved: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      session.abort = undefined;
+      this.publishCommands(session);
+    }
+  }
+  private async turn(session: LiveSession, blocks: Params[], turn: PromptTurn) {
+    const first = blocks.find((block) => block.type === "text");
+    const match = typeof first?.text === "string" ? COMMAND.exec(first.text) : null;
+    const command = match ? this.commandList(session).find((item) => item.name === match[1]) : undefined;
+    if (command) {
+      const result = await command.run((match![2] ?? "").trim(), this.commandContext(session, turn));
+      if ("done" in result) return { stopReason: result.done };
+      blocks = blocks.map((block) => block === first ? { ...block, text: result.prompt } : block);
+    }
     if (!session.model) throw new Error("Choose a model in Agent setup");
     const models = this.service();
     const endpoint = this.host.endpoint();
-    const abort = new AbortController();
-    session.abort = abort;
-    const start = session.turns.push({ role: "user", text: promptText(blocks) });
+    let text = promptText(blocks);
+    const submit = await turn.hook("UserPromptSubmit", { prompt: text });
+    if (submit.block) throw new Error(submit.reason || "A hook blocked this prompt");
+    if (turn.halt) return turn.halted();
+    if (submit.additionalContext) text += `\n\n${submit.additionalContext.slice(0, CONTEXT_LIMIT)}`;
+    const user: Turn = { role: "user", text };
+    session.turns.push(user);
     try {
-      return await this.run(session, models, endpoint, abort.signal);
+      return await turn.run(models, endpoint);
     } catch (error) {
       // The controller restores the draft after a failure; drop the turn so a resend does not repeat it.
-      if (session.turns.length === start) session.turns.pop();
+      if (session.turns.at(-1) === user) session.turns.pop();
       throw error;
-    } finally {
-      session.abort = undefined;
     }
   }
-  private async run(session: Session, models: AgentModels, endpoint: AgentModelEndpoint, signal: AbortSignal) {
-    const update = (value: Params) => this.host.update(session.id, value);
-    const adapter = ADAPTERS[endpoint.api] as ModelAdapter | undefined;
-    if (!adapter) throw new Error(`Choose a model API in Agent setup: ${endpoint.api} is not supported`);
-    const info = session.catalog.find((model) => model.id === session.model);
-    for (let step = 0; step < MAX_STEPS; step++) {
-      const calls: ToolCall[] = [];
-      const turn: Extract<Turn, { role: "assistant" }> = { role: "assistant", text: "", calls };
-      let stop: StopReason | undefined;
-      try {
-        const request = adapter.request({ model: session.model, system: system(this.host.root), turns: session.turns, tools: TOOLS,
-          effort: session.effort === "default" ? undefined : session.effort, maxTokens: info?.maxOutput });
-        for await (const event of adapter.events(abortable(models.stream({ ...endpoint, ...request }, signal), signal))) {
-          if (event.type === "text") {
-            turn.text += event.text;
-            update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: event.text } });
-          } else if (event.type === "reasoning")
-            update({ sessionUpdate: "agent_thought_chunk", content: { type: "text", text: event.text } });
-          else if (event.type === "tool_call") calls.push(event.call);
-          else if (event.type === "usage" && info?.contextWindow)
-            update({ sessionUpdate: "usage_update", used: event.input + event.output, size: info.contextWindow });
-          else if (event.type === "stop") {
-            stop = event.reason;
-            if (event.native) turn.native = { api: endpoint.api, items: event.native };
-          }
-        }
-        if (!stop && !signal.aborted) throw new Error("The model stream ended before the response finished");
-      } catch (error) {
-        if (!signal.aborted) throw modelError(error);
-      } finally {
-        // Calls from an unfinished response never run and lack the API's reasoning items.
-        if (!stop) calls.length = 0;
-        if (turn.text || calls.length) session.turns.push(turn);
-      }
-      const context = { root: this.host.root, sessionId: session.id, filesystem: this.host.filesystem, signal,
-        request: (method: string, params: Params) => this.host.request(method, params), update };
-      const results = [];
-      for (const call of calls)
-        results.push(signal.aborted ? { id: call.id, name: call.name, output: "Cancelled by the user", error: true } : await runTool(call, context));
-      if (results.length) session.turns.push({ role: "tool", results });
-      if (signal.aborted) return { stopReason: "cancelled" };
-      if (!calls.length) return { stopReason: stop === "tool_use" ? "end_turn" : stop! };
-    }
-    return { stopReason: "max_turn_requests" };
+  /** Once per session, after its first finished turn: a model-written title in meta and session_info_update. */
+  private title(session: LiveSession) {
+    if (session.titled || this.host.generateTitles === false || session.meta.title || !titleInput(session.turns)) return;
+    session.titled = true;
+    void generateTitle(this.host, session, new AbortController().signal).then(async (title) => {
+      if (!title || this.sessions.get(session.id) !== session) return;
+      session.meta.title = title;
+      this.host.update(session.id, { sessionUpdate: "session_info_update", title });
+      await this.host.extensions?.sessions?.save(toRecord(session));
+    }).catch(() => {});
+  }
+  private commandList(session: LiveSession): AgentCommand[] {
+    return (this.host.extensions?.commands ?? []).flatMap((provider) => provider.commands(session));
+  }
+  private commandContext(session: LiveSession, turn: PromptTurn): CommandContext {
+    return {
+      session, signal: turn.signal,
+      update: (value) => this.host.update(session.id, value),
+      request: (method, params) => this.host.request(method, params),
+      replaceTurns: (turns) => void (session.turns = turns),
+      compact: async () => {
+        const endpoint = this.host.endpoint();
+        return turn.compact("manual", turn.summarizer(ADAPTERS[endpoint.api], this.service(), endpoint, await turn.tools()));
+      },
+    };
+  }
+  /** Sends available_commands_update when the session's command list differs from the last one sent. */
+  private publishCommands(session: LiveSession) {
+    if (this.sessions.get(session.id) !== session) return;
+    const available = this.commandList(session).map((command) => ({ name: command.name, description: command.description,
+      ...command.hint ? { input: { hint: command.hint } } : {} }));
+    const key = JSON.stringify(available);
+    if (key === (session.commands ?? "[]")) return;
+    session.commands = key;
+    this.host.update(session.id, { sessionUpdate: "available_commands_update", availableCommands: available });
   }
 }

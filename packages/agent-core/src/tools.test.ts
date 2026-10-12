@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { relativePath, resolvePath, runTool, type ToolContext } from "./tools.js";
+import { TOOLS, bash, builtinTools, relativePath, resolvePath, runTool } from "./tools.js";
+import type { ToolContext } from "./extensions.js";
 
 const call = (name: string, args: unknown) => ({ id: `call-${name}`, name, arguments: JSON.stringify(args) });
 function context(files: Record<string, string> = {}) {
@@ -16,8 +17,8 @@ function context(files: Record<string, string> = {}) {
     }
     return { diagnostics: [{ path: "a.ts", line: 2, character: 3, message: "Bad", source: "ts" }] };
   });
-  const value: ToolContext = {
-    root: "/root", sessionId: "session", signal: new AbortController().signal, request, update: (update) => updates.push(update),
+  const value: Omit<ToolContext, "toolCallId"> = {
+    root: "/root", sessionId: "session", mode: "ask", signal: new AbortController().signal, request, update: (update) => updates.push(update),
     filesystem: { list: vi.fn(async () => [{ path: "src", name: "src", kind: "directory" }, { path: "a.ts", name: "a.ts", kind: "file" }]) } as any,
   };
   return { context: value, updates, request, files };
@@ -75,5 +76,52 @@ describe("tools", () => {
     expect(updates).toContainEqual({ sessionUpdate: "plan", entries: [{ content: "Do it", status: "pending", priority: "medium" }] });
     expect((await runTool({ id: "x", name: "read_file", arguments: "{" }, tools)).output).toBe("Tool arguments are not valid JSON");
     expect((await runTool(call("search", { query: "a" }), tools)).output).toBe("Search is unavailable in this workspace");
+  });
+});
+
+describe("bash", () => {
+  function terminal(exit: Promise<unknown>) {
+    const updates: any[] = [];
+    const abort = new AbortController();
+    const request = vi.fn(async (method: string, _params: any): Promise<any> => {
+      if (method === "terminal/create") return { terminalId: "t1" };
+      if (method === "terminal/wait_for_exit") return exit;
+      if (method === "terminal/output") return { output: "out\n", truncated: false };
+      return null;
+    });
+    const context = { root: "/root", sessionId: "s", mode: "full-auto" as const, signal: abort.signal, request, update: (update: any) => updates.push(update),
+      filesystem: {} as any };
+    return { context, request, updates, abort, methods: () => request.mock.calls.map(([method]) => method) };
+  }
+  it("is offered only with the terminal capability", () => {
+    expect(builtinTools({ fs: true, terminal: false })).toBe(TOOLS);
+    expect(builtinTools({ fs: false, terminal: true }).at(-1)).toBe(bash);
+  });
+  it("runs bash -c through ACP terminal requests and embeds the terminal in the tool call", async () => {
+    const t = terminal(Promise.resolve({ exitCode: 0, signal: null }));
+    const result = await runTool(call("bash", { command: "ls -la", cwd: "src" }), t.context, [bash]);
+    expect(result).toEqual({ id: "call-bash", name: "bash", output: "out\n[Exit code 0]" });
+    expect(t.request).toHaveBeenNthCalledWith(1, "terminal/create", { sessionId: "s", command: "bash", args: ["-c", "ls -la"], cwd: "/root/src", outputByteLimit: 100000 });
+    expect(t.methods()).toEqual(["terminal/create", "terminal/wait_for_exit", "terminal/output", "terminal/release"]);
+    expect(t.updates).toContainEqual({ sessionUpdate: "tool_call_update", toolCallId: "call-bash", content: [{ type: "terminal", terminalId: "t1" }] });
+    expect(t.updates[0]).toEqual(expect.objectContaining({ kind: "execute", title: "ls -la" }));
+  });
+  it("fails on a non-zero exit with the output", async () => {
+    const t = terminal(Promise.resolve({ exitCode: 2, signal: null }));
+    expect(await runTool(call("bash", { command: "false" }), t.context, [bash])).toEqual(expect.objectContaining({ error: true, output: "out\n[Exit code 2]" }));
+  });
+  it("kills and releases the terminal when the turn is cancelled", async () => {
+    const t = terminal(new Promise(() => {}));
+    const running = runTool(call("bash", { command: "sleep 100" }), t.context, [bash]);
+    await expect.poll(() => t.methods()).toContain("terminal/wait_for_exit");
+    t.abort.abort();
+    expect(await running).toEqual(expect.objectContaining({ error: true, output: "out\n[Cancelled by the user]" }));
+    expect(t.methods()).toEqual(["terminal/create", "terminal/wait_for_exit", "terminal/kill", "terminal/output", "terminal/release"]);
+  });
+  it("kills the command after timeout_ms", async () => {
+    const t = terminal(new Promise(() => {}));
+    const result = await runTool(call("bash", { command: "sleep 100", timeout_ms: 20 }), t.context, [bash]);
+    expect(result.output).toBe("out\n[Timed out after 20 ms]");
+    expect(t.methods()).toContain("terminal/kill");
   });
 });
