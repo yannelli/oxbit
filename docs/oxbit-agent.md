@@ -1,6 +1,6 @@
 # Oxbit Agent CLI
 
-Created: 2026-10-11. Last updated: 2026-10-11.
+Created: 2026-10-11. Last updated: 2026-10-12.
 
 `oxbit-agent` (`apps/agent`, npm `@oxbit/agent`) is a terminal coding agent built
 on [`@oxbit/agent-core`](agent-core.md). It runs as a terminal UI, as a one-shot
@@ -39,7 +39,8 @@ Print mode starts in `ask` and denies permission prompts; pass
 | Ctrl+O | Details viewer for thinking, tool output and diffs |
 | `/` and `@` | Complete commands and files |
 
-Local commands: `/model`, `/new`, `/resume`, `/help`, `/exit`. The status line shows
+Local commands: `/model`, `/new`, `/resume`, `/help`, `/exit`, and the settings
+panels below. `/context` draws the context window as a colored grid. The status line shows
 the mode, goal and loop state, title, model, provider and context use. On exit the
 TUI prints the `oxbit-agent -r <id>` command that resumes the session.
 
@@ -69,8 +70,44 @@ Everything lives in `~/.oxbit/agent` (`OXBIT_AGENT_HOME` overrides it):
 | `claudeInstructions` | `false` | Also load `~/.claude/CLAUDE.md` |
 | `claudeHooks`, `codexHooks` | `false` | Also run hooks from Claude Code and Codex files |
 | `autoCompact` | `true` | `false` leaves compaction to `/compact` |
+| `autoCompactAt` | | Compact at this percent of the context window (50 to 95) |
+| `disabledSkills` | `[]` | Skill names left out of prompts, the skill tool and slash commands |
+| `disabledInstructions` | `[]` | Instruction file paths that are not loaded |
+| `disabledHooks` | `[]` | Hook ids (`<dialect>\|<file>\|<event>\|<matcher>\|<command>`) that do not run |
+| `disabledMcpServers` | `[]` | MCP server names left out of every session |
+| `disabledProviders` | `[]` | Provider ids that automatic selection skips |
 | `trustedProjects`, `trustProjectMcp` | `[]`, `false` | Which project `.mcp.json` files may start servers |
 | `hooks` | | Claude Code hook format, below |
+
+## Settings commands
+
+`/config`, `/skills`, `/hooks`, `/mcp`, `/instructions` and `/providers` change
+`settings.json`, `mcp.json` and `auth.json`. Changes apply on the next turn;
+switching the provider rebuilds the agent and keeps the open session.
+
+In the terminal UI the bare command opens a panel: arrows move, space turns a
+row on or off, left and right change a choice, Enter runs a row's action (set an
+API key, sign in with ChatGPT, add an MCP server, create or import a skill, edit
+the global prompt). A command with arguments goes to the agent as below.
+
+Over ACP (`oxbit-agent acp`, the Oxbit panel, Zed) the same commands are agent
+slash commands. The bare command lists numbered rows; arguments change them:
+
+| Command | Effect |
+| --- | --- |
+| `/config <setting> <value>` | `auto-compact off`, `compact-at 80`, `mode full-auto`, `claude-hooks on`, `codex-hooks on`, `claude-instructions on` |
+| `/skills enable\|disable <name\|number>` | Turn a skill on or off |
+| `/skills new <name> <description>`, `/skills import <folder>` | Create `skills/<name>/SKILL.md`, or copy a folder with a `SKILL.md` |
+| `/hooks enable\|disable <number>` | Turn one hook on or off |
+| `/instructions enable\|disable <number\|path>`, `/instructions prompt [text]` | Instruction files; set or clear `appendSystemPrompt` |
+| `/mcp add <name> <url or command line>`, `/mcp remove <name>` | Edit `mcp.json` |
+| `/mcp enable\|disable <name>`, `/mcp reload` | Turn a server on or off; reconnect |
+| `/providers use\|enable\|disable <id>` | Default provider (applies on the next start over ACP); automatic selection |
+| `/providers login chatgpt`, `/providers signout` | ChatGPT sign-in |
+
+API keys are not accepted in chat; use `oxbit-agent login --provider <id>` or the
+terminal UI panel. ACP sessions also expose `auto-compact` and `compact-at` as
+session config options.
 
 ## Providers
 
@@ -200,6 +237,13 @@ older than the newest 40k tokens outside the last two user turns (OpenCode's
 values), then summarizes older turns (goal, decisions, files touched, open work,
 user preferences) and keeps the newest turns that fit in 20k tokens without
 splitting a tool call from its result. `/compact [focus]` runs it on demand.
+`autoCompactAt` replaces the reserve rule with a percent of the window.
+
+`/context` estimates tokens (4 characters per token) for the system prompt,
+instructions, skills, other context, built-in tools, MCP tools and messages, and
+shows free space, the auto-compact threshold and buffer, and the provider's count
+for the last request. ACP clients get a text grid; the chunk carries the numbers in
+`_meta.oxbit.context`.
 
 ## MCP servers
 
