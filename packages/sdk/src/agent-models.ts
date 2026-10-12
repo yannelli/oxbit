@@ -1,5 +1,5 @@
 // The built-in Oxbit agent runs in the app and calls a model API with the user's key.
-// Version 1 serves local workspaces in the iOS app only; only the iOS host registers AGENT_MODELS_SERVICE.
+// The iOS host registers AGENT_MODELS_SERVICE for local files and runtime workspaces, which use it for conversation titles.
 export const OXBIT_AGENT_PROVIDER = "oxbit";
 export const AGENT_MODELS_SERVICE = "agentModels";
 export const MISSING_AGENT_KEY = "Add an API key in Agent setup";

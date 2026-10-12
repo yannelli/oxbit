@@ -44,6 +44,22 @@ export const agentConfiguration: Setting[] = [
     enum: ["whenHidden", "never"],
     default: "whenHidden",
   },
+  {
+    id: "agentACP.autoApplyEdits",
+    title: "Auto-apply agent edits",
+    description: "New conversations save agent file changes without review. Undo stays available, and permission prompts still ask.",
+    category: "Agent ACP",
+    type: "boolean",
+    default: false,
+  },
+  {
+    id: "agentACP.generateTitles",
+    title: "Generate conversation titles",
+    description: "When an agent does not name a conversation, ask the Oxbit Agent model for a short title after the first reply.",
+    category: "Agent ACP",
+    type: "boolean",
+    default: true,
+  },
   ...ACP_PROVIDERS.flatMap((provider) => [
     {
       id: settingId(provider.id, "command"),

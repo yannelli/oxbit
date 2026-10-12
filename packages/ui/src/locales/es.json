@@ -1028,5 +1028,9 @@
   "Restore files and fork": "Restaurar archivos y bifurcar",
   "Fork conversation": "Bifurcar conversación",
   "Forked from “{title}”. The agent keeps the earlier context.": "Bifurcada de «{title}». El agente conserva el contexto anterior.",
-  "Update the runtime to fork conversations": "Actualiza el runtime para bifurcar conversaciones"
+  "Update the runtime to fork conversations": "Actualiza el runtime para bifurcar conversaciones",
+  "Auto-apply edits": "Aplicar ediciones automáticamente",
+  "Auto-apply on": "Aplicación automática activada",
+  "Agent edits save without review": "Las ediciones del agente se guardan sin revisión",
+  "Save agent file changes without review. Permission prompts still ask.": "Guardar los cambios de archivos del agente sin revisión. Las solicitudes de permiso siguen preguntando."
 }

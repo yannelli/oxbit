@@ -42,6 +42,8 @@ export type Conversation = {
   subagents?: ACPSubagent[];
   subagentsTruncated?: boolean;
   truncated?: boolean;
+  /** Agent file writes apply without review. Older entries omit it. */
+  autoApplyEdits?: boolean;
 };
 function validLaunch(value: unknown): SavedLaunch | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -94,6 +96,7 @@ export class ConversationHistory {
           .map((entry) => ({
             ...entry,
             name: typeof entry.name === "string" ? entry.name : undefined,
+            autoApplyEdits: entry.autoApplyEdits === true,
             launch: validLaunch(entry.launch),
             subagents: Array.isArray(entry.subagents)
               ? entry.subagents

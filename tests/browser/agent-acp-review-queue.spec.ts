@@ -132,3 +132,59 @@ test("moving a queued message up runs it first", async ({ page }, info) => {
     await app.close();
   }
 });
+
+test("Auto-apply edits applies agent writes without review, keeps Undo all and leaves permissions manual", async ({ page }, info) => {
+  const app = await open(page);
+  const { panel } = app;
+  const panelShots = "/tmp/oxbit-agent2/panel-shots";
+  try {
+    await fs.mkdir(panelShots, { recursive: true });
+    const toggle = panel.getByRole("switch", { name: "Auto-apply edits" });
+    const indicator = panel.locator(".acp-auto-apply-on");
+    await expect(toggle).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+    await expect(indicator).toHaveCount(0);
+    await panel.screenshot({ path: `${panelShots}/${info.project.name}-auto-apply-off.png` });
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await expect(indicator).toHaveText("Auto-apply on");
+    await expect(indicator).toBeInViewport();
+    await panel.screenshot({ path: `${panelShots}/${info.project.name}-auto-apply-on.png` });
+
+    await app.send(app.writes);
+    await expect.poll(app.disk).toEqual(files.map((file) => `agent edit ${file}\n`));
+    await app.ready();
+    await expect(panel.getByText("Review file change")).toHaveCount(0);
+    await expect(panel.getByRole("region", { name: "Pending file changes" })).toHaveCount(0);
+    await expect(toggle).toBeInViewport();
+    await panel.screenshot({ path: `${panelShots}/${info.project.name}-auto-apply-connected.png` });
+    const edits = panel.getByRole("region", { name: "Reviewed agent edits" });
+    const summaries = edits.locator("details > summary");
+    await expect(summaries).toHaveText(files.map(() => / · Applied$/));
+    expect((await summaries.allTextContents()).map((text) => text.split(" · ")[0]).sort()).toEqual(files);
+    await summaries.first().click();
+    await expect(edits.getByLabel("File change diff").first()).toContainText("+agent edit");
+    await expect(toggle).toBeChecked();
+    await edits.screenshot({ path: `${panelShots}/${info.project.name}-auto-applied-edits.png` });
+    await edits.getByRole("button", { name: "Undo all" }).click();
+    await expect(summaries).toHaveText(files.map(() => / · Undone$/));
+    expect(await app.disk()).toEqual(files.map((file) => `${file} before\n`));
+
+    await app.send("permission");
+    const approval = panel.getByRole("region", { name: "Agent approval" });
+    await expect(approval).toContainText("Permission required");
+    await approval.getByRole("button", { name: "Allow once" }).click();
+    await app.ready();
+    await expect(app.log).toContainText("allow-once");
+
+    await toggle.click();
+    await expect(indicator).toHaveCount(0);
+    await app.send(app.writes);
+    await expect(panel.getByText("Review file change")).toHaveCount(3);
+    await panel.getByRole("region", { name: "Pending file changes" }).getByRole("button", { name: "Reject all" }).click();
+    await app.ready();
+    expect(await app.disk()).toEqual(files.map((file) => `${file} before\n`));
+  } finally {
+    await app.close();
+  }
+});

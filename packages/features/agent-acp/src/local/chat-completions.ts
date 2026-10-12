@@ -36,7 +36,7 @@ export const chatCompletions: ModelAdapter = {
       path: "/v1/chat/completions",
       body: {
         model, messages, stream: true, stream_options: { include_usage: true },
-        tools: tools.map((tool) => ({ type: "function", function: tool })),
+        ...(tools.length ? { tools: tools.map((tool) => ({ type: "function", function: tool })) } : {}),
         ...(effort ? { reasoning_effort: effort } : {}),
       },
     };

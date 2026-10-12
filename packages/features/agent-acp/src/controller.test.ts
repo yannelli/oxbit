@@ -11,6 +11,7 @@ import {
   type AgentModels,
   type FeatureOptions,
 } from "@oxbit/sdk";
+import { chatText, fakeModels, settings as modelSettings, type Reply } from "./local/test-models.js";
 function setup(document?: any, persistence?: any) {
   const listeners = new Map<string, (params: any) => void>();
   const runtime = {
@@ -1371,6 +1372,211 @@ describe("Oxbit agent without a runtime workspace", () => {
     expect(agent.chosen).toEqual({ provider: "codex" });
     agent.selection = { provider: "opencode", registry: { id: "opencode" } };
     expect(agent.chosen.provider).toBe("opencode");
+    agent.dispose();
+  });
+});
+
+describe("Auto-apply edits", () => {
+  function workspace(configuration: Record<string, unknown> = {}, storage?: any) {
+    const context = setup(undefined, storage);
+    let text = "before";
+    const doc = { dirty: false, state: "ready", version: 1, savedRevision: "one",
+      text: { toString: () => text }, replace: (value: string) => { text = value; } };
+    Object.assign(context.options.documents, { get: () => doc, open: async () => doc });
+    vi.mocked(context.options.documents.save).mockImplementation(async () => { doc.savedRevision = `saved:${text}`; });
+    context.filesystem.read.mockImplementation((async () => ({ text, revision: doc.savedRevision })) as any);
+    (context.options.kernel as any).configuration = { get: (id: string) => configuration[id] };
+    const request = (requestId: string, method = "fs/write_text_file", params: Record<string, unknown> = { path: "hello.txt", content: `after ${requestId}` }) =>
+      context.listeners.get("acp.request")!({ id: "connection", requestId, method, params });
+    const answers = () => context.runtime.request.mock.calls.filter(([method]) => method === "acp.respond").map(([, params]) => params.requestId);
+    return { ...context, text: () => text, request, answers };
+  }
+  const sessions = (runtime: ReturnType<typeof setup>["runtime"]) => {
+    const connection = { id: "connection", root: "/workspace", provider: "codex", authMethods: [] };
+    runtime.request.mockImplementation(async (method: string, params: any) =>
+      method === "acp.start" ? connection
+        : method === "acp.call" && params.method === "session/new" ? { ...connection, sessionId: `session-${crypto.randomUUID()}` }
+          : method === "acp.call" && params.method === "session/prompt" ? { stopReason: "end_turn" } : {});
+  };
+  it("applies writes as they arrive and leaves permission prompts for the user", async () => {
+    const { agent, options, request, answers, text } = workspace();
+    expect(agent.autoApply).toBe(false);
+    agent.setAutoApply(true);
+    request("write");
+    request("permission", "session/request_permission", { toolCall: { title: "Run tests" }, options: [] });
+    await expect.poll(answers).toEqual(["write"]);
+    expect(text()).toBe("after write");
+    expect(agent.requests.map((item) => item.method)).toEqual(["session/request_permission"]);
+    expect(agent.changes).toEqual([expect.objectContaining({ path: "hello.txt", before: "before", after: "after write" })]);
+    expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "Applied change: hello.txt" });
+    expect(options.workbench.openFile).not.toHaveBeenCalled();
+    expect(options.workbench.refreshFiles).toHaveBeenCalled();
+    agent.dispose();
+  });
+  it("undoes an auto-applied write and holds writes for review when off", async () => {
+    const { agent, request, answers, text } = workspace();
+    agent.setAutoApply(true);
+    request("first");
+    await expect.poll(answers).toEqual(["first"]);
+    await agent.undoChange(agent.changes[0].id);
+    expect(text()).toBe("before");
+    expect(agent.changes[0].undone).toBe(true);
+    agent.setAutoApply(false);
+    request("second");
+    await expect.poll(() => agent.requests.length).toBe(1);
+    expect(answers()).toEqual(["first"]);
+    expect(text()).toBe("before");
+    agent.dispose();
+  });
+  it("keeps the flag with the conversation in history and starts new conversations from the setting", async () => {
+    const values = new Map();
+    const storage = { get: vi.fn(async (key) => values.get(key)), set: vi.fn(async (key, value) => void values.set(key, value)) };
+    const { agent, runtime } = workspace({ "agentACP.autoApplyEdits": true }, storage);
+    sessions(runtime);
+    await agent.newSession();
+    expect(agent.autoApply).toBe(true);
+    agent.setAutoApply(false);
+    const off = (agent as any).activeConversation.id;
+    await agent.newSession();
+    expect(agent.autoApply).toBe(true);
+    const on = (agent as any).activeConversation.id;
+    await agent.saveConversation();
+    agent.dispose();
+
+    const other = workspace({}, storage);
+    await other.agent.history.ready;
+    const saved = (id: string) => other.agent.history.entries.find((entry) => entry.id === id)!;
+    expect([saved(off).autoApplyEdits, saved(on).autoApplyEdits]).toEqual([false, true]);
+    await other.agent.viewConversation(saved(on));
+    expect(other.agent.autoApply).toBe(true);
+    await other.agent.viewConversation(saved(off));
+    expect(other.agent.autoApply).toBe(false);
+    other.agent.dispose();
+  });
+  it("keeps the flag and a generated title when a runtime thread is reattached", async () => {
+    const { agent, runtime } = workspace();
+    agent.connection = undefined;
+    await agent.history.save({
+      id: "saved", sessionId: "live-session", root: "/workspace", provider: "codex", title: "Fix the login refresh",
+      updatedAt: "2026-10-11", draft: "", context: [], activity: [], tools: [], autoApplyEdits: true,
+    });
+    (agent as any).threadConversations.set("live", "saved");
+    runtime.request.mockResolvedValueOnce({
+      connection: { id: "live", root: "/workspace", provider: "codex", sessionId: "live-session", authMethods: [] },
+      busy: false, queue: [], queuePaused: false, sequence: 1, truncated: false, requests: [],
+      events: [{ name: "acp.turnStarted", params: { id: "live", seq: 1, messageId: "turn", text: "Why does login fail?" } }],
+    });
+    await agent.attachLive("live");
+    expect(agent.autoApply).toBe(true);
+    expect(agent.title).toBe("Fix the login refresh");
+    agent.dispose();
+  });
+  it("keeps a choice made before the first message for the conversation it starts", async () => {
+    const { agent, runtime } = workspace();
+    sessions(runtime);
+    agent.connection = undefined;
+    agent.setAutoApply(true);
+    agent.draft = "Edit hello.txt";
+    await agent.send();
+    expect(agent.connection?.sessionId).toMatch(/^session-/);
+    expect(agent.autoApply).toBe(true);
+    await agent.saveConversation();
+    expect(agent.history.entries[0].autoApplyEdits).toBe(true);
+    agent.dispose();
+  });
+});
+
+describe("Generated conversation titles", () => {
+  const SYSTEM = "Write a 3 to 7 word title for this coding conversation. Reply with the title only.";
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 10));
+  async function conversation(replies: Reply[], values: Record<string, unknown> = {}, provider = "codex") {
+    const context = setup();
+    const { models, requests } = fakeModels(replies);
+    Object.assign(context.options.kernel, {
+      configuration: modelSettings(values),
+      services: { optional: (id: string) => (id === AGENT_MODELS_SERVICE ? models : undefined) },
+    });
+    context.agent.connection!.provider = provider;
+    context.runtime.request.mockImplementation(async (method: string, params: any) =>
+      method === "acp.call" && params.method === "session/new" ? { ...context.agent.connection, sessionId: "titled" } : {});
+    await context.agent.newSession();
+    const emit = (event: string, params: Record<string, unknown>) => context.listeners.get(event)!({ id: "connection", ...params });
+    const update = (value: Record<string, unknown>) => emit("acp.update", { update: value });
+    const turn = (text: string, reply: string, extra: Record<string, unknown>[] = []) => {
+      emit("acp.turnStarted", { messageId: crypto.randomUUID(), text });
+      update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: reply } });
+      for (const value of extra) update(value);
+      emit("acp.turnEnded", { stopReason: "end_turn" });
+    };
+    return { ...context, requests, turn, update };
+  }
+  it("names the conversation from the first exchange once and stores the title in history", async () => {
+    const reply = "The refresh token expires. " + "x".repeat(2000);
+    const { agent, requests, turn, update } = await conversation([chatText("“Fix the login token refresh.”\n")]);
+    turn("Why does login fail after an hour?", reply);
+    expect(agent.title).toBe("Why does login fail after an hour?");
+    await expect.poll(() => agent.title).toBe("Fix the login token refresh");
+    expect(requests).toHaveLength(1);
+    const body = requests[0].body as any;
+    expect(body.messages).toEqual([
+      { role: "system", content: SYSTEM },
+      { role: "user", content: `User: Why does login fail after an hour?\n\nAgent: ${reply.slice(0, 1000)}` },
+    ]);
+    expect(body).not.toHaveProperty("tools");
+    await agent.saveConversation();
+    expect(agent.history.entries[0].title).toBe("Fix the login token refresh");
+    turn("And on mobile?", "Same cause.");
+    await flush();
+    expect(requests).toHaveLength(1);
+    update({ sessionUpdate: "session_info_update", title: "Login token expiry" });
+    expect(agent.title).toBe("Login token expiry");
+    agent.dispose();
+  });
+  it("keeps the first message as the title when the model request fails", async () => {
+    const failing = async function* (): AsyncGenerator<string> {
+      throw Object.assign(new Error("Model API error 401"), { status: 401, body: "invalid key" });
+    };
+    for (const reply of [failing, chatText("  ")]) {
+      const { agent, requests, turn } = await conversation([reply]);
+      turn("Why does login fail?", "Token expired.");
+      await expect.poll(() => requests.length).toBe(1);
+      await flush();
+      expect(agent.title).toBe("Why does login fail?");
+      agent.dispose();
+    }
+  });
+  it("skips generation when the agent sends a title, without a model and when turned off", async () => {
+    const titled = await conversation([chatText("Unused")]);
+    titled.turn("Why does login fail?", "Token expired.", [{ sessionUpdate: "session_info_update", title: "Login failure" }]);
+    await flush();
+    expect(titled.requests).toHaveLength(0);
+    expect(titled.agent.title).toBe("Login failure");
+    titled.agent.dispose();
+    const cases: [Record<string, unknown>, string][] = [
+      [{ "agentACP.generateTitles": false }, "codex"], [{ [OXBIT_AGENT_SETTINGS.model]: "" }, "codex"],
+      [{ [OXBIT_AGENT_SETTINGS.baseUrl]: "" }, "codex"],
+    ];
+    for (const [values, provider] of cases) {
+      const skipped = await conversation([chatText("Unused")], values, provider);
+      skipped.turn("Why does login fail?", "Token expired.");
+      await flush();
+      expect(skipped.requests).toHaveLength(0);
+      expect(skipped.agent.title).toBe("Why does login fail?");
+      skipped.agent.dispose();
+    }
+  });
+  it("keeps an agent title that arrives while the title request runs", async () => {
+    const gate = deferred();
+    const { agent, requests, turn, update } = await conversation([async function* () {
+      await gate.promise;
+      yield* chatText("Generated title");
+    }]);
+    turn("Why does login fail?", "Token expired.");
+    await expect.poll(() => requests.length).toBe(1);
+    update({ sessionUpdate: "session_info_update", title: "Agent title" });
+    gate.resolve(undefined);
+    await flush();
+    expect(agent.title).toBe("Agent title");
     agent.dispose();
   });
 });

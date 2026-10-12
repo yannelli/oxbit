@@ -24,7 +24,7 @@ interface Session {
   abort?: AbortController;
 }
 
-const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
+export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
   openai: openaiResponses,
   "openai-compatible": chatCompletions,
   anthropic: anthropicMessages,
