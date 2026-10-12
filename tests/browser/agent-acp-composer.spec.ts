@@ -498,3 +498,25 @@ test("the transcript stays on the latest message as it grows and stops following
     await app.close();
   }
 });
+
+test("each turn's plan card stays where the agent posted it in the conversation", async ({ page }) => {
+  const app = await open(page);
+  const { input, log, ready } = app;
+  try {
+    for (const prompt of ["first", "rich"]) {
+      await input.fill(prompt);
+      await input.press("Enter");
+      await ready();
+    }
+    await expect(log.getByText("The check completed after the tool.")).toBeVisible();
+    const order = await log.evaluate((el) => Array.from(el.children, (child) =>
+      child.matches(".acp-tool") ? "tool"
+        : child.matches("details.acp-card") ? child.querySelector("summary")!.textContent
+          : child.matches(".acp-message.user") ? child.querySelector(".acp-user-text")!.textContent
+            : child.matches(".acp-message.agent") ? "agent" : child.className));
+    expect(order).toEqual(["first", "agent", "Plan · 1/1", "rich", "agent", "Plan · 1/1", "tool", "agent"]);
+    await expect(app.panel.locator(".acp-content > details.acp-card")).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});

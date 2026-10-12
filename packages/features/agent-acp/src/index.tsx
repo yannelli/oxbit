@@ -380,7 +380,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
     const node = transcript.current;
     if (!node || typeof ResizeObserver === "undefined") return;
     const sizes = new ResizeObserver(() => {
-      if (follow.current) node.scrollTop = node.scrollHeight;
+      if (follow.current && agent.messages.length) node.scrollTop = node.scrollHeight;
     });
     const watch = () => {
       sizes.observe(node);
@@ -393,7 +393,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       sizes.disconnect();
       children.disconnect();
     };
-  }, []);
+  }, [agent]);
   useEffect(() => {
     const node = panel.current;
     agent.markSeen();
@@ -615,23 +615,6 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {agent.replayTruncated && <p className="acp-turn-note" role="status">{tr("Earlier activity was trimmed by the runtime.")}</p>}
         {agent.subagents.size > 0 && <Subagents agent={agent} compact />}
         <ActivityFeed agent={agent} />
-        {agent.plan.length > 0 && (
-          <details className="acp-card">
-            <summary>
-              {tr("Plan")} ·{" "}
-              {agent.plan.filter((e) => e.status === "completed").length}/
-              {agent.plan.length}
-            </summary>
-            <ol>
-              {agent.plan.map((entry, index) => (
-                <li key={index}>
-                  <span className="muted">{tr(entry.status)} · </span>
-                  {entry.content}
-                </li>
-              ))}
-            </ol>
-          </details>
-        )}
         {Array.from(agent.terminals.entries()).map(([id, terminal]) => (
           <details className="acp-card" key={id}>
             <summary>

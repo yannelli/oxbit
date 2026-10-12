@@ -630,6 +630,34 @@ describe("ACP conversation workflows", () => {
     expect(agent.tools.get("read")?.status).toBe("completed");
     agent.dispose();
   });
+  it("places one plan card per turn at its first update and keeps later text below it", () => {
+    const { agent, listeners } = setup();
+    const update = (update: any) =>
+      listeners.get("acp.update")!({ id: "connection", update });
+    const plan = (status: string) => ({
+      sessionUpdate: "plan",
+      entries: [{ content: "Inspect workspace", status }],
+    });
+    update({ sessionUpdate: "user_message_chunk", content: { text: "Go" } });
+    update({ sessionUpdate: "agent_message_chunk", content: { text: "Hello " } });
+    update(plan("pending"));
+    update({ sessionUpdate: "agent_message_chunk", content: { text: "there" } });
+    update({ sessionUpdate: "tool_call", toolCallId: "read", title: "Read" });
+    update(plan("completed"));
+    update({ sessionUpdate: "user_message_chunk", content: { text: "Again" } });
+    update({ sessionUpdate: "cursor/update_todos", todos: [{ content: "Retry", status: "pending" }] });
+    expect(agent.activity.map((a) => a.kind)).toEqual([
+      "message", "message", "plan", "tool", "message", "plan",
+    ]);
+    expect(agent.messages.map((m) => m.text)).toEqual(["Go", "Hello there", "Again"]);
+    expect(agent.activity[2]).toEqual({
+      kind: "plan", entries: [{ content: "Inspect workspace", status: "completed" }],
+    });
+    expect(agent.activity[5]).toEqual({
+      kind: "plan", entries: [{ content: "Retry", status: "pending" }],
+    });
+    agent.dispose();
+  });
   it("persists drafts and transcript, reloads read-only without launching, and forgets locally", async () => {
     const values = new Map();
     const storage = {

@@ -27,6 +27,7 @@ import {
   type Activity,
   type Conversation,
   type Message,
+  type PlanEntry,
   type SavedLaunch,
 } from "./history.js";
 import {
@@ -160,7 +161,6 @@ export class AgentController {
   requests: AgentRequest[] = [];
   tools = new Map<string, Record<string, any>>();
   terminals = new Map<string, Record<string, any>>();
-  plan: { content: string; status: string; priority?: string }[] = [];
   commands: { name: string; description: string }[] = [];
   logs = "";
   context: ACPContext[] = [];
@@ -409,7 +409,6 @@ export class AgentController {
     this.tools.clear();
     this.terminals.clear();
     this.requests = [];
-    this.plan = [];
     this.commands = [];
     this.changes = [];
     this.title = "New conversation";
@@ -1547,7 +1546,8 @@ export class AgentController {
         update.content?.text ??
         update.content?.resource?.text ??
         (update.content?.type ? `[${update.content.type} content]` : "");
-      const previous = this.activity.at(-1);
+      // A plan card posted mid-message stays below the text that continues it.
+      const previous = this.activity.findLast((entry) => entry.kind !== "plan");
       const last = previous?.kind === "message" ? previous.message : undefined;
       if (
         last?.role === role &&
@@ -1589,7 +1589,7 @@ export class AgentController {
           ...(usage.cost && Number.isFinite(usage.cost.amount) && typeof usage.cost.currency === "string"
             ? { cost: usage.cost } : {}) };
     }
-    else if (update.sessionUpdate === "plan") this.plan = update.entries ?? [];
+    else if (update.sessionUpdate === "plan") this.updatePlan(update.entries ?? []);
     else if (update.sessionUpdate === "available_commands_update")
       this.commands = update.availableCommands ?? [];
     else if (
@@ -1600,10 +1600,18 @@ export class AgentController {
     else if (update.sessionUpdate === "config_option_update" && this.connection)
       this.connection.configOptions = update.configOptions;
     else if (update.sessionUpdate === "cursor/update_todos")
-      this.plan = update.todos ?? [];
+      this.updatePlan(update.todos ?? []);
     else if (update.sessionUpdate?.startsWith("cursor/"))
       this.logs = (this.logs + "\n" + JSON.stringify(update)).slice(-65536);
     while (this.activity.length > 200) this.activity.shift();
+  }
+  /** One plan card per turn, placed at the turn's first plan update. */
+  private updatePlan(entries: PlanEntry[]) {
+    const index = this.activity.findLastIndex((entry) => entry.kind === "plan");
+    const sameTurn = index >= 0 && !this.activity.slice(index + 1).some(
+      (entry) => entry.kind === "message" && entry.message.role === "user");
+    if (sameTurn) this.activity[index] = { kind: "plan", entries };
+    else if (entries.length) this.activity.push({ kind: "plan", entries });
   }
   private async clientRequest(request: AgentRequest) {
     if (this.pendingClientRequests.has(request.requestId) || this.requests.some(item => item.requestId === request.requestId)) return;

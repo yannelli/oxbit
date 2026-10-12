@@ -13,8 +13,10 @@ export type Message = {
   /** User messages: git tree of the workspace before the prompt was sent. */
   checkpoint?: string;
 };
+export type PlanEntry = { content: string; status: string; priority?: string };
 export type Activity =
   | { kind: "message"; message: Message }
+  | { kind: "plan"; entries: PlanEntry[] }
   | { kind: "tool"; id: string }
   | { kind: "subagent"; id: string }
   | { kind: "notice"; text: string; values?: Record<string, string> };

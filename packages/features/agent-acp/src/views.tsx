@@ -317,6 +317,24 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
               {agent.subagents.get(entry.id)!.name}
             </button>
           )
+        ) : entry.kind === "plan" ? (
+          entry.entries.length > 0 && (
+            <details className="acp-card" key={`plan:${index}`}>
+              <summary>
+                {tr("Plan")} ·{" "}
+                {entry.entries.filter((e) => e.status === "completed").length}/
+                {entry.entries.length}
+              </summary>
+              <ol>
+                {entry.entries.map((item, position) => (
+                  <li key={position}>
+                    <span className="muted">{tr(item.status)} · </span>
+                    {item.content}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )
         ) : entry.kind === "notice" ? (
           <p className="acp-turn-note" key={index}>
             {tr(entry.text, entry.values)}
