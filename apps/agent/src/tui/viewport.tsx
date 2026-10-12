@@ -9,8 +9,8 @@ import type { Item } from "./transcript.js";
 export const TRANSCRIPT_LIMIT = 200;
 
 interface EntryProps { item: Item; live: boolean; context: ItemContext }
-const same = (a: EntryProps, b: EntryProps) => a.item === b.item && a.live === b.live && a.context.width === b.context.width
-  && a.context.rows === b.context.rows && a.context.cwd === b.context.cwd && a.context.awaiting === b.context.awaiting;
+const same = (a: EntryProps, b: EntryProps) => a.item === b.item && a.live === b.live
+  && (Object.keys(a.context) as (keyof ItemContext)[]).every((key) => a.context[key] === b.context[key]);
 
 const Entry = memo(function Entry({ item, live, context }: EntryProps) {
   return <Box width={context.width} flexDirection="column" flexShrink={0}><ItemView item={item} live={live} context={context} /></Box>;
