@@ -52,6 +52,8 @@ import { folderText } from "./folders.js";
 import { Checkpoints, carryCheckpoints, restoredNotice } from "./checkpoints.js";
 
 const FORKED_NOTICE = "Forked from “{title}”. The agent keeps the earlier context.";
+/** The in-app agent has no snapshot store, so the panel runs `/undo` through the review card's undo. */
+const UNDO_COMMAND = { name: "undo", description: "Undo the agent's edits from the latest turn" };
 
 export type AgentRequest = {
   id: string;
@@ -134,6 +136,7 @@ export class AgentController {
     revision?: string | null;
     undone?: boolean;
     created: boolean;
+    turn?: string;
   }[] = [];
   connection?: ACPConnection;
   launch: ACPLaunch = { provider: "codex" };
@@ -1298,6 +1301,12 @@ export class AgentController {
       !this.draft.trim()
     )
       return;
+    if (this.local && this.draft.trim() === `/${UNDO_COMMAND.name}`) {
+      await this.undoLastTurn();
+      this.draft = "";
+      this.changed();
+      return;
+    }
     if (!this.connection) {
       const draft = this.draft;
       const context = this.context;
@@ -1591,7 +1600,7 @@ export class AgentController {
     }
     else if (update.sessionUpdate === "plan") this.updatePlan(update.entries ?? []);
     else if (update.sessionUpdate === "available_commands_update")
-      this.commands = update.availableCommands ?? [];
+      this.commands = [...(update.availableCommands ?? []), ...(this.local ? [UNDO_COMMAND] : [])];
     else if (
       update.sessionUpdate === "current_mode_update" &&
       this.connection?.modes
@@ -1786,6 +1795,7 @@ export class AgentController {
         after: request.params.content,
         revision: saved?.savedRevision,
         created: request.revision === null,
+        turn: this.activeTurnId,
       });
       while (this.changes.length > 30) this.changes.shift();
       this.activity.push({
@@ -1849,6 +1859,18 @@ export class AgentController {
       this.reviewingAll = false;
       this.changed();
     }
+  }
+  /** In-app `/undo`: undoes the applied edits of the latest turn that has any, newest first. */
+  async undoLastTurn() {
+    const latest = this.undoableChanges.at(-1);
+    if (!latest) {
+      this.activity.push({ kind: "notice", text: "No agent edits to undo." });
+      return this.changed();
+    }
+    const changes = this.undoableChanges.filter((change) => change.turn === latest.turn).reverse();
+    await this.reviewAll(changes.map((change) => change.id), async () => {
+      for (const change of changes) await this.undoChange(change.id);
+    });
   }
   async undoChange(id: string) {
     const change = this.changes.find((c) => c.id === id);

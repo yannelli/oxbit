@@ -1040,6 +1040,7 @@
   "Restore files and fork": "恢复文件并分叉",
   "Fork conversation": "分叉对话",
   "Forked from “{title}”. The agent keeps the earlier context.": "已从“{title}”分叉。代理保留之前的上下文。",
+  "No agent edits to undo.": "没有可撤消的代理编辑。",
   "Update the runtime to fork conversations": "请更新运行时以分叉对话",
   "Auto-apply edits": "自动应用编辑",
   "Auto-apply on": "自动应用已开启",

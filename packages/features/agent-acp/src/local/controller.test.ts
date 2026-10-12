@@ -19,7 +19,8 @@ function document(value: string) {
 function setup(replies: Reply[]) {
   const files = new Map([["a.ts", document("const a = 1;\n")]]);
   const options = {
-    filesystem: { id: "fs", root: "/workspace", list: vi.fn(async () => []), write: vi.fn(async () => ({})) },
+    filesystem: { id: "fs", root: "/workspace", list: vi.fn(async () => []), write: vi.fn(async () => ({})),
+      read: vi.fn(async (path: string) => ({ text: files.get(path)!.value, revision: "r1" })) },
     documents: {
       get: (path: string) => files.get(path),
       open: vi.fn(async (path: string) => {
@@ -56,6 +57,33 @@ describe("AgentController with LocalAgentRuntime", () => {
       locations: [{ path: "/workspace/a.ts" }], content: [expect.objectContaining({ type: "diff", path: "/workspace/a.ts", newText: "const a = 2;\n" })] }));
     expect(agent.changes).toHaveLength(1);
     expect(agent.status).toBe("Ready");
+    agent.dispose();
+  });
+  it("/undo reverts the latest turn's applied edits, then the turn before", async () => {
+    const edit = (id: string, from: string, to: string) => chatTool(id, "edit_file", { path: "a.ts", old_string: from, new_string: to });
+    const { agent, files } = setup([edit("call_1", "a = 1", "a = 2"), chatText("One"), edit("call_2", "a = 2", "a = 3"), chatText("Two")]);
+    await agent.connect({ provider: "oxbit" });
+    for (const prompt of ["Change a to 2", "Change a to 3"]) {
+      agent.draft = prompt;
+      const sending = agent.send();
+      await expect.poll(() => agent.requests.length).toBe(1);
+      await agent.applyFile(agent.requests[0]);
+      await sending;
+    }
+    expect(files.get("a.ts")!.value).toBe("const a = 3;\n");
+    expect(agent.commands.map((command) => command.name)).toContain("undo");
+    const undo = async () => {
+      agent.draft = "/undo";
+      await agent.send();
+      expect(agent.draft).toBe("");
+    };
+    await undo();
+    expect(files.get("a.ts")!.value).toBe("const a = 2;\n");
+    await undo();
+    expect(files.get("a.ts")!.value).toBe("const a = 1;\n");
+    await undo();
+    expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "No agent edits to undo." });
+    expect(agent.messages.filter((message) => message.role === "user").map((message) => message.text)).toEqual(["Change a to 2", "Change a to 3"]);
     agent.dispose();
   });
   it("stops a streaming turn from the controller", async () => {

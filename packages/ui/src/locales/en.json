@@ -1040,6 +1040,7 @@
   "Restore files and fork": "Restore files and fork",
   "Fork conversation": "Fork conversation",
   "Forked from “{title}”. The agent keeps the earlier context.": "Forked from “{title}”. The agent keeps the earlier context.",
+  "No agent edits to undo.": "No agent edits to undo.",
   "Update the runtime to fork conversations": "Update the runtime to fork conversations",
   "Auto-apply edits": "Auto-apply edits",
   "Auto-apply on": "Auto-apply on",

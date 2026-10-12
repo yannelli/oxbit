@@ -1040,6 +1040,7 @@
   "Restore files and fork": "Restaurar archivos y bifurcar",
   "Fork conversation": "Bifurcar conversación",
   "Forked from “{title}”. The agent keeps the earlier context.": "Bifurcada de «{title}». El agente conserva el contexto anterior.",
+  "No agent edits to undo.": "No hay ediciones del agente para deshacer.",
   "Update the runtime to fork conversations": "Actualiza el runtime para bifurcar conversaciones",
   "Auto-apply edits": "Aplicar ediciones automáticamente",
   "Auto-apply on": "Aplicación automática activada",

@@ -1040,6 +1040,7 @@
   "Restore files and fork": "ファイルを復元して分岐",
   "Fork conversation": "会話を分岐",
   "Forked from “{title}”. The agent keeps the earlier context.": "「{title}」から分岐しました。エージェントはこれまでのコンテキストを保持しています。",
+  "No agent edits to undo.": "元に戻すエージェント編集はありません。",
   "Update the runtime to fork conversations": "会話を分岐するにはランタイムを更新してください",
   "Auto-apply edits": "編集を自動適用",
   "Auto-apply on": "自動適用オン",
