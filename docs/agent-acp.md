@@ -125,8 +125,10 @@ slash menu lists them from `available_commands_update`:
   folder. Skills come from `.agents/skills/<name>/SKILL.md` and `.claude/skills/<name>/SKILL.md`
   in the same folder. Both are read through the workspace `FileSystem`, so parent folders and
   the user's home folder are not read.
-- The runtime reconnect after an agent crash (below, under Conversation history) does not apply:
-  the in-app agent runs in the app and has no process to exit.
+- The in-app agent runs in the app and has no process to exit. When the app reloads with an
+  in-app conversation open, for example after iOS ends the web view process, the panel starts
+  the agent again, loads that conversation and shows "The app reloaded. The agent restarted and
+  loaded this conversation." A conversation that does not load stays read-only.
 - Auto-compaction follows `agentACP.oxbit.autoCompact` (default on) and `agentACP.oxbit.compactAt`.
   The session controls **Auto-compact** and **Compact at** and `/config` change the same settings.
   It runs when the model list reports a context window (`max_input_tokens`, `context_length`

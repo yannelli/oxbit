@@ -164,7 +164,7 @@ test("a custom agent stores parsed arguments as the JSON setting", async ({ page
     await form.getByRole("textbox", { name: "Agent arguments" }).fill(`acp --label "two words" 'it''s'`);
     await form.getByRole("button", { name: "Use custom agent" }).click();
     await expect(form).toBeHidden();
-    expect(JSON.parse(await setting(page, "agentACP.custom.args"))).toEqual(["acp", "--label", "two words", "its"]);
+    await expect.poll(async () => JSON.parse((await setting(page, "agentACP.custom.args")) || "[]")).toEqual(["acp", "--label", "two words", "its"]);
     expect(await setting(page, "agentACP.custom.command")).toBe("/opt/agent bin/run");
     expect(await selection(page)).toEqual({
       provider: "custom", name: "Fixture agent", command: "/opt/agent bin/run", args: ["acp", "--label", "two words", "its"],

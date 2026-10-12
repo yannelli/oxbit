@@ -273,6 +273,9 @@ test("the Oxbit agent delegates a task to a subagent whose file write is applied
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.filesystem.read("notes.md").then(() => true, () => false))).toBe(false);
   await details.getByRole("button", { name: "Apply change", exact: true }).click();
   await expect(details.getByText("Wrote notes.md.").first()).toBeVisible();
+  const phone = (page.viewportSize()?.width ?? 1440) < 1100;
+  expect(await page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
+  await expect(details).toBeVisible();
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 
   await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp"));
