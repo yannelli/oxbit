@@ -4,11 +4,11 @@ import { TOOLS, runTool } from "./tools.js";
 import { openaiResponses } from "./openai-responses.js";
 import { chatCompletions } from "./chat-completions.js";
 import { anthropicMessages } from "./anthropic-messages.js";
-import { oxbitEndpoint } from "../configuration.js";
 
 type Params = Record<string, any>;
 export interface AgentHost {
   models(): AgentModels | undefined;
+  endpoint(): AgentModelEndpoint;
   configuration?: ConfigurationService;
   filesystem: FileSystem;
   root: string;
@@ -100,7 +100,7 @@ export class LocalAgent {
   }
   async newSession() {
     const models = this.service();
-    const endpoint = oxbitEndpoint(this.host.configuration);
+    const endpoint = this.host.endpoint();
     const saved = this.host.configuration?.get<string>(OXBIT_AGENT_SETTINGS.model)?.trim() ?? "";
     const listed = this.catalog ??= listModels(models, endpoint);
     let catalog = await listed.catch(() => {
@@ -145,7 +145,7 @@ export class LocalAgent {
     if (session.abort) throw new Error("Wait for the current agent operation or stop it first");
     if (!session.model) throw new Error("Choose a model in Agent setup");
     const models = this.service();
-    const endpoint = oxbitEndpoint(this.host.configuration);
+    const endpoint = this.host.endpoint();
     const abort = new AbortController();
     session.abort = abort;
     const start = session.turns.push({ role: "user", text: promptText(blocks) });

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { LocalAgent, type AgentHost } from "./agent.js";
-import { chatText, chatTool, fakeModels, settings, type Reply } from "./test-models.js";
+import { chatText, chatTool, endpointOf, fakeModels, settings, type Reply } from "./test-models.js";
 
 function setup(replies: Reply[], values?: Record<string, unknown>, list?: unknown) {
   const fake = fakeModels(replies, { list });
   const config = settings(values);
   const updates: Record<string, any>[] = [];
   const host: AgentHost = {
-    models: () => fake.models, configuration: config as any, filesystem: { list: async () => [] } as any, root: "/root",
+    models: () => fake.models, endpoint: () => endpointOf(config), configuration: config as any, filesystem: { list: async () => [] } as any, root: "/root",
     update: (_sessionId, update) => updates.push(update),
     request: async (method, params) => method === "fs/read_text_file" ? { content: `text of ${params.path}` } : null,
   };

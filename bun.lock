@@ -31,7 +31,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -53,7 +53,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/feature-runtime": "workspace:*",
@@ -81,7 +81,7 @@
     },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "dependencies": {
         "@oxbit/core": "workspace:*",
         "@oxbit/protocol": "workspace:*",
@@ -145,6 +145,13 @@
         "react-dom": "19.1.0",
       },
     },
+    "packages/agent-core": {
+      "name": "@oxbit/agent-core",
+      "version": "1.0.0",
+      "dependencies": {
+        "@oxbit/sdk": "workspace:*",
+      },
+    },
     "packages/app-workbench": {
       "name": "@oxbit/app-workbench",
       "version": "1.0.0",
@@ -198,6 +205,7 @@
       "name": "@oxbit/feature-agent-acp",
       "version": "1.0.0",
       "dependencies": {
+        "@oxbit/agent-core": "workspace:*",
         "@oxbit/documents": "workspace:*",
         "@oxbit/sdk": "workspace:*",
         "@oxbit/ui": "workspace:*",
@@ -827,6 +835,8 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@one-ini/wasm": ["@one-ini/wasm@0.2.1", "", {}, "sha512-TUqERXGNTifZ9y2g3wPxQrw3HpHv/02DsW3D90T9x0hhonrL1ZqpSmNrU2XkoIq0fP1N6gZfVQzy2Fw1ZvGBNg=="],
+
+    "@oxbit/agent-core": ["@oxbit/agent-core@workspace:packages/agent-core"],
 
     "@oxbit/app-workbench": ["@oxbit/app-workbench@workspace:packages/app-workbench"],
 

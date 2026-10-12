@@ -2,19 +2,19 @@
 
 Created: 2026-10-10. Last updated: 2026-10-11.
 
-The Oxbit agent in `packages/features/agent-acp/src/local/` runs in the app and sends model requests through the host's `AgentModels` service (`packages/sdk/src/agent-models.ts`). The host adds the saved key, pins the request to the API origin, and adds provider headers such as `anthropic-version`. JavaScript does not see the key. Each adapter builds the request body and turns the streamed body into text, reasoning, tool call, usage, and stop events.
+The Oxbit agent loop and model adapters live in `packages/agent-core/src/` (`@oxbit/agent-core`). `packages/features/agent-acp/src/local/runtime.ts` runs it in the app and sends model requests through the host's `AgentModels` service (`packages/sdk/src/agent-models.ts`). The host adds the saved key, pins the request to the API origin, and adds provider headers such as `anthropic-version`. JavaScript does not see the key. Each adapter builds the request body and turns the streamed body into text, reasoning, tool call, usage, and stop events.
 
 | `agentACP.oxbit.api` | Adapter | Request |
 | --- | --- | --- |
-| `openai` | `local/openai-responses.ts` | `POST /v1/responses`, `stream: true` |
-| `openai-compatible` | `local/chat-completions.ts` | `POST {baseUrl}/v1/chat/completions`, `stream: true` |
-| `anthropic` | `local/anthropic-messages.ts` | `POST /v1/messages`, `stream: true` |
+| `openai` | `agent-core/src/openai-responses.ts` | `POST /v1/responses`, `stream: true` |
+| `openai-compatible` | `agent-core/src/chat-completions.ts` | `POST {baseUrl}/v1/chat/completions`, `stream: true` |
+| `anthropic` | `agent-core/src/anthropic-messages.ts` | `POST /v1/messages`, `stream: true` |
 
-All three use `GET /v1/models` for the model list. Use this page when changing an adapter, the SSE parser (`local/sse.ts`), or the ACP updates the agent sends.
+All three use `GET /v1/models` for the model list. Use this page when changing an adapter, the SSE parser (`agent-core/src/sse.ts`), or the ACP updates the agent sends.
 
 ## Server-sent events
 
-`local/sse.ts` joins lines split across chunks, accepts LF, CRLF and CR line endings, skips comment lines that start with `:` (OpenRouter sends `: OPENROUTER PROCESSING`), joins multi-line `data:` fields with a newline, and stops at `data: [DONE]`.
+`agent-core/src/sse.ts` joins lines split across chunks, accepts LF, CRLF and CR line endings, skips comment lines that start with `:` (OpenRouter sends `: OPENROUTER PROCESSING`), joins multi-line `data:` fields with a newline, and stops at `data: [DONE]`.
 
 - Responses and Messages streams send an `event: <type>` line and a `data:` JSON object with the same `type`. Neither sends `[DONE]`; Messages removed it in version `2023-06-01`.
 - Chat Completions sends `data:` lines only and ends with `data: [DONE]`.

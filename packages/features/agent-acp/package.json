@@ -6,6 +6,7 @@
   "exports": "./src/index.tsx",
   "scripts": {},
   "dependencies": {
+    "@oxbit/agent-core": "workspace:*",
     "@oxbit/documents": "workspace:*",
     "@oxbit/sdk": "workspace:*",
     "@oxbit/ui": "workspace:*",

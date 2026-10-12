@@ -3,7 +3,7 @@ import type { FeatureOptions } from "@oxbit/sdk";
 import { AgentController } from "../controller.js";
 import { sessionControls } from "../session-controls.js";
 import { LocalAgentRuntime } from "./runtime.js";
-import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "./test-models.js";
+import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
 
 function document(value: string) {
   const doc = {

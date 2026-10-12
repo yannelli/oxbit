@@ -1,8 +1,7 @@
 import { MISSING_AGENT_KEY, OXBIT_AGENT_PROVIDER, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
   type FeatureOptions, type RpcClient, type Unsubscribe } from "@oxbit/sdk";
-import { LocalAgent } from "./agent.js";
+import { LocalAgent, relativePath, resolvePath } from "@oxbit/agent-core";
 import { oxbitEndpoint } from "../configuration.js";
-import { relativePath, resolvePath } from "./tools.js";
 
 type Params = Record<string, any>;
 type Approval = { method: string; params: Params; resolve: (result: unknown) => void; reject: (error: Error) => void };
@@ -111,7 +110,7 @@ export class LocalAgentRuntime implements RpcClient {
     const id = crypto.randomUUID();
     const live = () => this.connections.get(id);
     const agent = new LocalAgent({
-      models: this.models, configuration: this.options.kernel.configuration, filesystem: this.options.filesystem, root: this.root,
+      models: this.models, endpoint: () => oxbitEndpoint(this.options.kernel.configuration), configuration: this.options.kernel.configuration, filesystem: this.options.filesystem, root: this.root,
       update: (sessionId, update) => {
         const connection = live();
         if (connection && sessionId === connection.connection.sessionId) this.publish(connection, "acp.update", { sessionId, update });

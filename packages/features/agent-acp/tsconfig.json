@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../../../packages/agent-core"
+    },
+    {
       "path": "../../../packages/sdk"
     },
     {
