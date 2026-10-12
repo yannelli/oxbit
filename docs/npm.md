@@ -1,26 +1,27 @@
 # npm packages
 
-Created: 2026-10-05. Last updated: 2026-10-08.
+Created: 2026-10-05. Last updated: 2026-10-11.
 
-`.github/workflows/npm.yml` publishes two packages to the
+`.github/workflows/npm.yml` publishes three packages to the
 [`@oxbit` npm org](https://www.npmjs.com/org/oxbit).
 
 | Package | Built from | Version source | Publishes when |
 | --- | --- | --- | --- |
 | `@oxbit/sdk` | `packages/sdk` | `packages/sdk/package.json`, which must equal `SDK_VERSION` | A push to `main` carries a version that npm does not have |
 | `@oxbit/cli` | `apps/runtime` and `apps/web` builds | Root `package.json` | A `v<version>` tag is pushed and npm does not have that version |
+| `@oxbit/agent` | `apps/agent` build | `apps/agent/package.json`, kept equal to the root version by the release script | A `v<version>` tag is pushed and npm does not have that version |
 
 Versions with a hyphen (`0.4.0-alpha.1`) publish under the `next` dist-tag. Other
 versions publish under `latest`. npm rejects a version number that was published
 before, including after an unpublish.
 
-Pull requests that change the publish inputs run both packages with `--dry-run`.
+Pull requests that change the publish inputs run every package with `--dry-run`.
 When npm already has the version, the dry run packs the staged package instead,
 because `npm publish --dry-run` rejects an existing version.
 
 ## Staging
 
-`node scripts/npm/publish.mjs <sdk|cli> [--expect-tag vX.Y.Z] [--dry-run]` stages
+`node scripts/npm/publish.mjs <sdk|cli|agent> [--expect-tag vX.Y.Z] [--dry-run]` stages
 the package in a temporary directory with a generated `package.json`, then runs
 `npm publish`. It skips the publish when npm already has the version. Workspace
 manifests export TypeScript sources, so the generated manifests point at built files.
@@ -35,16 +36,21 @@ manifests export TypeScript sources, so the generated manifests point at built f
   | `runtime/package.json` | Version printed by `oxbit --version` |
   | `web/dist/` | Editor files, served from `../../web/dist/` relative to the bin |
   | `scripts/repair-pty.mjs` | `postinstall` |
+  | `agent/dist/` | Oxbit Agent bundle the runtime starts for the Oxbit Agent CLI provider |
 
   Source maps are excluded. Dependencies are the non-workspace dependencies of
   `apps/runtime/package.json`, pinned to the installed versions.
+- `@oxbit/agent`: `dist/` from `apps/agent` (bin `oxbit-agent`) and its README.
+  Dependencies are `ink` and `react`, pinned to the installed versions; the
+  workspace packages are bundled. See [Oxbit Agent CLI](oxbit-agent.md).
 
-Check both packages locally:
+Check the packages locally:
 
 ```sh
 bun run build
 node scripts/npm/publish.mjs sdk --dry-run
 node scripts/npm/publish.mjs cli --dry-run
+node scripts/npm/publish.mjs agent --dry-run
 ```
 
 The script prints the staging directory. `npm pack <directory>` makes an
@@ -76,7 +82,8 @@ It expires on 2027-01-03.
 ### Configure trusted publishing
 
 npm accepts a trusted publisher only for a package that exists. Configure
-`@oxbit/sdk` after its first publish and `@oxbit/cli` after the first tag publish.
+`@oxbit/sdk` after its first publish, and `@oxbit/cli` and `@oxbit/agent` after
+their first tag publish. The first `@oxbit/agent` publish uses `NPM_TOKEN`.
 
 On npmjs.com, open **Packages → `<package>` → Settings → Trusted publishing** and
 choose GitHub Actions:
@@ -95,10 +102,11 @@ Or use npm 11.15 or later after `npm login`. The account needs 2FA, and
 ```sh
 npm trust github @oxbit/sdk --repo yannelli/oxbit --file npm.yml --allow-publish -y
 npm trust github @oxbit/cli --repo yannelli/oxbit --file npm.yml --allow-publish -y
+npm trust github @oxbit/agent --repo yannelli/oxbit --file npm.yml --allow-publish -y
 npm trust list @oxbit/sdk
 ```
 
-After both packages trust `npm.yml`:
+After every package trusts `npm.yml`:
 
 1. In each package's Publishing access settings, select "Require two-factor
    authentication and disallow tokens".
