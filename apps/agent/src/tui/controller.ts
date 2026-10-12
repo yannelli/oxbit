@@ -1,7 +1,8 @@
 import { accept, commandItems, commandToken, fileItems, fileToken, rank, type Command, type Completion, type CompletionItem } from "./complete.js";
 import type { TuiConnection } from "./connection.js";
 import { draftOf, emptyDraft, insert, type Draft } from "./editor.js";
-import { SessionController, type Overlay, type ViewState } from "./session-controller.js";
+import { isPanel, PanelController } from "./panel-controller.js";
+import type { Overlay, ViewState } from "./session-controller.js";
 import { expandable } from "./transcript.js";
 
 export type { Overlay, ViewState } from "./session-controller.js";
@@ -12,6 +13,12 @@ export const LOCAL_COMMANDS: Command[] = [
   { name: "model", description: "Choose the model and reasoning effort", hint: "[model]" },
   { name: "new", description: "Start a new session" },
   { name: "resume", description: "Resume a saved session" },
+  { name: "config", description: "Settings: permission mode, auto-compact, hooks and MCP trust" },
+  { name: "skills", description: "Turn skills on or off, or start a prompt with one" },
+  { name: "hooks", description: "Turn hook sources on or off" },
+  { name: "mcp", description: "Add, remove, trust and sign in to MCP servers" },
+  { name: "instructions", description: "Choose which AGENTS.md and CLAUDE.md files load" },
+  { name: "providers", description: "Sign in to providers and set API keys" },
   { name: "help", description: "Show keys and commands" },
   { name: "exit", description: "Quit" },
 ];
@@ -30,8 +37,8 @@ export function overlayItems(state: ViewState): CompletionItem[] {
   return [];
 }
 
-/** Adds the input editor to SessionController: slash and @file completion, history, local commands and Ctrl+C. */
-export class Controller extends SessionController {
+/** Adds the input editor to PanelController: slash and @file completion, history, local commands and Ctrl+C. */
+export class Controller extends PanelController {
   private history: string[];
   private historyIndex = -1;
   private stash: Draft = emptyDraft;
@@ -45,9 +52,15 @@ export class Controller extends SessionController {
     this.history = options.history?.load() ?? [];
   }
 
+  /** Server commands, then local ones; a panel command shows the server command's hint, since arguments go to the server. */
   override commands(): Command[] {
-    const local = LOCAL_COMMANDS.filter((command) => command.name !== "resume" || this.connection.listSessions);
-    return [...this.state.status.commands.filter((command) => !local.some((item) => item.name === command.name)), ...local];
+    const server = this.state.status.commands;
+    const local = LOCAL_COMMANDS.filter((command) => command.name === "resume" ? this.connection.listSessions : !isPanel(command.name) || this.connection.settings)
+      .map((command) => {
+        const hint = isPanel(command.name) ? server.find((item) => item.name === command.name)?.hint : undefined;
+        return hint ? { ...command, hint: hint.startsWith("[") ? hint : `[${hint}]` } : command;
+      });
+    return [...server.filter((command) => !local.some((item) => item.name === command.name)), ...local];
   }
 
   submit() {
@@ -75,6 +88,10 @@ export class Controller extends SessionController {
         if (!this.connection.listSessions && !args) return false;
         if (args) void this.open(args, "Resumed session"); else void this.openSessions();
         return true;
+      case "config": case "skills": case "hooks": case "mcp": case "instructions": case "providers":
+        if (!this.connection.settings || args) return false;
+        this.openPanel(name);
+        return true;
       case "help": this.set({ overlay: { kind: "help" } }); return true;
       case "exit": case "quit": this.exit(); return true;
     }
@@ -93,6 +110,7 @@ export class Controller extends SessionController {
     const clean = text.replace(/\r\n?/g, "\n");
     const overlay = this.state.overlay;
     if (picker(overlay)) return this.filter(picker(overlay)!.filter + clean.replace(/\n/g, " "));
+    if (overlay?.kind === "panel") return this.pastePanelInput(clean);
     if (overlay) return;
     this.setDraft(insert(this.state.draft, clean));
   }
@@ -134,7 +152,7 @@ export class Controller extends SessionController {
     if (!completion) return;
     const item = completion.items[completion.index];
     const command = completion.kind === "command" ? this.commands().find((entry) => `/${entry.name}` === item.value) : undefined;
-    if (run && command && !command.hint) {
+    if (run && command && (!command.hint || (isPanel(command.name) && this.connection.settings))) {
       this.set({ draft: draftOf(item.value) });
       return this.submit();
     }
@@ -188,7 +206,7 @@ export class Controller extends SessionController {
     if (now - this.lastInterrupt < 2000) return this.exit();
     this.lastInterrupt = now;
     if (this.state.running || this.state.permission) this.cancel();
-    else if (this.state.overlay) this.set({ overlay: undefined });
+    else if (this.state.overlay) this.closeOverlay();
     else if (this.state.draft.text) this.setDraft(emptyDraft);
     this.flash("Press Ctrl+C again to exit");
   }
