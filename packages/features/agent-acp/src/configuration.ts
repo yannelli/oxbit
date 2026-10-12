@@ -10,6 +10,10 @@ import {
 export const settingId = (provider: string, key: string) =>
   `agentACP.${provider}.${key}`;
 
+/** The in-app Oxbit agent's compaction settings. */
+export const OXBIT_COMPACT_SETTINGS = { auto: "agentACP.oxbit.autoCompact", at: "agentACP.oxbit.compactAt" } as const;
+export const COMPACT_PERCENTS = ["50", "60", "70", "80", "90"];
+
 type Configuration = { get<T>(id: string): T | undefined } | undefined;
 
 /** The Oxbit agent's endpoint from settings. `baseUrl` applies to `openai-compatible` only. */
@@ -121,5 +125,22 @@ export const agentConfiguration: Setting[] = [
     category: "Agent ACP",
     type: "string",
     default: "",
+  },
+  {
+    id: OXBIT_COMPACT_SETTINGS.auto,
+    title: "Oxbit Agent auto-compact",
+    description: "In-app Oxbit Agent conversations summarize older turns when the context window fills. Needs a model whose context window the catalog reports. /compact works either way.",
+    category: "Agent ACP",
+    type: "boolean",
+    default: true,
+  },
+  {
+    id: OXBIT_COMPACT_SETTINGS.at,
+    title: "Oxbit Agent compact at",
+    description: "Percent of the context window at which in-app auto-compaction starts. default compacts when less than min(20000 tokens, the model's max output, a quarter of the window) remains.",
+    category: "Agent ACP",
+    type: "string",
+    enum: ["default", ...COMPACT_PERCENTS],
+    default: "default",
   },
 ];
