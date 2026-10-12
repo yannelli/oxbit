@@ -123,7 +123,9 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     model: () => provider.model,
     saveModel: (model) => {
       provider.model = model;
-      config.saveSettings({ provider: provider.id, model }).catch((error) => log?.(`Could not save the model: ${error.message}`));
+      const providers = config.settings.providers ?? {};
+      config.saveSettings({ providers: { ...providers, [provider.id]: { ...providers[provider.id], model } } })
+        .catch((error) => log?.(`Could not save the model: ${error.message}`));
     },
     capabilities: { fs: true, terminal: true },
     filesystem: filesystemFor(root),
