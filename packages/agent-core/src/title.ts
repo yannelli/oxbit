@@ -14,10 +14,10 @@ export function titleInput(turns: readonly Turn[]) {
   return `User: ${(turns[first] as { text: string }).text}\n\nAssistant: ${reply.text}`.slice(0, INPUT_LIMIT);
 }
 
-/** First line without wrapping quotes or trailing punctuation, at most 80 characters. */
+/** The first non-empty line without wrapping quotes or trailing punctuation, at most 80 characters. */
 export function cleanTitle(text: string) {
-  const line = text.trim().split("\n")[0].trim();
-  return line.replace(/^["'`“‘\s]+/, "").replace(/["'`”’\s.!?,;:]+$/, "").slice(0, 80).trim();
+  const line = text.split("\n").map((item) => item.trim()).find(Boolean) ?? "";
+  return line.replace(/\s+/g, " ").replace(/^["'`“”‘’\s]+|["'`“”‘’.,;:!?…。\s]+$/g, "").slice(0, 80).trimEnd();
 }
 
 /** Asks the session's model for a title. Resolves undefined on any failure. */

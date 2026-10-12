@@ -1029,5 +1029,9 @@
   "Restore files and fork": "Restore files and fork",
   "Fork conversation": "Fork conversation",
   "Forked from “{title}”. The agent keeps the earlier context.": "Forked from “{title}”. The agent keeps the earlier context.",
-  "Update the runtime to fork conversations": "Update the runtime to fork conversations"
+  "Update the runtime to fork conversations": "Update the runtime to fork conversations",
+  "Auto-apply edits": "Auto-apply edits",
+  "Auto-apply on": "Auto-apply on",
+  "Agent edits save without review": "Agent edits save without review",
+  "Save agent file changes without review. Permission prompts still ask.": "Save agent file changes without review. Permission prompts still ask."
 }

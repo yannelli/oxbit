@@ -271,7 +271,8 @@ function App() {
       },
     }));
     if (session.runtime) disposables.push(push.attach(session.runtime, () => activity));
-    if (!session.runtime && (workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark"))
+    // Runtime workspaces use the service only for conversation titles.
+    if (session.runtime || workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark")
       disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, agentModels));
     // Agent ACP posts the app's notifications.
     const tap = native.onNotificationTap(() => {

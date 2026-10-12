@@ -8,6 +8,8 @@ export { MODES, modeOf, sessionTitle } from "./session-records.js";
 export { openaiResponses } from "./openai-responses.js";
 export { chatCompletions } from "./chat-completions.js";
 export { anthropicMessages, DEFAULT_MAX_TOKENS } from "./anthropic-messages.js";
+export { ADAPTERS } from "./turn.js";
+export { cleanTitle } from "./title.js";
 export * from "./hooks.js";
 export * from "./goal.js";
 export * from "./loop.js";

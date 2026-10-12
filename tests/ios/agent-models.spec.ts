@@ -96,7 +96,7 @@ test("aborting a stream cancels the native request and stops its chunks", async 
   expect(cancels).toEqual([requests[0].id]);
 });
 
-test("a runtime workspace does not register the agent models service", async ({ page }) => {
+test("a runtime workspace registers the agent models service for conversation titles", async ({ page }) => {
   const url = "http://127.0.0.1:2";
   const recent = { id: "runtime:laptop", kind: "runtime", name: "laptop", url, runtimeId: "abc12345-0000-4000-8000-000000000002", lastOpened: 1 };
   await installBridge(page, { stored: { "session:recents": [recent], "session:last-workspace": recent.id } });
@@ -112,5 +112,5 @@ test("a runtime workspace does not register the agent models service", async ({ 
   await page.goto("/");
   await expect(page.locator(".workspace-title")).toHaveText("project");
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
-  expect(await page.evaluate((service) => (window as any).__oxbit.kernel.services.optional(service) === undefined, AGENT_MODELS_SERVICE)).toBe(true);
+  expect(await page.evaluate((service) => (window as any).__oxbit.kernel.services.optional(service) !== undefined, AGENT_MODELS_SERVICE)).toBe(true);
 });

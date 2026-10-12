@@ -1029,5 +1029,9 @@
   "Restore files and fork": "恢复文件并分叉",
   "Fork conversation": "分叉对话",
   "Forked from “{title}”. The agent keeps the earlier context.": "已从“{title}”分叉。代理保留之前的上下文。",
-  "Update the runtime to fork conversations": "请更新运行时以分叉对话"
+  "Update the runtime to fork conversations": "请更新运行时以分叉对话",
+  "Auto-apply edits": "自动应用编辑",
+  "Auto-apply on": "自动应用已开启",
+  "Agent edits save without review": "代理编辑无需审核即保存",
+  "Save agent file changes without review. Permission prompts still ask.": "无需审核即保存代理的文件更改。权限请求仍会询问。"
 }

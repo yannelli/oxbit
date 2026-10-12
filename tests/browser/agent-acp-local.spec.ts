@@ -119,10 +119,11 @@ test("without a model service the browser workspace keeps the runtime prompt and
   await expect(panel.getByRole("button", { name: "Start Codex ACP" })).toBeDisabled();
 });
 
-test("the Oxbit agent runs a turn in the app: its file write waits for review and a phone keeps the panel open after Apply", async ({ page }) => {
+test("the Oxbit agent runs a turn in the app: its file write waits for review, a phone keeps the panel open after Apply, and the conversation gets a title", async ({ page }) => {
   const panel = await open(page, true, [
     chatTool("call_1", "write_file", { path: "notes.md", content: "agent note\n" }),
     chatText("Wrote notes.md."),
+    chatText("Agent note file"),
   ]);
   await page.evaluate(async () => {
     const z = (window as any).__oxbit;
@@ -153,10 +154,12 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review an
   await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" })).toHaveCount(0);
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").title)).toBe("Agent note file");
   const requests = await page.evaluate(() => (window as any).__models.requests);
   expect(requests.map((request: any) => [request.method, request.path])).toEqual([
-    ["GET", "/v1/models"], ["POST", "/v1/chat/completions"], ["POST", "/v1/chat/completions"],
+    ["GET", "/v1/models"], ["POST", "/v1/chat/completions"], ["POST", "/v1/chat/completions"], ["POST", "/v1/chat/completions"],
   ]);
+  expect(requests[3].body.tools).toBeUndefined();
   expect(requests[1]).toEqual(expect.objectContaining({ api: "openai-compatible", baseUrl: "https://models.test/api" }));
   expect(requests[1].body.model).toBe("model-b");
   expect(JSON.stringify(requests)).not.toContain("sk-test");
