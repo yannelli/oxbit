@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-agent-models-chatgpt"
+description = "Enables the agent_models_chatgpt command without any pre-configured scope."
+commands.allow = ["agent_models_chatgpt"]
+
+[[permission]]
+identifier = "deny-agent-models-chatgpt"
+description = "Denies the agent_models_chatgpt command without any pre-configured scope."
+commands.deny = ["agent_models_chatgpt"]

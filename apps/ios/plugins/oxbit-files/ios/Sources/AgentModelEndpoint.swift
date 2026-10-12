@@ -7,7 +7,7 @@ struct AgentModelFailure: LocalizedError {
   var errorDescription: String? { message }
 }
 
-/// A model API base. `openai` and `anthropic` have fixed origins; `openai-compatible` uses the
+/// A model API base. `openai`, `anthropic` and `chatgpt` have fixed bases; `openai-compatible` uses the
 /// user's https base URL. Requests stay on the base's origin and under its path prefix.
 struct AgentModelEndpoint {
   static let anthropicVersion = "2023-06-01"
@@ -22,6 +22,8 @@ struct AgentModelEndpoint {
       base = URLComponents(string: "https://api.openai.com")!
     case "anthropic":
       base = URLComponents(string: "https://api.anthropic.com")!
+    case "chatgpt":
+      base = URLComponents(string: "https://chatgpt.com/backend-api")!
     case "openai-compatible":
       let text = baseUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
       guard var components = URLComponents(string: text), components.scheme?.lowercased() == "https",
@@ -77,9 +79,18 @@ struct AgentModelEndpoint {
       request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
     }
   }
+
+  static func authorize(_ request: inout URLRequest, chatgpt credential: ChatGPTAuth.Credential) {
+    request.setValue("Bearer \(credential.access)", forHTTPHeaderField: "Authorization")
+    request.setValue(credential.accountId, forHTTPHeaderField: "chatgpt-account-id")
+    request.setValue("responses=experimental", forHTTPHeaderField: "OpenAI-Beta")
+    request.setValue("oxbit", forHTTPHeaderField: "originator")
+    if request.httpMethod == "POST" { request.setValue("text/event-stream", forHTTPHeaderField: "Accept") }
+  }
 }
 
-/// API keys in the device Keychain under one service, one item per `AgentModelEndpoint.account`.
+/// API keys and the ChatGPT credential JSON in the device Keychain under one service, one item per
+/// `AgentModelEndpoint.account`.
 struct AgentModelKeys {
   private let service = "com.yannelli.oxbit.agent"
 

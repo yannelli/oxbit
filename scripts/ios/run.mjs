@@ -217,6 +217,15 @@ if (mode === "check") {
       "-o", profileTests,
     ]);
     run(profileTests, []);
+    const chatgptAuth = join(nativeTests, "chatgpt-auth");
+    run("swiftc", [
+      "apps/ios/plugins/oxbit-files/ios/Sources/AgentModelEndpoint.swift",
+      "apps/ios/plugins/oxbit-files/ios/Sources/ChatGPTAuth.swift",
+      "apps/ios/plugins/oxbit-files/ios/Sources/ChatGPTTokens.swift",
+      "apps/ios/plugins/oxbit-files/ios/Tests/ChatGPTAuth/main.swift",
+      "-o", chatgptAuth,
+    ]);
+    run(chatgptAuth, []);
     const runtimeDownload = join(nativeTests, "runtime-download");
     run("swiftc", [
       "apps/ios/plugins/oxbit-files/ios/Sources/RuntimeDownloadStore.swift",

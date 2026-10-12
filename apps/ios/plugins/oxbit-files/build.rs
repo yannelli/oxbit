@@ -24,6 +24,7 @@ const COMMANDS: &[&str] = &[
     "agent_models_stream",
     "agent_models_cancel",
     "agent_models_key",
+    "agent_models_chatgpt",
 ];
 
 fn main() {
