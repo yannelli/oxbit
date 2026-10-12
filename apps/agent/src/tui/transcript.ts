@@ -129,3 +129,10 @@ export function endTurn(state: Transcript): Transcript {
     : FINAL.has(item.type) ? item : { ...item, done: true } as Item);
   return flush({ ...state, live });
 }
+
+/** Items whose transcript view hides content: thinking, tool output, diffs and continuation prompts. */
+export function expandable(item: Item) {
+  if (item.type === "thought") return !!item.text.trim();
+  if (item.type === "tool") return !!item.tool.output?.trim() || item.tool.diffs.length > 0;
+  return item.type === "user" && !!item.continuation && item.text.split("\n").length > 3;
+}

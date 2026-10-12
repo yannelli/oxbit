@@ -9,7 +9,8 @@ import { append, applyUpdate, emptyTranscript, endTurn, type Item, type Transcri
 export type Overlay =
   | { kind: "models"; filter: string; index: number }
   | { kind: "sessions"; filter: string; index: number; sessions: SessionSummary[] }
-  | { kind: "help" };
+  | { kind: "help" }
+  | { kind: "details"; id: number };
 export interface PendingPermission { request: PermissionRequest; resolve(outcome: PermissionOutcome): void; index: number }
 export interface ViewState {
   cwd: string;
@@ -24,7 +25,6 @@ export interface ViewState {
   status: Status;
   info: ConnectionInfo;
   hint?: string;
-  expanded: boolean;
 }
 
 const STOP_NOTES: Record<string, string> = {
@@ -49,7 +49,7 @@ export class SessionController {
 
   constructor(protected connection: TuiConnection, protected cwd: string) {
     this.state = { cwd, transcript: emptyTranscript(), draft: emptyDraft, running: false, queued: [], status: emptyStatus(),
-      info: connection.info(), expanded: false };
+      info: connection.info() };
     this.stop = [connection.onUpdate(this.onUpdate), connection.onPermission(this.onPermission)];
   }
 

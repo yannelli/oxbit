@@ -167,6 +167,11 @@ async function frames(directory: string, columns: number) {
   term.stdin.press(..."/help", KEYS.enter);
   await until("Keys");
   save("10-help");
+  term.stdin.press(KEYS.escape);
+  await waitFor(() => !frame().includes("Modes"), frame);
+  term.stdin.press(KEYS.ctrlO);
+  await until("Details");
+  save("11-details");
   term.stdin.press(KEYS.escape, KEYS.ctrlC, KEYS.ctrlC);
   await exited;
 }

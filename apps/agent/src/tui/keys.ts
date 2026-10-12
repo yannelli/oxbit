@@ -18,6 +18,11 @@ function permissionKey(controller: Controller, input: string, key: Key) {
 
 function overlayKey(controller: Controller, input: string, key: Key) {
   const overlay = controller.getState().overlay!;
+  if (overlay.kind === "details") {
+    if (key.escape || key.return || input === "q" || (key.ctrl && input === "o")) controller.set({ overlay: undefined });
+    else if (key.leftArrow || key.rightArrow) controller.showDetails(key.leftArrow ? -1 : 1);
+    return;
+  }
   if (overlay.kind === "help") {
     if (key.escape || key.return || input === "q") controller.set({ overlay: undefined });
     return;
@@ -39,7 +44,7 @@ export function handleKey(controller: Controller, input: string, key: Key) {
   if (state.permission) return permissionKey(controller, input, key);
   if (state.overlay) return overlayKey(controller, input, key);
   if (key.tab && key.shift) return controller.cycleMode();
-  if (key.ctrl && input === "o") return controller.set({ expanded: !state.expanded });
+  if (key.ctrl && input === "o") return controller.showDetails();
   if (key.ctrl && input === "p") return controller.openModels();
   if (key.ctrl && input === "d") return draft.text ? edit(deleteForward(draft)) : controller.exit();
   if (key.escape) {

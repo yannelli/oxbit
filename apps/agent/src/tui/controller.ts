@@ -2,6 +2,7 @@ import { accept, commandItems, commandToken, fileItems, fileToken, rank, type Co
 import type { TuiConnection } from "./connection.js";
 import { draftOf, emptyDraft, insert, type Draft } from "./editor.js";
 import { SessionController, type Overlay, type ViewState } from "./session-controller.js";
+import { expandable } from "./transcript.js";
 
 export type { Overlay, ViewState } from "./session-controller.js";
 export interface HistoryStore { load(): string[]; save(entry: string): void }
@@ -14,6 +15,8 @@ export const LOCAL_COMMANDS: Command[] = [
   { name: "help", description: "Show keys and commands" },
   { name: "exit", description: "Quit" },
 ];
+
+const picker = (overlay?: Overlay) => overlay?.kind === "models" || overlay?.kind === "sessions" ? overlay : undefined;
 
 /** Rows of the model or session picker after its filter. */
 export function overlayItems(state: ViewState): CompletionItem[] {
@@ -89,7 +92,8 @@ export class Controller extends SessionController {
   paste(text: string) {
     const clean = text.replace(/\r\n?/g, "\n");
     const overlay = this.state.overlay;
-    if (overlay && overlay.kind !== "help") return this.filter(overlay.filter + clean.replace(/\n/g, " "));
+    if (picker(overlay)) return this.filter(picker(overlay)!.filter + clean.replace(/\n/g, " "));
+    if (overlay) return;
     this.setDraft(insert(this.state.draft, clean));
   }
   private completionFor(draft: Draft): Completion | undefined {
@@ -149,20 +153,30 @@ export class Controller extends SessionController {
   }
 
   filter(text: string) {
-    const overlay = this.state.overlay;
-    if (overlay && overlay.kind !== "help") this.set({ overlay: { ...overlay, filter: text, index: 0 } as Overlay });
+    const overlay = picker(this.state.overlay);
+    if (overlay) this.set({ overlay: { ...overlay, filter: text, index: 0 } });
   }
   moveOverlay(step: number) {
-    const overlay = this.state.overlay;
+    const overlay = picker(this.state.overlay);
     const count = overlayItems(this.state).length;
-    if (overlay && overlay.kind !== "help" && count) this.set({ overlay: { ...overlay, index: (overlay.index + step + count) % count } as Overlay });
+    if (overlay && count) this.set({ overlay: { ...overlay, index: (overlay.index + step + count) % count } });
   }
   confirmOverlay() {
-    const overlay = this.state.overlay;
-    const item = overlay && overlay.kind !== "help" ? overlayItems(this.state)[overlay.index] : undefined;
+    const overlay = picker(this.state.overlay);
+    const item = overlay ? overlayItems(this.state)[overlay.index] : undefined;
     this.set({ overlay: undefined });
     if (item && overlay?.kind === "models") void this.chooseModel(item.value);
     if (item && overlay?.kind === "sessions") void this.open(item.value, `Resumed ${item.label}`);
+  }
+
+  /** Ctrl+O: shows the latest thought, tool output or diff in full; `step` moves to an earlier or later one. */
+  showDetails(step = 0) {
+    const { transcript, overlay } = this.state;
+    const items = [...transcript.flushed, ...transcript.live].filter(expandable);
+    if (!items.length) return this.flash("Nothing to expand yet");
+    const at = overlay?.kind === "details" ? items.findIndex((item) => item.id === overlay.id) : items.length;
+    const next = items[Math.min(items.length - 1, Math.max(0, at + step - (overlay?.kind === "details" ? 0 : 1)))];
+    this.set({ overlay: { kind: "details", id: next.id } });
   }
 
   /** Ctrl+C: stop the turn, close or clear, and exit on a second press within two seconds. */

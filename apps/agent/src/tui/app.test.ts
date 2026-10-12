@@ -216,6 +216,58 @@ describe("tui", () => {
     await ui.exit();
   });
 
+  test("shows flushed tool output in full with ctrl+o", async () => {
+    const output = Array.from({ length: 40 }, (_, index) => `out ${index + 1}`).join("\n");
+    const ui = await start([async (context) => {
+      context.update({ sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Plan the check." } });
+      context.update(tool("x1", "npm run check", "execute"));
+      context.update({ sessionUpdate: "tool_call_update", toolCallId: "x1", status: "completed", rawOutput: output });
+      await streamText(context, "Checked.");
+    }]);
+    ui.type("check");
+    ui.press(KEYS.enter);
+    await ui.until("Checked.");
+    await ui.until("Ask anything");
+    expect(ui.frame()).toContain("+35 lines (ctrl+o to expand)");
+    expect(ui.frame()).not.toContain("out 1\n");
+    ui.press(KEYS.ctrlO);
+    await ui.until("Details 2/2");
+    expect(ui.frame()).toContain("lines 1-21 of 42");
+    expect(ui.frame()).toContain("out 6");
+    expect(ui.frame()).not.toContain("out 25");
+    ui.press("\x1b[6~");
+    await ui.until("out 25");
+    expect(ui.frame()).toContain("lines 21-41 of 42");
+    ui.press(KEYS.left);
+    await ui.until("Details 1/2");
+    expect(ui.frame()).toContain("Plan the check.");
+    ui.press(KEYS.escape);
+    await ui.until("Ask anything");
+    expect(ui.frame()).not.toContain("Details");
+    await ui.exit();
+  });
+
+  test("shows an edit diff once while asking for permission", async () => {
+    const diff = { type: "diff", path: "/work/project/a.ts", oldText: "a\nb\n", newText: "a\nB\n" };
+    const ui = await start([async (context) => {
+      context.update(tool("e1", "Edit a.ts", "edit"));
+      await context.permission({ toolCallId: "e1", title: "Edit a.ts", kind: "edit", status: "pending", content: [diff] });
+    }, async (context) => {
+      context.update(tool("e2", "Edit a.ts", "edit", { content: [diff] }));
+      await context.permission({ toolCallId: "e2", title: "Edit a.ts", kind: "edit", status: "pending", content: [diff] });
+    }]);
+    const count = () => ui.frame().split("2 + B").length - 1;
+    for (const prompt of ["one", "two"]) {
+      ui.type(prompt);
+      ui.press(KEYS.enter);
+      await ui.until("Apply this edit?");
+      expect(count()).toBe(1);
+      ui.press("1");
+      await ui.until("Ask anything");
+    }
+    await ui.exit();
+  });
+
   test("edits multi-line input and recalls history", async () => {
     const ui = await start();
     ui.type("first");

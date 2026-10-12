@@ -14,7 +14,7 @@ import { width as cells } from "./width.js";
 const KEYS: [string, string][] = [
   ["enter", "send"], ["shift+enter, alt+enter, ctrl+j, \\ enter", "new line"], ["↑ ↓", "history, or move between lines"],
   ["esc", "stop the agent, close a menu"], ["ctrl+c", "stop, then press again to exit"], ["shift+tab", "switch the mode"],
-  ["ctrl+o", "expand tool output and thinking"], ["ctrl+p, /model", "choose the model"], ["/ and @", "complete commands and files"],
+  ["ctrl+o", "show tool output, diffs and thinking in full"], ["ctrl+p, /model", "choose the model"], ["/ and @", "complete commands and files"],
   ["ctrl+a e u k w", "line editing"],
 ];
 
@@ -90,6 +90,7 @@ export function OverlayView({ state, width }: { state: ViewState; width: number 
       </Box>
     );
   }
+  if (overlay.kind === "details") return null;
   const items = overlayItems(state);
   const reasoning = overlay.kind === "models" ? state.status.reasoning : undefined;
   return (

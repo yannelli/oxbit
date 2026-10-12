@@ -2,6 +2,7 @@
 import { Box, Static, Text, useInput, usePaste, useWindowSize } from "ink";
 import { useSyncExternalStore } from "react";
 import type { Controller } from "./controller.js";
+import { Details } from "./details.js";
 import { OverlayView, PermissionDialog, PickList } from "./dialogs.js";
 import { ItemView, type ItemContext } from "./items.js";
 import { handleKey } from "./keys.js";
@@ -16,7 +17,7 @@ function Screen({ controller, version }: { controller: Controller; version?: str
   const width = Math.max(20, columns);
   useInput((input, key) => handleKey(controller, input, key));
   usePaste((text) => controller.paste(text));
-  const context: ItemContext = { width, rows, expanded: state.expanded, cwd: state.cwd, version, awaiting: state.permission?.request.toolCall.toolCallId };
+  const context: ItemContext = { width, rows, expanded: false, cwd: state.cwd, version, awaiting: state.permission?.request.toolCall.toolCallId };
   return (
     <Box flexDirection="column" width={width}>
       <Static items={state.transcript.flushed}>
@@ -24,7 +25,8 @@ function Screen({ controller, version }: { controller: Controller; version?: str
       </Static>
       {state.transcript.live.map((item) => <ItemView key={item.id} item={item} live context={context} />)}
       {state.permission ? <PermissionDialog pending={state.permission} controller={controller} width={width} cwd={state.cwd} />
-        : state.overlay ? <OverlayView state={state} width={width} />
+        : state.overlay?.kind === "details" ? <Details key={state.overlay.id} id={state.overlay.id} transcript={state.transcript} context={context} />
+          : state.overlay ? <OverlayView state={state} width={width} />
           : (
             <Box flexDirection="column">
               {state.running ? <Working state={state} /> : null}
