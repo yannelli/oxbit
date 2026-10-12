@@ -322,7 +322,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-setup { margin-top:12px; }
 .acp-setup label { display:grid; gap:4px; margin:8px 0; }
 .acp-setup input { width:100%; min-width:0; border:1px solid var(--bd); background:var(--bg-input); color:var(--fg); border-radius:5px; padding:8px; font:inherit; }
-.acp-device-code { font-family:var(--font-mono); font-size:28px; font-weight:600; letter-spacing:.12em; -webkit-user-select:all; user-select:all; }
+.acp-device-code { font-family:var(--font-mono); font-size:2em; font-weight:600; letter-spacing:.12em; -webkit-user-select:all; user-select:all; }
 .acp-chatgpt a.button { text-decoration:none; }
 .acp-composer { width:min(800px,calc(100% - 32px)); margin:8px auto 0; padding:6px; flex-shrink:0; max-height:45%; overflow:auto; border:1px solid var(--bd-strong); border-radius:8px; background:var(--bg-input); }
 .acp-composer:focus-within { border-color:var(--focus); }
