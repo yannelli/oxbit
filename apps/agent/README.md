@@ -20,6 +20,7 @@ oxbit-agent -p "Summarize src/"      # print the reply and exit
 oxbit-agent acp                      # ACP agent on stdin/stdout
 oxbit-agent -c                       # continue the latest session here
 oxbit-agent login chatgpt            # use a ChatGPT plan
+oxbit-agent login claude             # use a Claude plan through Claude Code's sign-in
 oxbit-agent models                   # list the provider's models
 ```
 
@@ -31,6 +32,8 @@ Options: `--provider`, `-m/--model`, `--mode ask|accept-edits|full-auto`,
 OpenAI (API key or Sign in with ChatGPT), Anthropic (API key), OpenRouter, Ollama,
 and any OpenAI-compatible server. Keys come from `OPENAI_API_KEY`,
 `ANTHROPIC_API_KEY` and `OPENROUTER_API_KEY`, or from `oxbit-agent login`.
+`--provider claude` uses a Claude plan: it runs the Claude Agent ACP adapter,
+which runs Claude Code under your own Claude Code sign-in.
 
 ## Features
 

@@ -197,6 +197,27 @@ test("the ChatGPT plan signs in with a device code, shows expiry inline, cancels
   expect(await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.provider)).toBe("oxbit");
 });
 
+test("the Claude plan choice points to Claude Agent on a runtime and keeps the saved API", async ({ page }) => {
+  const panel = await open(page, true);
+  const claude = panel.getByRole("radiogroup", { name: "Agent", exact: true }).getByRole("radio", { name: /Claude Agent/ });
+  await expect(claude).toBeDisabled();
+  await expect(claude).toContainText("Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.");
+  const api = await setting(page, "agentACP.oxbit.api");
+  await panel.getByRole("button", { name: "More agent actions" }).click();
+  await page.getByRole("menuitem", { name: "Agent setup" }).click();
+  const setup = panel.getByRole("form", { name: "Oxbit Agent setup" });
+  await expect(setup.getByLabel("API key", { exact: true })).toBeVisible();
+  await setup.getByRole("combobox", { name: "API" }).click();
+  await page.getByRole("option", { name: "Claude plan" }).click();
+  await expect(setup.getByText("Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.")).toBeVisible();
+  await expect(setup.getByLabel("API key", { exact: true })).toHaveCount(0);
+  expect(await setting(page, "agentACP.oxbit.api")).toBe(api);
+  const checked = await page.evaluate(() => (window as any).__models.calls.filter(([name]: [string]) => name === "has").map(([, endpoint]: [string, any]) => endpoint.api));
+  expect(checked.every((value: string) => value === "openai")).toBe(true);
+  await setup.getByRole("button", { name: "Runtime connection" }).click();
+  await expect(page.locator(".runtime-page")).toBeVisible();
+});
+
 test("without a model service the browser workspace keeps the runtime prompt and built-in agents", async ({ page }) => {
   const panel = await open(page, false);
   await expect(panel.getByText("Connect to a runtime workspace to use agents.")).toBeVisible();

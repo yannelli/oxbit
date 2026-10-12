@@ -947,7 +947,7 @@
   "Open Agent": "Open Agent",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Ships with Oxbit. Uses ~/.oxbit/agent settings.",
   "Runs with npx. Uses your Codex sign-in.": "Runs with npx. Uses your Codex sign-in.",
-  "Runs with npx. Uses your Claude Code sign-in.": "Runs with npx. Uses your Claude Code sign-in.",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "Runs with npx. Sign in or set GEMINI_API_KEY.",
   "Runs with npx. Sign in with GitHub.": "Runs with npx. Sign in with GitHub.",
   "Needs Cursor CLI and agent login.": "Needs Cursor CLI and agent login.",
@@ -1063,5 +1063,9 @@
   "The sign-in code expired. Sign in again.": "The sign-in code expired. Sign in again.",
   "The Workspace value {0} overrides this setting.": "The Workspace value {0} overrides this setting.",
   "Remove Workspace value": "Remove Workspace value",
-  "The app reloaded. The agent restarted and loaded this conversation.": "The app reloaded. The agent restarted and loaded this conversation."
+  "The app reloaded. The agent restarted and loaded this conversation.": "The app reloaded. The agent restarted and loaded this conversation.",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.",
+  "Claude plan": "Claude plan",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry."
 }

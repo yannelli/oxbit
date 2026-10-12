@@ -947,7 +947,7 @@
   "Open Agent": "Abrir agente",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Incluido con Oxbit. Usa la configuración de ~/.oxbit/agent.",
   "Runs with npx. Uses your Codex sign-in.": "Se ejecuta con npx. Usa tu sesión de Codex.",
-  "Runs with npx. Uses your Claude Code sign-in.": "Se ejecuta con npx. Usa tu sesión de Claude Code.",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Se ejecuta con npx. Usa tu plan de Claude mediante la sesión de Claude Code en el runtime.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "Se ejecuta con npx. Inicia sesión o define GEMINI_API_KEY.",
   "Runs with npx. Sign in with GitHub.": "Se ejecuta con npx. Inicia sesión con GitHub.",
   "Needs Cursor CLI and agent login.": "Requiere Cursor CLI y agent login.",
@@ -1063,5 +1063,9 @@
   "The sign-in code expired. Sign in again.": "El código de inicio de sesión ha caducado. Vuelve a iniciar sesión.",
   "The Workspace value {0} overrides this setting.": "El valor {0} del espacio de trabajo reemplaza este ajuste.",
   "Remove Workspace value": "Quitar el valor del espacio de trabajo",
-  "The app reloaded. The agent restarted and loaded this conversation.": "La app se recargó. El agente se reinició y cargó esta conversación."
+  "The app reloaded. The agent restarted and loaded this conversation.": "La app se recargó. El agente se reinició y cargó esta conversación.",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Necesita un espacio de trabajo del runtime. Usa tu plan de Claude mediante la sesión de Claude Code en el runtime.",
+  "Claude plan": "Plan de Claude",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent se ejecuta en un runtime conectado con la sesión de Claude Code de ese equipo.",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "Claude Code no tiene la sesión iniciada en este runtime. Ejecuta `claude auth login` en una terminal de ese equipo y vuelve a intentarlo."
 }

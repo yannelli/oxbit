@@ -24,6 +24,7 @@ describe("providers panel", () => {
       openrouter: { detail: "key from OPENROUTER_API_KEY", enabled: true, actions: ["use!", "key"] },
       ollama: { detail: "in use, no key needed, http://127.0.0.1:11434", enabled: true, actions: [] },
       "openai-compatible": { detail: "no base URL", enabled: true, actions: ["use!", "key", "base-url"] },
+      claude: { detail: "Claude Code not installed, Claude Agent with Claude Code's own sign-in", actions: ["use!"] },
     });
 
     expect(await manager.act("providers", "anthropic", "key", ["sk-ant "], context)).toEqual({ message: `Saved the Anthropic API key in ${auth.path}` });
@@ -47,5 +48,7 @@ describe("providers panel", () => {
     const later = createSettingsManager({ config: t.config, auth, env, home: t.home, provider: () => current });
     expect(await later.act("providers", "openai-compatible", "use", [], context)).toEqual({ message: "Using OpenAI-compatible. It applies after the agent restarts." });
     expect(t.config.settings.provider).toBe("openai-compatible");
+    expect(await later.act("providers", "claude", "use", [], context)).toEqual({ message: "Using Claude plan. It applies after the agent restarts." });
+    expect(t.config.settings.provider).toBe("claude");
   });
 });

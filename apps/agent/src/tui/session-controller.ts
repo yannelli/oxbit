@@ -45,6 +45,7 @@ export interface ViewState {
   hint?: string;
 }
 
+const NO_SESSION = "There is no open session. Run /new to start one.";
 const STOP_NOTES: Record<string, string> = {
   cancelled: "Interrupted",
   max_tokens: "The response reached the output token limit",
@@ -62,6 +63,7 @@ export class SessionController {
   private timer?: ReturnType<typeof setTimeout>;
   private hintTimer?: ReturnType<typeof setTimeout>;
   private early?: [string, SessionUpdate][];
+  private opening?: Promise<void>;
   private stop: (() => void)[];
   onExit?: () => void;
 
@@ -126,7 +128,16 @@ export class SessionController {
     await this.load(this.state.status.sessionId, false);
   }
 
-  private async load(sessionId: string | undefined, replay: boolean) {
+  /** Opens the session; prompts sent before it resolves wait for it. */
+  private load(sessionId: string | undefined, replay: boolean) {
+    const opening = this.connect(sessionId, replay);
+    this.opening = opening;
+    return opening.finally(() => {
+      if (this.opening === opening) this.opening = undefined;
+    });
+  }
+
+  private async connect(sessionId: string | undefined, replay: boolean) {
     this.early = [];
     let session: SessionState | undefined;
     try {
@@ -150,12 +161,14 @@ export class SessionController {
   }
 
   protected async send(text: string) {
-    const sessionId = this.state.status.sessionId;
-    if (!sessionId) return this.notice("There is no open session. Run /new to start one.", "error");
+    if (!this.state.status.sessionId && !this.opening) return this.notice(NO_SESSION, "error");
     this.set({ transcript: append(this.state.transcript, { type: "user", text }), running: true, startedAt: Date.now() });
     let failed: string | undefined;
     let stopReason = "end_turn";
     try {
+      await this.opening;
+      const sessionId = this.state.status.sessionId;
+      if (!sessionId) throw new Error(NO_SESSION);
       stopReason = (await this.connection.prompt(sessionId, [{ type: "text", text }])).stopReason;
     } catch (error) {
       failed = message(error);

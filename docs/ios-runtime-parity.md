@@ -1,6 +1,6 @@
 # Runtime features on iOS local workspaces
 
-Created: 2026-10-09. Last updated: 2026-10-10.
+Created: 2026-10-09. Last updated: 2026-10-12.
 
 This page compares the computer runtime (`apps/runtime`) with device folders on iOS and records how each runtime feature reaches iOS. A connected runtime gives iOS every runtime feature; the table covers folders on the device, where no runtime runs. The Runtime page connects to an `oxbit --lan` runtime found over Bonjour, a runtime entered by address, or a runtime iOS starts over [SSH](ios-ssh.md) ([iOS setup](ios.md)).
 
@@ -19,7 +19,7 @@ This page compares the computer runtime (`apps/runtime`) with device folders on 
 | Project intelligence | `projects.ts`: `typescript` and `ignore` npm packages over Node `fs` | None | Run the same module in the web view or the language JavaScriptCore context over `FileSystem.list`, `read`, and `findFiles`; both packages run without Node | Later |
 | Terminals | `terminal.*` with node-pty | None | See [Terminals and tasks](#terminals-and-tasks) | Later: in-process Rust shell (brush + uutils) is the chosen path; not started |
 | Tasks | `apps/runtime/src/tasks` starts processes and Git worktrees | None | Worktree operations through libgit2; task commands depend on terminals | Later, after terminals |
-| Agents (ACP) | `agent-acp.ts` starts agent CLIs over stdio | Through a connected runtime | Agent CLIs are Node or native processes | Not possible on device: no process execution |
+| Agents (ACP) | `agent-acp.ts` starts agent CLIs over stdio | Through a connected runtime; Claude Agent uses the runtime host's Claude Code sign-in, including a Claude plan ([Claude plans](agent-acp.md#claude-plans)) | Agent CLIs are Node or native processes | Not possible on device: no process execution |
 | Collaboration | `collaboration.ts` hosts Yjs rooms and writes shared files | Through a connected runtime | The device would have to host rooms for other clients | Later; needs a reachable host |
 | Previews | HTML preview in the web view (`packages/features/previews`) | HTML/CSS preview works on device folders ([iOS](ios.md)) | Dev-server previews need a server process | Shipped (HTML/CSS); dev servers not possible on device |
 | Runtime extensions | `extensions.ts` imports ESM modules into Node | Browser-environment extensions and icon packs | Runtime extensions are downloaded executable code | Not possible: App Store guideline 2.5.2 |

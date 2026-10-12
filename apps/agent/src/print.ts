@@ -1,14 +1,15 @@
 import type { Writable } from "node:stream";
-import type { Params, PermissionMode } from "@oxbit/agent-core";
-import type { MemoryConnection } from "./connection.js";
+import type { Params } from "@oxbit/agent-core";
+import type { AcpClient } from "./connection.js";
 
 export interface PrintOptions {
-  connection: MemoryConnection;
+  connection: AcpClient;
   prompt: string;
   /** A saved session to continue. */
   sessionId?: string;
   cwd?: string;
-  mode?: PermissionMode;
+  /** The agent's mode ID. */
+  mode?: string;
   /** Switches the session to this model when it differs. */
   model?: string;
   stdout: Writable;
@@ -30,7 +31,7 @@ export async function runPrint(options: PrintOptions): Promise<number> {
   };
   const note = (text: string) => stderr.write(`${text}\n`);
   try {
-    const state = options.sessionId ? await connection.loadSession(options.sessionId) : await connection.newSession(options.cwd ? { cwd: options.cwd } : {});
+    const state = options.sessionId ? await connection.loadSession(options.sessionId, options.cwd ? { cwd: options.cwd } : {}) : await connection.newSession(options.cwd ? { cwd: options.cwd } : {});
     const { sessionId } = state;
     if (options.mode) await connection.setMode(sessionId, options.mode);
     if (options.model && options.model !== state.models?.currentModelId) await connection.setModel(sessionId, options.model);

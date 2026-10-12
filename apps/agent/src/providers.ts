@@ -2,9 +2,10 @@ import {
   PROVIDERS, apiKeySlot, provider as providerRuntime, providerSpec,
   type AuthMethod, type AuthStore, type CatalogCache, type Fetch, type ProviderId, type ProviderRuntime, type ProviderSpec,
 } from "@oxbit/agent-core";
+import { CLAUDE_PLAN } from "./claude.js";
 import { stringList, type AgentSettings } from "./config.js";
 
-export const PROVIDER_IDS = PROVIDERS.map((spec) => spec.id);
+export const PROVIDER_IDS = [...PROVIDERS.map((spec) => spec.id), CLAUDE_PLAN.id];
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const OLLAMA = "http://127.0.0.1:11434";
 /** Providers picked by a saved or environment key when settings name none, in this order. */
@@ -18,6 +19,13 @@ export interface ProviderChoice {
   /** Whether the key, ChatGPT sign-in or keyless method was usable at startup. */
   ready: boolean;
 }
+/** The Claude plan, which replaces the Oxbit agent with Claude Agent. */
+export interface ClaudeChoice {
+  id: typeof CLAUDE_PLAN.id;
+  model?: string;
+}
+export type ActiveProvider = ProviderChoice | ClaudeChoice;
+export const isClaude = (choice: ActiveProvider): choice is ClaudeChoice => choice.id === CLAUDE_PLAN.id;
 export interface ProviderInput {
   provider?: string;
   model?: string;
@@ -79,6 +87,13 @@ async function methodFor(spec: ProviderSpec, input: ProviderInput, signedIn: boo
   return ids.includes("none") ? "none" : ids.find((id) => id !== "chatgpt") ?? ids[0];
 }
 
+/** The Claude plan when --provider or settings.json names it, else selectProvider. */
+export async function activeProvider(input: ProviderInput): Promise<ActiveProvider> {
+  if ((input.provider || input.settings.provider) !== CLAUDE_PLAN.id) return selectProvider(input);
+  const model = input.model || input.settings.providers?.[CLAUDE_PLAN.id]?.model;
+  return { id: CLAUDE_PLAN.id, ...model ? { model } : {} };
+}
+
 /** Provider from --provider, settings.json, then a saved or environment key outside `disabledProviders`, then Ollama; model from --model, then settings. */
 export async function selectProvider(input: ProviderInput): Promise<ProviderChoice> {
   const { settings, env } = input;
@@ -95,6 +110,7 @@ export async function selectProvider(input: ProviderInput): Promise<ProviderChoi
     }
   const name = input.provider || settings.provider || detected || "ollama";
   const spec = providerSpec(name);
+  if (name === CLAUDE_PLAN.id) throw new Error(`${CLAUDE_PLAN.name} runs Claude Agent and has no model provider settings`);
   if (!spec) throw new Error(`Unknown provider ${name}. Use one of: ${PROVIDER_IDS.join(", ")}`);
   const baseUrl = baseFor(spec, settings, env);
   const method = await methodFor(spec, input, signedIn, baseUrl);

@@ -24,6 +24,20 @@ const tool = (toolCallId: string, title: string, kind: string, extra: object = {
   ({ sessionUpdate: "tool_call", toolCallId, title, kind, status: "in_progress", ...extra });
 
 describe("tui", () => {
+  test("sends a prompt typed before the session opens once it opens", async () => {
+    let open!: () => void;
+    const ui = await start([async (context) => streamText(context, "Opened and answered.")], { opening: new Promise<void>((resolve) => { open = resolve; }) });
+    ui.type("early");
+    ui.press(KEYS.enter);
+    await ui.until("early");
+    expect(ui.connection.prompts).toEqual([]);
+    open();
+    await ui.until("Opened and answered.");
+    expect(ui.connection.prompts).toEqual(["early"]);
+    expect(ui.frame()).not.toContain("There is no open session");
+    await ui.exit();
+  });
+
   test("streams a Markdown message into the live area, then scrollback", async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });

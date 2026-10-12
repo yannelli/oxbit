@@ -32,6 +32,7 @@ import {
 } from "./history.js";
 import {
   agentName,
+  agentErrorText,
   launchName,
   rememberAgentName,
   rememberRegistryName,
@@ -222,7 +223,7 @@ export class AgentController {
       this.rootRequestGeneration++;
       this.requests = this.requests.filter(request => this.isChildRequest(request));
       this.status = error ? "Turn failed" : stopReason === "cancelled" ? "Stopped" : "Ready";
-      if (error) this.error = String(error);
+      if (error) this.error = agentErrorText(this.connection?.provider, String(error));
       if (!this.replaying && stopReason !== "cancelled")
         this.attention.turnEnded(this.title, !!error);
       if (!this.replaying && !error && stopReason !== "cancelled") void this.nameConversation();
@@ -552,7 +553,7 @@ export class AgentController {
       await fn();
     } catch (error) {
       if (!this.disposed)
-        this.error = error instanceof Error ? error.message : String(error);
+        this.error = agentErrorText(this.connection?.provider ?? this.launch.provider, error);
     } finally {
       this.changed();
     }

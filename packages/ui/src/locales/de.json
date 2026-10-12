@@ -920,7 +920,7 @@
   "Open Agent": "Agent öffnen",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Wird mit Oxbit geliefert. Nutzt die Einstellungen in ~/.oxbit/agent.",
   "Runs with npx. Uses your Codex sign-in.": "Läuft mit npx. Nutzt Ihre Codex-Anmeldung.",
-  "Runs with npx. Uses your Claude Code sign-in.": "Läuft mit npx. Nutzt Ihre Claude-Code-Anmeldung.",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Läuft mit npx. Nutzt Ihr Claude-Abo über die Claude-Code-Anmeldung auf der Runtime.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "Läuft mit npx. Melden Sie sich an oder setzen Sie GEMINI_API_KEY.",
   "Runs with npx. Sign in with GitHub.": "Läuft mit npx. Melden Sie sich mit GitHub an.",
   "Needs Cursor CLI and agent login.": "Benötigt Cursor CLI und agent login.",
@@ -1036,5 +1036,9 @@
   "The sign-in code expired. Sign in again.": "Der Anmeldecode ist abgelaufen. Melden Sie sich erneut an.",
   "The Workspace value {0} overrides this setting.": "Der Arbeitsbereich-Wert {0} überschreibt diese Einstellung.",
   "Remove Workspace value": "Arbeitsbereich-Wert entfernen",
-  "The app reloaded. The agent restarted and loaded this conversation.": "Die App wurde neu geladen. Der Agent wurde neu gestartet und hat diese Unterhaltung geladen."
+  "The app reloaded. The agent restarted and loaded this conversation.": "Die App wurde neu geladen. Der Agent wurde neu gestartet und hat diese Unterhaltung geladen.",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "Benötigt einen Runtime-Arbeitsbereich. Nutzt Ihr Claude-Abo über die Claude-Code-Anmeldung auf der Runtime.",
+  "Claude plan": "Claude-Abo",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent läuft auf einer verbundenen Runtime mit der Claude-Code-Anmeldung dieses Computers.",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "Claude Code ist auf dieser Runtime nicht angemeldet. Führen Sie `claude auth login` in einem Terminal auf diesem Computer aus und versuchen Sie es dann erneut."
 }

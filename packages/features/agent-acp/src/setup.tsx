@@ -106,12 +106,16 @@ export function AgentSetup({ agent }: { agent: AgentController }) {
   );
 }
 
-/** API, base URL, and key or ChatGPT sign-in for the Oxbit agent. Save hands the key to the host's keychain and clears the field. */
+const CLAUDE_PLAN = "claude-plan";
+
+/** API, base URL, and key or ChatGPT sign-in for the Oxbit agent. Save hands the key to the host's keychain and clears the field.
+ * The Claude plan choice stays in component state: it points to Claude Agent on a runtime and changes no setting. */
 function OxbitSetup({ agent }: { agent: AgentController }) {
   const config = agent.options.kernel.configuration;
   const models = agent.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
   const locked = !!agent.connection || agent.connecting;
   const [api, setApi] = useState(() => oxbitEndpoint(config).api);
+  const [claude, setClaude] = useState(false);
   const [baseUrl, setBaseUrl] = useState(() => config.get<string>(OXBIT_AGENT_SETTINGS.baseUrl) ?? "");
   const [key, setKey] = useState("");
   const [saved, setSaved] = useState<boolean>();
@@ -145,7 +149,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
       aria-label={tr("Oxbit Agent setup")}
       onSubmit={(event) => {
         event.preventDefault();
-        if (!key.trim() || missingUrl) return;
+        if (claude || !key.trim() || missingUrl) return;
         run(async (models) => {
           await models.keys.save(endpoint, key.trim());
           setKey("");
@@ -154,30 +158,45 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
     >
       <p>
         {tr(
-          api === "chatgpt"
-            ? "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain."
-            : "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.",
+          claude
+            ? "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in."
+            : api === "chatgpt"
+              ? "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain."
+              : "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.",
         )}
       </p>
       <div className="acp-setting">
         <span className="acp-setting-label">{tr("API")}</span>
         <Select
           label={tr("API")}
-          value={api}
+          value={claude ? CLAUDE_PLAN : api}
           options={[
             { value: "openai", label: "OpenAI" },
             { value: "anthropic", label: "Anthropic" },
             { value: "openai-compatible", label: tr("OpenAI-compatible") },
             ...(models?.chatgpt || api === "chatgpt" ? [{ value: "chatgpt", label: tr("ChatGPT plan") }] : []),
+            { value: CLAUDE_PLAN, label: tr("Claude plan") },
           ]}
           disabled={locked}
           onChange={(value) => {
+            setClaude(value === CLAUDE_PLAN);
+            if (value === CLAUDE_PLAN) return;
             setApi(value as AgentModelApi);
             void config.set(OXBIT_AGENT_SETTINGS.api, value, "user");
           }}
         />
       </div>
-      {api === "openai-compatible" && (
+      {claude ? (
+        <div className="acp-actions">
+          <button
+            type="button"
+            className="button"
+            onClick={() => void agent.action(() => agent.options.kernel.commands.execute("workspace.runtime"))}
+          >
+            {tr("Runtime connection")}
+          </button>
+        </div>
+      ) : api === "openai-compatible" && (
         <label>
           {tr("Base URL")}
           <input
@@ -195,7 +214,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
           <small className="muted">{tr("Origin and path prefix of a Chat Completions API.")}</small>
         </label>
       )}
-      {api === "chatgpt" ? (
+      {claude ? null : api === "chatgpt" ? (
         <ChatGPTAccount
           models={models}
           saved={saved}

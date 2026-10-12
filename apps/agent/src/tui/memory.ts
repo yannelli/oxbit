@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { PermissionMode } from "@oxbit/agent-core";
-import type { MemoryConnection } from "../connection.js";
+import type { AcpClient } from "../connection.js";
 import { walkFiles } from "../fs.js";
 import type {
   ConfigOption, ConnectionInfo, PermissionOutcome, PermissionRequest, SessionState, SessionUpdate, SettingsManager, TuiConnection,
@@ -18,13 +18,17 @@ export interface MemoryTuiOptions {
   usingChatGPTPlan?: boolean;
   /** Applied to each new session; a mode chosen in /config replaces it. */
   mode?: PermissionMode;
+  /** The agent's mode ID for each Oxbit mode, when they differ. */
+  modes?: Record<PermissionMode, string>;
+  /** Applied to each new session through setModel. */
+  model?: string;
   settings?: SettingsManager;
 }
 export interface MemoryTuiConnection extends TuiConnection {
   /** The connection in use. */
-  readonly connection: MemoryConnection;
-  /** Moves update listeners and the permission handler to `next`, then closes the previous connection. */
-  replace(next: MemoryConnection, info: ConnectionInfo): Promise<void>;
+  readonly connection: AcpClient;
+  /** Moves update listeners and the permission handler to `next`, then closes the previous connection. `options` replaces the mode map and model. */
+  replace(next: AcpClient, info: ConnectionInfo, options?: Pick<MemoryTuiOptions, "modes" | "model">): Promise<void>;
 }
 type UpdateListener = (sessionId: string, update: SessionUpdate) => void;
 type PermissionHandler = (request: PermissionRequest) => Promise<PermissionOutcome>;
@@ -39,13 +43,14 @@ const subsequence = (query: string, path: string) => {
 };
 
 /** The TUI's connection over the in-memory ACP client, with @file listing from the working tree. replace() swaps the client after a rebuild. */
-export function memoryTuiConnection(initial: MemoryConnection, options: MemoryTuiOptions = {}): MemoryTuiConnection {
+export function memoryTuiConnection(initial: AcpClient, options: MemoryTuiOptions = {}): MemoryTuiConnection {
   let connection = initial;
+  let { modes, model } = options;
   let info: ConnectionInfo = { provider: options.provider, usingChatGPTPlan: options.usingChatGPTPlan };
   let mode = options.mode;
   const listeners = new Set<UpdateListener>();
   let permission: PermissionHandler | undefined;
-  const attach = (target: MemoryConnection) => [
+  const attach = (target: AcpClient) => [
     target.onUpdate((sessionId, update) => {
       for (const listener of [...listeners]) {
         try {
@@ -71,7 +76,8 @@ export function memoryTuiConnection(initial: MemoryConnection, options: MemoryTu
     get connection() {
       return connection;
     },
-    async replace(next, nextInfo) {
+    async replace(next, nextInfo, nextOptions = {}) {
+      ({ modes, model } = nextOptions);
       const previous = connection;
       for (const stop of detach) stop();
       connection = next;
@@ -81,16 +87,18 @@ export function memoryTuiConnection(initial: MemoryConnection, options: MemoryTu
     },
     info: () => ({ ...info }),
     async newSession(cwd) {
-      const state = await connection.newSession({ cwd }) as SessionState;
-      if (!mode || !state.modes || state.modes.currentModeId === mode) return state;
-      await connection.setMode(state.sessionId, mode);
-      return { ...state, modes: { ...state.modes, currentModeId: mode } };
+      let state = await connection.newSession({ cwd }) as SessionState;
+      if (model) state = { ...state, ...await connection.setModel(state.sessionId, model) as Pick<SessionState, "configOptions"> };
+      const modeId = mode && (modes?.[mode] ?? mode);
+      if (!modeId || !state.modes || state.modes.currentModeId === modeId) return state;
+      await connection.setMode(state.sessionId, modeId);
+      return { ...state, modes: { ...state.modes, currentModeId: modeId } };
     },
     loadSession: async (sessionId, cwd) => await connection.loadSession(sessionId, { cwd }) as SessionState,
     listSessions: async (cwd) => (await connection.listSessions(cwd)).sessions,
     prompt: (sessionId, prompt) => connection.prompt(sessionId, prompt),
     cancel: (sessionId) => connection.cancel(sessionId),
-    setMode: (sessionId, modeId) => connection.setMode(sessionId, modeId as PermissionMode),
+    setMode: (sessionId, modeId) => connection.setMode(sessionId, modeId),
     setModel: async (sessionId, modelId) => await connection.setModel(sessionId, modelId) as { configOptions?: ConfigOption[] },
     setConfigOption: async (sessionId, configId, value) =>
       await connection.setConfigOption(sessionId, configId, value) as { configOptions?: ConfigOption[] },

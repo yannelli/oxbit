@@ -1,7 +1,7 @@
 # Oxbit for iOS and iPadOS
 
 Created: 2026-09-09
-Last updated: 2026-10-10
+Last updated: 2026-10-12
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
@@ -97,6 +97,8 @@ A runtime started over [SSH](ios-ssh.md) receives a keep-alive lease in its laun
 When the app returns, Oxbit checks that the recorded process still runs the Oxbit runtime and that `/api/health` reports the same runtime `id` as at launch. If both hold, it reopens the tunnel to that runtime with the same token, and terminals and tasks continue. The workspace reports "Reconnected to the running runtime." If either check fails, Oxbit stops the old process and launches a new runtime. A reattached runtime has no launch channel, so it receives no heartbeats and cannot forward new task ports until it is relaunched. Closing the workspace stops a reattached runtime by process ID.
 
 ### In-app agent on iOS
+
+Claude Agent, including a Claude plan, runs on a connected runtime with that computer's Claude Code sign-in ([Claude plans](agent-acp.md#claude-plans)); the app stores no Claude credentials.
 
 Device folders (the Oxbit Documents folder and Files app folders) register the `agentModels` service (`AGENT_MODELS_SERVICE` in `@oxbit/sdk`) with `IosAgentModels` from `@oxbit/host-ios`. Runtime and SSH workspaces do not register it. The WebView's `connect-src` has no `https:`, so model API requests run in Swift: `AgentModels.swift` and `AgentModelEndpoint.swift` in the `oxbit-files` plugin.
 

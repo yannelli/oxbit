@@ -947,7 +947,7 @@
   "Open Agent": "打开智能体",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "随 Oxbit 提供。使用 ~/.oxbit/agent 中的设置。",
   "Runs with npx. Uses your Codex sign-in.": "通过 npx 运行。使用你的 Codex 登录。",
-  "Runs with npx. Uses your Claude Code sign-in.": "通过 npx 运行。使用你的 Claude Code 登录。",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "通过 npx 运行。通过运行时上的 Claude Code 登录使用你的 Claude 套餐。",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "通过 npx 运行。请登录或设置 GEMINI_API_KEY。",
   "Runs with npx. Sign in with GitHub.": "通过 npx 运行。请使用 GitHub 登录。",
   "Needs Cursor CLI and agent login.": "需要 Cursor CLI 和 agent login。",
@@ -1063,5 +1063,9 @@
   "The sign-in code expired. Sign in again.": "登录代码已过期。请重新登录。",
   "The Workspace value {0} overrides this setting.": "工作区的值 {0} 覆盖了此设置。",
   "Remove Workspace value": "移除工作区的值",
-  "The app reloaded. The agent restarted and loaded this conversation.": "应用已重新加载。代理已重新启动并加载了此对话。"
+  "The app reloaded. The agent restarted and loaded this conversation.": "应用已重新加载。代理已重新启动并加载了此对话。",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "需要运行时工作区。通过运行时上的 Claude Code 登录使用你的 Claude 套餐。",
+  "Claude plan": "Claude 套餐",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent 在已连接的运行时上运行，使用那台电脑上的 Claude Code 登录。",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "此运行时上的 Claude Code 未登录。请在那台电脑的终端中运行 `claude auth login`，然后重试。"
 }
