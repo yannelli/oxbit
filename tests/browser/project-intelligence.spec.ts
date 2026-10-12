@@ -50,14 +50,16 @@ test("Laravel joins PHP support only within an artisan project", async ({ page }
   await page.goto("/#pair=oxbit-acceptance-2026"); await page.waitForFunction(() => (window as any).__oxbit?.ready);
   await page.evaluate(async () => {
     const app = (window as any).__oxbit; await app.runtime.trust(true);
-    await app.runtime.request("fs.mkdir", { path: "laravel" });
+    await app.runtime.request("fs.mkdir", { path: "laravel" }).catch(() => {});
     for (const [path, text] of [["plain.php", "<?php\n"], ["laravel/artisan", "<?php\n"], ["laravel/app.php", "<?php\n"], ["laravel/welcome.blade.php", "@i"]]) {
-      await app.runtime.request("fs.write", { path, text, expectedRevision: null });
+      const previous = await app.runtime.request("fs.read", { path }).catch(() => null);
+      await app.runtime.request("fs.write", { path, text, expectedRevision: previous?.revision ?? null });
     }
     await app.openFile("plain.php");
   });
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("language").servicesForPath("plain.php").map((service: any) => service.transport.definitionId))).toEqual(["intelephense"]);
-  await page.evaluate(() => (window as any).__oxbit.openFile("laravel/app.php"));
+  await page.evaluate(() => { const app = (window as any).__oxbit; (window as any).__appOpen = app.openFile("laravel/app.php"); });
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.activePath())).toBe("laravel/app.php");
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("language").servicesForPath("laravel/app.php").map((service: any) => service.transport.definitionId))).toEqual(["intelephense", "laravel"]);
   await page.evaluate(() => { const app = (window as any).__oxbit; (window as any).__bladeOpen = app.openFile("laravel/welcome.blade.php"); });
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.activePath())).toBe("laravel/welcome.blade.php");
