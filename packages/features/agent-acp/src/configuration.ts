@@ -100,10 +100,10 @@ export const agentConfiguration: Setting[] = [
   {
     id: OXBIT_AGENT_SETTINGS.api,
     title: "Oxbit Agent API",
-    description: "openai uses the Responses API, anthropic the Messages API, and openai-compatible Chat Completions at the base URL.",
+    description: "openai uses the Responses API, anthropic the Messages API, openai-compatible Chat Completions at the base URL, and chatgpt the ChatGPT plan's Codex models after a ChatGPT sign-in.",
     category: "Agent ACP",
     type: "string",
-    enum: ["openai", "anthropic", "openai-compatible"],
+    enum: ["openai", "anthropic", "openai-compatible", "chatgpt"],
     default: "openai",
   },
   {

@@ -3,6 +3,7 @@
 export const OXBIT_AGENT_PROVIDER = "oxbit";
 export const AGENT_MODELS_SERVICE = "agentModels";
 export const MISSING_AGENT_KEY = "Add an API key in Agent setup";
+export const MISSING_CHATGPT_SIGN_IN = "Sign in with ChatGPT in Agent setup";
 
 /** `openai`: Responses API. `openai-compatible`: Chat Completions at `baseUrl`. `anthropic`: Messages API.
  * `chatgpt`: the ChatGPT plan's Codex Responses API at https://chatgpt.com/backend-api, signed in with a device code. */

@@ -1033,5 +1033,20 @@
   "Auto-apply edits": "Aplicar ediciones automáticamente",
   "Auto-apply on": "Aplicación automática activada",
   "Agent edits save without review": "Las ediciones del agente se guardan sin revisión",
-  "Save agent file changes without review. Permission prompts still ask.": "Guardar los cambios de archivos del agente sin revisión. Las solicitudes de permiso siguen preguntando."
+  "Save agent file changes without review. Permission prompts still ask.": "Guardar los cambios de archivos del agente sin revisión. Las solicitudes de permiso siguen preguntando.",
+  "Runs in Oxbit with your API key or ChatGPT plan": "Se ejecuta en Oxbit con tu clave de API o tu plan de ChatGPT",
+  "Sign in with ChatGPT in Agent setup": "Inicia sesión con ChatGPT en Configuración del agente",
+  "ChatGPT plan": "Plan de ChatGPT",
+  "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.": "Oxbit Agent se ejecuta en la app y llama a los modelos de Codex de tu plan de ChatGPT. Los tokens de inicio de sesión se guardan en el llavero del sistema.",
+  "Sign in with ChatGPT": "Iniciar sesión con ChatGPT",
+  "Signed in with ChatGPT": "Sesión iniciada con ChatGPT",
+  "Not signed in": "No has iniciado sesión",
+  "Sign out": "Cerrar sesión",
+  "Open the sign-in page and enter this code.": "Abre la página de inicio de sesión e introduce este código.",
+  "ChatGPT sign-in code": "Código de inicio de sesión de ChatGPT",
+  "Copy code": "Copiar código",
+  "Copied": "Copiado",
+  "Open sign-in page": "Abrir página de inicio de sesión",
+  "Waiting for you to sign in": "Esperando a que inicies sesión",
+  "The sign-in code expired. Sign in again.": "El código de inicio de sesión ha caducado. Vuelve a iniciar sesión."
 }

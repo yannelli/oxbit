@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ACP_CUSTOM_PROVIDER,
   AGENT_MODELS_SERVICE,
@@ -8,12 +8,15 @@ import {
   type AgentModelApi,
   type AgentModelEndpoint,
   type AgentModels,
+  type ChatGPTDeviceCode,
+  type ChatGPTSignIn,
 } from "@oxbit/sdk";
 import { Select, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
 import { oxbitEndpoint, settingId } from "./configuration.js";
 import { formatArgs, parseArgs, storedArgs } from "./launch.js";
 import { ArgumentsField, CustomAgentForm } from "./agent-picker.js";
+import { SIGN_IN_EXPIRED, waitForSignIn } from "./chatgpt-sign-in.js";
 
 /** Launch settings for the connected or chosen agent. */
 export function AgentSetup({ agent }: { agent: AgentController }) {
@@ -103,7 +106,7 @@ export function AgentSetup({ agent }: { agent: AgentController }) {
   );
 }
 
-/** API, base URL, and key for the Oxbit agent. Save hands the key to the host's keychain and clears the field. */
+/** API, base URL, and key or ChatGPT sign-in for the Oxbit agent. Save hands the key to the host's keychain and clears the field. */
 function OxbitSetup({ agent }: { agent: AgentController }) {
   const config = agent.options.kernel.configuration;
   const models = agent.options.kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
@@ -149,7 +152,13 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
         });
       }}
     >
-      <p>{tr("Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.")}</p>
+      <p>
+        {tr(
+          api === "chatgpt"
+            ? "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain."
+            : "Oxbit Agent runs in the app and calls the model API with your key. The key is stored in the system keychain.",
+        )}
+      </p>
       <div className="acp-setting">
         <span className="acp-setting-label">{tr("API")}</span>
         <Select
@@ -159,6 +168,7 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
             { value: "openai", label: "OpenAI" },
             { value: "anthropic", label: "Anthropic" },
             { value: "openai-compatible", label: tr("OpenAI-compatible") },
+            ...(models?.chatgpt || api === "chatgpt" ? [{ value: "chatgpt", label: tr("ChatGPT plan") }] : []),
           ]}
           disabled={locked}
           onChange={(value) => {
@@ -185,33 +195,153 @@ function OxbitSetup({ agent }: { agent: AgentController }) {
           <small className="muted">{tr("Origin and path prefix of a Chat Completions API.")}</small>
         </label>
       )}
-      <label>
-        {tr("API key")}
-        <input
-          type="password"
-          aria-label={tr("API key")}
-          value={key}
-          autoComplete="off"
-          spellCheck={false}
-          onChange={(event) => setKey(event.target.value)}
+      {api === "chatgpt" ? (
+        <ChatGPTAccount
+          models={models}
+          saved={saved}
+          refresh={() => agent.action(async () => setSaved(await check()))}
         />
-        <small className="muted" aria-live="polite">
-          {saved === undefined ? "" : tr(saved ? "Key saved" : "No key saved")}
-        </small>
-      </label>
-      <div className="acp-actions">
-        <button type="submit" className="button primary" disabled={busy || !key.trim() || missingUrl}>
-          {tr("Save")}
-        </button>
-        <button
-          type="button"
-          className="button"
-          disabled={busy || !saved}
-          onClick={() => run((models) => models.keys.remove(endpoint))}
-        >
-          {tr("Remove")}
-        </button>
-      </div>
+      ) : (
+        <>
+          <label>
+            {tr("API key")}
+            <input
+              type="password"
+              aria-label={tr("API key")}
+              value={key}
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(event) => setKey(event.target.value)}
+            />
+            <small className="muted" aria-live="polite">
+              {saved === undefined ? "" : tr(saved ? "Key saved" : "No key saved")}
+            </small>
+          </label>
+          <div className="acp-actions">
+            <button type="submit" className="button primary" disabled={busy || !key.trim() || missingUrl}>
+              {tr("Save")}
+            </button>
+            <button
+              type="button"
+              className="button"
+              disabled={busy || !saved}
+              onClick={() => run((models) => models.keys.remove(endpoint))}
+            >
+              {tr("Remove")}
+            </button>
+          </div>
+        </>
+      )}
     </form>
+  );
+}
+
+const message = (error: unknown) => {
+  const text = error instanceof Error ? error.message : String(error);
+  return text === SIGN_IN_EXPIRED ? tr(SIGN_IN_EXPIRED) : text;
+};
+
+/** Device code sign-in to the ChatGPT plan. The host keeps the tokens; Sign out removes them. */
+function ChatGPTAccount({ models, saved, refresh }: { models?: AgentModels; saved?: boolean; refresh(): Promise<void> }) {
+  const signIn: ChatGPTSignIn | undefined = models?.chatgpt;
+  const [device, setDevice] = useState<ChatGPTDeviceCode>();
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+  const pending = useRef<AbortController>(undefined);
+  useEffect(() => () => pending.current?.abort(), []);
+  const start = async () => {
+    if (!signIn) return;
+    const controller = new AbortController();
+    pending.current = controller;
+    setBusy(true);
+    setCopied(false);
+    setError("");
+    try {
+      const code = await signIn.start(controller.signal);
+      controller.signal.throwIfAborted();
+      setDevice(code);
+      await waitForSignIn(signIn, code, controller.signal);
+      await refresh();
+    } catch (failure) {
+      if (!controller.signal.aborted) setError(message(failure));
+    } finally {
+      if (pending.current === controller) {
+        pending.current = undefined;
+        setDevice(undefined);
+        setBusy(false);
+      }
+    }
+  };
+  const cancel = () => {
+    pending.current?.abort();
+    pending.current = undefined;
+    setDevice(undefined);
+    setBusy(false);
+  };
+  const signOut = async () => {
+    if (!models) return;
+    setBusy(true);
+    setError("");
+    try {
+      await models.keys.remove({ api: "chatgpt" });
+      await refresh();
+    } catch (failure) {
+      setError(message(failure));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const copy = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+    } catch (failure) {
+      setError(message(failure));
+    }
+  };
+  return (
+    <div className="acp-chatgpt">
+      {device ? (
+        <>
+          <p>{tr("Open the sign-in page and enter this code.")}</p>
+          <div className="acp-actions">
+            <output className="acp-device-code" aria-label={tr("ChatGPT sign-in code")}>
+              {device.userCode}
+            </output>
+            <button type="button" className="button" onClick={() => void copy(device.userCode)}>
+              {tr(copied ? "Copied" : "Copy code")}
+            </button>
+          </div>
+          <div className="acp-actions">
+            <a className="button primary" href={device.verificationUrl} target="_blank" rel="noreferrer">
+              {tr("Open sign-in page")}
+            </a>
+            <button type="button" className="button" onClick={cancel}>
+              {tr("Cancel")}
+            </button>
+          </div>
+          <p className="muted" role="status">{tr("Waiting for you to sign in")}</p>
+        </>
+      ) : (
+        <>
+          <p className="muted" role="status">
+            {saved === undefined ? "" : tr(saved ? "Signed in with ChatGPT" : "Not signed in")}
+          </p>
+          <div className="acp-actions">
+            {saved ? (
+              <button type="button" className="button" disabled={busy} onClick={() => void signOut()}>
+                {tr("Sign out")}
+              </button>
+            ) : (
+              <button type="button" className="button primary" disabled={busy || !signIn} onClick={() => void start()}>
+                {tr("Sign in with ChatGPT")}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {error && <p className="error-text" role="alert">{error}</p>}
+    </div>
   );
 }

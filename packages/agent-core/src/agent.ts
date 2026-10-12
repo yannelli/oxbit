@@ -85,7 +85,7 @@ export class Agent {
     if (cwd !== normalize(this.host.root) && !this.host.filesystemFor) throw new Error(`This agent serves ${this.host.root} only`);
     return cwd;
   }
-  /** The host catalog or `GET /v1/models`, with `model` first when the list lacks it. */
+  /** The host catalog or `listModels`, with `model` first when the list lacks it. */
   private async models(model: string) {
     const listed = this.host.catalog ? Promise.resolve().then(() => this.host.catalog!()) : this.catalog ??= listModels(this.service(), this.host.endpoint());
     const catalog = await listed.catch(() => {

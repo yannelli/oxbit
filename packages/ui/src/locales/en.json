@@ -1033,5 +1033,20 @@
   "Auto-apply edits": "Auto-apply edits",
   "Auto-apply on": "Auto-apply on",
   "Agent edits save without review": "Agent edits save without review",
-  "Save agent file changes without review. Permission prompts still ask.": "Save agent file changes without review. Permission prompts still ask."
+  "Save agent file changes without review. Permission prompts still ask.": "Save agent file changes without review. Permission prompts still ask.",
+  "Runs in Oxbit with your API key or ChatGPT plan": "Runs in Oxbit with your API key or ChatGPT plan",
+  "Sign in with ChatGPT in Agent setup": "Sign in with ChatGPT in Agent setup",
+  "ChatGPT plan": "ChatGPT plan",
+  "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.": "Oxbit Agent runs in the app and calls the Codex models in your ChatGPT plan. The sign-in tokens are stored in the system keychain.",
+  "Sign in with ChatGPT": "Sign in with ChatGPT",
+  "Signed in with ChatGPT": "Signed in with ChatGPT",
+  "Not signed in": "Not signed in",
+  "Sign out": "Sign out",
+  "Open the sign-in page and enter this code.": "Open the sign-in page and enter this code.",
+  "ChatGPT sign-in code": "ChatGPT sign-in code",
+  "Copy code": "Copy code",
+  "Copied": "Copied",
+  "Open sign-in page": "Open sign-in page",
+  "Waiting for you to sign in": "Waiting for you to sign in",
+  "The sign-in code expired. Sign in again.": "The sign-in code expired. Sign in again."
 }
