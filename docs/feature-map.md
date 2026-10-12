@@ -144,6 +144,7 @@ Definitions and validation are owned by `packages/features/settings`. Consumers 
 | `workbench.colorTheme` | Graphite (dark) | packages/workbench, packages/features/themes |
 | `workbench.density` | compact | packages/workbench, packages/features/themes |
 | `workbench.sidebarLocation` | left | packages/workbench, packages/features/themes |
+| `workbench.panelAlignment` | center | packages/workbench |
 | `editor.fontFamily` | 'JetBrains Mono', ui-monospace, monospace | packages/features/editor |
 | `editor.fontSize` | 13 | packages/features/editor |
 | `editor.lineHeight` | 20 | packages/features/editor |
