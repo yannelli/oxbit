@@ -948,7 +948,7 @@
   "Open Agent": "에이전트 열기",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Oxbit에 포함되어 있습니다. ~/.oxbit/agent 설정을 사용합니다.",
   "Runs with npx. Uses your Codex sign-in.": "npx로 실행합니다. Codex 로그인을 사용합니다.",
-  "Runs with npx. Uses your Claude Code sign-in.": "npx로 실행합니다. Claude Code 로그인을 사용합니다.",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "npx로 실행합니다. 런타임의 Claude Code 로그인을 통해 Claude 요금제를 사용합니다.",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "npx로 실행합니다. 로그인하거나 GEMINI_API_KEY를 설정하세요.",
   "Runs with npx. Sign in with GitHub.": "npx로 실행합니다. GitHub로 로그인하세요.",
   "Needs Cursor CLI and agent login.": "Cursor CLI와 agent login이 필요합니다.",
@@ -1064,5 +1064,9 @@
   "The sign-in code expired. Sign in again.": "로그인 코드가 만료되었습니다. 다시 로그인하세요.",
   "The Workspace value {0} overrides this setting.": "작업 영역 값 {0}이(가) 이 설정을 재정의합니다.",
   "Remove Workspace value": "작업 영역 값 제거",
-  "The app reloaded. The agent restarted and loaded this conversation.": "앱을 다시 로드했습니다. 에이전트가 다시 시작되어 이 대화를 로드했습니다."
+  "The app reloaded. The agent restarted and loaded this conversation.": "앱을 다시 로드했습니다. 에이전트가 다시 시작되어 이 대화를 로드했습니다.",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "런타임 작업 영역이 필요합니다. 런타임의 Claude Code 로그인을 통해 Claude 요금제를 사용합니다.",
+  "Claude plan": "Claude 요금제",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent는 연결된 런타임에서 해당 컴퓨터의 Claude Code 로그인으로 실행됩니다.",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "이 런타임의 Claude Code가 로그인되어 있지 않습니다. 해당 컴퓨터의 터미널에서 `claude auth login`을 실행한 다음 다시 시도하세요."
 }
