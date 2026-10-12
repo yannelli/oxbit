@@ -46,6 +46,8 @@ export type Conversation = {
   truncated?: boolean;
   /** Agent file writes apply without review. Older entries omit it. */
   autoApplyEdits?: boolean;
+  /** The in-app Oxbit agent had this conversation loaded at save time; a reload starts the agent and loads it again. Older entries omit it. */
+  inAppAgent?: boolean;
 };
 function validLaunch(value: unknown): SavedLaunch | undefined {
   if (!value || typeof value !== "object") return undefined;

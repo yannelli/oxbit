@@ -119,6 +119,7 @@ slash menu lists them from `available_commands_update`:
 | `/loop [30s\|5m\|1h] <prompt>` | Runs a prompt again on an interval, or when the model schedules the next run; `/loop stop` ends it. |
 | `/config [setting value]` | Lists or sets `mode`, `auto-compact` (on, off) and `compact-at` (default, 50 to 90). |
 | `/skills`, `/<skill> [args]` | Lists skills and runs one. |
+| `/undo` | The panel undoes the applied edits of the latest turn that has any, newest first, through the review card's undo. Run it again for the turn before. Created files stay; review them in Source Control. |
 
 - Instructions come from `AGENTS.override.md`, `AGENTS.md` and `CLAUDE.md` in the workspace
   folder. Skills come from `.agents/skills/<name>/SKILL.md` and `.claude/skills/<name>/SKILL.md`
@@ -150,8 +151,7 @@ Not in the app, and why:
 - Command hooks, stdio MCP servers and `bash` start processes, and the app has no process API.
 - HTTP MCP servers: the iOS content security policy limits `connect-src` to the app, IPC and
   the push relay, and model requests go through the Swift plugin.
-- `/undo` and `/redo` need the snapshot store that `oxbit-agent` keeps under its agent home.
-  The review card's **Undo this edit** and **Undo all** revert in-app agent writes.
+- `/redo` needs the snapshot store that `oxbit-agent` keeps under its agent home.
 - `/new` and `/resume` are terminal commands of `oxbit-agent`; the panel's **New conversation**
   and **History** do the same.
 

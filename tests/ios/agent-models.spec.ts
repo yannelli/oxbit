@@ -166,12 +166,12 @@ test("Agent setup signs in with ChatGPT through the bridge, opens the sign-in pa
   expect((await bridge(page)).keys).toEqual([]);
 });
 
-test("the in-app agent lists its slash commands, saves a conversation in app storage, and reopens it after a relaunch", async ({ page, context }) => {
+test("the in-app agent lists its slash commands, saves a conversation in app storage, and resumes it after a relaunch", async ({ page, context }) => {
   const chat = (text: string) => ({ chunks: [`data: ${JSON.stringify({ choices: [{ index: 0, delta: { role: "assistant", content: text } }] })}\n\n`,
     `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`, "data: [DONE]\n\n"] });
   const models = { chunks: [JSON.stringify({ data: [{ id: "model-a" }] })] };
   const agentKeys = ["openai-compatible https://models.test"];
-  const launch = async (target: Page, stored: Record<string, unknown>, replies: ReturnType<typeof chat>[]) => {
+  const launch = async (target: Page, stored: Record<string, unknown>, replies: ReturnType<typeof chat>[], start = true) => {
     await installBridge(target, { stored, agentKeys, agentResponses: { "/v1/models": models, "/v1/chat/completions": replies } });
     await openDocuments(target);
     await target.evaluate(async () => {
@@ -182,7 +182,7 @@ test("the in-app agent lists its slash commands, saves a conversation in app sto
       z.workbench.run("agentACP.open");
     });
     const panel = target.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
-    await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+    if (start) await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
     await expect(panel.getByRole("textbox", { name: "Message agent" })).toBeEnabled();
     return panel;
   };
@@ -190,21 +190,23 @@ test("the in-app agent lists its slash commands, saves a conversation in app sto
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await composer.fill("/");
   const commands = page.getByRole("listbox", { name: "Agent slash commands" });
-  for (const name of ["compact", "context", "goal", "loop", "config", "skills"])
+  for (const name of ["compact", "context", "goal", "loop", "config", "skills", "undo"])
     await expect(commands.getByRole("option", { name: new RegExp(`^/${name}\\b`) })).toBeVisible();
   await composer.fill("Remember the blue door");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("The door is blue.")).toBeVisible();
   const storage = () => page.evaluate(() => Object.fromEntries((window as any).__iosTest.storage) as Record<string, unknown>);
   await expect.poll(async () => Object.keys(await storage()).filter((key) => key.startsWith("/device/Documents:oxbit-agent-session:"))).toHaveLength(1);
+  await expect.poll(async () => JSON.stringify(await storage())).toContain('"inAppAgent":true');
   const stored = await storage();
   await page.close();
 
   const relaunched = await context.newPage();
-  panel = await launch(relaunched, stored, []);
-  await panel.getByRole("button", { name: "History" }).click();
-  await panel.getByRole("button", { name: "Find provider conversations" }).click();
-  await panel.getByRole("button", { name: "Open conversation" }).click();
+  panel = await launch(relaunched, stored, [chat("Still blue.")], false);
+  await expect(panel.getByText("The app reloaded. The agent restarted and loaded this conversation.")).toBeVisible();
   await expect(panel.getByText("The door is blue.")).toBeVisible();
   await expect(panel.locator(".acp-user-text").filter({ hasText: "Remember the blue door" })).toHaveCount(1);
+  await panel.getByRole("textbox", { name: "Message agent" }).fill("Which door?");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("Still blue.")).toBeVisible();
 });

@@ -1040,6 +1040,7 @@
   "Restore files and fork": "Restore files and fork",
   "Fork conversation": "Fork conversation",
   "Forked from “{title}”. The agent keeps the earlier context.": "Forked from “{title}”. The agent keeps the earlier context.",
+  "No agent edits to undo.": "No agent edits to undo.",
   "Update the runtime to fork conversations": "Update the runtime to fork conversations",
   "Auto-apply edits": "Auto-apply edits",
   "Auto-apply on": "Auto-apply on",
@@ -1061,5 +1062,6 @@
   "Waiting for you to sign in": "Waiting for you to sign in",
   "The sign-in code expired. Sign in again.": "The sign-in code expired. Sign in again.",
   "The Workspace value {0} overrides this setting.": "The Workspace value {0} overrides this setting.",
-  "Remove Workspace value": "Remove Workspace value"
+  "Remove Workspace value": "Remove Workspace value",
+  "The app reloaded. The agent restarted and loaded this conversation.": "The app reloaded. The agent restarted and loaded this conversation."
 }
