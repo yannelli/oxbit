@@ -121,7 +121,8 @@ export class LocalAgentRuntime implements RpcClient {
       const connection = live();
       if (!connection || sessionId !== connection.connection.sessionId) return;
       if (update.sessionUpdate === "current_mode_update" && connection.connection.modes) connection.connection.modes.currentModeId = update.currentModeId;
-      this.publish(connection, "acp.update", { sessionId, update });
+      // The controller accepts updates whose sessionId is the root, which covers the replay of session/load.
+      this.publish(connection, "acp.update", { rootSessionId: sessionId, sessionId, update });
     };
     const { extensions, settings } = localExtensions({ filesystem: this.options.filesystem, root: this.root, configuration, sessions: this.sessions, update });
     const agent = new Agent({

@@ -62,6 +62,14 @@ async function open(page: Page, models: boolean, replies: string[][] = [], chatg
   }, { models, replies, chatgpt });
   return page.locator(".acp-panel:not(.acp-review-editor):not(.acp-agents-view)");
 }
+/** Selects openai-compatible at models.test with a saved key and model-b. */
+const useCompatible = (page: Page) => page.evaluate(async () => {
+  const z = (window as any).__oxbit;
+  (window as any).__models.saved.set(JSON.stringify({ api: "openai-compatible", baseUrl: "https://models.test/api" }), "sk-test");
+  await z.kernel.configuration.set("agentACP.oxbit.api", "openai-compatible", "user");
+  await z.kernel.configuration.set("agentACP.oxbit.baseUrl", "https://models.test/api", "user");
+  await z.kernel.configuration.set("agentACP.oxbit.model", "model-b", "user");
+});
 const savedKeys = (page: Page) =>
   page.evaluate(() => Object.fromEntries((window as any).__models.saved));
 const setting = (page: Page, id: string) =>
@@ -202,13 +210,7 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review, a
     chatText("Wrote notes.md."),
     chatText("Agent note file"),
   ]);
-  await page.evaluate(async () => {
-    const z = (window as any).__oxbit;
-    (window as any).__models.saved.set(JSON.stringify({ api: "openai-compatible", baseUrl: "https://models.test/api" }), "sk-test");
-    await z.kernel.configuration.set("agentACP.oxbit.api", "openai-compatible", "user");
-    await z.kernel.configuration.set("agentACP.oxbit.baseUrl", "https://models.test/api", "user");
-    await z.kernel.configuration.set("agentACP.oxbit.model", "model-b", "user");
-  });
+  await useCompatible(page);
   await panel.getByRole("button", { name: "More agent actions" }).click();
   await page.getByRole("menuitem", { name: "Agent setup" }).click();
   await expect(panel.getByRole("form", { name: "Oxbit Agent setup" })).toBeVisible();
@@ -240,6 +242,41 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review, a
   expect(requests[1]).toEqual(expect.objectContaining({ api: "openai-compatible", baseUrl: "https://models.test/api" }));
   expect(requests[1].body.model).toBe("model-b");
   expect(JSON.stringify(requests)).not.toContain("sk-test");
+});
+
+test("the Oxbit agent lists its slash commands and reopens a saved conversation after a reload", async ({ page }, info) => {
+  let panel = await open(page, true, [chatText("The door is blue."), chatText("Blue door")]);
+  await page.evaluate(() => (window as any).__oxbit.filesystem.write(".agents/skills/review/SKILL.md",
+    "---\nname: review\ndescription: Review the diff\n---\nReview it.\n", { expectedRevision: null }));
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  let composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await composer.fill("/");
+  const commands = page.getByRole("listbox", { name: "Agent slash commands" });
+  for (const name of ["compact", "context", "goal", "loop", "config", "skills", "review"])
+    await expect(commands.getByRole("option", { name: new RegExp(`^/${name}\\b`) })).toBeVisible();
+  await fs.mkdir(shots, { recursive: true });
+  await page.screenshot({ path: `${shots}/${info.project.name}-3-commands.png` });
+  await composer.fill("Remember the blue door");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("The door is blue.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").title)).toBe("Blue door");
+
+  await page.reload();
+  panel = await open(page, true, []);
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await panel.getByRole("button", { name: "History" }).click();
+  await panel.getByRole("button", { name: "Find provider conversations" }).click();
+  const found = panel.locator(".acp-history-entry").filter({ has: page.getByRole("button", { name: "Open conversation" }) });
+  await expect(found).toHaveCount(1);
+  await found.getByRole("button", { name: "Open conversation" }).click();
+  await expect(panel.getByText("The door is blue.")).toBeVisible();
+  await expect(panel.locator(".acp-user-text").filter({ hasText: "Remember the blue door" })).toHaveCount(1);
+  await page.screenshot({ path: `${shots}/${info.project.name}-4-reopened.png` });
 });
 
 test("with the keyboard open the @ list sits between the status bar and the composer, and tapping an entry attaches it", async ({ page }, info) => {

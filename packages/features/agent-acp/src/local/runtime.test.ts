@@ -173,8 +173,8 @@ describe("LocalAgentRuntime", () => {
     expect((await call("session/list")).sessions).toEqual([expect.objectContaining({ sessionId: original.sessionId, cwd: "/root" })]);
     const loaded = await call("session/load", { sessionId: original.sessionId });
     expect(loaded.sessionId).toBe(original.sessionId);
-    expect(second.named("acp.update").map((event) => [event.update.sessionUpdate, event.update.content?.text]))
-      .toEqual(expect.arrayContaining([["user_message_chunk", "Remember the blue door"], ["agent_message_chunk", "Noted"]]));
+    expect(second.named("acp.update").map((event) => [event.rootSessionId, event.update.sessionUpdate, event.update.content?.text]))
+      .toEqual(expect.arrayContaining([[original.sessionId, "user_message_chunk", "Remember the blue door"], [original.sessionId, "agent_message_chunk", "Noted"]]));
     await prompt(second.runtime, started.id, "m2", "Which door?");
     const messages = (second.requests.at(-1)!.body as { messages: { role: string; content: unknown }[] }).messages;
     expect(messages.filter((message) => message.role !== "system").map((message) => message.content))
