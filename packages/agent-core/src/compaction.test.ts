@@ -26,6 +26,20 @@ describe("shouldCompact", () => {
   });
 });
 
+describe("Compaction percent", () => {
+  it("compacts at a percent of the window from 50 to 95 and keeps the reserve rule otherwise", () => {
+    const options = { percent: 80 as number | undefined };
+    const compaction = new Compaction(options);
+    expect(compaction.threshold(200000)).toBe(160000);
+    expect(compaction.shouldCompact(session([]), { input: 160000, output: 0 }, 200000)).toBe(true);
+    expect(compaction.shouldCompact(session([]), { input: 159999, output: 0 }, 200000)).toBe(false);
+    options.percent = 99;
+    expect(compaction.threshold(200000)).toBe(180000);
+    options.percent = undefined;
+    expect(compaction.threshold(16000)).toBe(12000);
+  });
+});
+
 describe("pruneToolOutputs", () => {
   it("clears outputs past the newest 40k tokens before the last two user turns and keeps skill outputs", () => {
     const turns = [user("a"), call("1"), result("1", tokens(30000)), call("2"), result("2", tokens(30000)), call("3", "skill"),

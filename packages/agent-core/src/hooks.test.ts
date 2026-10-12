@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Agent } from "./agent.js";
-import { createHookRunner, hookSourcePaths, matchesHook, mergeOutcomes, type HookExec, type HookExecResult, type HookSource } from "./hooks.js";
+import { createHookRunner, hookSourcePaths, listHooks, matchesHook, mergeOutcomes, type HookExec, type HookExecResult, type HookSource } from "./hooks.js";
 import { chatText, chatTool } from "./test-models.js";
 import { start, testHost, text } from "./test-host.js";
 
@@ -131,6 +131,22 @@ describe("createHookRunner", () => {
       "oxbit:/h/.oxbit/agent/settings.json", "oxbit:/p/.oxbit/settings.json", "claude:/h/.claude/settings.json", "claude:/p/.claude/settings.json",
       "claude:/p/.claude/settings.local.json", "codex:/h/.codex/hooks.json", "codex:/p/.codex/hooks.json"]);
     expect(hookSourcePaths("/h", "/p")).toHaveLength(2);
+  });
+  it("lists hooks with stable ids and leaves out the ones skip returns true for", async () => {
+    const sources = [settings({ PreToolUse: [{ matcher: "Bash", hooks: [command("guard"), { type: "prompt" }] }], Stop: [{ hooks: [command("notify")] }] })];
+    const { hooks, warnings } = listHooks(sources);
+    expect(hooks).toEqual([
+      { id: "claude|/home/.claude/settings.json|PreToolUse|Bash|guard", dialect: "claude", path: "/home/.claude/settings.json", event: "PreToolUse", matcher: "Bash", command: "guard" },
+      { id: "claude|/home/.claude/settings.json|Stop||notify", dialect: "claude", path: "/home/.claude/settings.json", event: "Stop", matcher: "", command: "notify" }]);
+    expect(warnings).toEqual(["/home/.claude/settings.json: skipped a prompt PreToolUse hook; Oxbit runs command hooks only"]);
+    const skipped = new Set([hooks[1].id]);
+    const { exec, calls } = fakeExec(() => result(0));
+    const runner = createHookRunner({ sources, exec, skip: (hook) => skipped.has(hook.id) });
+    await runner.run("Stop", base, signal());
+    expect(calls).toEqual([]);
+    skipped.clear();
+    await runner.run("Stop", base, signal());
+    expect(calls.map(([cmd]) => cmd)).toEqual(["notify"]);
   });
   it("blocks a bash call through Agent with a Claude PreToolUse hook that exits 2", async () => {
     const { exec, calls } = fakeExec((_cmd, stdin) => stdin.tool_input.command.startsWith("rm") ? result(2, "", "rm is blocked") : result(0));

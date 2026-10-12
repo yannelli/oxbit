@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { FakeConnection, streamText, type Script, type ScriptContext } from "./fake-connection.js";
+import { FakeConnection, FakeSettings, streamText, type Script, type ScriptContext } from "./fake-connection.js";
 import { run } from "./index.js";
 import { KEYS, terminal, waitFor } from "./test-terminal.js";
 
@@ -118,11 +118,12 @@ const connection = () => new FakeConnection([fix, goal], {
     { name: "undo", description: "Restore files to before the last turn" },
     { name: "redo", description: "Reapply the last undone turn" },
     { name: "skills", description: "List skills" },
-    { name: "mcp", description: "Show MCP servers" },
+    { name: "mcp", description: "Show MCP servers; /mcp reload reconnects them", input: { hint: "reload" } },
     { name: "login", description: "Sign in with ChatGPT" },
   ],
   files: ["src/auth/login.ts", "src/auth/login.test.ts", "src/auth/session.ts", "src/app.tsx", "package.json", "README.md"],
   models: [{ id: "gpt-5.1", name: "GPT-5.1" }, { id: "gpt-5.1-codex", name: "GPT-5.1 Codex" }, { id: "gpt-5.1-mini", name: "GPT-5.1 mini" }, { id: "claude-sonnet-5", name: "Claude Sonnet 5" }],
+  settings: new FakeSettings(),
 });
 
 async function frames(directory: string, columns: number) {
@@ -172,7 +173,14 @@ async function frames(directory: string, columns: number) {
   term.stdin.press(KEYS.ctrlO);
   await until("Details");
   save("11-details");
-  term.stdin.press(KEYS.escape, KEYS.ctrlC, KEYS.ctrlC);
+  term.stdin.press(KEYS.escape);
+  await waitFor(() => !frame().includes("Details"), frame);
+  term.stdin.press(..."/config", KEYS.enter);
+  await until("Auto-compact");
+  save("12-config-panel");
+  term.stdin.press(KEYS.escape);
+  await until("Ask anything");
+  term.stdin.press(KEYS.ctrlC, KEYS.ctrlC);
   await exited;
 }
 

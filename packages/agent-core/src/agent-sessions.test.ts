@@ -71,14 +71,14 @@ describe("Agent sessions", () => {
     const sessionId = await start(agent);
     await tick();
     expect(t.updates).toEqual([{ sessionUpdate: "available_commands_update", availableCommands: [
-      { name: "greet", description: "Greet someone", input: { hint: "name" } }, { name: "status", description: "Show status" }] }]);
+      { name: "context", description: "Show context window usage" }, { name: "greet", description: "Greet someone", input: { hint: "name" } }, { name: "status", description: "Show status" }] }]);
     await agent.prompt(sessionId, text("/greet Bob"));
     expect(run).toHaveBeenCalledWith("Bob", expect.objectContaining({ session: expect.objectContaining({ id: sessionId }) }));
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "Say hello to Bob" });
     expect(await agent.prompt(sessionId, text("/status"))).toEqual({ stopReason: "end_turn" });
     expect(t.posts()).toHaveLength(1);
     await tick();
-    expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["greet", "status", "reset"]);
+    expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["context", "greet", "status", "reset"]);
     await agent.prompt(sessionId, text("/etc/hosts is missing"));
     expect(t.messages().at(-1)).toEqual({ role: "user", content: "/etc/hosts is missing" });
   });
@@ -121,8 +121,21 @@ describe("Agent modes and titles", () => {
     expect(t.updates.at(-1)).toEqual({ sessionUpdate: "current_mode_update", currentModeId: "accept-edits" });
     await agent.prompt(session.sessionId, text("Write"));
     expect(t.client.at(-1)).toEqual(["fs/write_text_file", expect.objectContaining({ content: "x", _meta: { oxbit: { mode: "accept-edits" } } })]);
-    const result = agent.setConfigOption(session.sessionId, "mode", "full-auto");
+    const result = await agent.setConfigOption(session.sessionId, "mode", "full-auto");
     expect(result.configOptions.find((option) => option.id === "mode")?.currentValue).toBe("full-auto");
+  });
+  it("lists host config options after the built-in ones and passes their changes to the host", async () => {
+    let value = "on";
+    const t = testHost([], { host: {
+      configOptions: () => [{ id: "auto-compact", name: "Auto-compact", type: "select", currentValue: value, options: [{ value: "on", name: "On" }, { value: "off", name: "Off" }] }],
+      setConfigOption: async (_session, configId, next) => configId === "auto-compact" && !!(value = next),
+    } });
+    const agent = new Agent(t.host);
+    const session = await agent.newSession();
+    expect(session.configOptions.map((option) => option.id)).toEqual(["model", "reasoning", "mode", "auto-compact"]);
+    const result = await agent.setConfigOption(session.sessionId, "auto-compact", "off");
+    expect(result.configOptions.find((option) => option.id === "auto-compact")?.currentValue).toBe("off");
+    await expect(agent.setConfigOption(session.sessionId, "nope", "x")).rejects.toThrow("Unknown agent setting");
   });
   it("asks before execute tools unless the mode is full-auto", async () => {
     const terminal = (method: string) => method === "terminal/create" ? { terminalId: "t1" } : method === "terminal/wait_for_exit" ? { exitCode: 0, signal: null }
@@ -158,6 +171,7 @@ describe("Agent modes and titles", () => {
     const quiet = new Agent(failing.host);
     await quiet.prompt(await start(quiet), text("Hi"));
     await tick();
-    expect(failing.updates.map((update) => update.sessionUpdate)).toEqual(["agent_message_chunk", "usage_update"]);
+    expect(failing.updates.map((update) => update.sessionUpdate).filter((kind) => kind !== "available_commands_update"))
+      .toEqual(["agent_message_chunk", "usage_update"]);
   });
 });

@@ -284,4 +284,24 @@ describe("tui", () => {
     await ui.until(/› first\n/);
     await ui.exit();
   });
+
+  test("walks history past a slash command without opening the menu", async () => {
+    const ui = await start();
+    ui.type("/help");
+    ui.press(KEYS.enter);
+    await ui.until("Keys");
+    ui.press(KEYS.escape);
+    await waitFor(() => !ui.frame().includes("Keys"), ui.frame);
+    ui.type("hello");
+    ui.press(KEYS.enter);
+    await ui.until("Done.");
+    ui.press(KEYS.up);
+    await ui.until(/│ › hello +│/);
+    ui.press(KEYS.up);
+    await ui.until(/│ › \/help +│/);
+    expect(ui.frame()).not.toContain("Show keys and commands");
+    ui.press(KEYS.down);
+    await ui.until(/│ › hello +│/);
+    await ui.exit();
+  });
 });

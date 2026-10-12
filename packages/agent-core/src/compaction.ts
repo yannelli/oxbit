@@ -9,6 +9,8 @@ export interface CompactionOptions {
   reserve?: number;
   /** Newest tokens kept verbatim after a summary. Defaults to 20000. */
   keepTokens?: number;
+  /** Compacts at this percent of the context window, 50 to 95, in place of the reserve rule. */
+  percent?: number;
 }
 
 /** session.meta key that carries the `/compact` focus text while the compactor runs. */
@@ -96,9 +98,14 @@ export class Compaction implements Compactor, CommandProvider {
   private pending = new Map<string, { used: number; threshold: number }>();
   private usable = new Map<string, number>();
   constructor(private options: CompactionOptions = {}) {}
-  /** Tokens a request can use before compaction: the window minus min(reserve, maxOutput or 32000, window / 4). */
+  /** Tokens a request can use before compaction: `percent` of the window, else the window minus min(reserve, maxOutput or 32000, window / 4). */
   threshold(contextWindow: number, maxOutput?: number) {
+    const percent = this.options.percent;
+    if (typeof percent === "number" && percent >= 50 && percent <= 95) return Math.floor(contextWindow * percent / 100);
     return contextWindow - Math.min(this.options.reserve ?? 20000, maxOutput ?? DEFAULT_MAX_OUTPUT, Math.floor(contextWindow / 4));
+  }
+  autoThreshold(contextWindow: number, maxOutput?: number) {
+    return this.options.auto === false ? undefined : this.threshold(contextWindow, maxOutput);
   }
   /** Due when the last request's input plus output reaches the threshold. turn.ts does not pass `maxOutput` yet. */
   shouldCompact(session: SessionView, usage: { input: number; output: number }, contextWindow?: number, maxOutput?: number) {

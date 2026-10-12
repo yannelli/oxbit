@@ -2,7 +2,7 @@ import {
   PROVIDERS, apiKeySlot, provider as providerRuntime, providerSpec,
   type AuthMethod, type AuthStore, type CatalogCache, type Fetch, type ProviderId, type ProviderRuntime, type ProviderSpec,
 } from "@oxbit/agent-core";
-import type { AgentSettings } from "./config.js";
+import { stringList, type AgentSettings } from "./config.js";
 
 export const PROVIDER_IDS = PROVIDERS.map((spec) => spec.id);
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
@@ -79,13 +79,15 @@ async function methodFor(spec: ProviderSpec, input: ProviderInput, signedIn: boo
   return ids.includes("none") ? "none" : ids.find((id) => id !== "chatgpt") ?? ids[0];
 }
 
-/** Provider from --provider, settings.json, then a saved or environment key, then Ollama; model from --model, then settings. */
+/** Provider from --provider, settings.json, then a saved or environment key outside `disabledProviders`, then Ollama; model from --model, then settings. */
 export async function selectProvider(input: ProviderInput): Promise<ProviderChoice> {
   const { settings, env } = input;
   const signedIn = await chatgptSignedIn(input.auth);
   let detected: ProviderId | undefined;
+  const disabled = stringList(settings.disabledProviders);
   if (!input.provider && !settings.provider)
     for (const id of DETECTED) {
+      if (disabled.includes(id)) continue;
       if (await keyFor(providerSpec(id)!, input) || (id === "openai" && signedIn)) {
         detected = id;
         break;

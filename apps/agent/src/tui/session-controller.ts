@@ -1,6 +1,6 @@
 import { MODES } from "@oxbit/agent-core";
 import type { Command, Completion } from "./complete.js";
-import type { ConnectionInfo, PermissionOutcome, PermissionRequest, SessionState, SessionSummary, SessionUpdate, TuiConnection } from "./connection.js";
+import type { ConnectionInfo, Panel, PanelAction, PanelId, PermissionOutcome, PermissionRequest, SessionState, SessionSummary, SessionUpdate, TuiConnection } from "./connection.js";
 import { draftOf, emptyDraft, type Draft } from "./editor.js";
 import { cancelOutcome, outcomeOf, ruleKey, type Decision } from "./permission.js";
 import { applyStatus, emptyStatus, fromConfig, fromSession, type Status } from "./status.js";
@@ -10,7 +10,21 @@ export type Overlay =
   | { kind: "models"; filter: string; index: number }
   | { kind: "sessions"; filter: string; index: number; sessions: SessionSummary[] }
   | { kind: "help" }
-  | { kind: "details"; id: number };
+  | { kind: "details"; id: number }
+  | PanelOverlay;
+/** A settings panel; `menu` lists the selected row's actions and `input` asks the running action's inputs in turn. */
+export interface PanelOverlay {
+  kind: "panel";
+  id: PanelId;
+  panel?: Panel;
+  index: number;
+  loading: boolean;
+  busy?: boolean;
+  progress?: string;
+  error?: string;
+  menu?: number;
+  input?: { rowId: string; action: PanelAction; values: string[]; draft: Draft };
+}
 export interface PendingPermission { request: PermissionRequest; resolve(outcome: PermissionOutcome): void; index: number }
 export interface ViewState {
   cwd: string;
@@ -99,19 +113,36 @@ export class SessionController {
     if (this.state.running) return this.notice("Wait for the agent to finish, or press Esc to stop it", "warn");
     this.rules.clear();
     if (label) this.transcript((transcript) => append(transcript, { type: "divider", text: label }));
+    await this.load(sessionId, true);
+  }
+
+  /** Loads the open session again after the agent was rebuilt; its replayed history stays out of the transcript. */
+  async reload() {
+    if (this.state.running) return this.notice("Wait for the agent to finish, or press Esc to stop it", "warn");
+    await this.load(this.state.status.sessionId, false);
+  }
+
+  private async load(sessionId: string | undefined, replay: boolean) {
     this.early = [];
     let session: SessionState | undefined;
     try {
       session = sessionId ? await this.connection.loadSession(sessionId, this.cwd) : await this.connection.newSession(this.cwd);
     } catch (error) {
-      this.notice(message(error), "error");
+      // A rebuilt agent has no record of a session that never got a prompt.
+      if (!replay && /Unknown ACP session/.test(message(error))) session = await this.connection.newSession(this.cwd).catch(() => undefined);
+      if (!session) this.notice(message(error), "error");
     }
     const early = this.early;
     this.early = undefined;
     if (!session) return;
-    this.set({ status: fromSession(session), info: this.connection.info() });
-    for (const [id, update] of early) this.onUpdate(id, update);
-    this.transcript(endTurn);
+    const { title, usage, goal, loop, commands } = this.state.status;
+    const kept = replay || session.sessionId !== sessionId ? {} : { title, usage, goal, loop, commands };
+    this.set({ status: { ...fromSession(session), ...kept }, info: this.connection.info() });
+    for (const [id, update] of early) {
+      if (replay) this.onUpdate(id, update);
+      else if (id === session.sessionId) this.set({ status: applyStatus(this.state.status, update) });
+    }
+    if (replay) this.transcript(endTurn);
   }
 
   protected async send(text: string) {
@@ -154,7 +185,10 @@ export class SessionController {
 
   cycleMode() {
     const ids = MODES.map((mode) => mode.id as string);
-    const mode = ids[(ids.indexOf(this.state.status.mode) + 1) % ids.length];
+    this.setMode(ids[(ids.indexOf(this.state.status.mode) + 1) % ids.length]);
+  }
+
+  setMode(mode: string) {
     const sessionId = this.state.status.sessionId;
     this.set({ status: { ...this.state.status, mode } });
     if (sessionId) this.connection.setMode(sessionId, mode).catch((error) => this.notice(message(error), "error"));

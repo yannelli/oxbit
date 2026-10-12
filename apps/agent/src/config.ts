@@ -20,8 +20,15 @@ export interface AgentSettings {
   trustedProjects?: string[];
   /** Runs `.mcp.json` servers in every project. */
   trustProjectMcp?: boolean;
+  /** MCP server names left out of every session. */
+  disabledMcpServers?: string[];
+  /** Provider IDs that automatic selection skips; --provider and `provider` still pick them. */
+  disabledProviders?: string[];
   [key: string]: unknown;
 }
+
+/** The strings of a settings array; [] for anything else. */
+export const stringList = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
 /** OXBIT_AGENT_HOME, else ~/.oxbit/agent. */
 export const agentHome = (env: NodeJS.ProcessEnv = process.env) => env.OXBIT_AGENT_HOME || join(homedir(), ".oxbit", "agent");
@@ -77,8 +84,14 @@ export class AgentConfig {
     this.paths = agentPaths(home);
   }
   static async load(home = agentHome()) {
-    const settings = await readJson<AgentSettings>(agentPaths(home).settings, {});
-    return new AgentConfig(home, settings && typeof settings === "object" ? settings : {});
+    const config = new AgentConfig(home, {});
+    await config.reload();
+    return config;
+  }
+  /** Reads settings.json again. */
+  async reload() {
+    const settings = await readJson<AgentSettings>(this.paths.settings, {});
+    this.settings = settings && typeof settings === "object" ? settings : {};
   }
   /** Creates the home and skills directories. */
   async ensure() {

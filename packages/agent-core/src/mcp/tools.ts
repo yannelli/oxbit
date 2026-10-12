@@ -20,6 +20,8 @@ export interface McpToolsOptions {
   trustProject?(cwd: string): boolean | Promise<boolean>;
   /** Added to the /mcp warning that names an untrusted project's servers. */
   trustHint?: string;
+  /** Called on each configure; true leaves a global or project server out. */
+  skip?(server: McpServerConfig): boolean;
   clientInfo?: { name: string; version: string };
   /** Defaults: connect 30 s, tool calls 300 s (an entry's `timeout` wins), idle close 10 min (0 turns it off), retry after a failed connect 60 s. */
   connectTimeout?: number;
@@ -61,9 +63,9 @@ interface SessionState {
 
 const CLIENT_INFO = { name: "oxbit-agent", version: "1" };
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
-const sessionKey = (session: SessionView) => `${session.cwd}\n${JSON.stringify(session.meta.mcpServers ?? null)}`;
 
-/** MCP servers as `mcp__<server>__<tool>` tools. Connects per session on first use; SessionEnd, idle time or close() disconnects. */
+/** MCP servers as `mcp__<server>__<tool>` tools. Connects per session on first use; SessionEnd, idle time or close() disconnects.
+ * Each tools() call reads the config again and reconnects the session when its server list changed. */
 export class McpTools implements ToolProvider, CommandProvider {
   private sessions = new Map<string, SessionState>();
   private loading = new Map<string, Promise<SessionState>>();
@@ -79,7 +81,7 @@ export class McpTools implements ToolProvider, CommandProvider {
       const text = await this.options.read(path).catch((error) => void warnings.push(`${path}: ${message(error)}`));
       if (text === undefined) return;
       const parsed = parseMcpJson(text, scope, this.options.env ?? {}, path);
-      lists.push(parsed.servers);
+      lists.push(this.options.skip ? parsed.servers.filter((server) => !this.options.skip!(server)) : parsed.servers);
       warnings.push(...parsed.warnings);
     };
     if (this.options.globalConfig) await load(this.options.globalConfig, "global");
@@ -96,13 +98,15 @@ export class McpTools implements ToolProvider, CommandProvider {
     return { servers: mergeServers(...lists), warnings };
   }
   private async state(session: SessionView) {
-    const key = sessionKey(session);
-    const current = this.sessions.get(session.id);
-    if (current?.key === key) return current;
     const pending = this.loading.get(session.id) ?? (async () => {
       const { servers, warnings } = await this.configure(session);
-      const state: SessionState = { key, cwd: session.cwd, servers: servers.map((config) => ({ config, tools: 0, excluded: 0 })), warnings, closed: false, active: 0 };
+      const key = JSON.stringify([session.cwd, servers]);
       const previous = this.sessions.get(session.id);
+      if (previous?.key === key) {
+        previous.warnings = warnings;
+        return previous;
+      }
+      const state: SessionState = { key, cwd: session.cwd, servers: servers.map((config) => ({ config, tools: 0, excluded: 0 })), warnings, closed: false, active: 0 };
       this.sessions.set(session.id, state);
       if (previous) await this.shut(previous);
       return state;
@@ -224,7 +228,8 @@ export class McpTools implements ToolProvider, CommandProvider {
       ...server.client?.version ? { version: server.client.version } : {}, ...server.error ? { error: server.error } : {},
     })) };
   }
-  private report(sessionId: string) {
+  /** The /mcp status text: one line per server of the last tools() call, then warnings. */
+  report(sessionId: string) {
     const { servers, warnings } = this.status(sessionId);
     const lines = servers.length ? [`MCP servers (${servers.length}):`] : ["No MCP servers are configured for this session."];
     for (const server of servers) {
