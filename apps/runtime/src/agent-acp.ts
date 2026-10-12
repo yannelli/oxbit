@@ -127,7 +127,7 @@ export class AgentACP {
     return new Promise((resolve, reject) => {
       const id = ++agent.sequence;
       const timer = setTimeout(() => {
-        this.stopAgent(agent, `${method} timed out. Reconnect to continue.`);
+        this.stopAgent(agent, `${method} timed out. Reconnect to continue.`, true);
       }, timeout);
       timer.unref();
       agent.pending.set(id, { resolve, reject, timer });
@@ -264,7 +264,7 @@ export class AgentACP {
     signal?.addEventListener("abort", abort, { once: true });
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
-    child.stdin.on("error", (error) => this.stopAgent(agent, error.message));
+    child.stdin.on("error", (error) => this.stopAgent(agent, error.message, true));
     child.on("error", (error) =>
       this.stopAgent(
         agent,
@@ -272,7 +272,7 @@ export class AgentACP {
       ),
     );
     child.on("close", (code, signal) =>
-      this.stopAgent(agent, `Agent exited (${signal ?? code ?? "unknown"})`),
+      this.stopAgent(agent, `Agent exited (${signal ?? code ?? "unknown"})`, true),
     );
     child.stderr.on("data", (data: string) =>
       this.publish(agent, "acp.log", { text: data.slice(-16384) }),
@@ -285,7 +285,7 @@ export class AgentACP {
         agent.buffer = agent.buffer.slice(end + 1);
         if (!line.trim()) continue;
         if (Buffer.byteLength(line) > 2 * MAX_BYTES) {
-          this.stopAgent(agent, "ACP message exceeds 2 MiB");
+          this.stopAgent(agent, "ACP message exceeds 2 MiB", true);
           return;
         }
         try {
@@ -293,18 +293,19 @@ export class AgentACP {
           if (message?.jsonrpc !== "2.0")
             throw new Error("Invalid ACP envelope");
           void this.message(agent, message).catch((error) =>
-            this.stopAgent(agent, String(error)),
+            this.stopAgent(agent, String(error), true),
           );
         } catch {
           this.stopAgent(
             agent,
             "Agent stdout must contain newline-delimited ACP JSON-RPC messages",
+            true,
           );
           return;
         }
       }
       if (Buffer.byteLength(agent.buffer) > 2 * MAX_BYTES)
-        this.stopAgent(agent, "ACP message exceeds 2 MiB");
+        this.stopAgent(agent, "ACP message exceeds 2 MiB", true);
     });
     try {
       const initialized = await this.request(agent, "initialize", {
@@ -564,6 +565,10 @@ export class AgentACP {
     const messageId = params.messageId === undefined ? randomUUID() : requireString(params, "messageId", 256);
     agent.busy = true;
     agent.turn++;
+    if (agent.queuePaused) {
+      agent.queuePaused = false;
+      this.publishQueue(agent);
+    }
     agent.startedAt = Date.now();
     if (agent.title === "New conversation") agent.title = text.slice(0, 100);
     this.publish(agent, "acp.turnStarted", {
@@ -746,6 +751,7 @@ export class AgentACP {
         this.stopAgent(
           agent,
           "Agent did not finish cancellation; reconnect to continue",
+          true,
         );
     }, 5000);
     timer.unref();
@@ -1177,7 +1183,8 @@ export class AgentACP {
     }
     throw new Error("Unsupported terminal method");
   }
-  private stopAgent(agent: Agent, reason: string) {
+  /** `unexpected` marks a crash, hang or protocol error, after which the client reconnects and loads the session. */
+  private stopAgent(agent: Agent, reason: string, unexpected = false) {
     if (agent.stopped) return;
     agent.stopped = true;
     agent.subagents?.disconnect();
@@ -1194,7 +1201,7 @@ export class AgentACP {
     killProcess(agent.child);
     this.agents.delete(agent.connection.id);
     this.mcp.revoke(agent.connection.id);
-    this.publish(agent, "acp.exit", { reason });
+    this.publish(agent, "acp.exit", unexpected ? { reason, unexpected } : { reason });
   }
   stop(owner: string, id: string) {
     this.stopAgent(this.get(owner, id), "Agent disconnected");

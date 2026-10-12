@@ -943,6 +943,29 @@ describe("dispatched subagents in the editor", () => {
     expect(agent.requests).toEqual([]);
     agent.dispose();
   });
+  it("restarts a crashed agent, loads the conversation and returns the lost prompt to the composer", async () => {
+    const values = new Map();
+    const persistence = { get: async (key: string) => values.get(key), set: async (key: string, value: any) => void values.set(key, value) };
+    const { agent, listeners, runtime } = setup(undefined, persistence);
+    agent.connection!.capabilities = { loadSession: true };
+    runtime.request.mockResolvedValueOnce(agent.connection);
+    await agent.newSession();
+    const restarted = { ...agent.connection!, id: "connection-2" };
+    runtime.request.mockImplementation(async (method, params) =>
+      method === "acp.start" ? { ...restarted, sessionId: undefined } : params?.method === "session/load" ? restarted : {});
+    listeners.get("acp.turnStarted")!({ id: "connection", messageId: "m1", text: "Fix the bug" });
+    listeners.get("acp.exit")!({ id: "connection", reason: "Agent exited (7)", unexpected: true });
+    await vi.waitFor(() => expect(agent.connection?.id).toBe("connection-2"));
+    expect(runtime.request).toHaveBeenCalledWith("acp.call", { id: "connection-2", method: "session/load", params: { sessionId: "session" } });
+    await vi.waitFor(() => expect(agent.draft).toBe("Fix the bug"));
+    expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "Agent exited (7). The agent restarted and loaded this conversation." });
+    const starts = () => runtime.request.mock.calls.filter(([method]) => method === "acp.start").length;
+    listeners.get("acp.exit")!({ id: "connection-2", reason: "Agent disconnected" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(starts()).toBe(1);
+    expect(agent.connection).toBeUndefined();
+    agent.dispose();
+  });
   it("never revives historical children and reconciles replay with saved drafts", async () => {
     const values = new Map();
     const persistence = {
