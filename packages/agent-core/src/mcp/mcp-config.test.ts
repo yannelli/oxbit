@@ -102,7 +102,7 @@ describe("McpTools lifecycle", () => {
     const mcp = new McpTools({ fetch, read, globalConfig: "/home/.oxbit/mcp.json", trustProject: trust, idleMs: 0 });
     expect((await mcp.tools(view("a"))).map((tool) => tool.spec.name)).toEqual(["mcp__shared__project_tool"]);
     expect((await mcp.tools(view("b", "/other"))).map((tool) => tool.spec.name)).toEqual(["mcp__shared__global_tool"]);
-    expect(read).not.toHaveBeenCalledWith("/other/.mcp.json");
+    expect(mcp.status("b").warnings).toEqual([]);
     expect(mcp.status("a").servers[0]).toMatchObject({ scope: "project", state: "connected" });
     const next = { run: vi.fn(async () => ({ systemMessage: "bye" })) };
     const hooks = mcp.hooks(next);
@@ -111,6 +111,15 @@ describe("McpTools lifecycle", () => {
     expect(mcp.status("b").servers).toHaveLength(1);
     await mcp.closeAll();
     expect(mcp.status("b").servers).toEqual([]);
+  });
+
+  it("names an untrusted project's servers in the warnings without loading them", async () => {
+    const project = JSON.stringify({ mcpServers: { local: { command: "./server" }, remote: { type: "http", url: "https://project.example.com/mcp" } } });
+    const fetch = vi.fn(async () => Response.json({}));
+    const mcp = new McpTools({ fetch, read: files(project), trustProject: () => false, trustHint: "Trust it in settings.", idleMs: 0 });
+    expect(await mcp.tools(view("a"))).toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(mcp.status("a").warnings).toEqual(["/work/.mcp.json is not trusted, so its servers are off: local, remote. Trust it in settings."]);
   });
 
   it("closes idle sessions and connects again on the next step", async () => {

@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute } from "node:path";
-import { Agent, type AgentExtensions, type AgentHost, type Params } from "@oxbit/agent-core";
+import { Agent, type AgentExtensions, type AgentHost, type ModelInfo, type Params } from "@oxbit/agent-core";
 import type { AgentModels, FileSystem } from "@oxbit/sdk";
 import type { AgentConfig } from "./config.js";
 import { nodeFilesystem } from "./fs.js";
-import { missingKey, needsKey, nodeModels, type ProviderChoice } from "./providers.js";
+import { nodeMcp } from "./mcp.js";
+import { missingKey, type ProviderChoice } from "./providers.js";
 import { JsonlSessionStore } from "./sessions.js";
 import { Terminals } from "./shell.js";
 import { snapshotStores, undoCommands } from "./snapshots.js";
@@ -90,7 +91,7 @@ export interface AgentSetup {
   provider: ProviderChoice;
   /** Replaces the fetch transport, for tests. */
   models?: AgentModels;
-  /** Merged over the default session store, snapshots, /undo, /redo and the core extensions. */
+  /** Merged over the default session store, snapshots, /undo, /redo, the core extensions and MCP. */
   extensions?: AgentExtensions;
   /** The user's home for ~/.claude, ~/.codex and ~/.agents lookups. */
   userHome?: string;
@@ -102,8 +103,10 @@ export interface AgentSetup {
 /** The Node AgentHost for one ACP connection. */
 export function nodeHost(setup: AgentSetup, link: ClientLink) {
   const { root, config, provider, log } = setup;
+  const { runtime } = provider;
   const local = new LocalClient((params) => link.request("session/request_permission", params));
-  const transport = setup.models ?? nodeModels(provider, { save: config.saveKey, remove: config.removeKey });
+  const mcp = nodeMcp(config, log);
+  let catalog: Promise<ModelInfo[]> | undefined;
   const snapshots = snapshotStores(config.paths.snapshots, log);
   const filesystems = new Map<string, FileSystem>();
   const filesystemFor = (cwd: string) => {
@@ -118,16 +121,22 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     ...core,
     ...setup.extensions,
     context: [...core.context ?? [], ...setup.extensions?.context ?? []],
-    tools: [...core.tools ?? [], ...setup.extensions?.tools ?? []],
-    commands: [undoCommands(snapshots), ...core.commands ?? [], ...setup.extensions?.commands ?? []],
+    tools: [...core.tools ?? [], mcp, ...setup.extensions?.tools ?? []],
+    commands: [undoCommands(snapshots), ...core.commands ?? [], mcp, ...setup.extensions?.commands ?? []],
     continuations: [...core.continuations ?? [], ...setup.extensions?.continuations ?? []],
+    hooks: mcp.hooks(setup.extensions?.hooks ?? core.hooks),
   };
   const host: AgentHost = {
     models: () => {
-      if (!setup.models && needsKey(provider) && !provider.key) throw missingKey(provider);
-      return transport;
+      if (setup.models) return setup.models;
+      if (!provider.ready) throw missingKey(provider);
+      return runtime.models();
     },
-    endpoint: () => provider.endpoint,
+    endpoint: () => runtime.endpoint(),
+    ...setup.models ? {} : { catalog: () => catalog ??= runtime.catalog().catch((error) => {
+      catalog = undefined;
+      throw error;
+    }) },
     model: () => provider.model,
     saveModel: (model) => {
       provider.model = model;
@@ -136,7 +145,7 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
         .catch((error) => log?.(`Could not save the model: ${error.message}`));
     },
     get capabilities() {
-      return { fs: true, terminal: true, diagnostics: !!link.capabilities()._meta?.oxbit?.diagnostics };
+      return { fs: true, terminal: true, diagnostics: !!link.capabilities()._meta?.oxbit?.diagnostics, mcp: { http: true, sse: true } };
     },
     filesystem: filesystemFor(root),
     filesystemFor,
@@ -146,10 +155,15 @@ export function nodeHost(setup: AgentSetup, link: ClientLink) {
     generateTitles: setup.generateTitles,
     extensions,
   };
-  return { host, local, dispose: () => local.dispose() };
+  const dispose = async () => {
+    local.dispose();
+    await mcp.closeAll();
+  };
+  return { host, local, mcp, dispose };
 }
 
-export type AgentFactory = (link: ClientLink) => { agent: Agent; host: AgentHost; dispose(): void };
+/** `dispose` stops local terminals and MCP servers. */
+export type AgentFactory = (link: ClientLink) => { agent: Agent; host: AgentHost; dispose(): void | Promise<void> };
 export const agentFactory = (setup: AgentSetup): AgentFactory => (link) => {
   const { host, dispose } = nodeHost(setup, link);
   return { agent: new Agent(host), host, dispose };

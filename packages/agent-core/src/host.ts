@@ -9,6 +9,8 @@ export interface HostCapabilities {
   terminal: boolean;
   /** false hides the diagnostics tool when nothing answers oxbit/diagnostics. */
   diagnostics?: boolean;
+  /** ACP `mcpCapabilities`: the session/new MCP transports the host connects to besides stdio. */
+  mcp?: { http?: boolean; sse?: boolean };
 }
 
 export interface AgentHost {

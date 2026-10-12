@@ -2,8 +2,9 @@ import { mkdtemp, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Writable } from "node:stream";
-import type { AgentExtensions } from "@oxbit/agent-core";
+import { provider as providerRuntime, type AgentExtensions } from "@oxbit/agent-core";
 import { fakeModels, type Reply } from "@oxbit/agent-core/test-models";
+import { FileAuthStore } from "./auth.js";
 import { AgentConfig } from "./config.js";
 import { agentFactory, type AgentSetup } from "./host.js";
 import type { ProviderChoice } from "./providers.js";
@@ -17,8 +18,9 @@ export async function testSetup(replies: Reply[], options: { root?: string; exte
   const root = options.root ?? await tempDir("oxa-root-");
   const config = await AgentConfig.load(home);
   const fake = fakeModels(replies);
-  const provider: ProviderChoice = { id: "openai-compatible", endpoint: { api: "openai-compatible", baseUrl: "https://models.test/api" },
-    base: "https://models.test/api", model: "model-a" };
+  const runtime = providerRuntime({ provider: "openai-compatible", method: "none", baseUrl: "https://models.test/api" },
+    { fetch: () => Promise.reject(new Error("Tests use fakeModels")), auth: new FileAuthStore(join(home, "auth.json")) });
+  const provider: ProviderChoice = { id: "openai-compatible", runtime, model: "model-a", ready: true };
   const setup: AgentSetup = { root, config, provider, models: fake.models, generateTitles: false, extensions: options.extensions, userHome: home };
   return { home, root, config, setup, fake, factory: agentFactory(setup) };
 }

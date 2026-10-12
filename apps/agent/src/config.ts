@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -6,8 +6,9 @@ import type { PermissionMode } from "@oxbit/agent-core";
 
 export interface ProviderSettings {
   baseUrl?: string;
-  apiKey?: string;
   model?: string;
+  /** "api-key", "chatgpt" or "none". */
+  method?: string;
 }
 /** ~/.oxbit/agent/settings.json. Other keys (hooks, instructions) belong to extensions. */
 export interface AgentSettings {
@@ -15,10 +16,12 @@ export interface AgentSettings {
   model?: string;
   mode?: PermissionMode;
   providers?: Record<string, ProviderSettings>;
+  /** Absolute paths whose `.mcp.json` servers may run, with their subdirectories. */
+  trustedProjects?: string[];
+  /** Runs `.mcp.json` servers in every project. */
+  trustProjectMcp?: boolean;
   [key: string]: unknown;
 }
-export type AuthEntry = { type: "api"; key: string } | { type: string; [key: string]: unknown };
-export type AuthFile = Record<string, AuthEntry>;
 
 /** OXBIT_AGENT_HOME, else ~/.oxbit/agent. */
 export const agentHome = (env: NodeJS.ProcessEnv = process.env) => env.OXBIT_AGENT_HOME || join(homedir(), ".oxbit", "agent");
@@ -29,6 +32,7 @@ export function agentPaths(home: string) {
     settings: join(home, "settings.json"),
     auth: join(home, "auth.json"),
     mcp: join(home, "mcp.json"),
+    cache: join(home, "cache"),
     instructions: join(home, "AGENTS.md"),
     skills: join(home, "skills"),
     sessions: join(home, "sessions"),
@@ -58,24 +62,22 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
 /** Writes through a temporary file and rename; `mode` applies to the final file. */
 export async function writeFileAtomic(file: string, text: string, mode = 0o644) {
   await mkdir(dirname(file), { recursive: true, mode: 0o700 });
-  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  const temp = `${file}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
   await writeFile(temp, text, { mode });
   await chmod(temp, mode);
   await rename(temp, file);
 }
 export const writeJson = (file: string, value: unknown, mode?: number) => writeFileAtomic(file, `${JSON.stringify(value, null, 2)}\n`, mode);
 
-/** settings.json and auth.json under the agent home. */
+/** settings.json under the agent home. auth.json belongs to FileAuthStore. */
 export class AgentConfig {
   readonly paths: AgentPaths;
-  private constructor(home: string, public settings: AgentSettings, private auth: AuthFile) {
+  private constructor(home: string, public settings: AgentSettings) {
     this.paths = agentPaths(home);
   }
   static async load(home = agentHome()) {
-    const paths = agentPaths(home);
-    const settings = await readJson<AgentSettings>(paths.settings, {});
-    const auth = await readJson<AuthFile>(paths.auth, {});
-    return new AgentConfig(home, settings && typeof settings === "object" ? settings : {}, auth && typeof auth === "object" ? auth : {});
+    const settings = await readJson<AgentSettings>(agentPaths(home).settings, {});
+    return new AgentConfig(home, settings && typeof settings === "object" ? settings : {});
   }
   /** Creates the home and skills directories. */
   async ensure() {
@@ -87,20 +89,4 @@ export class AgentConfig {
     this.settings = { ...current, ...patch };
     await writeJson(this.paths.settings, this.settings);
   }
-  key(provider: string) {
-    const entry = this.auth[provider];
-    return entry?.type === "api" && typeof entry.key === "string" && entry.key ? entry.key : undefined;
-  }
-  authEntry(provider: string) {
-    return this.auth[provider];
-  }
-  async saveAuth(provider: string, entry: AuthEntry | undefined) {
-    const current = await readJson<AuthFile>(this.paths.auth, {});
-    if (entry) current[provider] = entry;
-    else delete current[provider];
-    this.auth = current;
-    await writeJson(this.paths.auth, current, 0o600);
-  }
-  saveKey = (provider: string, key: string) => this.saveAuth(provider, { type: "api", key });
-  removeKey = (provider: string) => this.saveAuth(provider, undefined);
 }

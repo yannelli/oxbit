@@ -9,7 +9,7 @@ const collect = async (items: string[]) => {
   for await (const event of openaiResponses.events(chunks(items))) events.push(event);
   return events;
 };
-const reasoning = { id: "rs_1", type: "reasoning", summary: [{ type: "summary_text", text: "Plan" }] };
+const reasoning = { id: "rs_1", type: "reasoning", summary: [{ type: "summary_text", text: "Plan" }], encrypted_content: "enc" };
 const call = { id: "fc_1", type: "function_call", call_id: "call_1", name: "read_file", arguments: "{\"path\":\"a.ts\"}", status: "completed" };
 
 describe("OpenAI Responses adapter", () => {
@@ -47,7 +47,7 @@ describe("OpenAI Responses adapter", () => {
     ];
     const { path, body } = openaiResponses.request({ model: "m", system: "S", turns, tools: [{ name: "t", description: "d", parameters: {} }], effort: "high" }) as any;
     expect(path).toBe("/v1/responses");
-    expect(body).toEqual(expect.objectContaining({ model: "m", instructions: "S", stream: true, reasoning: { effort: "high", summary: "auto" },
+    expect(body).toEqual(expect.objectContaining({ model: "m", instructions: "S", stream: true, store: false, reasoning: { effort: "high", summary: "auto" },
       tools: [{ type: "function", name: "t", description: "d", parameters: {}, strict: false }] }));
     expect(body.input).toEqual([
       { type: "message", role: "user", content: [{ type: "input_text", text: "Read a.ts" }] },
@@ -55,5 +55,18 @@ describe("OpenAI Responses adapter", () => {
       { type: "function_call_output", call_id: "call_1", output: "text" },
       { type: "message", role: "assistant", content: "Done" },
     ]);
+  });
+  it("keeps encrypted reasoning and drops reasoning without it, with the ids of that turn's other items", () => {
+    const stored = { id: "rs_0", type: "reasoning", summary: [] };
+    const message = { id: "msg_1", type: "message", role: "assistant", content: [{ type: "output_text", text: "Hi", annotations: [] }] };
+    const turns: Turn[] = [
+      { role: "assistant", text: "", calls: [], native: { api: "openai", items: [reasoning, call] } },
+      { role: "assistant", text: "Hi", calls: [], native: { api: "openai", items: [stored, message, call] } },
+    ];
+    const { body } = openaiResponses.request({ model: "m", system: "S", turns, tools: [] }) as any;
+    const { id: _message, ...messageInput } = message;
+    const { id: _call, ...callInput } = call;
+    expect([_message, _call]).toEqual(["msg_1", "fc_1"]);
+    expect(body.input).toEqual([reasoning, call, messageInput, callInput]);
   });
 });

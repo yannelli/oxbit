@@ -1,34 +1,36 @@
-import type { AgentModelEndpoint, AgentModelRequest, AgentModels } from "@oxbit/sdk";
+import {
+  PROVIDERS, apiKeySlot, provider as providerRuntime, providerSpec,
+  type AuthMethod, type AuthStore, type CatalogCache, type Fetch, type ProviderId, type ProviderRuntime, type ProviderSpec,
+} from "@oxbit/agent-core";
 import type { AgentSettings } from "./config.js";
 
-export const PROVIDERS = ["openai", "anthropic", "openrouter", "ollama", "openai-compatible"] as const;
-export type ProviderId = typeof PROVIDERS[number];
-const ENV_KEYS: Partial<Record<ProviderId, string>> = { anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY", openrouter: "OPENROUTER_API_KEY" };
-const BASES: Partial<Record<ProviderId, string>> = {
-  openai: "https://api.openai.com", anthropic: "https://api.anthropic.com", openrouter: "https://openrouter.ai/api", ollama: "http://127.0.0.1:11434/v1",
-};
+export const PROVIDER_IDS = PROVIDERS.map((spec) => spec.id);
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
-const ERROR_BODY_LIMIT = 64 * 1024;
+const OLLAMA = "http://127.0.0.1:11434";
+/** Providers picked by a saved or environment key when settings name none, in this order. */
+const DETECTED: ProviderId[] = ["anthropic", "openai", "openrouter"];
 
 export interface ProviderChoice {
   id: ProviderId;
-  endpoint: AgentModelEndpoint;
-  /** Origin plus path prefix; request paths such as /v1/models append to it. */
-  base: string;
-  key?: string;
+  runtime: ProviderRuntime;
   /** The model from --model or settings for this provider. */
   model?: string;
+  /** Whether the key, ChatGPT sign-in or keyless method was usable at startup. */
+  ready: boolean;
 }
 export interface ProviderInput {
   provider?: string;
   model?: string;
+  /** Overrides settings and detection, for `login --provider`. */
+  method?: AuthMethod;
   settings: AgentSettings;
-  env: NodeJS.ProcessEnv;
-  /** Stored API key from auth.json. */
-  storedKey(provider: string): string | undefined;
+  env: Record<string, string | undefined>;
+  auth: AuthStore;
+  fetch?: Fetch;
+  cache?: CatalogCache;
 }
 
-/** https, or http on a loopback host. A trailing /v1 is dropped because the adapters send /v1/... paths. */
+/** https, or http on a loopback host. Adds http:// when the scheme is missing and drops a trailing /v1, since the adapters send /v1/... paths. */
 export function normalizeBase(input: string) {
   let url: URL;
   try {
@@ -43,91 +45,68 @@ export function normalizeBase(input: string) {
   return `${url.origin}${url.pathname.replace(/\/+$/, "").replace(/\/v1$/, "")}`;
 }
 
-/** Provider, endpoint, key and model from flags, settings.json, auth.json and the environment. */
-export function selectProvider({ provider, model, settings, env, storedKey }: ProviderInput): ProviderChoice {
-  const keyOf = (id: ProviderId) => (ENV_KEYS[id] && env[ENV_KEYS[id]!]) || storedKey(id) || settings.providers?.[id]?.apiKey || undefined;
-  const detected = (["anthropic", "openai", "openrouter"] as const).find((id) => keyOf(id));
-  const name = provider || settings.provider || detected || "ollama";
-  if (!PROVIDERS.includes(name as ProviderId)) throw new Error(`Unknown provider ${name}. Use one of: ${PROVIDERS.join(", ")}`);
-  const id = name as ProviderId;
-  const own = settings.providers?.[id] ?? {};
-  const fromEnv = id === "ollama" ? env.OLLAMA_HOST : id === "openai-compatible" ? env.OXBIT_AGENT_BASE_URL : undefined;
-  const configured = id === "openai" || id === "anthropic" ? BASES[id] : own.baseUrl || fromEnv || BASES[id];
-  if (!configured) throw new Error("Set providers[\"openai-compatible\"].baseUrl in settings.json or OXBIT_AGENT_BASE_URL");
-  const base = normalizeBase(configured);
-  const endpoint: AgentModelEndpoint = id === "openai" || id === "anthropic" ? { api: id } : { api: "openai-compatible", baseUrl: base };
-  const saved = own.model || (settings.provider === id || !settings.provider ? settings.model : undefined);
-  return { id, endpoint, base, key: keyOf(id), model: model || saved || undefined };
+/** Whether auth.json holds an active ChatGPT sign-in. Reads the entry without creating it. */
+export async function chatgptSignedIn(auth: AuthStore) {
+  try {
+    const record = JSON.parse((await auth.get("chatgpt")) ?? "null");
+    return Array.isArray(record?.accounts) && record.accounts.some((account: any) => account?.client_id === record.active && !!account.refresh_token);
+  } catch {
+    return false;
+  }
 }
 
-export const needsKey = (choice: ProviderChoice) => choice.id !== "ollama" && choice.id !== "openai-compatible";
+const keyFor = async (spec: ProviderSpec, input: ProviderInput, baseUrl?: string) =>
+  !!((await input.auth.get(apiKeySlot(spec.id, baseUrl))) || (spec.env && input.env[spec.env]));
+
+function baseFor(spec: ProviderSpec, settings: AgentSettings, env: ProviderInput["env"]) {
+  const own = settings.providers?.[spec.id]?.baseUrl;
+  const configured = spec.id === "ollama" ? own || env.OLLAMA_HOST || OLLAMA
+    : spec.id === "openai-compatible" ? own || env.OXBIT_AGENT_BASE_URL : spec.id === "openrouter" ? own : undefined;
+  if (spec.id === "openai-compatible" && !configured) throw new Error("Set providers[\"openai-compatible\"].baseUrl in settings.json or OXBIT_AGENT_BASE_URL");
+  return configured ? normalizeBase(configured) : undefined;
+}
+
+/** settings.json `method`, else ChatGPT when signed in, else an API key when one exists or is the only method, else no key where allowed. */
+async function methodFor(spec: ProviderSpec, input: ProviderInput, signedIn: boolean, baseUrl?: string): Promise<AuthMethod> {
+  const ids = spec.methods.map((method) => method.id);
+  const configured = input.method ?? input.settings.providers?.[spec.id]?.method;
+  if (configured) {
+    if (!ids.includes(configured as AuthMethod)) throw new Error(`${spec.name} does not support the ${configured} method. Use one of: ${ids.join(", ")}`);
+    return configured as AuthMethod;
+  }
+  if (ids.includes("chatgpt") && signedIn) return "chatgpt";
+  if (ids.includes("api-key") && (ids.length === 1 || await keyFor(spec, input, baseUrl))) return "api-key";
+  return ids.includes("none") ? "none" : ids.find((id) => id !== "chatgpt") ?? ids[0];
+}
+
+/** Provider from --provider, settings.json, then a saved or environment key, then Ollama; model from --model, then settings. */
+export async function selectProvider(input: ProviderInput): Promise<ProviderChoice> {
+  const { settings, env } = input;
+  const signedIn = await chatgptSignedIn(input.auth);
+  let detected: ProviderId | undefined;
+  if (!input.provider && !settings.provider)
+    for (const id of DETECTED) {
+      if (await keyFor(providerSpec(id)!, input) || (id === "openai" && signedIn)) {
+        detected = id;
+        break;
+      }
+    }
+  const name = input.provider || settings.provider || detected || "ollama";
+  const spec = providerSpec(name);
+  if (!spec) throw new Error(`Unknown provider ${name}. Use one of: ${PROVIDER_IDS.join(", ")}`);
+  const baseUrl = baseFor(spec, settings, env);
+  const method = await methodFor(spec, input, signedIn, baseUrl);
+  const runtime = providerRuntime({ provider: spec.id, method, ...baseUrl ? { baseUrl } : {} },
+    { fetch: input.fetch ?? ((url, init) => fetch(url, init)), auth: input.auth, env, cache: input.cache });
+  const ready = method === "chatgpt" ? signedIn : await runtime.models().keys.has(runtime.endpoint());
+  const own = settings.providers?.[spec.id]?.model;
+  const saved = own || (settings.provider === spec.id || !settings.provider ? settings.model : undefined);
+  return { id: spec.id, runtime, model: input.model || saved || undefined, ready };
+}
+
 export function missingKey(choice: ProviderChoice) {
-  const variable = ENV_KEYS[choice.id];
-  return new Error(`No API key for ${choice.id}. Set ${variable ? `${variable} or run` : "one with"} \`oxbit-agent login --provider ${choice.id}\``);
-}
-
-/** The request URL under `base`. Throws for paths that leave it. */
-export function requestUrl(base: string, path: string) {
-  if (!path.startsWith("/") || path.startsWith("//") || /\.\.|\\|#|\s|%2e/i.test(path)) throw new Error(`The model API path ${path} is not allowed`);
-  const url = new URL(base + path);
-  const root = new URL(base);
-  if (url.origin !== root.origin || !url.pathname.startsWith(`${root.pathname.replace(/\/$/, "")}/`)) throw new Error(`The model API path ${path} is not allowed`);
-  return url;
-}
-
-type Fetch = typeof fetch;
-export interface KeyStore {
-  save(provider: string, key: string): Promise<void>;
-  remove(provider: string): Promise<void>;
-}
-
-/** AgentModels over fetch for one provider: pinned to its base, no redirects, key in headers. */
-export function nodeModels(choice: ProviderChoice, keys?: KeyStore, fetcher: Fetch = fetch): AgentModels {
-  const matches = (endpoint: AgentModelEndpoint) => endpoint.api === choice.endpoint.api
-    && (endpoint.api !== "openai-compatible" || normalizeBase(endpoint.baseUrl ?? "") === choice.base);
-  return {
-    async *stream(request: AgentModelRequest, signal?: AbortSignal) {
-      if (!matches(request)) throw new Error("This model endpoint is not the configured provider");
-      const headers: Record<string, string> = { "content-type": "application/json" };
-      if (choice.endpoint.api === "anthropic") Object.assign(headers, { "x-api-key": choice.key ?? "", "anthropic-version": "2023-06-01" });
-      else if (choice.key) headers.authorization = `Bearer ${choice.key}`;
-      const response = await fetcher(requestUrl(choice.base, request.path), {
-        method: request.method, headers, signal, redirect: "error",
-        body: request.method === "POST" && request.body !== undefined ? JSON.stringify(request.body) : undefined,
-      });
-      if (!response.ok) {
-        const body = (await response.text().catch(() => "")).slice(0, ERROR_BODY_LIMIT);
-        throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status, body });
-      }
-      if (!response.body) return;
-      const decoder = new TextDecoder();
-      const reader = response.body.getReader();
-      let done = false;
-      try {
-        while (!done) {
-          const chunk = await reader.read();
-          done = chunk.done;
-          const text = chunk.value ? decoder.decode(chunk.value, { stream: true }) : "";
-          if (text) yield text;
-        }
-      } finally {
-        if (!done) await reader.cancel().catch(() => {});
-      }
-      const rest = decoder.decode();
-      if (rest) yield rest;
-    },
-    keys: {
-      has: async (endpoint) => matches(endpoint) && (!needsKey(choice) || !!choice.key),
-      save: async (endpoint, key) => {
-        if (!matches(endpoint) || !keys) throw new Error("This endpoint is not the configured provider");
-        await keys.save(choice.id, key);
-        choice.key = key;
-      },
-      remove: async (endpoint) => {
-        if (!matches(endpoint) || !keys) return;
-        await keys.remove(choice.id);
-        choice.key = undefined;
-      },
-    },
-  };
+  const { spec, method } = choice.runtime;
+  if (method === "chatgpt") return new Error("Sign in with ChatGPT first: oxbit-agent login chatgpt");
+  const plan = spec.methods.some((item) => item.id === "chatgpt") ? ", or use your ChatGPT plan: oxbit-agent login chatgpt" : "";
+  return new Error(`No API key for ${spec.id}. Set ${spec.env ? `${spec.env} or run` : "one with"} \`oxbit-agent login --provider ${spec.id}\`${plan}`);
 }

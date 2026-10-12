@@ -1,14 +1,16 @@
 import type { Readable, Writable } from "node:stream";
 import { parseArgs } from "node:util";
-import { MODES, listModels, type PermissionMode } from "@oxbit/agent-core";
+import { MODES, type Fetch, type PermissionMode } from "@oxbit/agent-core";
 import type { FileSystem } from "@oxbit/sdk";
 import { serveStdio } from "./acp-server.js";
+import { FileAuthStore, FileCatalogCache } from "./auth.js";
 import { AgentConfig, agentHome } from "./config.js";
 import { MemoryConnection } from "./connection.js";
 import { agentFactory, type AgentSetup } from "./host.js";
 import { nodeFilesystem } from "./fs.js";
+import { UsageError, login, logout, models, readAll, type AuthCommand } from "./login.js";
 import { runPrint } from "./print.js";
-import { PROVIDERS, missingKey, needsKey, nodeModels, selectProvider, type ProviderId } from "./providers.js";
+import { PROVIDER_IDS, selectProvider, type ProviderChoice, type ProviderInput } from "./providers.js";
 import { JsonlSessionStore } from "./sessions.js";
 import { agentVersion } from "./version.js";
 
@@ -16,13 +18,15 @@ export const USAGE = `Usage: oxbit-agent [options] [prompt]     Terminal UI
        oxbit-agent -p <prompt> [options]   Print one reply and exit
        oxbit-agent acp                     ACP agent on stdin/stdout
        oxbit-agent models                  List the provider's models
-       oxbit-agent login [chatgpt]         Save an API key read from stdin
-       oxbit-agent logout [provider]       Remove saved keys
+       oxbit-agent login                   List the sign-in methods
+       oxbit-agent login chatgpt           Continue with ChatGPT to use your ChatGPT plan
+       oxbit-agent login --provider <id>   Save an API key read from stdin
+       oxbit-agent logout [provider|chatgpt]  Remove saved keys, or sign out of ChatGPT
 
 Options:
   -p, --print <prompt>   Run one prompt; "-" reads it from stdin
   -m, --model <id>       Model for this run
-      --provider <id>    ${PROVIDERS.join(", ")}
+      --provider <id>    ${PROVIDER_IDS.join(", ")}
       --mode <mode>      ${MODES.map((mode) => mode.id).join(", ")}
   -c, --continue         Continue the latest session in this directory
   -r, --resume <id>      Resume a saved session
@@ -43,39 +47,15 @@ export interface CliIO {
   stderr: Writable;
   env: NodeJS.ProcessEnv;
   cwd: string;
+  /** Replaces the global fetch for model, sign-in and catalog requests, for tests. */
+  fetch?: Fetch;
+  /** Replaces the system browser for Sign in with ChatGPT; resolves false when no browser opened. */
+  open?(url: string): Promise<boolean>;
 }
-/** What `./tui/index.js` exports. */
+/** What `./tui/index.js` exports. `providerLabel` is "Using ChatGPT plan" for plan requests, else the provider name. */
 export interface TuiModule {
   runTui(options: { connection: MemoryConnection; cwd: string; sessionId?: string; prompt?: string; mode?: PermissionMode;
-    files: FileSystem; provider: string; version: string }): Promise<number>;
-}
-
-class UsageError extends Error {}
-
-async function readAll(stream: Readable) {
-  let text = "";
-  for await (const chunk of stream) text += chunk;
-  return text;
-}
-/** One line from a TTY without echo, else all of stdin. */
-async function readSecret(io: CliIO, label: string) {
-  if (!io.stdin.isTTY || !io.stdin.setRawMode) return readAll(io.stdin);
-  io.stderr.write(label);
-  io.stdin.setRawMode(true);
-  try {
-    let text = "";
-    for await (const chunk of io.stdin) {
-      for (const char of String(chunk)) {
-        if (char === "\r" || char === "\n") return text;
-        if (char === "\u0003") throw new UsageError("Cancelled");
-        text = char === "\u007f" ? text.slice(0, -1) : text + char;
-      }
-    }
-    return text;
-  } finally {
-    io.stdin.setRawMode(false);
-    io.stderr.write("\n");
-  }
+    files: FileSystem; provider: string; providerLabel?: string; version: string }): Promise<number>;
 }
 
 export async function main(argv: string[], io: CliIO): Promise<number> {
@@ -94,15 +74,19 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     if (values.mode && !MODES.some((mode) => mode.id === values.mode)) throw new UsageError(`Unknown mode ${values.mode}`);
     const config = await AgentConfig.load(agentHome(io.env));
     await config.ensure();
+    const auth = new FileAuthStore(config.paths.auth);
+    const input: ProviderInput = { provider: values.provider, model: values.model, settings: config.settings, env: io.env, auth,
+      fetch: io.fetch, cache: new FileCatalogCache(config.paths.cache) };
+    const commandContext: AuthCommand = { config, auth, io, input };
     const [command, ...rest] = positionals;
     switch (command) {
-      case "acp": return await acp(config, values, io, log);
-      case "models": return await models(config, values, io);
-      case "login": return await login(config, values, rest, io);
-      case "logout": return await logout(config, values, rest, io);
+      case "acp": return await acp(config, await selectProvider(input), io, log);
+      case "models": return await models(commandContext);
+      case "login": return await login(commandContext, rest);
+      case "logout": return await logout(commandContext, rest);
     }
-    const setup = (generateTitles: boolean, quiet = false): AgentSetup => ({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log,
-      provider: selectProvider({ provider: values.provider, model: values.model, settings: config.settings, env: io.env, storedKey: (id) => config.key(id) }) });
+    const provider = await selectProvider(input);
+    const setup = (generateTitles: boolean, quiet = false): AgentSetup => ({ root: io.cwd, config, generateTitles, log: quiet ? undefined : log, provider });
     const sessionId = await resumeId(config, values, io.cwd);
     const mode = (values.mode ?? config.settings.mode) as PermissionMode | undefined;
     if (values.print !== undefined) {
@@ -133,7 +117,7 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     const connection = await MemoryConnection.open(agentFactory(connected));
     try {
       return await tui.runTui({ connection, cwd: io.cwd, sessionId, prompt: positionals.join(" ") || undefined, mode,
-        files: nodeFilesystem(io.cwd), provider: connected.provider.id, version: agentVersion() });
+        files: nodeFilesystem(io.cwd), provider: connected.provider.id, providerLabel: connected.provider.runtime.label, version: agentVersion() });
     } finally {
       await connection.close();
     }
@@ -155,40 +139,7 @@ async function resumeId(config: AgentConfig, values: Values, cwd: string) {
   return values.resume;
 }
 
-async function acp(config: AgentConfig, values: Values, io: CliIO, log: (text: string) => void) {
-  const provider = selectProvider({ provider: values.provider, model: values.model, settings: config.settings, env: io.env, storedKey: (id) => config.key(id) });
+async function acp(config: AgentConfig, provider: ProviderChoice, io: CliIO, log: (text: string) => void) {
   await serveStdio({ input: io.stdin, output: io.stdout, factory: agentFactory({ root: io.cwd, config, provider, log }), log });
-  return 0;
-}
-
-async function models(config: AgentConfig, values: Values, io: CliIO) {
-  const provider = selectProvider({ provider: values.provider, model: values.model, settings: config.settings, env: io.env, storedKey: (id) => config.key(id) });
-  if (needsKey(provider) && !provider.key) throw missingKey(provider);
-  const list = await listModels(nodeModels(provider), provider.endpoint);
-  for (const model of list) io.stdout.write(`${model.id === provider.model ? "*" : " "} ${model.id}${model.contextWindow ? `  ${model.contextWindow}` : ""}\n`);
-  return 0;
-}
-
-async function login(config: AgentConfig, values: Values, rest: string[], io: CliIO) {
-  if (rest[0] === "chatgpt") {
-    io.stderr.write("Sign in with ChatGPT lands with the provider registry. Until then, use an OpenAI API key: oxbit-agent login --provider openai\n");
-    return 1;
-  }
-  if (rest.length) throw new UsageError(`Unknown login method ${rest[0]}`);
-  const id = (values.provider ?? config.settings.provider) as ProviderId | undefined;
-  if (!id) throw new UsageError(`Choose a provider: oxbit-agent login --provider <${PROVIDERS.join("|")}>`);
-  if (!PROVIDERS.includes(id)) throw new UsageError(`Unknown provider ${id}`);
-  const key = (await readSecret(io, `API key for ${id}: `)).trim();
-  if (!key) throw new UsageError("No API key on stdin");
-  await config.saveKey(id, key);
-  io.stdout.write(`Saved the ${id} API key in ${config.paths.auth}\n`);
-  return 0;
-}
-
-async function logout(config: AgentConfig, values: Values, rest: string[], io: CliIO) {
-  const id = rest[0] ?? values.provider;
-  const ids = id ? [id] : PROVIDERS.filter((provider) => config.authEntry(provider));
-  for (const provider of ids) await config.saveAuth(provider, undefined);
-  io.stdout.write(ids.length ? `Removed saved keys for ${ids.join(", ")}\n` : "No saved keys\n");
   return 0;
 }

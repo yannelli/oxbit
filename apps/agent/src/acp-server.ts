@@ -94,7 +94,7 @@ export class AcpServer {
   readonly peer: JsonRpcPeer;
   readonly agent: Agent;
   private capabilities: ClientCapabilities = {};
-  private disposeHost: () => void;
+  private disposeHost: () => void | Promise<void>;
   private closing?: Promise<void>;
   constructor(send: (message: Message) => void, factory: AgentFactory) {
     this.peer = new JsonRpcPeer(send, {
@@ -119,12 +119,12 @@ export class AcpServer {
   receive(message: Message) {
     this.peer.receive(message);
   }
-  /** Cancels running prompts, runs SessionEnd hooks and kills local terminals. */
+  /** Cancels running prompts, runs SessionEnd hooks, kills local terminals and stops MCP servers. */
   close(reason = "The ACP client disconnected") {
     return this.closing ??= (async () => {
       this.peer.close(reason);
       await this.agent.dispose("other").catch(() => {});
-      this.disposeHost();
+      await Promise.resolve().then(() => this.disposeHost()).catch(() => {});
     })();
   }
 }

@@ -18,6 +18,8 @@ export interface McpToolsOptions {
   env?: Record<string, string | undefined>;
   /** Whether `<cwd>/.mcp.json` loads. Without it, project servers are skipped. */
   trustProject?(cwd: string): boolean | Promise<boolean>;
+  /** Added to the /mcp warning that names an untrusted project's servers. */
+  trustHint?: string;
   clientInfo?: { name: string; version: string };
   /** Defaults: connect 30 s, tool calls 300 s (an entry's `timeout` wins), idle close 10 min (0 turns it off), retry after a failed connect 60 s. */
   connectTimeout?: number;
@@ -81,7 +83,13 @@ export class McpTools implements ToolProvider, CommandProvider {
       warnings.push(...parsed.warnings);
     };
     if (this.options.globalConfig) await load(this.options.globalConfig, "global");
-    if (await this.options.trustProject?.(session.cwd)) await load(`${session.cwd.replace(/[\\/]+$/, "")}/.mcp.json`, "project");
+    const project = `${session.cwd.replace(/[\\/]+$/, "")}/.mcp.json`;
+    if (await this.options.trustProject?.(session.cwd)) await load(project, "project");
+    else if (this.options.trustProject) {
+      const text = await this.options.read(project).catch(() => undefined);
+      const names = text === undefined ? [] : parseMcpJson(text, "project", {}, project).servers.map((server) => server.name);
+      if (names.length) warnings.push(`${project} is not trusted, so its servers are off: ${names.join(", ")}.${this.options.trustHint ? ` ${this.options.trustHint}` : ""}`);
+    }
     const acp = parseAcpServers(session.meta.mcpServers);
     lists.push(acp.servers);
     warnings.push(...acp.warnings);
