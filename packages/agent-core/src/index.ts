@@ -11,3 +11,6 @@ export { anthropicMessages, DEFAULT_MAX_TOKENS } from "./anthropic-messages.js";
 export * from "./hooks.js";
 export * from "./goal.js";
 export * from "./loop.js";
+export { Compaction, COMPACT_FOCUS, type CompactionOptions } from "./compaction.js";
+export { Instructions, findGitRoot, type HostFiles, type InstructionOptions } from "./instructions.js";
+export { Skills, parseFrontmatter, type Skill, type SkillOptions, type SkillSet } from "./skills.js";
