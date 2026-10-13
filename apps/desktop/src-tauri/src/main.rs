@@ -38,8 +38,10 @@ fn application_url(url: &tauri::Url) -> bool {
 
 fn preview_url(url: &tauri::Url) -> bool {
     // Embedded PDF/HTML previews use blobs minted by the application itself.
-    url.scheme() == "blob"
-        && tauri::Url::parse(url.path()).is_ok_and(|origin| application_url(&origin))
+    // HTML previews with JavaScript load the static oxbit-preview shell.
+    url.scheme() == "oxbit-preview"
+        || url.scheme() == "blob"
+            && tauri::Url::parse(url.path()).is_ok_and(|origin| application_url(&origin))
 }
 
 #[cfg(test)]
@@ -47,9 +49,14 @@ mod preview_tests {
     use super::preview_url;
 
     #[test]
-    fn only_application_blob_urls_can_navigate() {
+    fn only_application_previews_can_navigate() {
         assert!(preview_url(
             &"blob:tauri://localhost/preview".parse().unwrap()
+        ));
+        assert!(preview_url(
+            &"oxbit-preview://localhost/preview-shell.html"
+                .parse()
+                .unwrap()
         ));
         for url in [
             "blob:https://example.com/preview",
