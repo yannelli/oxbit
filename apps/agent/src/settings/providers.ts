@@ -1,7 +1,8 @@
 import { CHATGPT_LABELS, PROVIDERS, apiKeySlot, providerSpec, type ProviderSpec } from "@oxbit/agent-core";
+import { CLAUDE_PLAN, claudeStatus, planText } from "../claude.js";
 import { stringList } from "../config.js";
 import { SIGN_IN_TIMEOUT_MS, apiKeyChoice, fetchOr, openBrowser, removeApiKeys, saveApiKey, signInChatGPT, signOutChatGPT } from "../login.js";
-import { chatgptSignedIn, normalizeBase, selectProvider, type ProviderInput } from "../providers.js";
+import { chatgptSignedIn, isClaude, normalizeBase, selectProvider, type ProviderInput } from "../providers.js";
 import type { PanelAction, PanelChange, PanelContext, PanelRow } from "../tui/connection.js";
 import { setListed, unknownRow, type PanelHandler, type SettingsDeps } from "./shared.js";
 
@@ -22,7 +23,7 @@ function baseOf(spec: ProviderSpec, deps: SettingsDeps) {
 async function status(spec: ProviderSpec, deps: SettingsDeps, signedIn: boolean) {
   const parts: string[] = [];
   const current = deps.provider();
-  if (current.id === spec.id) parts.push(current.runtime.method === "chatgpt" ? "in use with your ChatGPT plan" : "in use");
+  if (current.id === spec.id) parts.push(!isClaude(current) && current.runtime.method === "chatgpt" ? "in use with your ChatGPT plan" : "in use");
   if (spec.id === "openai" && signedIn) parts.push("signed in with ChatGPT");
   const base = baseOf(spec, deps);
   let saved = false;
@@ -47,14 +48,22 @@ async function apply(deps: SettingsDeps, id: string, message: string): Promise<P
   return { message: `${message}. It applies after the agent restarts.` };
 }
 
-async function use(deps: SettingsDeps, spec: ProviderSpec): Promise<PanelChange> {
+async function use(deps: SettingsDeps, spec: { id: string; name: string }): Promise<PanelChange> {
   const { config } = deps;
-  await selectProvider({ ...input(deps), provider: spec.id });
+  if (spec.id !== CLAUDE_PLAN.id) await selectProvider({ ...input(deps), provider: spec.id });
   const previous = config.settings.provider ?? deps.provider().id;
   const providers = { ...config.settings.providers };
   if (config.settings.model && !providers[previous]?.model) providers[previous] = { ...providers[previous], model: config.settings.model };
   await config.saveSettings({ provider: spec.id, model: undefined, providers });
   return apply(deps, spec.id, `Using ${spec.name}`);
+}
+
+async function claudeRow(deps: SettingsDeps): Promise<PanelRow> {
+  const inUse = deps.provider().id === CLAUDE_PLAN.id;
+  const status = await claudeStatus(deps.env);
+  const steps = status.installed && !status.loggedIn ? "run `oxbit-agent login claude` in a terminal" : undefined;
+  const detail = [inUse && "in use", planText(status), steps, "Claude Agent with Claude Code's own sign-in"].filter(Boolean).join(", ");
+  return { id: CLAUDE_PLAN.id, section: "Providers", label: CLAUDE_PLAN.name, detail, actions: inUse ? [] : [{ id: "use", label: "Use this provider", reloads: true }] };
 }
 
 async function signIn(deps: SettingsDeps, context: PanelContext) {
@@ -83,6 +92,7 @@ export const providersPanel: PanelHandler = {
         inputs: [{ label: "Base URL (empty clears it)", placeholder: "https://llm.example.com", value: deps.config.settings.providers?.[spec.id]?.baseUrl ?? "" }] });
       return { id: spec.id, section: "Providers", label: spec.name, detail: text, enabled: !disabled.includes(spec.id), actions };
     }));
+    rows.push(await claudeRow(deps));
     return { id: "providers", title: "Providers", rows, footer: "Unchecked providers are skipped when settings name no provider; --provider and Use still pick them." };
   },
   async toggle({ config }, rowId, enabled) {
@@ -92,6 +102,7 @@ export const providersPanel: PanelHandler = {
     return { message: `${spec.name} is ${enabled ? "on" : "off"} for automatic selection` };
   },
   async act(deps, rowId, actionId, inputs, context) {
+    if (rowId === CLAUDE_PLAN.id && actionId === "use") return use(deps, CLAUDE_PLAN);
     const spec = providerSpec(rowId);
     if (!spec) throw unknownRow(rowId);
     const inUse = deps.provider().id === spec.id;

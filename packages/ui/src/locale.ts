@@ -2,10 +2,11 @@ import en from "./locales/en.json";
 import de from "./locales/de.json";
 import es from "./locales/es.json";
 import ja from "./locales/ja.json";
+import ko from "./locales/ko.json";
 import zh from "./locales/zh.json";
-export type Locale = "en" | "de" | "es" | "ja" | "zh";
+export type Locale = "en" | "de" | "es" | "ja" | "ko" | "zh";
 const aliases: Record<string, Locale> = { long: "de" };
-const resources: Record<Locale, Record<string, string>> = { en, de, es, ja, zh };
+const resources: Record<Locale, Record<string, string>> = { en, de, es, ja, ko, zh };
 let locale: Locale = "en";
 function resolveLocale(value: string | undefined): Locale {
   const requested = value ? (aliases[value] ?? value) : "en";

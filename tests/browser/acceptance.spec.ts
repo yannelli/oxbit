@@ -106,13 +106,14 @@ test("localized settings persist and fit the phone viewport", async ({
   await expect(page.getByPlaceholder("Search settings")).toBeVisible();
 });
 
-test("spanish japanese and chinese display languages switch", async ({
+test("spanish japanese korean and chinese display languages switch", async ({
   page,
 }) => {
   await ready(page);
   for (const [locale, placeholder] of [
     ["es", "Buscar en la configuración"],
     ["ja", "設定を検索"],
+    ["ko", "설정 검색"],
     ["zh", "搜索设置"],
   ] as const) {
     await page.evaluate(async (next) => {

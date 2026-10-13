@@ -8,7 +8,7 @@ import { draftOf } from "./editor.js";
 import { resolveTheme } from "./theme.js";
 import { oscTitle, windowTitle } from "./transcript-export.js";
 import type { PermissionMode } from "@oxbit/agent-core";
-import type { MemoryConnection } from "../connection.js";
+import type { AcpClient } from "../connection.js";
 
 export type * from "./connection.js";
 export type { HistoryStore } from "./controller.js";
@@ -84,7 +84,7 @@ export async function run(connection: TuiConnection, options: RunOptions): Promi
 }
 
 export interface RunTuiOptions {
-  connection: MemoryConnection;
+  connection: AcpClient;
   cwd: string;
   sessionId?: string;
   prompt?: string;

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  agentErrorText,
   agentName,
+  CLAUDE_SIGNED_OUT,
   formatArgs,
   parseArgs,
   rememberAgentName,
@@ -116,5 +118,15 @@ describe("launch resolution", () => {
     );
     const other = new Error("spawn ENOENT");
     expect(runtimeSupportError(other, "OpenCode")).toBe(other);
+  });
+  it("maps Claude Agent's -32000 auth error to the runtime sign-in step", () => {
+    const signedOut = Object.assign(new Error("Authentication required"), { code: "-32000" });
+    expect(agentErrorText("claude", signedOut)).toBe(CLAUDE_SIGNED_OUT);
+    expect(agentErrorText("claude", Object.assign(new Error("Authentication required"), { code: -32000 }))).toBe(CLAUDE_SIGNED_OUT);
+    expect(agentErrorText("claude", "Authentication required")).toBe(CLAUDE_SIGNED_OUT);
+    expect(agentErrorText("codex", signedOut)).toBe("Authentication required");
+    expect(agentErrorText("claude", Object.assign(new Error("Internal error"), { code: "-32000" }))).toBe("Internal error");
+    expect(agentErrorText("claude", Object.assign(new Error("Authentication required"), { code: "-32603" }))).toBe("Authentication required");
+    expect(agentErrorText("claude", "Rate limited")).toBe("Rate limited");
   });
 });

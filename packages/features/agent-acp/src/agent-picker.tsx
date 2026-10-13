@@ -9,7 +9,7 @@ import { formatArgs, OXBIT_AGENT_NAME, parseArgs, startable, storedArgs } from "
 const HINTS: Record<string, string> = {
   "oxbit-cli": "Ships with Oxbit. Uses ~/.oxbit/agent settings.",
   codex: "Runs with npx. Uses your Codex sign-in.",
-  claude: "Runs with npx. Uses your Claude Code sign-in.",
+  claude: "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.",
   gemini: "Runs with npx. Sign in or set GEMINI_API_KEY.",
   copilot: "Runs with npx. Sign in with GitHub.",
   cursor: "Needs Cursor CLI and agent login.",
@@ -17,6 +17,9 @@ const HINTS: Record<string, string> = {
 };
 export type Chooser = "registry" | "custom";
 const NEEDS_RUNTIME = "Needs a runtime workspace";
+const UNAVAILABLE: Record<string, string> = {
+  claude: "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.",
+};
 
 /** Built-in agents, the current registry or custom choice, and entries for more agents. Without a runtime workspace, the Oxbit agent leads and the others are disabled. */
 export function AgentPicker({
@@ -35,6 +38,7 @@ export function AgentPicker({
     void agent.action(() => agent.select({ provider }));
   const row = (id: string, name: string, hint: string, title = hint) => {
     const available = startable(id, local);
+    const unavailable = tr(UNAVAILABLE[id] ?? NEEDS_RUNTIME);
     return (
       <button
         key={id}
@@ -48,7 +52,7 @@ export function AgentPicker({
         <AgentLogo provider={id} />
         <span>
           <strong>{name}</strong>
-          <small title={available ? title : tr(NEEDS_RUNTIME)}>{available ? hint : tr(NEEDS_RUNTIME)}</small>
+          <small title={available ? title : unavailable}>{available ? hint : unavailable}</small>
         </span>
       </button>
     );
@@ -85,7 +89,7 @@ export function AgentPicker({
         disabled={!enabled || agent.connecting}
         onClick={() => void agent.action(() => agent.connectSelected())}
       >
-        {tr("Start {0}", { 0: agent.displayName })}
+        {local && agent.claudePlan ? tr("Runtime connection") : tr("Start {0}", { 0: agent.displayName })}
       </button>
     </section>
   );

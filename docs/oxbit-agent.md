@@ -16,9 +16,9 @@ entry in the agent picker.
 | `oxbit-agent -p <prompt>` | Prints the reply to stdout, tool lines to stderr; exit 0, 1, or 130 when cancelled. `-p -` reads the prompt from stdin |
 | `oxbit-agent acp` | ACP agent over NDJSON JSON-RPC; stdout carries only protocol lines, logs go to stderr |
 | `oxbit-agent models` | Lists the provider's models with context windows |
-| `oxbit-agent login [chatgpt]` | Lists sign-in methods, or signs in with ChatGPT |
+| `oxbit-agent login [chatgpt\|claude]` | Lists sign-in methods, signs in with ChatGPT, or runs `claude auth login` |
 | `oxbit-agent login --provider <id>` | Saves an API key read from stdin |
-| `oxbit-agent logout [provider\|chatgpt]` | Removes saved keys, or signs out of ChatGPT; no argument does both |
+| `oxbit-agent logout [provider\|chatgpt\|claude]` | Removes saved keys, signs out of ChatGPT, or runs `claude auth logout`; no argument removes keys and the ChatGPT sign-in |
 
 Options: `-m/--model`, `--provider`, `--mode ask|accept-edits|full-auto`,
 `-c/--continue` (latest session in this directory), `-r/--resume <id>`,
@@ -142,6 +142,7 @@ session config options.
 | `openrouter` | `OPENROUTER_API_KEY` or a saved key | Chat Completions |
 | `ollama` | none | `http://127.0.0.1:11434`, or `OLLAMA_HOST` |
 | `openai-compatible` | optional key per origin | `providers["openai-compatible"].baseUrl` or `OXBIT_AGENT_BASE_URL` |
+| `claude` | Claude Code's own sign-in | Claude plan: runs Claude Agent in place of the Oxbit agent, below |
 
 Selection order: `--provider`, then `settings.json`, then the first provider with
 a key in `auth.json` or the environment, then Ollama. A saved key wins over the
@@ -167,13 +168,37 @@ to `api.openai.com/v1/responses` with `store: false`. The UI shows "Continue wit
 ChatGPT", "Using ChatGPT plan", and links "Manage usage" to
 https://chatgpt.com/settings/usage. The Codex CLI client ID is not used.
 
-### Claude subscriptions
+### Claude plan
 
-The agent does not sign in with Claude.ai accounts. Anthropic's
-[legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance)
-limits Claude.ai subscription OAuth to Claude Code and Anthropic apps. Claude
-subscribers can use Claude Code through the **Claude Agent** entry in the agent
-picker, or a Console API key here.
+`--provider claude` (or `provider: "claude"` in `settings.json`, or
+`/providers` > Claude plan) uses a Claude Pro, Max, Team or Enterprise plan. The
+CLI starts the pinned
+[Claude Agent ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp)
+with `npx`, which runs the unmodified Claude Code binary under the user's own
+Claude Code sign-in, and the terminal UI, `-p` and `acp` talk to it over ACP.
+`ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from its environment
+so usage counts against the plan.
+
+- Sign in once with `oxbit-agent login claude`, which runs `claude auth login`
+  (Anthropic's sign-in). It needs [Claude Code](https://code.claude.com/docs/en/setup)
+  on `PATH`. With no provider in `settings.json` it saves `provider: "claude"`.
+- The CLI does not read, store or forward Claude credentials. Anthropic's
+  [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance)
+  allows products to run the unmodified Claude Code binary with each user's own
+  plan sign-in, and prohibits third-party Claude.ai login.
+- `--mode` maps to Claude modes: `ask` to `default`, `accept-edits` to
+  `acceptEdits`, `full-auto` to `bypassPermissions`. Without `--mode` the session
+  starts in Claude Code's configured mode.
+- `--model` and `providers.claude.model` take Claude Agent model values (`opus`,
+  `sonnet`, `haiku`, or a model ID); `oxbit-agent models --provider claude` lists them.
+- `-c` continues Claude Agent's latest session in the directory; `-r <id>` loads one.
+- Claude Code's own settings, `CLAUDE.md`, skills, hooks and MCP servers apply.
+  Oxbit settings such as hooks, skills, MCP servers and compaction do not.
+- Without a sign-in, a turn fails with
+  `Sign in with your Claude plan first: oxbit-agent login claude`.
+
+In the app, the **Claude Agent** entry and the Oxbit Agent setup's **Claude
+plan** choice run the same adapter on a runtime; see [agent-acp.md](agent-acp.md).
 
 ## Instructions
 
@@ -361,13 +386,14 @@ bunx vitest run apps/agent packages/agent-core
 
 ## Sources
 
-Accessed 2026-10-11:
+Accessed 2026-10-11 (Claude plan sources 2026-10-12):
 
 - [Agent Client Protocol](https://agentclientprotocol.com/protocol/overview): terminals, file system, tool calls, session modes
 - [Model Context Protocol 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28)
 - [Sign in with ChatGPT, open-source apps](https://developers.openai.com/siwc/token-sharing-open-source)
 - [OpenAI models](https://developers.openai.com/api/docs/models), [Anthropic models](https://platform.claude.com/docs/en/about-claude/models/overview)
 - [Claude Code hooks](https://code.claude.com/docs/en/hooks.md), [skills](https://code.claude.com/docs/en/skills.md), [memory](https://code.claude.com/docs/en/memory.md), [legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)
+- [Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan), [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview)
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks.md), [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md.md)
 - [Agent Skills specification](https://agentskills.io/specification.md)
 - [Ink 8](https://github.com/vadimdemedes/ink)

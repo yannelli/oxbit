@@ -45,7 +45,7 @@ such a runtime shows "This runtime does not support … Update Oxbit on the runt
 | Provider | Default executable and arguments | Setup |
 | --- | --- | --- |
 | Codex ACP | `npx -y @agentclientprotocol/codex-acp@2.2.2` | Existing Codex credentials, or an advertised sign-in method |
-| Claude Agent | `npx -y @agentclientprotocol/claude-agent-acp@0.89.1` | Existing Claude Code sign-in |
+| Claude Agent | `npx -y @agentclientprotocol/claude-agent-acp@0.89.1` | Claude Code sign-in on the runtime host, including a Claude plan (see [Claude plans](#claude-plans)) |
 | Gemini CLI | `npx -y @google/gemini-cli@0.63.0 --acp` | Sign in with the Gemini CLI or set `GEMINI_API_KEY` |
 | GitHub Copilot | `npx -y @github/copilot@1.0.95 --acp` | Sign in with GitHub through the Copilot CLI |
 | Cursor ACP | `agent acp` | Install Cursor CLI and run `agent login` |
@@ -65,10 +65,26 @@ arguments. If Cursor is installed as `cursor-agent`, use that executable with `a
 The first `npx` connection downloads the pinned adapter if it is not cached. Nothing is downloaded
 when the disabled extension is registered or when it is enabled.
 
+### Claude plans
+
+Added 2026-10-12. A Claude Pro, Max or Team plan reaches the panel through **Claude Agent**,
+which runs the unmodified Claude Code on the runtime host. Sign in on that computer with
+Claude Code's own flow: `claude auth login` in a terminal, or `/login` inside `claude`. Oxbit
+does not read, store or relay Claude credentials and has no Claude sign-in of its own.
+
+- iOS runs Claude Agent on a connected runtime (LAN or SSH). In a device folder, the
+  picker marks it "Needs a runtime workspace", and **Agent setup → API → Claude plan**
+  shows that guidance with a **Runtime connection** button. The choice changes no setting.
+- Claude Agent 0.89.1 advertises no sign-in methods. While Claude Code is signed out, a
+  prompt fails with JSON-RPC `-32000` "Authentication required", and the panel shows
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on
+  that computer, then retry." (`agentErrorText` in `launch.ts`).
+
 ### Oxbit Agent without a runtime
 
 Added 2026-10-11. In iOS device folders, which have no runtime, the picker offers
-**Oxbit Agent** and marks the other agents "Needs a runtime workspace". The agent
+**Oxbit Agent** and marks the other agents "Needs a runtime workspace" (Claude Agent adds
+that it uses the Claude plan through Claude Code's sign-in on the runtime). The agent
 runs in the app (`packages/features/agent-acp/src/local/runtime.ts` hosts the
 `@oxbit/agent-core` loop) and calls a model API
 with the user's key:

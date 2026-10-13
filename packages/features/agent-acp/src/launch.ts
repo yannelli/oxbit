@@ -134,6 +134,20 @@ export function launchName(launch: ACPLaunch) {
     : agentName(launch.provider);
 }
 
+export const CLAUDE_SIGNED_OUT =
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.";
+const AUTH_REQUIRED = "Authentication required";
+
+/** Error text for the panel. Claude Agent answers JSON-RPC -32000 "Authentication required" while Claude Code on the runtime is signed out; the runtime's `acp.turnEnded` event carries that message as a string without the code. */
+export function agentErrorText(provider: string | undefined, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const signedOut =
+    typeof error === "string"
+      ? error === AUTH_REQUIRED
+      : String((error as { code?: unknown } | null)?.code) === "-32000" && /auth/i.test(message);
+  return provider === "claude" && signedOut ? tr(CLAUDE_SIGNED_OUT) : message;
+}
+
 /** Runtimes before the registry release reject every provider outside their preset list. */
 export function runtimeSupportError(error: unknown, name: string) {
   const message = error instanceof Error ? error.message : String(error);

@@ -3,10 +3,13 @@ import { createInterface } from "node:readline";
 import type { Readable } from "node:stream";
 import { CHATGPT, CHATGPT_LABELS, ChatGPTAuth, PROVIDERS, apiKeySlot, planEnabled, providerSpec, type Fetch } from "@oxbit/agent-core";
 import type { FileAuthStore } from "./auth.js";
+import { CLAUDE_PLAN, claudeAgent, claudeAuth, openClaude } from "./claude.js";
 import type { CliIO } from "./cli.js";
 import type { AgentConfig } from "./config.js";
 import { nodeLoopback } from "./loopback.js";
-import { chatgptSignedIn, missingKey, normalizeBase, selectProvider, type ProviderChoice, type ProviderInput } from "./providers.js";
+import {
+  activeProvider, chatgptSignedIn, isClaude, missingKey, normalizeBase, selectProvider, type ClaudeChoice, type ProviderChoice, type ProviderInput,
+} from "./providers.js";
 
 export class UsageError extends Error {}
 
@@ -147,13 +150,17 @@ export function methodList() {
       lines.push(`  ${spec.name.padEnd(18)} ${method.label.padEnd(24)} ${command}`);
       if (method.detail) lines.push(`  ${"".padEnd(18)} ${method.detail}`);
     }
+  lines.push(`  ${CLAUDE_PLAN.name.padEnd(18)} ${"Claude Code sign-in".padEnd(24)} oxbit-agent login claude`,
+    `  ${"".padEnd(18)} Runs Claude Agent, which uses Claude Code's own sign-in.`);
   return `${lines.join("\n")}\n`;
 }
 
 export async function login({ config, auth, io, input }: AuthCommand, rest: string[]) {
   if (rest[0] === "chatgpt" && rest.length === 1) return loginChatGPT({ config, auth, io, input });
+  if (rest[0] === CLAUDE_PLAN.id && rest.length === 1) return loginClaude({ config, auth, io, input });
   if (rest.length) throw new UsageError(`Unknown login method ${rest.join(" ")}. Run oxbit-agent login to list the methods`);
   if (!input.provider) return void io.stdout.write(methodList()), 0;
+  if (input.provider === CLAUDE_PLAN.id) return loginClaude({ config, auth, io, input });
   const spec = providerSpec(input.provider);
   if (!spec) throw new UsageError(`Unknown provider ${input.provider}`);
   const choice = await apiKeyChoice(input, spec.id);
@@ -188,9 +195,21 @@ async function loginChatGPT({ config, auth, io }: AuthCommand) {
   return 0;
 }
 
+/** Runs `claude auth login`, Anthropic's sign-in in Claude Code. With settings naming no provider, saves provider = claude. */
+async function loginClaude({ config, io }: AuthCommand) {
+  io.stderr.write("Signing in to Claude Code with `claude auth login`\n");
+  const code = await claudeAuth("login", io.env);
+  if (code !== 0) return code;
+  if (!config.settings.provider) await config.saveSettings({ provider: CLAUDE_PLAN.id });
+  else if (config.settings.provider !== CLAUDE_PLAN.id)
+    io.stdout.write(`settings.json selects ${config.settings.provider}; run with --provider claude to use your Claude plan.\n`);
+  return 0;
+}
+
 export async function logout({ auth, io, input }: AuthCommand, rest: string[]) {
   if (rest.length > 1) throw new UsageError(`Unexpected argument ${rest[1]}`);
   const target = rest[0] ?? input.provider;
+  if (target === CLAUDE_PLAN.id) return claudeAuth("logout", io.env);
   const removed = target === "chatgpt" ? [] : await removeApiKeys(auth, input, target);
   if (!target || target === "chatgpt") {
     const revoked = await signOutChatGPT(auth, fetchOr(io.fetch));
@@ -202,7 +221,9 @@ export async function logout({ auth, io, input }: AuthCommand, rest: string[]) {
 
 /** The provider's models with context windows; `*` marks the selected model. */
 export async function models({ io, input }: AuthCommand) {
-  const choice = await selectProvider(input);
+  const active = await activeProvider(input);
+  if (isClaude(active)) return claudeModels(io, active);
+  const choice = active;
   if (!choice.ready) throw missingKey(choice);
   const list = await choice.runtime.catalog();
   io.stderr.write(`${choice.runtime.label}\n`);
@@ -212,4 +233,21 @@ export async function models({ io, input }: AuthCommand) {
     io.stdout.write(`${model.id === choice.model ? "*" : " "} ${model.id.padEnd(window ? width : 0)}${window}\n`);
   }
   return 0;
+}
+
+/** Claude Agent's model choices from a new session's `model` config option. */
+async function claudeModels(io: CliIO, choice: ClaudeChoice) {
+  const connection = await openClaude(io.claudeAgent ?? claudeAgent(io.env), io.cwd);
+  try {
+    const state = await connection.newSession({ cwd: io.cwd });
+    const option = state.configOptions?.find((item) => item.id === "model");
+    const list: { value: string; name: string }[] = Array.isArray(option?.options) ? option.options : [];
+    const current = choice.model ?? option?.currentValue;
+    io.stderr.write(`${CLAUDE_PLAN.inUse}\n`);
+    const width = Math.max(0, ...list.map((model) => model.value.length));
+    for (const model of list) io.stdout.write(`${model.value === current ? "*" : " "} ${model.value.padEnd(width)}  ${model.name}\n`);
+    return 0;
+  } finally {
+    await connection.close();
+  }
 }

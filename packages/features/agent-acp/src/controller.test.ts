@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AgentController, type AgentRequest } from "./controller.js";
 import { sessionControls } from "./session-controls.js";
+import { CLAUDE_SIGNED_OUT } from "./launch.js";
 import { createFeature } from "./index.js";
 import { createKernel } from "../../../core/src/index.js";
 import {
@@ -411,6 +412,19 @@ describe("ACP session lifecycle", () => {
       update: { sessionUpdate: "config_option_update", configOptions },
     });
     expect(sessionControls(agent.connection)[0].value).toBe("second");
+    agent.dispose();
+  });
+  it("shows the runtime sign-in step when Claude Agent rejects a prompt with -32000", async () => {
+    const { agent, runtime, listeners } = setup();
+    agent.connection!.provider = "claude";
+    runtime.request.mockRejectedValueOnce(Object.assign(new Error("Authentication required"), { code: "-32000" }));
+    agent.draft = "Hello";
+    await agent.action(() => agent.send());
+    expect(agent.status).toBe("Turn failed");
+    expect(agent.error).toBe(CLAUDE_SIGNED_OUT);
+    agent.error = "";
+    listeners.get("acp.turnEnded")!({ id: "connection", error: "Authentication required" });
+    expect(agent.error).toBe(CLAUDE_SIGNED_OUT);
     agent.dispose();
   });
   it("ends the working state after a prompt error and allows another prompt", async () => {
@@ -1395,6 +1409,15 @@ describe("Oxbit agent without a runtime workspace", () => {
     await agent.select({ provider: OXBIT_AGENT_PROVIDER });
     expect(kernel.configuration.get("agentACP.provider")).toBe("claude");
     await expect(agent.listLiveSessions()).resolves.toBeUndefined();
+    kernel.dispose();
+  });
+  it("opens the runtime connection on Start while the Claude plan is chosen", async () => {
+    const { kernel, agent } = await activate(fakeModels());
+    const execute = vi.spyOn(kernel.commands, "execute").mockResolvedValue(undefined);
+    agent.setClaudePlan(true);
+    await agent.connectSelected();
+    expect(execute).toHaveBeenCalledWith("workspace.runtime");
+    expect(agent.connection).toBeUndefined();
     kernel.dispose();
   });
   it("keeps today's runtime prompt when the host has no model service", async () => {

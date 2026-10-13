@@ -21,6 +21,8 @@ export interface FakeOptions {
   files?: string[];
   sessions?: SessionSummary[];
   settings?: FakeSettings;
+  /** newSession waits for it, like an agent that takes seconds to start a session. */
+  opening?: Promise<void>;
 }
 
 const OPTIONS = [{ optionId: "allow", name: "Allow", kind: "allow_once" }, { optionId: "reject", name: "Reject", kind: "reject_once" }];
@@ -76,6 +78,7 @@ export class FakeConnection implements TuiConnection {
     return this.settings?.provider ? { ...info, provider: this.settings.provider } : info;
   }
   async newSession() {
+    await this.options.opening;
     const sessionId = `session-${++this.count}`;
     setTimeout(() => this.emit(sessionId, { sessionUpdate: "available_commands_update", availableCommands: this.options.commands ?? [] }), 0);
     return this.state(sessionId);

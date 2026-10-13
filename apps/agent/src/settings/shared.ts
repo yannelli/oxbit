@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import type { Fetch } from "@oxbit/agent-core";
 import type { FileAuthStore } from "../auth.js";
 import { stringList, type AgentConfig, type AgentSettings } from "../config.js";
-import type { ProviderChoice } from "../providers.js";
+import type { ActiveProvider } from "../providers.js";
 import type { Panel, PanelChange, PanelContext, PanelRow } from "../tui/connection.js";
 
 export interface SettingsDeps {
@@ -13,7 +13,7 @@ export interface SettingsDeps {
   /** The user's home for ~/.claude, ~/.codex and ~/.agents. Defaults to os.homedir(). */
   home?: string;
   /** The provider of the running agent. */
-  provider(): ProviderChoice;
+  provider(): ActiveProvider;
   /** Rebuilds the agent with `provider`. Without it, provider changes apply after a restart. */
   rebuild?(provider: string): Promise<void>;
   /** Opens the system browser for Sign in with ChatGPT; resolves false when none opened. */

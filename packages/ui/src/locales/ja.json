@@ -817,6 +817,7 @@
   "de": "ドイツ語",
   "es": "スペイン語",
   "ja": "日本語",
+  "ko": "韓国語",
   "zh": "中国語（簡体字）",
   "Host": "ホスト",
   "Port": "ポート",
@@ -947,7 +948,7 @@
   "Open Agent": "エージェントを開く",
   "Ships with Oxbit. Uses ~/.oxbit/agent settings.": "Oxbit に同梱されています。~/.oxbit/agent の設定を使います。",
   "Runs with npx. Uses your Codex sign-in.": "npx で実行します。Codex のサインインを使います。",
-  "Runs with npx. Uses your Claude Code sign-in.": "npx で実行します。Claude Code のサインインを使います。",
+  "Runs with npx. Uses your Claude plan through Claude Code's sign-in on the runtime.": "npx で実行します。ランタイムの Claude Code のサインインを通じて Claude プランを使います。",
   "Runs with npx. Sign in or set GEMINI_API_KEY.": "npx で実行します。サインインするか GEMINI_API_KEY を設定してください。",
   "Runs with npx. Sign in with GitHub.": "npx で実行します。GitHub でサインインしてください。",
   "Needs Cursor CLI and agent login.": "Cursor CLI と agent login が必要です。",
@@ -1063,5 +1064,9 @@
   "The sign-in code expired. Sign in again.": "サインインコードの有効期限が切れました。もう一度サインインしてください。",
   "The Workspace value {0} overrides this setting.": "ワークスペースの値 {0} がこの設定を上書きしています。",
   "Remove Workspace value": "ワークスペースの値を削除",
-  "The app reloaded. The agent restarted and loaded this conversation.": "アプリが再読み込みされました。エージェントを再起動し、この会話を読み込みました。"
+  "The app reloaded. The agent restarted and loaded this conversation.": "アプリが再読み込みされました。エージェントを再起動し、この会話を読み込みました。",
+  "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.": "ランタイム ワークスペースが必要です。ランタイムの Claude Code のサインインを通じて Claude プランを使います。",
+  "Claude plan": "Claude プラン",
+  "Claude Agent runs on a connected runtime with that computer's Claude Code sign-in.": "Claude Agent は接続したランタイムで、そのコンピューターの Claude Code のサインインを使って実行します。",
+  "Claude Code on this runtime is not signed in. Run `claude auth login` in a terminal on that computer, then retry.": "このランタイムの Claude Code はサインインしていません。そのコンピューターのターミナルで `claude auth login` を実行してから、もう一度お試しください。"
 }

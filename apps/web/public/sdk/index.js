@@ -817,6 +817,7 @@ var settings_schema_default = {
         "de",
         "es",
         "ja",
+        "ko",
         "zh"
       ]
     },
