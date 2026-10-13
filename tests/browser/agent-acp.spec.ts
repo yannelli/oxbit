@@ -314,8 +314,9 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
       page.getByRole("status").filter({ hasText: /^Turn failed$/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("alert").filter({ hasText: "Fixture prompt failed" }),
+      page.locator(".acp-turn-error").filter({ hasText: "Fixture prompt failed" }),
     ).toBeVisible();
+    await expect(page.locator(".acp-panel").getByRole("alert")).toHaveCount(0);
     await send("config-update");
     await expect(
       settings.getByRole("combobox", { name: "Session mode", exact: true }),
@@ -375,7 +376,7 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
     );
     await send(`write:${root}/hello.txt`);
     await expect(
-      page.getByRole("alert").filter({ hasText: "unsaved edits" }),
+      page.locator(".acp-turn-error").filter({ hasText: "unsaved edits" }),
     ).toBeVisible();
     expect(await fs.readFile(path.join(root, "hello.txt"), "utf8")).toBe(
       "agent edit\n",
