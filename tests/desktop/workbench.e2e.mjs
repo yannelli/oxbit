@@ -215,6 +215,32 @@ describe("Oxbit native workbench", () => {
     assert.match(JSON.stringify(result.search), /hello.ts/);
     assert.equal(result.clipboard, "Oxbit native clipboard café");
   });
+  it("runs HTML preview JavaScript through the oxbit-preview shell in a trusted folder", async () => {
+    await browser.execute(async () => {
+      const { filesystem, runtime, workbench } = globalThis.__oxbit;
+      await runtime.trust(true);
+      addEventListener("message", (event) => {
+        if (event.data?.type === "native-preview-script")
+          globalThis.__nativePreviewScript = event.data.text;
+      });
+      await filesystem.write(
+        "preview.html",
+        '<!doctype html><h1 id="title">Static</h1><script>document.getElementById("title").textContent = "Script ran"; parent.postMessage({ type: "native-preview-script", text: document.getElementById("title").textContent }, "*");</script>',
+        { expectedRevision: null },
+      );
+      await workbench.openFile("preview.html", { preview: false });
+      await workbench.run("preview.html");
+    });
+    await browser.waitUntil(
+      () => browser.execute(() => globalThis.__nativePreviewScript),
+      { timeout: 20000, timeoutMsg: "The preview page's script did not run" },
+    );
+    assert.equal(
+      await browser.execute(() => globalThis.__nativePreviewScript),
+      "Script ran",
+    );
+    assert.equal(await $(".html-preview-scripts").isExisting(), false);
+  });
   it("completes TypeScript, cancels a real task, and stages a Git file in the native host", async () => {
     const completion = await browser.execute(async () => {
       const z = globalThis.__oxbit;
