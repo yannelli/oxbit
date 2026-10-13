@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
 import { createTwoFilesPatch } from "diff";
@@ -177,6 +177,21 @@ export function ToolStatus({ status = "pending" }: { status?: string }) {
     </span>
   );
 }
+const workspacePath = (path: string, root?: string) =>
+  root && path.startsWith(`${root.replace(/\/+$/, "")}/`) ? path.slice(root.replace(/\/+$/, "").length + 1) : path;
+function TerminalCard({ id, agent }: { id: string; agent: AgentController }) {
+  const terminal = agent.terminals.get(id);
+  if (!terminal) return null;
+  return (
+    <details className="acp-card">
+      <summary>
+        {tr("Terminal")}: {terminal.command} · {terminal.exitStatus ? tr("Ended") : tr("Running")}
+      </summary>
+      <pre>{terminal.output}</pre>
+      {terminal.truncated && <p className="muted">{tr("Earlier output was truncated")}</p>}
+    </details>
+  );
+}
 function ToolCard({ id, agent }: { id: string; agent: AgentController }) {
   const tool = agent.tools.get(id);
   if (!tool) return null;
@@ -192,7 +207,7 @@ function ToolCard({ id, agent }: { id: string; agent: AgentController }) {
       </summary>
       {(tool.locations ?? []).map((location: any, index: number) => (
         <button
-          className="button"
+          className="button acp-tool-location"
           key={index}
           onClick={() =>
             void agent.action(() =>
@@ -200,7 +215,7 @@ function ToolCard({ id, agent }: { id: string; agent: AgentController }) {
             )
           }
         >
-          {location.path}
+          {workspacePath(location.path, agent.connection?.root)}
         </button>
       ))}
       {(tool.content ?? []).map((item: any, index: number) =>
@@ -291,6 +306,21 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
   useEffect(() => {
     if (connection && !busy) agent.checkpoints.refresh();
   }, [agent, connection, busy, last]);
+  const turns = new Set(agent.activity.flatMap((a) => a.kind === "message" && a.message.role === "user" && a.message.id ? [a.message.id] : []));
+  const shownTerminals = new Set([...agent.tools.values()].flatMap((tool) =>
+    (tool.content ?? []).flatMap((item: any) => item.type === "terminal" ? [item.terminalId] : [])));
+  // Each turn's applied edits follow that turn; edits from no listed turn follow the last one.
+  const turnBefore = new Map<number, string>();
+  let lastTurn: string | undefined;
+  agent.activity.forEach((a, index) => {
+    if (a.kind !== "message" || a.message.role !== "user" || !a.message.id) return;
+    if (lastTurn) turnBefore.set(index, lastTurn);
+    lastTurn = a.message.id;
+  });
+  const edits = (key: string, turn?: string) => {
+    const changes = agent.changes.filter((change) => (change.turn && turns.has(change.turn) ? change.turn : undefined) === turn);
+    return changes.length > 0 && <ChangeSummary key={key} agent={agent} changes={changes} />;
+  };
   return (
     <>
     <div
@@ -300,7 +330,9 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
       aria-relevant="additions text"
     >
       {agent.activity.map((entry, index) =>
-        entry.kind === "tool" ? (
+        entry.kind === "terminal" ? (
+          !shownTerminals.has(entry.id) && <TerminalCard key={`terminal:${entry.id}`} id={entry.id} agent={agent} />
+        ) : entry.kind === "tool" ? (
           <ToolCard
             key={`tool:${entry.id}:${index}`}
             id={entry.id}
@@ -336,7 +368,7 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
             </details>
           )
         ) : entry.kind === "notice" ? (
-          <p className="acp-turn-note" key={index}>
+          <p className={entry.error ? "acp-turn-note acp-turn-error" : "acp-turn-note"} key={index}>
             {tr(entry.text, entry.values)}
           </p>
         ) : entry.message.role === "thought" ? (
@@ -345,7 +377,9 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
             <Markdown text={entry.message.text} agent={agent} />
           </details>
         ) : (
-          <article className={`acp-message ${entry.message.role}`} key={index}>
+          <Fragment key={index}>
+          {turnBefore.has(index) && edits(`edits:${index}`, turnBefore.get(index))}
+          <article className={`acp-message ${entry.message.role}`}>
             <div className="acp-message-heading">
               {entry.message.role !== "user" && <Icon name="agent" size={16} />}
               <strong>
@@ -395,8 +429,11 @@ export function ActivityFeed({ agent }: { agent: AgentController }) {
               <ContextItem key={i} item={item} />
             ))}
           </article>
+          </Fragment>
         ),
       )}
+      {lastTurn && edits("edits:last", lastTurn)}
+      {edits("edits:other")}
     </div>
     <WorkingRow agent={agent} />
     </>
@@ -600,20 +637,19 @@ export function ContextPicker({ agent }: { agent: AgentController }) {
     </div>
   );
 }
-export function ChangeSummary({ agent }: { agent: AgentController }) {
-  if (!agent.changes.length) return null;
+export function ChangeSummary({ agent, changes }: { agent: AgentController; changes: AgentController["changes"] }) {
   const blocked = agent.busy || agent.connecting || agent.requests.length > 0 || agent.reviewingAll;
   return (
     <section className="acp-changes" aria-label={tr("Reviewed agent edits")}>
       <div className="acp-review-heading">
         <strong>{tr("Reviewed agent edits")}</strong>
-        {agent.undoableChanges.length > 1 && (
-          <button className="button" disabled={blocked} onClick={() => void agent.action(() => agent.undoAllChanges())}>
+        {agent.undoableChanges.filter((change) => changes.includes(change)).length > 1 && (
+          <button className="button" disabled={blocked} onClick={() => void agent.action(() => agent.undoAllChanges(changes))}>
             {tr("Undo all")}
           </button>
         )}
       </div>
-      {agent.changes.map((change) => (
+      {changes.map((change) => (
         <details key={change.id}>
           <summary>
             {change.path} · {tr(change.undone ? "Undone" : "Applied")}

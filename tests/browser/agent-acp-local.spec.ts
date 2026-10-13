@@ -296,6 +296,41 @@ test("a failed agent read stays on its tool call, the write creates new folders,
   await page.screenshot({ path: `${shots}/${info.project.name}-failed-read.png` });
 });
 
+test("applied edits stay with their turn and wide replies scroll inside their block, not the transcript", async ({ page }, info) => {
+  const wide = "x".repeat(400);
+  const panel = await open(page, true, [
+    chatTool("call_1", "write_file", { path: "notes/first.md", content: "first\n" }),
+    chatText(`Wrote it.\n\n\`\`\`\n${wide}\n\`\`\`\n\n| a | b |\n| - | - |\n| ${wide} | ${wide} |`),
+    chatText("First edit"),
+    chatText("Second answer."),
+  ]);
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  const composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await composer.fill("First request");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("Wrote it.")).toBeVisible();
+  await expect(composer).toBeEnabled();
+  await composer.fill("Second request");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("Second answer.")).toBeVisible();
+
+  const edits = panel.getByRole("region", { name: "Reviewed agent edits" });
+  await expect(edits).toContainText("notes/first.md");
+  const order = await panel.locator(".acp-content").evaluate((content) => {
+    const second = [...content.querySelectorAll(".acp-message.user")].find((node) => node.textContent?.includes("Second request"))!;
+    const summary = content.querySelector(".acp-changes")!;
+    return summary.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING ? "edits before second turn" : "edits after second turn";
+  });
+  expect(order).toBe("edits before second turn");
+  const overflow = await panel.locator(".acp-content").evaluate((content) => content.scrollWidth - content.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await fs.mkdir(shots, { recursive: true });
+  await page.screenshot({ path: `${shots}/${info.project.name}-turn-edits.png` });
+});
+
 test("the Oxbit agent delegates a task to a subagent whose file write is applied from the Agents view", async ({ page }) => {
   const prompt = "Write agent note to notes.md";
   const panel = await open(page, true, [

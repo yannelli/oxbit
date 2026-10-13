@@ -1,6 +1,8 @@
 import {
   ACP_CUSTOM_PROVIDER,
   AGENT_MODELS_SERVICE,
+  MISSING_AGENT_KEY,
+  MISSING_CHATGPT_SIGN_IN,
   OXBIT_AGENT_PROVIDER,
   OXBIT_AGENT_SETTINGS,
   OXBIT_CLI_PROVIDER,
@@ -68,8 +70,12 @@ export type AgentRequest = {
   revision?: string | null;
   version?: number;
   error?: string;
+  /** The user message that started the turn the request arrived in. */
+  turn?: string;
 };
 export const FILE_REJECTED = "User rejected the file change";
+/** Errors that Agent setup fixes; the panel shows them with an Agent setup button. */
+export const SETUP_ERRORS = [MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN];
 /** Oxbit agents mark writes made in the accept-edits and full-auto modes that the user picked in this panel. */
 const modeApplies = (provider: string | undefined, params: { _meta?: { oxbit?: { mode?: unknown } } } | undefined) =>
   (provider === OXBIT_AGENT_PROVIDER || provider === OXBIT_CLI_PROVIDER) && ["accept-edits", "full-auto"].includes(params?._meta?.oxbit?.mode as string);
@@ -213,6 +219,7 @@ export class AgentController {
           void this.checkpoints.create().then((tree) => { if (tree) { message.checkpoint = tree; this.changed(); } });
       }
       if (this.title === "New conversation") this.title = text.slice(0, 100);
+      this.error = "";
       this.busy = true;
       this.cancelling = false;
       this.status = "Working…";
@@ -223,7 +230,7 @@ export class AgentController {
       this.rootRequestGeneration++;
       this.requests = this.requests.filter(request => this.isChildRequest(request));
       this.status = error ? "Turn failed" : stopReason === "cancelled" ? "Stopped" : "Ready";
-      if (error) this.error = agentErrorText(this.connection?.provider, String(error));
+      if (error) this.turnFailed(String(error));
       if (!this.replaying && stopReason !== "cancelled")
         this.attention.turnEnded(this.title, !!error);
       if (!this.replaying && !error && stopReason !== "cancelled") void this.nameConversation();
@@ -294,6 +301,7 @@ export class AgentController {
     });
     on("acp.terminal", (data) => {
       if (data.subagentId) return;
+      if (!this.terminals.has(data.terminalId)) this.activity.push({ kind: "terminal", id: data.terminalId });
       this.terminals.set(data.terminalId, data);
       while (this.terminals.size > 32)
         this.terminals.delete(this.terminals.keys().next().value!);
@@ -545,6 +553,14 @@ export class AgentController {
     if (!this.options.runtime?.connected)
       throw new Error("Connect to a runtime workspace first");
     return this.options.runtime.request<T>(method, params);
+  }
+  /** Shows a turn's error after that turn; true for setup errors, which show above the transcript with Agent setup. */
+  private turnFailed(error: unknown) {
+    const text = agentErrorText(this.connection?.provider, error);
+    if (SETUP_ERRORS.includes(text)) return !!(this.error = text);
+    const last = this.activity.at(-1);
+    if (!(last?.kind === "notice" && last.error && last.text === text)) this.activity.push({ kind: "notice", text, error: true });
+    return false;
   }
   dismissError() {
     this.error = "";
@@ -1444,15 +1460,11 @@ export class AgentController {
     } catch (error) {
       if (generation !== this.connectionGeneration) return;
       if (!this.activeTurnId || this.activeTurnId === message.id) this.status = "Turn failed";
-      this.activity.push({
-        kind: "notice",
-        text: "Turn failed. Review the error before retrying.",
-      });
       if (!this.draft) {
         this.draft = prompt;
         this.context = context;
       }
-      throw error;
+      if (this.turnFailed(error)) throw error;
     } finally {
       if (generation === this.connectionGeneration) {
         if (!this.activeTurnId || this.activeTurnId === message.id) {
@@ -1679,6 +1691,7 @@ export class AgentController {
   private async clientRequest(request: AgentRequest) {
     if (this.pendingClientRequests.has(request.requestId) || this.requests.some(item => item.requestId === request.requestId)) return;
     const pending = { expired: false };
+    request.turn ??= this.activeTurnId;
     this.pendingClientRequests.set(request.requestId, pending);
     const generation = this.requestGeneration;
     const rootGeneration = this.rootRequestGeneration;
@@ -1845,7 +1858,7 @@ export class AgentController {
         after: request.params.content,
         revision: saved?.savedRevision,
         created: request.revision === null,
-        turn: this.activeTurnId,
+        turn: request.turn ?? this.activeTurnId,
       });
       while (this.changes.length > 30) this.changes.shift();
       this.activity.push({
@@ -1885,8 +1898,8 @@ export class AgentController {
     await this.answerWrites((request) => this.respond(request, undefined, FILE_REJECTED));
   }
   /** Undoes applied edits newest first and stops at the first that cannot be undone. */
-  async undoAllChanges() {
-    const changes = this.undoableChanges.reverse();
+  async undoAllChanges(within = this.changes) {
+    const changes = this.undoableChanges.filter((change) => within.includes(change)).reverse();
     await this.reviewAll(changes.map((change) => change.id), async () => {
       for (const change of changes) await this.undoChange(change.id);
     });

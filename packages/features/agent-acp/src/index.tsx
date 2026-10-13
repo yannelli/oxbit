@@ -9,8 +9,6 @@ import {
   ACP_CUSTOM_PROVIDER,
   ACP_PROVIDERS,
   AGENT_MODELS_SERVICE,
-  MISSING_AGENT_KEY,
-  MISSING_CHATGPT_SIGN_IN,
   OXBIT_AGENT_PROVIDER,
   acpPreset,
   type AgentModels,
@@ -18,7 +16,7 @@ import {
   type FeatureOptions,
 } from "@oxbit/sdk";
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
-import { AgentController, FILE_REJECTED, type AgentRequest } from "./controller.js";
+import { AgentController, FILE_REJECTED, SETUP_ERRORS, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
 import { ContextMeter } from "./context-meter.js";
 import { DictationButton } from "./dictation.js";
@@ -37,7 +35,6 @@ import {
   ConversationBrowser,
   ContextPicker,
   ContextItem,
-  ChangeSummary,
   ReviewAll,
 } from "./views.js";
 
@@ -47,7 +44,6 @@ import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 import { AgentLogo } from "./agent-logo.js";
 import { LocalAgentRuntime } from "./local/runtime.js";
-const SETUP_ERRORS = [MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN];
 function RequestCard({
   request,
   agent,
@@ -618,19 +614,6 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {agent.replayTruncated && <p className="acp-turn-note" role="status">{tr("Earlier activity was trimmed by the runtime.")}</p>}
         {agent.subagents.size > 0 && <Subagents agent={agent} compact />}
         <ActivityFeed agent={agent} />
-        {Array.from(agent.terminals.entries()).map(([id, terminal]) => (
-          <details className="acp-card" key={id}>
-            <summary>
-              {tr("Terminal")}: {terminal.command} ·{" "}
-              {terminal.exitStatus ? tr("Ended") : tr("Running")}
-            </summary>
-            <pre>{terminal.output}</pre>
-            {terminal.truncated && (
-              <p className="muted">{tr("Earlier output was truncated")}</p>
-            )}
-          </details>
-        ))}
-        <ChangeSummary agent={agent} />
         <ReviewAll agent={agent} />
         {agent.requests.map((request) => (
           <RequestCard
