@@ -1,6 +1,6 @@
 [package]
 name = "oxbit-desktop"
-version = "0.11.5"
+version = "0.11.6"
 description = "Oxbit desktop workbench"
 authors = ["Ryan Yannelli"]
 edition = "2021"
