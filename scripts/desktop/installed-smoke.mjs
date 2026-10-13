@@ -146,5 +146,10 @@ try {
     } catch {
       /* Already exited. */
     }
-  await fs.rm(directory, { recursive: true, force: true });
+  await fs.rm(directory, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 200,
+  });
 }
