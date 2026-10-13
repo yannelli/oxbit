@@ -337,6 +337,7 @@ export class WorkspaceFiles {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       }
       if (!(mode & 0o222)) throw new RpcError("READ_ONLY", "File is read-only");
+      if (!current) await fs.mkdir(path.dirname(full), { recursive: true });
       try {
         await fs.writeFile(temporary, bytes, { flag: "wx", mode });
         await fs.rename(temporary, full);

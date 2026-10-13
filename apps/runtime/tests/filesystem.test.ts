@@ -43,3 +43,17 @@ describe("protected filesystem descendants", () => {
     await expect(files.delete("preferences")).rejects.toMatchObject({ code: "PATH_DENIED" });
   });
 });
+
+describe("file writes", () => {
+  it("creates missing parent directories for a new file and keeps symlinked parents inside the workspace", async () => {
+    const root = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-write-"));
+    const outside = await fs.mkdtemp(path.join(await fs.realpath(os.tmpdir()), "oxbit-outside-"));
+    roots.push(root, outside);
+    await fs.symlink(outside, path.join(root, "escape"));
+    const files = new WorkspaceFiles(root);
+    await files.write(".claude/skills/pirate-talk/SKILL.md", "# Pirate talk\n", { expectedRevision: null });
+    expect(await fs.readFile(path.join(root, ".claude/skills/pirate-talk/SKILL.md"), "utf8")).toBe("# Pirate talk\n");
+    await expect(files.write("escape/nested/SKILL.md", "x", { expectedRevision: null })).rejects.toMatchObject({ code: "PATH_DENIED" });
+    await expect(fs.stat(path.join(outside, "nested"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+});

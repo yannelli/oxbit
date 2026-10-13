@@ -314,6 +314,9 @@ impl Root {
         let mode = fs::metadata(&path)
             .map(|m| m.permissions().mode())
             .unwrap_or(0o644);
+        if current.is_none() {
+            fs::create_dir_all(parent).map_err(|e| Error::io(e, relative))?;
+        }
         let temporary = parent.join(format!("{TEMP_PREFIX}{}", uuid::Uuid::new_v4()));
         let result = (|| {
             let mut file = fs::OpenOptions::new()
@@ -503,10 +506,11 @@ mod tests {
         let written = root.write("src/a.txt", b"updated", Some(&current)).unwrap();
         assert_eq!(written.revision, revision(b"updated"));
         assert_eq!(fs::read(directory.join("src/a.txt")).unwrap(), b"updated");
-        let fresh = root.write("src/new/b.txt", b"", None);
-        assert_eq!(fresh.unwrap_err().code, "NOT_FOUND");
-        root.mkdir("src/new").unwrap();
-        root.write("src/new/b.txt", b"x", None).unwrap();
+        root.write("src/new/deeper/b.txt", b"x", None).unwrap();
+        assert_eq!(
+            fs::read(directory.join("src/new/deeper/b.txt")).unwrap(),
+            b"x"
+        );
         assert!(fs::read_dir(directory.join("src")).unwrap().all(|e| !e
             .unwrap()
             .file_name()
@@ -535,6 +539,13 @@ mod tests {
             root.write("link/file.txt", b"x", None).unwrap_err().code,
             "PATH_DENIED"
         );
+        assert_eq!(
+            root.write("link/nested/file.txt", b"x", None)
+                .unwrap_err()
+                .code,
+            "PATH_DENIED"
+        );
+        assert!(!outside.join("nested").exists());
         assert_eq!(root.list("link").unwrap_err().code, "PATH_DENIED");
         fs::remove_dir_all(outside).unwrap();
         fs::remove_dir_all(directory).unwrap();

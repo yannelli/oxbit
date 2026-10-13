@@ -115,6 +115,21 @@ describe("ACP editor integration", () => {
     expect(agent.requests).toEqual([]);
     agent.dispose();
   });
+  it("answers failed reads and auto-applied writes to the agent without a panel error, and Close clears one", async () => {
+    const { agent, listeners, runtime, filesystem } = setup();
+    filesystem.write.mockRejectedValueOnce(new Error("EACCES: permission denied: notes/new.md"));
+    agent.setAutoApply(true);
+    listeners.get("acp.request")!({ id: "connection", requestId: "read", method: "fs/read_text_file", params: { path: "SKILL.md" } });
+    listeners.get("acp.request")!({ id: "connection", requestId: "write", method: "fs/write_text_file", params: { path: "notes/new.md", content: "new" } });
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(2);
+    expect(runtime.request).toHaveBeenCalledWith("acp.respond", expect.objectContaining({ requestId: "read", error: expect.stringContaining("Missing") }));
+    expect(runtime.request).toHaveBeenCalledWith("acp.respond", expect.objectContaining({ requestId: "write", error: expect.stringContaining("EACCES") }));
+    expect(agent.error).toBe("");
+    agent.error = "Agent disconnected";
+    agent.dismissError();
+    expect(agent.error).toBe("");
+    agent.dispose();
+  });
   it("holds shared writes for review and saves the updated document", async () => {
     const doc = {
       dirty: false,
