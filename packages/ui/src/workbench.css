@@ -254,6 +254,9 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-review-editor .acp-patch { max-height:none; }
 .acp-panel .acp-markdown { line-height:1.65; overflow-wrap:anywhere; }
 .acp-markdown > :first-child { margin-top:0; }
+.acp-markdown pre,.acp-markdown table { max-width:100%; overflow-x:auto; }
+.acp-markdown table { display:block; }
+.acp-markdown img { max-width:100%; height:auto; }
 .acp-markdown > :last-child { margin-bottom:0; }
 .acp-markdown h1,.acp-markdown h2,.acp-markdown h3 { font-size:var(--font-body-font-size); margin:16px 0 8px; }
 .acp-panel .acp-markdown pre { font-family:var(--font-mono); font-size:var(--font-small-font-size); background:var(--bg-editor); padding:10px; border:1px solid var(--bd); border-radius:4px; white-space:pre; overflow:auto; }
@@ -267,6 +270,8 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-user-text { white-space:pre-wrap; margin:8px 0; }
 .acp-tool summary { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .acp-tool-status,.acp-turn-note,.acp-context-budget { color:var(--fg-3); font-size:var(--font-small-font-size); }
+.acp-turn-note.acp-turn-error { color:var(--err); }
+.acp-tool-location { max-width:100%; white-space:normal; overflow-wrap:anywhere; text-align:left; justify-content:flex-start; }
 .acp-tool[data-status="in_progress"] { border-left:3px solid var(--accent); }
 .acp-tool[data-status="failed"] { border-left:3px solid var(--err); }
 .acp-context-chip { display:flex; align-items:flex-start; gap:4px; width:100%; min-width:0; }
@@ -343,7 +348,7 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-composer-toolbar .select-trigger,.acp-footer > .custom-select .select-trigger { border-color:transparent; background:transparent; min-height:28px; padding:3px 6px; color:var(--fg-2); font-size:var(--font-small-font-size); }
 .acp-panel .acp-send { background:var(--button-primary-background); color:var(--button-primary-foreground); border:1px solid var(--button-primary-background); border-radius:6px; }
 .acp-panel .acp-send:disabled { background:var(--bg-surface); border-color:var(--bd); color:var(--fg-3); }
-.acp-content { flex:1; min-height:0; overflow:auto; padding:20px max(16px,calc((100% - 800px) / 2)); overflow-wrap:anywhere; scrollbar-gutter:stable both-edges; }
+.acp-content { flex:1; min-height:0; overflow-x:hidden; overflow-y:auto; padding:20px max(16px,calc((100% - 800px) / 2)); overflow-wrap:anywhere; scrollbar-gutter:stable both-edges; }
 .acp-welcome { text-align:center; padding:28px 8px; color:var(--fg-3); }
 .acp-welcome h2 { font-size:calc(var(--font-body-font-size) * 1.25); color:var(--fg); }
 .acp-welcome p { line-height:1.6; }

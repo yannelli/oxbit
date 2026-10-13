@@ -19,7 +19,8 @@ export type Activity =
   | { kind: "plan"; entries: PlanEntry[] }
   | { kind: "tool"; id: string }
   | { kind: "subagent"; id: string }
-  | { kind: "notice"; text: string; values?: Record<string, string> };
+  | { kind: "terminal"; id: string }
+  | { kind: "notice"; text: string; values?: Record<string, string>; error?: boolean };
 export type SavedLaunch = {
   registry?: { id: string };
   name?: string;

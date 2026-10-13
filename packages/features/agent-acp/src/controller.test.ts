@@ -429,32 +429,51 @@ describe("ACP session lifecycle", () => {
     expect(sessionControls(agent.connection)[0].value).toBe("second");
     agent.dispose();
   });
-  it("shows the runtime sign-in step when Claude Agent rejects a prompt with -32000", async () => {
+  it("shows the runtime sign-in step after the turn when Claude Agent rejects a prompt with -32000", async () => {
     const { agent, runtime, listeners } = setup();
     agent.connection!.provider = "claude";
     runtime.request.mockRejectedValueOnce(Object.assign(new Error("Authentication required"), { code: "-32000" }));
     agent.draft = "Hello";
     await agent.action(() => agent.send());
     expect(agent.status).toBe("Turn failed");
-    expect(agent.error).toBe(CLAUDE_SIGNED_OUT);
-    agent.error = "";
+    expect(agent.error).toBe("");
     listeners.get("acp.turnEnded")!({ id: "connection", error: "Authentication required" });
-    expect(agent.error).toBe(CLAUDE_SIGNED_OUT);
+    expect(agent.activity.filter((entry) => entry.kind === "notice")).toEqual([{ kind: "notice", text: CLAUDE_SIGNED_OUT, error: true }]);
     agent.dispose();
   });
-  it("ends the working state after a prompt error and allows another prompt", async () => {
+  it("ends the working state after a prompt error, shows the error after its turn and allows another prompt", async () => {
     const { agent, runtime } = setup();
     runtime.request.mockRejectedValueOnce(new Error("Rate limited"));
     agent.draft = "First prompt";
     await agent.action(() => agent.send());
     expect(agent.status).toBe("Turn failed");
     expect(agent.busy).toBe(false);
-    expect(agent.error).toBe("Rate limited");
+    expect(agent.error).toBe("");
+    expect(agent.activity.at(-1)).toEqual({ kind: "notice", text: "Rate limited", error: true });
     runtime.request.mockResolvedValueOnce({ stopReason: "end_turn" });
     agent.draft = "Try again";
     await agent.action(() => agent.send());
     expect(agent.status).toBe("Ready");
+    agent.dispose();
+  });
+  it("keeps setup errors above the transcript and clears the panel error when a turn starts", async () => {
+    const { agent, listeners } = setup();
+    listeners.get("acp.turnEnded")!({ id: "connection", error: MISSING_AGENT_KEY });
+    expect(agent.error).toBe(MISSING_AGENT_KEY);
+    expect(agent.activity).toEqual([]);
+    listeners.get("acp.turnStarted")!({ id: "connection", messageId: "turn-2", text: "Again" });
     expect(agent.error).toBe("");
+    agent.dispose();
+  });
+  it("records a terminal where it starts and stamps a reviewed write with the turn it arrived in", async () => {
+    const { agent, listeners } = setup({ dirty: false, state: "ready", version: 1, savedRevision: "r1", text: { toString: () => "old" }, replace: vi.fn() });
+    listeners.get("acp.turnStarted")!({ id: "connection", messageId: "turn-1", text: "Edit" });
+    listeners.get("acp.terminal")!({ id: "connection", terminalId: "t1", command: "ls", output: "a" });
+    listeners.get("acp.terminal")!({ id: "connection", terminalId: "t1", command: "ls", output: "a\nb" });
+    listeners.get("acp.request")!({ id: "connection", requestId: "write", method: "fs/write_text_file", params: { path: "hello.txt", content: "new" } });
+    await expect.poll(() => agent.requests.length).toBe(1);
+    expect(agent.requests[0].turn).toBe("turn-1");
+    expect(agent.activity.filter((entry) => entry.kind === "terminal")).toEqual([{ kind: "terminal", id: "t1" }]);
     agent.dispose();
   });
   it("allows retrying cancellation after a failed cancel request", async () => {
