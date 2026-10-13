@@ -269,6 +269,33 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review, a
   expect(JSON.stringify(requests)).not.toContain("sk-test");
 });
 
+test("a failed agent read stays on its tool call, the write creates new folders, and Close dismisses a panel error", async ({ page }, info) => {
+  const panel = await open(page, true, [
+    chatTool("call_1", "read_file", { path: "SKILL.md" }),
+    chatTool("call_2", "write_file", { path: ".claude/skills/pirate-talk/SKILL.md", content: "# Pirate talk\n" }),
+    chatText("Added the pirate-talk skill."),
+    chatText("Pirate talk skill"),
+  ]);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  await expect(panel.getByRole("alert")).toHaveText("Add an API key in Agent setup");
+  await fs.mkdir(shots, { recursive: true });
+  await page.screenshot({ path: `${shots}/${info.project.name}-error-close.png` });
+  await panel.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+
+  await useCompatible(page);
+  await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
+  const composer = panel.getByRole("textbox", { name: "Message agent" });
+  await expect(composer).toBeEnabled();
+  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await composer.fill("Add a pirate talk skill");
+  await panel.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(panel.getByText("Added the pirate-talk skill.")).toBeVisible();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read(".claude/skills/pirate-talk/SKILL.md")).text)).toBe("# Pirate talk\n");
+  await page.screenshot({ path: `${shots}/${info.project.name}-failed-read.png` });
+});
+
 test("the Oxbit agent delegates a task to a subagent whose file write is applied from the Agents view", async ({ page }) => {
   const prompt = "Write agent note to notes.md";
   const panel = await open(page, true, [

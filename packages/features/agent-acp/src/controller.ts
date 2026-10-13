@@ -546,6 +546,10 @@ export class AgentController {
       throw new Error("Connect to a runtime workspace first");
     return this.options.runtime.request<T>(method, params);
   }
+  dismissError() {
+    this.error = "";
+    this.changed();
+  }
   async action(fn: () => unknown | Promise<unknown>) {
     this.error = "";
     this.changed();
@@ -1764,10 +1768,7 @@ export class AgentController {
       }
       if (!this.disposed && valid() && this.connection?.id === request.id) {
         if (request.method === "fs/write_text_file" && (this.autoApply || modeApplies(this.connection?.provider, request.params))) {
-          await this.writeFile(request, false).catch((error) => {
-            this.error = String(error);
-            this.changed();
-          });
+          await this.writeFile(request, false).catch(() => {});
           return;
         }
         this.requests.push(request);
@@ -1775,10 +1776,9 @@ export class AgentController {
         this.changed();
       }
     } catch (error) {
+      // The agent gets the error and shows it on its tool call.
       if (this.disposed || !valid()) return;
       await this.respond(request, undefined, String(error)).catch(() => {});
-      this.error = String(error);
-      this.changed();
     } finally {
       if (this.pendingClientRequests.get(request.requestId) === pending)
         this.pendingClientRequests.delete(request.requestId);

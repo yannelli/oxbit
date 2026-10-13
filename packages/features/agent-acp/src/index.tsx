@@ -572,9 +572,12 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           </div>)}
         </section>}
         {agent.error && (
-          <p role="alert" className="error-text">
-            {SETUP_ERRORS.includes(agent.error) ? tr(agent.error) : agent.error}
-          </p>
+          <div className="acp-error">
+            <p role="alert" className="error-text">
+              {SETUP_ERRORS.includes(agent.error) ? tr(agent.error) : agent.error}
+            </p>
+            <IconButton icon="x" label="Close" onClick={() => agent.dismissError()} />
+          </div>
         )}
         {SETUP_ERRORS.includes(agent.error) && !showSetup && (
           <div className="acp-actions">
