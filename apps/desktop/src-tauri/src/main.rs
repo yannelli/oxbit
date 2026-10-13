@@ -456,6 +456,20 @@ fn open_arguments(app: &AppHandle, arguments: Vec<String>, cwd: &str) {
     }
 }
 
+/// Serves the HTML preview shell, which runs a previewed page's scripts without the app's script policy.
+fn preview_shell<R: tauri::Runtime>(
+    _context: tauri::UriSchemeContext<'_, R>,
+    _request: tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<&'static [u8]> {
+    tauri::http::Response::builder()
+        .header(
+            tauri::http::header::CONTENT_TYPE,
+            "text/html; charset=utf-8",
+        )
+        .body(include_str!("../../../web/public/preview-shell.html").as_bytes())
+        .expect("static preview shell response")
+}
+
 fn main() {
     #[cfg(target_os = "macos")]
     let native_notifications = notifications::install();
@@ -488,6 +502,7 @@ fn main() {
     #[cfg(all(feature = "native-test", target_os = "macos"))]
     let builder = builder.plugin(panel_test_delegate::hook(true));
     let app = builder
+        .register_uri_scheme_protocol("oxbit-preview", preview_shell)
         .invoke_handler(tauri::generate_handler![
             desktop_close_panel,
             #[cfg(feature = "native-test")]

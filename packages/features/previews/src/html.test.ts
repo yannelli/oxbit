@@ -11,6 +11,17 @@ describe("HTML preview CSS resources", () => {
     for (const file of ["apps/runtime/src/runtime.ts", "apps/ios/src-tauri/tauri.conf.json", "apps/desktop/src-tauri/tauri.conf.json"])
       expect(readFileSync(new URL("../../../../" + file, import.meta.url), "utf8")).toContain(`'${hash}'`);
   });
+  it("serves the script preview shell outside each host's script policy", () => {
+    const read = (file: string) => readFileSync(new URL("../../../../" + file, import.meta.url), "utf8");
+    for (const file of ["apps/ios/src-tauri/tauri.conf.json", "apps/desktop/src-tauri/tauri.conf.json"])
+      expect(read(file)).toMatch(/frame-src [^;]*oxbit-preview: http:\/\/oxbit-preview\.localhost;/);
+    for (const file of ["apps/ios/src-tauri/src/lib.rs", "apps/desktop/src-tauri/src/main.rs"]) {
+      expect(read(file)).toContain('.register_uri_scheme_protocol("oxbit-preview", preview_shell)');
+      expect(read(file)).toContain('include_str!("../../../web/public/preview-shell.html")');
+    }
+    expect(read("apps/runtime/src/runtime.ts")).toContain(`path.join(webRoot, "preview-shell.html") ? "frame-ancestors 'self'"`);
+    expect(read("apps/web/public/preview-shell.html")).toContain('event.source !== parent');
+  });
   it("resolves imports, escaped paths, fonts and images while retaining media rules", async () => {
     const urls: [string, boolean][] = [];
     const result = await rewriteCss(`@import "layout.css" screen;

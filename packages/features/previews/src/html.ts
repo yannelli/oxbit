@@ -9,18 +9,25 @@ export const htmlPreviewScriptHash = "sha256-baG6zrI9qQ7n/0Uu0tcqeYXQC5vQ8ZWJY9n
 export { rewriteCss } from "./resources.js";
 export const isHtmlPath = (path: string) => /\.html?$/i.test(path);
 
-export async function prepareHtmlPreview(options: PreviewResourceOptions) {
-  const { path, signal, trust = "local" } = options;
-  const { text, resource, warnings } = createPreviewResources(options);
+export interface HtmlPreviewOptions extends PreviewResourceOptions {
+  /** Keeps the page's scripts and loads every resource; the preview shell runs them outside the app's script policy. */
+  scripts?: boolean;
+}
+
+export async function prepareHtmlPreview(options: HtmlPreviewOptions) {
+  const { path, signal, trust: requested = "local", scripts = false } = options;
+  const trust = scripts ? "external" : requested;
+  const { text, resource, warnings } = createPreviewResources({ ...options, trust });
 
   const source = await text(path);
-  const clean = DOMPurify.sanitize(source, {
+  const clean = scripts ? source : DOMPurify.sanitize(source, {
     WHOLE_DOCUMENT: true,
     ADD_TAGS: ["link"],
     FORBID_TAGS: ["script", "iframe", "frame", "frameset", "object", "embed", "base", "meta"],
     FORBID_ATTR: ["srcdoc", "ping", "action", "formaction", "target", "autofocus", "data-preview-href"],
   });
   const document = new DOMParser().parseFromString(clean, "text/html");
+  if (scripts) await inlineScripts(document, path, options.signal, text, warnings);
   for (const style of document.querySelectorAll("style"))
     style.textContent = await rewriteCss(style.textContent ?? "", (url, imported) => resource(path, url, imported));
   for (const link of document.querySelectorAll("link")) {
@@ -76,7 +83,8 @@ export async function prepareHtmlPreview(options: PreviewResourceOptions) {
   }
   const policy = document.createElement("meta");
   policy.httpEquiv = "Content-Security-Policy";
-  policy.content = `default-src 'none'; script-src '${htmlPreviewScriptHash}'; ${previewResourcePolicy(trust)}; base-uri 'none'; form-action 'none'`;
+  policy.content = scripts ? "form-action 'none'"
+    : `default-src 'none'; script-src '${htmlPreviewScriptHash}'; ${previewResourcePolicy(trust)}; base-uri 'none'; form-action 'none'`;
   const viewport = document.createElement("meta");
   viewport.name = "viewport";
   viewport.content = "width=device-width, initial-scale=1";
@@ -92,7 +100,31 @@ export async function prepareHtmlPreview(options: PreviewResourceOptions) {
   return {
     html: "<!doctype html>\n" + document.documentElement.outerHTML,
     warnings: [...warnings],
-    trust,
+    trust: requested,
     scripts: /<script\b|\son\w+\s*=/i.test(source),
+    running: scripts,
   };
+}
+
+/** Replaces each workspace `<script src>` with the file's text; web URLs stay. */
+async function inlineScripts(document: Document, path: string, signal: AbortSignal,
+  text: (file: string) => Promise<string>, warnings: Set<string>) {
+  for (const script of document.querySelectorAll("script[src]")) {
+    const src = script.getAttribute("src")!;
+    if (externalPreviewResource(src, "external")) continue;
+    const target = resolvePreviewLink(path, src);
+    if (target.kind !== "file") {
+      warnings.add(`Could not load script ${src}`);
+      script.remove();
+      continue;
+    }
+    try {
+      script.textContent = (await text(target.path)).replace(/<\/script/gi, "<\\/script");
+      script.removeAttribute("src");
+    } catch (error) {
+      signal.throwIfAborted();
+      warnings.add(`Could not load ${target.path}: ${error instanceof Error ? error.message : String(error)}`);
+      script.remove();
+    }
+  }
 }

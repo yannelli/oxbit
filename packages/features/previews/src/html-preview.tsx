@@ -5,13 +5,23 @@ import { isHtmlPath, prepareHtmlPreview } from "./html.js";
 import { resolvePreviewLink, type PreviewResourceTrust } from "./policy.js";
 import { PreviewResourceControl } from "./resource-trust.js";
 
+let serial = 0;
+/** Preview roots whose JavaScript the user turned on this session. */
+const scriptConsent = new Set<string>();
+
+/** A page served without the app's script policy; desktop and iOS register the oxbit-preview scheme. */
+function previewShellUrl() {
+  const tauri = (globalThis as { __TAURI_INTERNALS__?: { convertFileSrc(path: string, protocol: string): string } }).__TAURI_INTERNALS__;
+  return tauri ? tauri.convertFileSrc("preview-shell.html", "oxbit-preview") : new URL("preview-shell.html", document.baseURI).href;
+}
+
 export function createHtmlPreview(o: FeatureOptions) {
   return function HtmlPreview({ path }: { path: string }) {
     const [history, setHistory] = useState([path]);
     const current = history[history.length - 1]!;
     const [revision, setRevision] = useState(0);
     const [trust, setTrust] = useState<PreviewResourceTrust>("local");
-    const [preview, setPreview] = useState<Awaited<ReturnType<typeof prepareHtmlPreview>>>();
+    const [preview, setPreview] = useState<Awaited<ReturnType<typeof prepareHtmlPreview>> & { serial: number }>();
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [optionsOpen, setOptionsOpen] = useState(false);
@@ -19,6 +29,13 @@ export function createHtmlPreview(o: FeatureOptions) {
     const scroll = useRef({ path: current, top: 0 });
     const frame = useRef<HTMLIFrameElement>(null);
     const anchor = useRef<string | undefined>(undefined);
+    const shellDocument = useRef<string | undefined>(undefined);
+    // A trusted runtime workspace runs scripts; the iOS app and untrusted workspaces ask first.
+    const trusted = () => o.kernel.context.get("trusted") === true && o.kernel.context.get("iosApp") !== true;
+    const [autoRun, setAutoRun] = useState(trusted);
+    const [consent, setConsent] = useState(() => scriptConsent.has(path));
+    const scripts = autoRun || consent;
+    useEffect(() => o.kernel.context.subscribe(() => setAutoRun(trusted())), []);
 
     useEffect(() => {
       let timer: ReturnType<typeof setTimeout>;
@@ -44,6 +61,7 @@ export function createHtmlPreview(o: FeatureOptions) {
       void prepareHtmlPreview({
         path: current,
         trust,
+        scripts,
         filesystem: o.filesystem,
         signal: controller.signal,
         dependencies: dependencies.current,
@@ -53,7 +71,10 @@ export function createHtmlPreview(o: FeatureOptions) {
           return doc ? doc.text.toString() : (await o.filesystem.read(file)).text;
         },
       }).then(result => {
-        if (!controller.signal.aborted) { setPreview(result); setLoading(false); }
+        if (controller.signal.aborted) return;
+        shellDocument.current = result.running ? result.html : undefined;
+        setPreview({ ...result, serial: ++serial });
+        setLoading(false);
       }).catch((failure: unknown) => {
         if (!controller.signal.aborted) {
           setError(failure instanceof Error ? failure.message : String(failure));
@@ -61,7 +82,7 @@ export function createHtmlPreview(o: FeatureOptions) {
         }
       });
       return () => controller.abort();
-    }, [current, revision, trust]);
+    }, [current, revision, trust, scripts]);
 
     useEffect(() => {
       const restore = () => {
@@ -69,7 +90,10 @@ export function createHtmlPreview(o: FeatureOptions) {
         anchor.current = undefined;
       };
       const message = (event: MessageEvent) => {
-        if (event.source !== frame.current?.contentWindow || event.origin !== "null" || event.data?.path !== current) return;
+        if (event.source !== frame.current?.contentWindow || event.origin !== "null") return;
+        if (event.data?.type === "oxbit.preview.shell" && shellDocument.current !== undefined)
+          frame.current.contentWindow!.postMessage({ type: "oxbit.preview.document", html: shellDocument.current }, "*");
+        if (event.data?.path !== current) return;
         if (event.data.type === "oxbit.preview.ready") restore();
         if (event.data.type === "oxbit.preview.scroll" && Number.isFinite(event.data.top))
           scroll.current.top = Math.max(0, event.data.top);
@@ -109,14 +133,21 @@ export function createHtmlPreview(o: FeatureOptions) {
       {error && <div className="html-preview-message error-text" role="alert">{error}</div>}
       {optionsOpen && <Dialog title={tr("Preview options")} className="html-preview-options" onClose={() => setOptionsOpen(false)}>
         <PreviewResourceControl trust={trust} onChange={setTrust} />
-        {preview?.scripts && <p className="muted">{tr("HTML & CSS preview · JavaScript is disabled")}</p>}
+        {preview?.scripts && <p className="muted">{preview.running ? tr("JavaScript is on") : tr("HTML & CSS preview · JavaScript is disabled")}</p>}
         {!!preview?.warnings.length && <details className="html-preview-warnings">
           <summary>{tr("Some preview resources could not be loaded")}</summary>
           {preview.warnings.map(warning => <p key={warning}>{tr(warning)}</p>)}
         </details>}
       </Dialog>}
-      {preview && preview.trust === trust && !error && <iframe ref={frame} className="html-preview-frame" title={tr("HTML preview")}
-        sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={preview.html} />}
+      {preview?.scripts && !preview.running && !error && <div className="html-preview-scripts" role="note">
+        <span>{tr("This page has JavaScript, which is off. Scripts you run can load content from the internet and send data to it.")}</span>
+        <button type="button" className="button" onClick={() => { scriptConsent.add(path); setConsent(true); }}>{tr("Run JavaScript")}</button>
+      </div>}
+      {preview && preview.trust === trust && !error && (preview.running
+        ? <iframe ref={frame} key={preview.serial} className="html-preview-frame" title={tr("HTML preview")}
+          sandbox="allow-scripts allow-forms allow-modals" referrerPolicy="no-referrer" src={previewShellUrl()} />
+        : <iframe ref={frame} className="html-preview-frame" title={tr("HTML preview")}
+          sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={preview.html} />)}
     </div>;
   };
 }
