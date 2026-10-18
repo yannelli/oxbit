@@ -744,7 +744,7 @@ test("phone settings open on a page list, drill into a page, and return", async 
   await pages.getByRole("button", { name: "Editor", exact: true }).click();
   await expect(pages).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Editor", level: 2 })).toBeVisible();
-  await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation"]);
+  await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation", "AI"]);
   await expect(search).toBeVisible();
   await expect(page.locator(".search-input .muted")).not.toHaveText(/^0 /);
   const minimap = page.locator('[data-setting-id="editor.minimap"]');
