@@ -22,17 +22,23 @@ export function keyboardShortcut(
   event: Pick<
     KeyboardEvent,
     "ctrlKey" | "metaKey" | "shiftKey" | "altKey" | "key"
-  >,
+  > & { code?: string },
 ): string {
+  // macOS Option composes the key (Option+K is "˚"), so the physical key names the shortcut.
+  const physical =
+    event.altKey && /^[^\x20-\x7e]$/.test(event.key)
+      ? /^(?:Key([A-Z])|Digit(\d))$/.exec(event.code ?? "")
+      : null;
+  const key = physical ? (physical[1] ?? physical[2]) : event.key;
   return [
     event.ctrlKey || event.metaKey ? "Ctrl" : undefined,
     event.shiftKey ? "Shift" : undefined,
     event.altKey ? "Alt" : undefined,
-    event.key === " "
+    key === " "
       ? "Space"
-      : event.key.length === 1
-        ? event.key.toUpperCase()
-        : event.key,
+      : key.length === 1
+        ? key.toUpperCase()
+        : key,
   ]
     .filter(Boolean)
     .join("+");
