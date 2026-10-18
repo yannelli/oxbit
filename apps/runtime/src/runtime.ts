@@ -48,6 +48,7 @@ import { runtimeVersion } from "./version.js";
 import { lanOrigins, wildcardHost } from "./lan.js";
 import { loginShellEnvironment } from "./shell-environment.js";
 import { PushDevices } from "./push.js";
+import { AiCompletions } from "./ai.js";
 
 export interface RuntimeOptions {
   root: string;
@@ -254,6 +255,7 @@ export async function createRuntime(options: RuntimeOptions) {
     return session;
   };
   const acpRegistry = new ACPRegistry(dataDir, options.acpRegistryUrl);
+  const ai = new AiCompletions();
   const pushDevices = await PushDevices.open(dataDir);
   const agents = new AgentACP(files, (connectionId, name, params) => {
     const connection = connections.get(connectionId);
@@ -643,7 +645,7 @@ export async function createRuntime(options: RuntimeOptions) {
     if (method.startsWith("terminal.")) return { cap: "terminal", trust: true };
     if (method.startsWith("tasks.")) return { cap: "tasks", trust: !["tasks.catalog", "tasks.list", "tasks.attach", "tasks.worktrees"].includes(method) };
     if (method.startsWith("git.")) return { cap: "git", trust: true };
-    if (method.startsWith("acp.") || method.startsWith("push.")) return { cap: "extensions", trust: true };
+    if (method.startsWith("acp.") || method.startsWith("push.") || method.startsWith("ai.")) return { cap: "extensions", trust: true };
     if (method.startsWith("lsp.")) return { cap: "lsp", trust: true };
     if (method.startsWith("collab.")) return { cap: "collaboration" };
     if (method.startsWith("extensions."))
@@ -684,7 +686,7 @@ export async function createRuntime(options: RuntimeOptions) {
       if (!["acp.start", "acp.list", "acp.attach", "acp.detach", "acp.stop", "acp.disconnect", "acp.registry"].includes(method) && !method.startsWith("acp.checkpoint."))
         agents.control(session.id, requireString(params, "id"), connection.id);
     }
-    if (method.startsWith("push.")) owner(connection);
+    if (method.startsWith("push.") || method.startsWith("ai.")) owner(connection);
     if (method.startsWith("project.")) owner(connection);
     if (method.startsWith("settings.")) owner(connection);
     switch (method) {
@@ -737,6 +739,8 @@ export async function createRuntime(options: RuntimeOptions) {
       case "acp.disconnect":
         agents.disconnect(session.id, connection.id);
         return {};
+      case "ai.complete":
+        return ai.complete(params, signal);
       case "push.register":
         return pushDevices.register(session.id, connection.id, params);
       case "push.state":

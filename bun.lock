@@ -31,7 +31,7 @@
     },
     "apps/agent": {
       "name": "@oxbit/agent",
-      "version": "0.9.0",
+      "version": "0.11.7",
       "bin": {
         "oxbit-agent": "dist/index.js",
       },
@@ -47,7 +47,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.9.0",
+      "version": "0.11.7",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -69,7 +69,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.9.0",
+      "version": "0.11.7",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/feature-runtime": "workspace:*",
@@ -97,8 +97,10 @@
     },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.9.0",
+      "version": "0.11.7",
       "dependencies": {
+        "@oxbit/agent": "workspace:*",
+        "@oxbit/agent-core": "workspace:*",
         "@oxbit/core": "workspace:*",
         "@oxbit/protocol": "workspace:*",
         "@oxbit/sdk": "workspace:*",
@@ -176,6 +178,7 @@
         "@oxbit/core": "workspace:*",
         "@oxbit/documents": "workspace:*",
         "@oxbit/feature-agent-acp": "workspace:*",
+        "@oxbit/feature-ai": "workspace:*",
         "@oxbit/feature-collaboration": "workspace:*",
         "@oxbit/feature-editor": "workspace:*",
         "@oxbit/feature-explorer": "workspace:*",
@@ -231,6 +234,16 @@
         "markdown-it": "^14.3.2",
         "react": "19.1.0",
         "react-dom": "19.1.0",
+      },
+    },
+    "packages/features/ai": {
+      "name": "@oxbit/feature-ai",
+      "version": "1.0.0",
+      "dependencies": {
+        "@codemirror/state": "6.7.1",
+        "@codemirror/view": "6.43.6",
+        "@oxbit/agent-core": "workspace:*",
+        "@oxbit/sdk": "workspace:*",
       },
     },
     "packages/features/collaboration": {
@@ -869,6 +882,8 @@
     "@oxbit/documents": ["@oxbit/documents@workspace:packages/documents"],
 
     "@oxbit/feature-agent-acp": ["@oxbit/feature-agent-acp@workspace:packages/features/agent-acp"],
+
+    "@oxbit/feature-ai": ["@oxbit/feature-ai@workspace:packages/features/ai"],
 
     "@oxbit/feature-collaboration": ["@oxbit/feature-collaboration@workspace:packages/features/collaboration"],
 

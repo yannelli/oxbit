@@ -13,6 +13,7 @@ Oxbit supports browser workspaces, a Node runtime, desktop apps, and iOS. Runtim
 | Extensions | [SDK](sdk.md) | Trusted JavaScript shares host privileges. No public marketplace. |
 | Themes and icons | [Themes](themes/README.md), [icon packs](icon-packs.md) | ClassicOS 98 themes and icons are disabled by default. OS dialogs, branding, and terminal application truecolor output keep their own appearance. |
 | Agents | [Agent ACP](agent-acp.md) | Disabled by default. Requires a runtime owner and a configured provider. |
+| AI editing | [AI editing](ai-editor.md) | Inline completions are off by default. Requires the Oxbit agent's provider on a trusted runtime, or an iOS Agent setup key. |
 | Desktop and SSH | [Desktop](desktop.md), [Remote SSH](remote-ssh.md) | Desktop targets Apple Silicon macOS 26+ and Ubuntu 24.04+ x64. |
 | iPhone and iPad | [iOS](ios.md) | Local files and runtime connections are supported. SSH tunnels and touch drag and drop are not implemented. |
 

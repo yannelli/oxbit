@@ -40,6 +40,7 @@ import { createFeature as tasksFeature } from "@oxbit/feature-tasks";
 import { createFeature as gitFeature } from "@oxbit/feature-git";
 import { createFeature as collaborationFeature } from "@oxbit/feature-collaboration";
 import { createFeature as agentACPFeature } from "@oxbit/feature-agent-acp";
+import { createFeature as aiFeature } from "@oxbit/feature-ai";
 import bundleInspector from "@oxbit/bundle-inspector";
 import { ScopedConfigurationPersistence } from "./configuration.js";
 export { mirrorUserChanges, ScopedConfigurationPersistence } from "./configuration.js";
@@ -207,6 +208,7 @@ export async function createWorkbenchSession({
       gitFeature(options),
       collaborationFeature(options),
       agentACPFeature(options),
+      aiFeature(options),
       bundleInspector,
     ];
     for (const feature of features) kernel.extensions.register(feature);

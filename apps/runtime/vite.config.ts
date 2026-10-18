@@ -14,7 +14,7 @@ export default defineConfig({
     },
   }],
   define: { __OXBIT_VERSION__: JSON.stringify(version) },
-  ssr: { noExternal: ["@oxbit/protocol", "@oxbit/sdk", "@oxbit/core", "semver"] },
+  ssr: { noExternal: ["@oxbit/protocol", "@oxbit/sdk", "@oxbit/core", "@oxbit/agent-core", "@oxbit/agent", "semver"] },
   build: {
     ssr: "src/index.ts",
     outDir: "dist",

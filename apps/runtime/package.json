@@ -11,6 +11,8 @@
     "build:desktop": "vite build --config vite.desktop.config.ts"
   },
   "dependencies": {
+    "@oxbit/agent": "workspace:*",
+    "@oxbit/agent-core": "workspace:*",
     "@oxbit/core": "workspace:*",
     "@oxbit/protocol": "workspace:*",
     "@oxbit/sdk": "workspace:*",
