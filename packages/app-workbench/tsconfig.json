@@ -91,6 +91,9 @@
     },
     {
       "path": "../features/agent-acp"
+    },
+    {
+      "path": "../features/ai"
     }
   ]
 }

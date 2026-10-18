@@ -25,8 +25,8 @@ test("settings open on the first page and list the active page's sections", asyn
   await page.screenshot({ path: `${shots}/desktop-appearance.png` });
 
   await nav(page).getByRole("button", { name: "Editor", exact: true }).click();
-  await expect(nav(page).locator(".settings-nav-section")).toHaveText(["Typography", "Indentation"]);
-  await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation"]);
+  await expect(nav(page).locator(".settings-nav-section")).toHaveText(["Typography", "Indentation", "AI"]);
+  await expect(page.locator(".settings-section-title")).toHaveText(["Typography", "Indentation", "AI"]);
   await nav(page).getByRole("button", { name: "Indentation", exact: true }).click();
   await expect(page.locator('[data-section="Editor · Indentation"]')).toBeInViewport();
 

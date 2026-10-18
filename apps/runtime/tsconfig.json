@@ -22,6 +22,12 @@
     },
     {
       "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/agent-core"
+    },
+    {
+      "path": "../agent"
     }
   ]
 }

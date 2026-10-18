@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createKernel } from "@oxbit/core";
 import {
   commandBinding,
+  keyboardShortcut,
   normalizeShortcut,
   resolveWorkbenchShortcut,
   shortcutCandidates,
@@ -24,6 +25,13 @@ describe("workbench shortcut precedence", () => {
       normalizeShortcut("Ctrl+Alt+ArrowRight"),
     );
     expect(normalizeShortcut("Ctrl+K Enter")).toBe("ctrl+k enter");
+  });
+  it("names Option-composed macOS keys by their physical key", () => {
+    const event = { ctrlKey: false, metaKey: true, shiftKey: false, altKey: true };
+    expect(keyboardShortcut({ ...event, key: "˚", code: "KeyK" })).toBe("Ctrl+Alt+K");
+    expect(keyboardShortcut({ ...event, key: "™", code: "Digit2" })).toBe("Ctrl+Alt+2");
+    expect(keyboardShortcut({ ...event, key: "k", code: "KeyK" })).toBe("Ctrl+Alt+K");
+    expect(keyboardShortcut({ ...event, altKey: false, key: "é", code: "KeyE" })).toBe("Ctrl+É");
   });
   it("uses user overrides and supports explicitly removing a binding", () => {
     const kernel = setup();

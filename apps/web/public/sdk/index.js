@@ -312,6 +312,32 @@ var settings_schema_default = {
         "90"
       ]
     },
+    "ai.inlineCompletions.enabled": {
+      title: "AI inline completions",
+      description: "Suggest code as ghost text while typing. Tab accepts, Escape dismisses, and Ctrl/Cmd+Right accepts one word. Each request sends the code around the cursor to the model provider.",
+      type: "boolean",
+      default: false
+    },
+    "ai.inlineCompletions.delay": {
+      title: "Inline completion delay",
+      description: "Milliseconds after the last keystroke before a suggestion is requested.",
+      type: "number",
+      default: 350,
+      minimum: 100,
+      maximum: 3e3
+    },
+    "ai.model": {
+      title: "AI model",
+      description: "Model ID for inline completions and inline edits. Empty uses the Oxbit agent's model; a small, fast model keeps suggestions quick.",
+      type: "string",
+      default: ""
+    },
+    "ai.effort": {
+      title: "AI reasoning effort",
+      description: "Reasoning level sent with AI editor requests, for example minimal or low. Empty sends no level.",
+      type: "string",
+      default: ""
+    },
     "workbench.keymap": {
       title: "Keymap",
       description: "Keyboard layout applied on top of the Oxbit defaults. User keybindings always win.",
@@ -1041,6 +1067,18 @@ var settings_schema_default = {
         },
         "agentACP.oxbit.compactAt": {
           $ref: "#/properties/agentACP.oxbit.compactAt"
+        },
+        "ai.inlineCompletions.enabled": {
+          $ref: "#/properties/ai.inlineCompletions.enabled"
+        },
+        "ai.inlineCompletions.delay": {
+          $ref: "#/properties/ai.inlineCompletions.delay"
+        },
+        "ai.model": {
+          $ref: "#/properties/ai.model"
+        },
+        "ai.effort": {
+          $ref: "#/properties/ai.effort"
         },
         "workbench.keymap": {
           $ref: "#/properties/workbench.keymap"

@@ -33,7 +33,8 @@
     "@oxbit/feature-git": "workspace:*",
     "@oxbit/feature-collaboration": "workspace:*",
     "@oxbit/icon-themes": "workspace:*",
-    "@oxbit/feature-agent-acp": "workspace:*"
+    "@oxbit/feature-agent-acp": "workspace:*",
+    "@oxbit/feature-ai": "workspace:*"
   },
   "license": "MIT"
 }

@@ -6,6 +6,11 @@
   "bin": {
     "oxbit-agent": "dist/index.js"
   },
+  "exports": {
+    "./auth": "./src/auth.ts",
+    "./config": "./src/config.ts",
+    "./providers": "./src/providers.ts"
+  },
   "engines": {
     "node": ">=24 <25"
   },

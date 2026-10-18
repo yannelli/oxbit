@@ -110,6 +110,9 @@
       "path": "packages/features/agent-acp"
     },
     {
+      "path": "packages/features/ai"
+    },
+    {
       "path": "packages/host-ios"
     },
     {
