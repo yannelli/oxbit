@@ -881,17 +881,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         {agent.usage && <ContextMeter usage={agent.usage} />}
         {connection || (local && (agent.messages.length > 0 || agent.archived)) ? (
           <div className="acp-provider" title={agent.displayName}>
-            <Icon name="agent" size={14} />
+            <AgentLogo provider={connection?.provider ?? chosen} size={14} />
             <span>{agent.displayName}</span>
           </div>
         ) : (agent.messages.length > 0 || agent.archived) && (
           <Select
             label={tr("ACP provider")}
-            icon="agent"
+            icon={<AgentLogo provider={chosen} size={14} />}
             value={chosen}
             options={[
-              ...ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name })),
-              ...(acpPreset(chosen) ? [] : [{ value: chosen, label: agent.displayName }]),
+              ...ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name, icon: <AgentLogo provider={p.id} size={14} /> })),
+              ...(acpPreset(chosen) ? [] : [{ value: chosen, label: agent.displayName, icon: <AgentLogo provider={chosen} size={14} /> }]),
               { value: "#registry", label: tr("More agents…") },
               { value: "#custom", label: tr("Custom agent…") },
             ]}

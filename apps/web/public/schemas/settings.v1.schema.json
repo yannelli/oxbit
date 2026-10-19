@@ -192,6 +192,84 @@
       "minimum": 100,
       "maximum": 3000
     },
+    "ai.inlineCompletions.maxTokens": {
+      "title": "Inline completion max tokens",
+      "description": "Most tokens the model may generate for one suggestion.",
+      "type": "number",
+      "default": 256,
+      "minimum": 16,
+      "maximum": 4096
+    },
+    "ai.inlineCompletions.maxLines": {
+      "title": "Inline completion max lines",
+      "description": "Most lines in one suggestion. The model is asked for at most this many, and longer replies are cut. 1 asks for the rest of the current line only.",
+      "type": "number",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 200
+    },
+    "ai.inlineCompletions.linesBefore": {
+      "title": "Inline completion lines before the cursor",
+      "description": "Lines of the file before the cursor sent as context. 0 sends only the start of the cursor's line.",
+      "type": "number",
+      "default": 150,
+      "minimum": 0,
+      "maximum": 2000
+    },
+    "ai.inlineCompletions.linesAfter": {
+      "title": "Inline completion lines after the cursor",
+      "description": "Lines of the file after the cursor sent as context. 0 sends only the rest of the cursor's line.",
+      "type": "number",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 2000
+    },
+    "ai.inlineCompletions.contextTokens": {
+      "title": "Inline completion context tokens",
+      "description": "Most tokens of context sent with one request, estimated at 4 characters per token. Lines farthest from the cursor are dropped first; open files get a quarter of the budget when included.",
+      "type": "number",
+      "default": 2048,
+      "minimum": 256,
+      "maximum": 32000
+    },
+    "ai.inlineCompletions.includePath": {
+      "title": "Inline completion: send file path and language",
+      "description": "Send the file's path and language with the code.",
+      "type": "boolean",
+      "default": true
+    },
+    "ai.inlineCompletions.includeDiagnostics": {
+      "title": "Inline completion: send nearby problems",
+      "description": "Send the errors and warnings reported for the lines in the context.",
+      "type": "boolean",
+      "default": false
+    },
+    "ai.inlineCompletions.includeOpenFiles": {
+      "title": "Inline completion: send other open files",
+      "description": "Send the start of up to 3 other open files, within the context token budget.",
+      "type": "boolean",
+      "default": false
+    },
+    "ai.inlineCompletions.disabledGlobs": {
+      "title": "Inline completion excluded files",
+      "description": "Glob patterns for files that never request suggestions or appear as open-file context, for example **/.env* or **/secrets/**.",
+      "type": "array",
+      "default": [
+        "**/.env*",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.cert",
+        "**/*.crt",
+        "**/.dev.vars",
+        "**/secrets.yml"
+      ]
+    },
+    "ai.inlineCompletions.instructions": {
+      "title": "Inline completion instructions",
+      "description": "Extra instructions added to the completion system prompt, for example a code style to follow.",
+      "type": "string",
+      "default": ""
+    },
     "ai.provider": {
       "title": "AI provider",
       "description": "Where inline completions and inline edits are sent. agent uses the Oxbit agent's provider and key. openrouter sends to OpenRouter. openai-compatible sends to the Chat Completions API at AI base URL. local sends to Ollama or a llama.cpp server at AI base URL without a key. Run Set AI Provider API Key to save a key for openrouter or openai-compatible.",
@@ -960,6 +1038,36 @@
         },
         "ai.inlineCompletions.delay": {
           "$ref": "#/properties/ai.inlineCompletions.delay"
+        },
+        "ai.inlineCompletions.maxTokens": {
+          "$ref": "#/properties/ai.inlineCompletions.maxTokens"
+        },
+        "ai.inlineCompletions.maxLines": {
+          "$ref": "#/properties/ai.inlineCompletions.maxLines"
+        },
+        "ai.inlineCompletions.linesBefore": {
+          "$ref": "#/properties/ai.inlineCompletions.linesBefore"
+        },
+        "ai.inlineCompletions.linesAfter": {
+          "$ref": "#/properties/ai.inlineCompletions.linesAfter"
+        },
+        "ai.inlineCompletions.contextTokens": {
+          "$ref": "#/properties/ai.inlineCompletions.contextTokens"
+        },
+        "ai.inlineCompletions.includePath": {
+          "$ref": "#/properties/ai.inlineCompletions.includePath"
+        },
+        "ai.inlineCompletions.includeDiagnostics": {
+          "$ref": "#/properties/ai.inlineCompletions.includeDiagnostics"
+        },
+        "ai.inlineCompletions.includeOpenFiles": {
+          "$ref": "#/properties/ai.inlineCompletions.includeOpenFiles"
+        },
+        "ai.inlineCompletions.disabledGlobs": {
+          "$ref": "#/properties/ai.inlineCompletions.disabledGlobs"
+        },
+        "ai.inlineCompletions.instructions": {
+          "$ref": "#/properties/ai.inlineCompletions.instructions"
         },
         "ai.provider": {
           "$ref": "#/properties/ai.provider"

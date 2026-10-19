@@ -8,7 +8,7 @@ The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and 
 
 | Feature | Use | Keys |
 | --- | --- | --- |
-| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
+| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. Deleting or moving the cursor dismisses the suggestion and cancels a running request without starting a new one. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
 | Edit Selection with AI | Asks for an instruction, replaces the selection with the model's rewrite, and highlights the new text. With no selection it inserts code at the cursor. The edit is one undo step. If the selected text changes while the request runs, nothing is applied. | Ctrl/Cmd+Alt+K. Escape cancels a running request. |
 
 Ctrl/Cmd+K is a chord prefix in Oxbit, so the inline edit uses Ctrl/Cmd+Alt+K.
@@ -19,12 +19,22 @@ Ctrl/Cmd+K is a chord prefix in Oxbit, so the inline edit uses Ctrl/Cmd+Alt+K.
 | --- | --- | --- |
 | `ai.inlineCompletions.enabled` | `false` | Request suggestions while typing. |
 | `ai.inlineCompletions.delay` | `350` | Milliseconds of idle time before a request. |
+| `ai.inlineCompletions.maxTokens` | `256` | Output token cap per suggestion (16 to 4,096). |
+| `ai.inlineCompletions.maxLines` | `2` | Lines in a suggestion. The system prompt asks for at most this many and `cleanCompletion` cuts longer replies. `1` asks for the rest of the current line only. |
+| `ai.inlineCompletions.linesBefore` | `150` | Lines before the cursor sent as context. `0` sends the start of the cursor's line. |
+| `ai.inlineCompletions.linesAfter` | `50` | Lines after the cursor sent as context. `0` sends the rest of the cursor's line. |
+| `ai.inlineCompletions.contextTokens` | `2048` | Context budget per request, estimated at 4 characters per token. Lines farthest from the cursor go first; the code after the cursor keeps at least a quarter of the budget. Open files take up to a quarter when included. |
+| `ai.inlineCompletions.includePath` | `true` | Send the file path and language. |
+| `ai.inlineCompletions.includeDiagnostics` | `false` | Send up to 20 errors and warnings on the context lines, from `diagnostics.change` events. |
+| `ai.inlineCompletions.includeOpenFiles` | `false` | Send the start of up to 3 other open documents, most recently opened first. |
+| `ai.inlineCompletions.disabledGlobs` | Zed's `edit_predictions.disabled_globs` without its Zed settings paths | Files matching a glob request no suggestions and are left out of open-file context. Matching uses `lspGlobMatches`. |
+| `ai.inlineCompletions.instructions` | `""` | Text appended to the completion system prompt. |
 | `ai.provider` | `agent` | `agent` (Agent harness): the Oxbit agent's provider and key. `openrouter`: `https://openrouter.ai/api`. `openai-compatible` (Custom OpenAI API): Chat Completions at `ai.baseUrl`. `local`: Ollama or a llama.cpp server at `ai.baseUrl`, without a key. |
 | `ai.baseUrl` | `""` | Base URL for `openai-compatible` and `local`. Empty `local` uses `http://localhost:11434`. llama.cpp's `llama-server` listens on `http://127.0.0.1:8080`. On iPhone, use the computer's LAN address. |
 | `ai.model` | `""` | Model ID for AI editing. With `agent`, empty uses the Oxbit agent's model. Other providers need one. |
 | `ai.effort` | `""` | Reasoning level sent with each request, for example `minimal` or `low`. |
 
-The settings appear on the Editor page under **AI**. The provider select shows the labels from `Setting.enumLabels`. **Set API Key…** runs **AI: Set AI Provider API Key**, which saves the `openrouter` or `openai-compatible` key: on iOS in the Keychain through `AGENT_MODELS_SERVICE`, under the same account Agent setup uses for that endpoint; with a runtime, in the Oxbit agent's `auth.json` through the runtime's `ai.key` method, under the slot `oxbit-agent login --provider` writes.
+Each `ai.inlineCompletions.*` setting is read for the file's language, so language overrides apply. The settings appear on the Editor page under **AI**. The provider select shows the labels from `Setting.enumLabels`. **Set API Key…** runs **AI: Set AI Provider API Key**, which saves the `openrouter` or `openai-compatible` key: on iOS in the Keychain through `AGENT_MODELS_SERVICE`, under the same account Agent setup uses for that endpoint; with a runtime, in the Oxbit agent's `auth.json` through the runtime's `ai.key` method, under the slot `oxbit-agent login --provider` writes.
 
 ### Model suggestions
 
@@ -48,7 +58,9 @@ Requests use Chat Completions with a system prompt. Use chat or instruct models;
 
 ## Prompts
 
-`src/prompt.ts` sends up to 6,000 characters before the cursor and 2,000 after, with a `<|cursor|>` marker, to a chat model. `cleanCompletion` removes a Markdown fence, an echoed cursor marker, a repeated current line, and characters that already follow the cursor, and keeps at most 24 lines. Inline completions request at most 256 output tokens; inline edits request at most 8,192.
+For inline completions, `contextWindow` in `src/prompt.ts` takes the lines around the cursor within the line and token limits, and `completionPrompt` sends the path header, open files, and problems that are turned on, then the code with a `<|cursor|>` marker, to a chat model. `cleanCompletion` removes a Markdown fence, an echoed cursor marker, a repeated current line, and characters that already follow the cursor, and keeps at most `ai.inlineCompletions.maxLines` lines. Inline edits send up to 6,000 characters before the selection and 2,000 after, and request at most 8,192 output tokens.
+
+`withOutputLimit` in `@oxbit/agent-core` adds the output cap to editor requests: `max_tokens` for Chat Completions and `max_output_tokens` for OpenAI Responses. The Anthropic adapter sets `max_tokens` itself, and the ChatGPT backend rejects `max_output_tokens`. Agent turns do not use it.
 
 ## Implementation notes
 
@@ -61,7 +73,7 @@ Requests use Chat Completions with a system prompt. Use chat or instruct models;
 - `packages/features/ai/src/*.test.ts`: prompt cleanup, ghost state, inline edit application, transport and provider selection, and model suggestions.
 - `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, named providers, `ai.key` and `ai.models`, with a fake `fetch`.
 - `tests/browser/settings-pages.spec.ts`: provider labels, suggestion details, and choosing a suggested model.
-- `tests/browser/ai-editor.spec.ts`: ghost text accept and dismiss, and the inline edit with undo, against a fake `agentModels` service.
+- `tests/browser/ai-editor.spec.ts`: ghost text accept and dismiss, the inline completion limits, instructions and excluded files, and the inline edit with undo, against a fake `agentModels` service.
 
 ## References
 
@@ -72,3 +84,4 @@ Requests use Chat Completions with a system prompt. Use chat or instruct models;
 - Ollama OpenAI compatibility: https://docs.ollama.com/api/openai-compatibility
 - llama.cpp `llama-server` OpenAI-compatible endpoints: https://github.com/ggml-org/llama.cpp/tree/master/tools/server
 - OpenRouter models API: https://openrouter.ai/docs/api-reference/models/get-models
+- Inline completion options in other editors, checked 2026-10-19: Continue `autocompleteOptions` (`maxPromptTokens`, `prefixPercentage`, `maxSuffixPercentage`, `debounceDelay`, `useRecentlyOpened`, `template`), https://docs.continue.dev/reference; Zed `edit_predictions` (`disabled_globs`, per-language `show_edit_predictions`, `max_output_tokens`), https://zed.dev/docs/ai/edit-prediction and https://github.com/zed-industries/zed/blob/main/assets/settings/default.json

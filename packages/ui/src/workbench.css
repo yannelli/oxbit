@@ -39,6 +39,8 @@ html,body,#root{height:100%;width:100%;overflow:hidden}body{margin:0}button{touc
 .select-trigger{display:flex;align-items:center;gap:8px;width:100%;min-height:30px;padding:5px 9px;border:1px solid var(--bd-strong);border-radius:5px;background:var(--bg-input);text-align:left}
 .select-trigger>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .select-trigger>svg{flex:none;color:var(--fg-2)}
+.select-icon{display:flex;flex:none;align-items:center;color:var(--fg-2);font-style:normal}
+.select-option>.select-icon{margin-right:-4px}
 .select-trigger:hover:not(:disabled){border-color:var(--accent);background:var(--bg-hover)}
 .select-trigger[aria-expanded=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .select-popup{position:fixed;inset:auto;margin:0;padding:4px;overflow:auto;border:1px solid var(--bd-strong);border-radius:7px;background:var(--bg-raised);color:var(--fg);box-shadow:var(--shadow);font:inherit;font-size:calc(var(--font-body-font-size) * 1)}
@@ -767,7 +769,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
 .acp-registry-entry[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
 .acp-registry-title { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
 .acp-agent-logo { display:inline-block; flex:none; background:currentColor; -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; }
-.acp-agent-option > .acp-agent-logo,.acp-thread-heading > .acp-agent-logo,.acp-live-session > .acp-agent-logo { display:inline-block; flex:none; color:var(--fg-2); }
+.acp-agent-option > .acp-agent-logo,.acp-thread-heading > .acp-agent-logo,.acp-provider > .acp-agent-logo,.acp-live-session > .acp-agent-logo { display:inline-block; flex:none; color:var(--fg-2); }
 .acp-registry-title > .acp-agent-logo { align-self:center; color:var(--fg-2); }
 .acp-history-agent { display:flex; align-items:center; gap:4px; }
 .acp-registry-title > small { color:var(--fg-3); }

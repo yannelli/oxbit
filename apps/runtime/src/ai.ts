@@ -1,4 +1,4 @@
-import { ADAPTERS, apiKeySlot, listModels, modelError, type Fetch, type ProviderId } from "@oxbit/agent-core";
+import { ADAPTERS, apiKeySlot, listModels, modelError, withOutputLimit, type Fetch, type ProviderId } from "@oxbit/agent-core";
 import { FileAuthStore } from "@oxbit/agent/auth";
 import { AgentConfig, agentHome } from "@oxbit/agent/config";
 import { missingKey, normalizeBase, selectProvider } from "@oxbit/agent/providers";
@@ -52,8 +52,8 @@ export class AiCompletions {
     if (!model) throw new RpcError("UNAVAILABLE", "Set ai.model, or a model for the Oxbit agent");
     const endpoint = choice.runtime.endpoint();
     const adapter = ADAPTERS[endpoint.api];
-    const request = adapter.request({ model, system, turns: [{ role: "user", text: prompt }], tools: [],
-      ...(effort ? { effort } : {}), ...(maxTokens ? { maxTokens: maxTokens as number } : {}) });
+    const request = withOutputLimit(endpoint.api, adapter.request({ model, system, turns: [{ role: "user", text: prompt }], tools: [],
+      ...(effort ? { effort } : {}), ...(maxTokens ? { maxTokens: maxTokens as number } : {}) }), maxTokens as number | undefined);
     let output = "";
     try {
       for await (const event of adapter.events(choice.runtime.models().stream({ ...endpoint, ...request }, signal)))

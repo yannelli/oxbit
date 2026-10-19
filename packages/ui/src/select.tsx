@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Icon } from "./index.js";
 
-type Option = { value: string; label: string; disabled?: boolean };
+type Option = { value: string; label: string; disabled?: boolean; icon?: ReactNode };
 /** A themed select with native popover dismissal and listbox keyboard navigation. */
 export function Select({
   value,
@@ -20,7 +20,8 @@ export function Select({
   label: string;
   disabled?: boolean;
   className?: string;
-  icon?: string;
+  /** An icon name, or an element such as a logo. */
+  icon?: string | ReactNode;
   onOpen?: () => void;
   openRequest?: number;
 }) {
@@ -161,7 +162,7 @@ export function Select({
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={keydown}
       >
-        {icon && <Icon name={icon} />}
+        {typeof icon === "string" ? <Icon name={icon} /> : current?.icon ? <i className="select-icon">{current.icon}</i> : icon && <i className="select-icon">{icon}</i>}
         <span>{current?.label ?? value}</span>
         <Icon name="chevD" size={12} />
       </button>
@@ -193,6 +194,7 @@ export function Select({
               if (!option.disabled) choose(option.value);
             }}
           >
+            {option.icon && <i className="select-icon">{option.icon}</i>}
             <span>{option.label}</span>
             {option.value === value && <Icon name="check" size={14} />}
           </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CURSOR, cleanCompletion, cleanEdit, completionPrompt, editPrompt, unwrap } from "./prompt.js";
+import { Text } from "@codemirror/state";
+import { CURSOR, cleanCompletion, cleanEdit, completionPrompt, completionSystem, contextWindow, editPrompt, nearbyProblems, openFileContext, unwrap } from "./prompt.js";
 
 describe("completion prompts", () => {
   it("marks the cursor between the prefix and suffix", () => {
@@ -49,5 +50,51 @@ describe("cleanEdit", () => {
   it("matches whether the selection ended with a newline", () => {
     expect(cleanEdit("a + b\n\n", "a+b")).toBe("a + b");
     expect(cleanEdit("a + b", "a+b\n")).toBe("a + b\n");
+  });
+});
+
+describe("completion context options", () => {
+  const doc = Text.of(Array.from({ length: 10 }, (_, index) => `line ${index + 1}`));
+  const cursor = doc.line(5).from + 4;
+
+  it("limits the code to the lines around the cursor", () => {
+    expect(contextWindow(doc, cursor, { linesBefore: 1, linesAfter: 1, tokens: 1000 }))
+      .toEqual({ prefix: "line 4\nline", suffix: " 5\nline 6", firstLine: 4, lastLine: 6 });
+    expect(contextWindow(doc, cursor, { linesBefore: 0, linesAfter: 0, tokens: 1000 })).toMatchObject({ prefix: "line", suffix: " 5" });
+  });
+
+  it("drops whole lines farthest from the cursor to fit the token budget", () => {
+    const window = contextWindow(doc, cursor, { linesBefore: 10, linesAfter: 10, tokens: 6 });
+    expect(window.prefix).toBe("line 3\nline 4\nline");
+    expect(window.suffix).toBe(" 5");
+    expect(window.prefix.length + window.suffix.length).toBeLessThanOrEqual(24);
+  });
+
+  it("keeps errors and warnings on the context lines", () => {
+    const at = (line: number, severity: number, message: string) => ({ range: { start: { line: line - 1, character: 0 } }, severity, message });
+    expect(nearbyProblems([at(2, 1, "outside"), at(4, 1, "Cannot find name 'x'.\nmore"), at(5, 2, "Unused"), at(6, 3, "info")], 3, 6))
+      .toEqual(["Line 4 (error): Cannot find name 'x'.", "Line 5 (warning): Unused"]);
+  });
+
+  it("shares the open file budget and skips empty files", () => {
+    const files = openFileContext([{ path: "a.ts", text: "a1\na2\na3" }, { path: "b.ts", text: " " }, { path: "c.ts", text: "c1" }], 2);
+    expect(files).toEqual([{ path: "a.ts", text: "a1" }, { path: "c.ts", text: "c1" }]);
+  });
+
+  it("adds the chosen sections and leaves out the path when asked", () => {
+    const prompt = completionPrompt({ path: "a.ts", prefix: "x", suffix: "", includePath: false, problems: ["Line 1 (error): bad"], openFiles: [{ path: "b.ts", text: "b" }] });
+    expect(prompt).toBe(`Open file b.ts:\n<file>b</file>\n\nProblems in this code:\nLine 1 (error): bad\n\nx${CURSOR}`);
+  });
+
+  it("asks for one line and adds the user's instructions", () => {
+    const system = completionSystem({ maxLines: 1, instructions: " Use tabs. " });
+    expect(system).toContain("Complete only the rest of the current line.");
+    expect(system.endsWith("Instructions from the user:\nUse tabs.")).toBe(true);
+    expect(completionSystem({ maxLines: 2 })).toContain("Reply with at most 2 lines.");
+    expect(completionSystem({ maxLines: 2 })).not.toContain("Instructions");
+  });
+
+  it("cuts a suggestion to the line limit", () => {
+    expect(cleanCompletion("a\nb\nc", { prefix: "", suffix: "" }, 2)).toBe("a\nb");
   });
 });

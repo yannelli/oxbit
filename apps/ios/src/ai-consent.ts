@@ -41,7 +41,7 @@ export function withAiConsent(models: AgentModels, ask: Ask, storage: Pick<typeo
       const name = provider(endpoint);
       answer = ask(
         `Share data with ${name}?`,
-        `Oxbit sends your agent messages, the conversation, the files and diagnostics the agent reads, and the code around the cursor for AI completions to ${name}. ${name} handles this data under its own privacy policy.`,
+        `Oxbit sends your agent messages, the conversation, the files and diagnostics the agent reads, and, for AI completions, the code around the cursor plus any problems and other open files you turn on in Settings to ${name}. ${name} handles this data under its own privacy policy.`,
         [ALLOW, "Don't Allow"],
       ).then(async (choice) => {
         if (choice !== ALLOW) {
