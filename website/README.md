@@ -51,8 +51,8 @@ Check desktop and mobile layouts in the local preview after visual changes.
 | `public/changelog/`, `public/faq/` | Dated release highlights and direct answers |
 | `public/about/`, `public/support/`, `public/security/`, `public/privacy/` | Project, help, trust boundaries, and privacy |
 | `public/404.html` | Not-found page |
-| `public/styles.css`, `public/main.js` | Styling, scroll reveal, copy buttons, terminal animation |
-| `public/pages.css` | Shared navigation, subpages, and responsive styles |
+| `public/styles.css`, `public/main.js` | Styling, scroll reveal, copy buttons, terminal animation, feature group navigation |
+| `public/pages.css` | Shared navigation, subpages, feature sections and mockups, and responsive styles |
 | `public/sitemap.xml`, `public/robots.txt` | Canonical page discovery |
 | `check.mjs` | Static content and navigation checks |
 | `public/brand/` | Logo assets copied from `apps/web/public/brand` |

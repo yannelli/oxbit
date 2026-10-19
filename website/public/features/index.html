@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Code editor and agent features | Oxbit</title>
-  <meta name="description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta name="description" content="Oxbit features: split editors, AI inline completions, Edit Selection with AI, Agent ACP coding agents, Source Control, terminals, tasks, language servers, themes, and keymaps." />
   <meta name="theme-color" content="#0e1013" />
   <link rel="canonical" href="https://oxbit.dev/features/" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -12,23 +12,24 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Oxbit" />
   <meta property="og:title" content="Code editor and agent features | Oxbit" />
-  <meta property="og:description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta property="og:description" content="Oxbit features: split editors, AI inline completions, Edit Selection with AI, Agent ACP coding agents, Source Control, terminals, tasks, language servers, themes, and keymaps." />
   <meta property="og:url" content="https://oxbit.dev/features/" />
   <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
   <meta property="og:image:alt" content="Oxbit, an open source development environment" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Code editor and agent features | Oxbit" />
-  <meta name="twitter:description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta name="twitter:description" content="Oxbit features: split editors, AI inline completions, Edit Selection with AI, Agent ACP coding agents, Source Control, terminals, tasks, language servers, themes, and keymaps." />
   <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/pages.css" />
-  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "@id": "https://oxbit.dev/features/#page", "url": "https://oxbit.dev/features/", "name": "Code editor and agent features | Oxbit", "description": "Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery.", "isPartOf": {"@id": "https://oxbit.dev/#website"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://oxbit.dev/"}, {"@type": "ListItem", "position": 2, "name": "Code editor and agent features", "item": "https://oxbit.dev/features/"}]}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "@id": "https://oxbit.dev/features/#page", "url": "https://oxbit.dev/features/", "name": "Code editor and agent features | Oxbit", "description": "Oxbit features: split editors, AI inline completions, Edit Selection with AI, Agent ACP coding agents, Source Control, terminals, tasks, language servers, themes, and keymaps.", "isPartOf": {"@id": "https://oxbit.dev/#website"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://oxbit.dev/"}, {"@type": "ListItem", "position": 2, "name": "Code editor and agent features", "item": "https://oxbit.dev/features/"}]}]}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
 </head>
 <body class="subpage">
   <a class="skip" href="#main">Skip to content</a>
+  <div class="bg" aria-hidden="true"><div class="bg-grid"></div><div class="bg-orb bg-orb-a"></div><div class="bg-noise"></div></div>
   <header class="nav" data-nav>
     <div class="container nav-inner">
       <a class="brand" href="/" aria-label="Oxbit home">
@@ -64,21 +65,216 @@
     </div>
   </header>
   <main id="main" class="page-main">
-    <div class="container page-heading">
+    <div class="container page-heading is-centered">
       <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Code editor and agent features</span></nav>
       <h1>Code editor and agent features</h1>
-      <p class="lead">Oxbit combines a CodeMirror editor with Git, language services, and coding agents. Connect a runtime for terminals and project tools, or use the on-device features on iPhone and iPad.</p>
+      <p class="lead">Oxbit pairs a CodeMirror editor with AI editing, coding agents, Source Control, terminals, tasks, and language servers. Each feature below names the command or setting that turns it on.</p>
     </div>
+    <nav class="local-nav" aria-label="Feature groups">
+      <ul class="container">
+        <li class="accent-mint"><a href="#editor">Editor</a></li>
+        <li class="accent-violet"><a href="#ai">AI editing</a></li>
+        <li class="accent-blue"><a href="#agents">Coding agents</a></li>
+        <li class="accent-orange"><a href="#source-control">Source Control</a></li>
+        <li class="accent-green"><a href="#tools">Terminals and tasks</a></li>
+        <li class="accent-pink"><a href="#customize">Themes and keymaps</a></li>
+        <li class="accent-yellow"><a href="#recovery">Recovery and sharing</a></li>
+      </ul>
+    </nav>
     <div class="container page-content">
-      <figure class="page-shot"><img src="/screens/agent-desktop-dark.png" alt="Oxbit editor with a TypeScript file and coding agent diff review" width="1440" height="900" /><figcaption>The editor and agent panel share the same workspace.</figcaption></figure>
-      <div class="card-grid">
-        <section class="card" id="editor"><h2>Editor</h2><p>Split views, multiple cursors, find and replace, formatters, and Markdown and HTML previews. Choose themes and icon packs for your workspace.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/language-support.md">Explore language support</a></section>
-        <section class="card" id="ai"><h2>AI editing</h2><p>Enable inline completions for ghost text suggestions, or select code and run Edit Selection with AI. Suggestions use the model provider configured for Oxbit Agent. Inline completions are off by default.</p><a class="text-link" href="/changelog/#v0-12-0">New in v0.12.0</a></section>
-        <section class="card" id="agents"><h2>Coding agents</h2><p>Enable Agent ACP in Extensions to use Codex, Claude Agent, Gemini CLI, and other ACP agents in a trusted runtime workspace. Review diffs, attach context, and return to sessions after a disconnect.</p><p>Oxbit Agent also runs on iPhone and iPad with your chosen model service. Provider accounts and usage costs are separate.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/agent-acp.md">Set up agents</a></section>
-        <section class="card" id="tools"><h2>Source Control and terminals</h2><p>Stage changes, commit, browse history, and manage branches in Source Control. A connected runtime runs terminals, tasks, project services, and managed language servers.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/tasks.md">Read the tasks guide</a></section>
-      </div>
-      <section class="page-band prose" id="recovery"><h2>Drafts and reconnection</h2><p>Browser workspaces store files, settings, layout, and drafts in IndexedDB. Runtime saves check file revisions, drafts survive failed saves, and surviving terminal and agent sessions reconnect. Commands with uncertain outcomes are inspected before another attempt.</p><p><a href="/security/">Read the trust and recovery boundaries</a> or <a href="/platforms/">compare what runs on each platform</a>.</p></section>
-      <div class="page-cta"><div><h2>Install Oxbit on your platform</h2></div><a class="btn btn-primary" href="/get-started/">Get started</a></div>
+
+      <section class="feature-section accent-mint" id="editor" aria-labelledby="editor-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg></span>
+          <h2 id="editor-title">Editor</h2>
+          <p class="lead">Up to three editor groups side by side or stacked, with language-aware navigation from the command palette.</p>
+        </div>
+        <figure class="feature-visual" data-reveal>
+          <div class="window">
+            <div class="window-bar"><span class="wdot"></span><span class="wdot"></span><span class="wdot"></span><span class="window-title">Oxbit — two editor groups</span></div>
+            <img src="/screens/editor-desktop-light.png" alt="Oxbit in the light theme with two editors open side by side" width="1440" height="900" loading="lazy" />
+          </div>
+        </figure>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Split Editor</h3><p>Split right or down into up to three groups. Pin tabs, keep preview tabs open, and move editors between groups.</p></article>
+          <article class="feature-tile" data-reveal><h3>Go to File, Symbol, and Line</h3><p>The command palette searches files, commands, symbols in the editor, line numbers, and recent files.</p><p class="tile-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd> or <kbd>Cmd</kbd><kbd>Shift</kbd><kbd>P</kbd></p></article>
+          <article class="feature-tile" data-reveal><h3>Rename Symbol and Find All References</h3><p>Go to Definition, hover, Quick Fix, and signature help come from the workspace language servers.</p></article>
+          <article class="feature-tile" data-reveal><h3>Multiple cursors</h3><p>Edit several places at once, fold regions, toggle word wrap, and format the document with the project formatter.</p></article>
+          <article class="feature-tile" data-reveal><h3>Search in Files</h3><p>Find and replace across the workspace with a per-file preview. Check the files to change, then apply.</p></article>
+          <article class="feature-tile" data-reveal><h3>Diff view</h3><p>Compare a file with Git, its last save, or the copy on disk, side by side or inline.</p></article>
+          <article class="feature-tile" data-reveal><h3>Markdown and HTML previews</h3><p>Open a preview to the side as you type. The desktop app runs JavaScript in HTML previews; on iPhone and iPad, Run JavaScript starts it.</p></article>
+          <article class="feature-tile" data-reveal><h3>Image viewer</h3><p>PNG, JPEG, GIF, WebP, AVIF, BMP, ICO, and SVG, with zoom from 10 to 1600 percent and reload on external change.</p></article>
+          <article class="feature-tile" data-reveal><h3>Focus mode</h3><p>Hide the sidebar and panel to keep only the editor on screen. Reset Workspace Layout restores the default arrangement.</p></article>
+        </div>
+      </section>
+
+      <section class="feature-section accent-violet" id="ai" aria-labelledby="ai-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>
+          <h2 id="ai-title">AI editing</h2>
+          <p class="lead">Ghost text suggestions and selection rewrites in the editor, using the model provider configured for Oxbit Agent. New in <a href="/changelog/#v0-12-0">v0.12.0</a>.</p>
+        </div>
+        <div class="feature-visual mock mock-split" data-reveal aria-hidden="true">
+          <div>
+            <p class="mock-title">Inline completion</p>
+            <pre><code><span class="k">export async function</span> <span class="f">loadDevice</span>(id: <span class="t">string</span>) {
+  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`/api/devices/${id}`</span>);
+  <span class="k">if</span> (!res.ok) <span class="ghost">throw new Error(`Device ${id}: ${res.status}`);</span>
+  <span class="ghost">return res.json() as Promise&lt;Device&gt;;</span>
+}</code></pre>
+            <p class="mock-hint"><kbd>Tab</kbd> accept <kbd>Esc</kbd> dismiss</p>
+          </div>
+          <div>
+            <p class="mock-title">Edit Selection with AI</p>
+            <div class="mock-prompt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span>Retry twice before failing</span><kbd>Esc</kbd></div>
+            <pre><code><span class="hl"><span class="k">for</span> (<span class="k">let</span> attempt = <span class="n">0</span>; attempt &lt; <span class="n">3</span>; attempt++) {</span><span class="hl">  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(url);</span><span class="hl">  <span class="k">if</span> (res.ok) <span class="k">return</span> res.<span class="f">json</span>();</span><span class="hl">}</span><span class="k">throw new</span> <span class="t">Error</span>(<span class="s">'Device unavailable'</span>);</code></pre>
+            <p class="mock-hint"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>K</kbd> or <kbd>Cmd</kbd><kbd>Alt</kbd><kbd>K</kbd></p>
+          </div>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Inline completions</h3><p>After a pause in typing, the suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest, and Ctrl or Cmd with Right Arrow accepts one word. Off by default; turn it on in Editor settings or with AI: Toggle Inline Completions.</p><p class="tile-keys"><kbd>Tab</kbd> accept <kbd>Esc</kbd> dismiss</p></article>
+          <article class="feature-tile" data-reveal><h3>Edit Selection with AI</h3><p>Describe a change and the selection is replaced with the model’s rewrite, highlighted, as one undo step. With no selection, it inserts code at the cursor.</p></article>
+          <article class="feature-tile" data-reveal><h3>Model and effort settings</h3><p>Set <code class="inline">ai.model</code> for a separate editing model and <code class="inline">ai.effort</code> for the reasoning level. Left empty, AI editing uses Oxbit Agent’s model.</p></article>
+        </div>
+      </section>
+
+      <section class="feature-section accent-blue" id="agents" aria-labelledby="agents-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg></span>
+          <h2 id="agents-title">Coding agents</h2>
+          <p class="lead">Run Agent Client Protocol agents in a trusted runtime workspace, or Oxbit Agent on iPhone and iPad. Provider accounts and usage costs are separate.</p>
+        </div>
+        <div class="feature-visual feature-duo" data-reveal>
+          <div class="window">
+            <div class="window-bar"><span class="wdot"></span><span class="wdot"></span><span class="wdot"></span><span class="window-title">orbit-dash — Agent ACP</span></div>
+            <img src="/screens/agent-desktop-dark.png" alt="Oxbit editor with a TypeScript file and a coding agent diff review in the agent panel" width="1440" height="900" loading="lazy" />
+          </div>
+          <div class="phone-frame"><span class="island" aria-hidden="true"></span><img src="/screens/agent-phone-dark.png" alt="Oxbit Agent on iPhone showing an applied edit and its diff" width="390" height="844" loading="lazy" /></div>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile is-wide" data-reveal><h3>Agent ACP</h3><p>Enable Agent ACP in Extensions to run these agents from the agent panel. Sessions keep running when the editor disconnects, and you reattach when it returns.</p><ul class="chips" aria-label="Supported agents"><li>Codex</li><li>Claude Agent</li><li>Gemini CLI</li><li>GitHub Copilot</li><li>Cursor</li><li>Amp</li><li>ACP Registry</li><li>Oxbit Agent CLI</li><li>Custom ACP</li></ul></article>
+          <article class="feature-tile" data-reveal><h3>Diff review and approvals</h3><p>Review each edit as a diff in the editor, or apply edits as they land. Permission controls cover tool calls, and undo is guarded.</p></article>
+          <article class="feature-tile" data-reveal><h3>@ mentions</h3><p>Attach files, symbols, commits, and branch diffs to a prompt. The context the agent receives stays inspectable.</p></article>
+          <article class="feature-tile" data-reveal><h3>Subagents and history</h3><p>The Agents view tracks dispatched subagents and their approvals. Search past conversations, or use Fork from here to branch a thread.</p></article>
+          <article class="feature-tile" data-reveal><h3>Workspace MCP tools</h3><p>Through Oxbit’s MCP server, agents read files and unsaved buffers, check live diagnostics, open files in the editor, and propose edits for your review.</p></article>
+          <article class="feature-tile" data-reveal><h3>Oxbit Agent on iPhone and iPad</h3><p>Runs in the app on the Documents folder and folders from Files, with no computer. Use an OpenAI, Anthropic, or OpenAI-compatible key, or sign in with ChatGPT.</p><ul class="chips" aria-label="Oxbit Agent modes"><li>Ask</li><li>Accept edits</li><li>Full auto</li><li>Dictation</li><li>/context</li></ul></article>
+          <article class="feature-tile is-wide" data-reveal><h3>Oxbit Agent CLI</h3><p>A terminal coding agent with a TUI, a print mode for scripts, and an ACP mode for editors. It works with OpenAI or a ChatGPT plan, Anthropic, OpenRouter, Ollama, and OpenAI-compatible APIs, and reads AGENTS.md, skills, hooks, and MCP servers.</p><pre class="snippet"><code><span class="k">$</span> npm install -g @oxbit/agent
+<span class="k">$</span> oxbit-agent -p <span class="s">"Fix the failing test"</span></code></pre></article>
+        </div>
+        <p class="page-links"><a href="https://github.com/yannelli/oxbit/blob/main/docs/agent-acp.md">Set up Agent ACP</a><a href="https://github.com/yannelli/oxbit/blob/main/docs/oxbit-agent.md">Oxbit Agent CLI guide</a></p>
+      </section>
+
+      <section class="feature-section accent-orange" id="source-control" aria-labelledby="scm-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
+          <h2 id="scm-title">Source Control</h2>
+          <p class="lead">Git in the runtime on your computer, or on the device in the iPhone and iPad app.</p>
+        </div>
+        <div class="feature-visual mock mock-split" data-reveal aria-hidden="true">
+          <div>
+            <p class="mock-title">Changes on feature/telemetry</p>
+            <ul class="mock-rows">
+              <li><span class="badge badge-m">M</span><code>src/api.ts</code><small>+18 −4</small></li>
+              <li><span class="badge badge-u">U</span><code>src/hooks/useTelemetry.ts</code><small>+42</small></li>
+              <li><span class="badge badge-d">D</span><code>src/legacy/poll.ts</code><small>−31</small></li>
+            </ul>
+            <p class="mock-commit">Poll telemetry with a cancellable hook</p>
+          </div>
+          <div>
+            <p class="mock-title">History</p>
+            <ul class="mock-rows">
+              <li><span class="status"></span><code>Add device retry</code><small>main</small></li>
+              <li><span class="status"></span><code>Split telemetry types</code><small>2 days ago</small></li>
+              <li><span class="status status-wait"></span><code>WIP on feature/telemetry</code><small>stash</small></li>
+            </ul>
+          </div>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Stage and commit</h3><p>Stage files or all changes, commit, discard, and push. Explorer badges mark modified, untracked, deleted, and conflicted files.</p></article>
+          <article class="feature-tile" data-reveal><h3>Branches and remotes</h3><p>Check out, create, and publish branches, fetch all remotes, and pull with fast-forward only.</p></article>
+          <article class="feature-tile" data-reveal><h3>History and stashes</h3><p>Browse commit history and manage stashes from Source Control or the command palette.</p></article>
+          <article class="feature-tile" data-reveal><h3>Merge recovery</h3><p>Conflicted files open with a conflict toolbar so you resolve each region in the editor.</p></article>
+          <article class="feature-tile is-wide" data-reveal><h3>Git on iPhone and iPad</h3><p>Clone, commit, and push from device folders. Add GitHub and Gitea accounts in Git Accounts and Commit Author; tokens stay in Keychain. SSH remotes use keys from SSH Hosts and Keys.</p></article>
+        </div>
+      </section>
+
+      <section class="feature-section accent-green" id="tools" aria-labelledby="tools-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg></span>
+          <h2 id="tools-title">Terminals, tasks, and language servers</h2>
+          <p class="lead">A connected runtime runs project tools after you select Trust workspace tools.</p>
+        </div>
+        <div class="feature-visual mock mock-split" data-reveal aria-hidden="true">
+          <div>
+          <p class="mock-title">Tasks</p>
+          <ul class="mock-rows">
+            <li><span class="status"></span><code>db</code><small>healthy</small></li>
+            <li><span class="status"></span><code>api</code><small>ready on port 4000 · after db</small></li>
+            <li><span class="status status-wait"></span><code>web</code><small>starting · after api</small></li>
+          </ul>
+          </div>
+          <div>
+            <p class="mock-title">Terminal: api</p>
+            <pre class="term-body"><span class="p">$</span> npm run dev
+<span class="d">&gt; orbit-dash@1.4.0 dev</span>
+API listening on <span class="u">http://localhost:4000</span>
+<span class="p">$</span> <span class="caret"></span></pre>
+          </div>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Terminals</h3><p>Split, search, and rename terminals. A disconnected terminal reconnects when you press Enter.</p></article>
+          <article class="feature-tile" data-reveal><h3>Tasks and services</h3><p>Import project commands, then run services with readiness checks, dependencies, dynamic ports, restart, and force stop.</p></article>
+          <article class="feature-tile" data-reveal><h3>Worktree lifecycle</h3><p>Tasks run setup and teardown hooks when you create or remove a Git worktree.</p></article>
+          <article class="feature-tile" data-reveal><h3>Managed language servers</h3><p>Completion, diagnostics, navigation, and formatting. On iPhone and iPad, TypeScript, JSON, YAML, Dockerfile, shell, and Python servers run on the device.</p></article>
+          <article class="feature-tile" data-reveal><h3>Project Intelligence</h3><p>See a project’s packages and the active file’s imports, dependents, and matching test or source files.</p></article>
+          <article class="feature-tile" data-reveal><h3>SSH and SFTP</h3><p>Connect over SSH from the desktop app to open a folder on a Linux or macOS server. The host does not need Node. The iPhone and iPad app edits server folders over SFTP.</p></article>
+        </div>
+        <p class="page-links"><a href="https://github.com/yannelli/oxbit/blob/main/docs/tasks.md">Read the tasks guide</a><a href="https://github.com/yannelli/oxbit/blob/main/docs/language-support.md">Explore language support</a></p>
+      </section>
+
+      <section class="feature-section accent-pink" id="customize" aria-labelledby="customize-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/></svg></span>
+          <h2 id="customize-title">Themes, keymaps, and extensions</h2>
+          <p class="lead">Pick a color theme and icon pack, bring the shortcuts from your last editor, and extend the workbench with the public SDK.</p>
+        </div>
+        <div class="feature-visual swatches" data-reveal>
+          <figure class="swatch"><div class="swatch-art" style="--a: #0e1013; --b: #1a1d22; --c: #8bd5ca"></div><figcaption>Graphite</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #1f1b24; --b: #ff6fb5; --c: #5bcefa"></div><figcaption>Rainbow Dark</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #fff1f6; --b: #ff8cc6; --c: #5bcefa"></div><figcaption>Rainbow Light</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #3f4a2a; --b: #9caf88; --c: #c3b091"></div><figcaption>Camo</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #050805; --b: #0d160d; --c: #39ff6a"></div><figcaption>Terminal</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #1a0b2e; --b: #ff2a8a; --c: #00e5ff"></div><figcaption>80s Neon</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #f5ecd7; --b: #cc5500; --c: #87a96b"></div><figcaption>70s Harvest</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #4a5a32; --b: #d9a441; --c: #39ff6a"></div><figcaption>60s Fallout</figcaption></figure>
+          <figure class="swatch"><div class="swatch-art" style="--a: #008080; --b: #c0c0c0; --c: #000080"></div><figcaption>ClassicOS 98</figcaption></figure>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Color themes</h3><p>Choose in Settings, Appearance, Color Theme. Toggle Light/Dark Theme switches between paired variants.</p></article>
+          <article class="feature-tile" data-reveal><h3>Icon packs</h3><p>Rainbow Pride and ClassicOS 98 icons ship with Oxbit. Import packs in the VS Code file and product icon formats.</p></article>
+          <article class="feature-tile" data-reveal><h3>Keymaps</h3><p>Use the Oxbit default or switch to another editor’s shortcuts.</p><ul class="chips" aria-label="Keymaps"><li>VS Code</li><li>JetBrains</li><li>macOS</li><li>Sublime Text</li><li>Atom</li><li>Visual Studio</li><li>Emacs</li></ul></article>
+          <article class="feature-tile" data-reveal><h3>Keyboard Shortcuts editor</h3><p>Search bindings, record a new one, and resolve conflicts by replacing the old binding or keeping both.</p></article>
+          <article class="feature-tile" data-reveal><h3>JSON settings</h3><p>User preferences, private project overrides, and optional project files merge in that order, with per-language settings.</p></article>
+          <article class="feature-tile" data-reveal><h3>Public SDK</h3><p>Extensions register commands, panels, settings, status items, output channels, and document views. The Bundle Inspector example ships in the repository.</p></article>
+        </div>
+      </section>
+
+      <section class="feature-section accent-yellow" id="recovery" aria-labelledby="recovery-title">
+        <div class="feature-head" data-reveal>
+          <span class="group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></span>
+          <h2 id="recovery-title">Drafts, recovery, and sharing</h2>
+          <p class="lead">Unsaved work survives failed saves and dropped connections.</p>
+        </div>
+        <div class="feature-tiles">
+          <article class="feature-tile" data-reveal><h3>Revision-checked saves</h3><p>Runtime saves check the file revision first. When the file changed on disk during your edits, the draft enters a conflict state for you to resolve. Missing files and permission errors keep the draft.</p></article>
+          <article class="feature-tile" data-reveal><h3>Session reconnect</h3><p>Surviving terminals and agent sessions reattach after a disconnect. Commands with uncertain outcomes are not repeated automatically.</p></article>
+          <article class="feature-tile" data-reveal><h3>Browser workspaces</h3><p>Files, settings, layout, and drafts persist in IndexedDB. Open Workspace imports and exports workspace JSON.</p></article>
+          <article class="feature-tile is-wide" data-reveal><h3>Share Workspace</h3><p>Create revocable collaboration grants and follow a participant through the workspace. Collaboration is off by default; enable it in Extensions. Access grants and tool trust have separate controls.</p></article>
+          <article class="feature-tile" data-reveal><h3>Trust boundaries</h3><p>Pairing, access grants, and tool trust are separate decisions. <a class="text-link" href="/security/">Read how workspace trust works</a></p></article>
+        </div>
+      </section>
+
+      <div class="page-cta"><div><h2>Install Oxbit on your platform</h2><p class="page-links"><a href="/platforms/">Compare what runs on each platform</a></p></div><a class="btn btn-primary" href="/get-started/">Get started</a></div>
     </div>
   </main>
   <footer class="footer">
