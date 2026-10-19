@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		177246758C13CB90ECC4BD3B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA78B0330CFAA52E4905C4E8 /* Metal.framework */; };
 		1FFFA0E6B1AEBB164CB9ECDF /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 81B46168467A9426CE314C5C /* UIKit.framework */; };
+		2101B9210DCD039DCE474D4C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6AC031F65DAE0D0F5C5B7030 /* PrivacyInfo.xcprivacy */; };
 		4A38C4DB13EA906977189516 /* OxbitLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9608FB42A99B4D6DFA1014E /* OxbitLiveActivity.swift */; };
 		4F559FCB5AB6A375C68AE31F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C76BDA9D442D380319495D08 /* QuartzCore.framework */; };
 		5BE2443510B7068D401E5306 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9CCD767DAE681A5F87DAAE28 /* CoreGraphics.framework */; };
@@ -67,6 +68,7 @@
 		65E89CC83BA1EDA2644E3DE9 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		673A146E3709C586928F352E /* AgentActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentActivityAttributes.swift; sourceTree = "<group>"; };
 		68A2EC5BF74EAECDEB4A2B48 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		6AC031F65DAE0D0F5C5B7030 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		748791193E049BD41E66A82A /* spike.rs */ = {isa = PBXFileReference; lastKnownFileType = file; path = spike.rs; sourceTree = "<group>"; };
 		7DDFF80698406A14ADDDF014 /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
 		81B46168467A9426CE314C5C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
@@ -166,6 +168,7 @@
 				984FCB3A1F89E00CC94CEA69 /* assets */,
 				10E703597749E84B5604223E /* Assets.xcassets */,
 				A288129BE292BDAD0A27B27B /* LaunchScreen.storyboard */,
+				6AC031F65DAE0D0F5C5B7030 /* PrivacyInfo.xcprivacy */,
 				6727415A568E9FBC1B2A3753 /* Externals */,
 				3A9A015C0DA381C46DDF5D9B /* oxbit-ios_iOS */,
 				CD3A0A187163582FAA3B833A /* OxbitLiveActivity */,
@@ -310,6 +313,7 @@
 			files = (
 				B2952170DCA9F317ABD139C6 /* Assets.xcassets in Resources */,
 				6F97996F2EBF771DA6170226 /* LaunchScreen.storyboard in Resources */,
+				2101B9210DCD039DCE474D4C /* PrivacyInfo.xcprivacy in Resources */,
 				DE29EFAAFB3EE7ED5A603498 /* assets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

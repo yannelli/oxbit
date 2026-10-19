@@ -5,6 +5,9 @@ export interface BridgeAccount { id: string; provider: "github" | "gitea"; host:
 /** One scripted model API answer: `chunks` stream `delay` ms apart (default 5), then `status` (default 200) ends it with `body`. */
 export interface BridgeAgentResponse { status?: number; chunks?: string[]; body?: string; delay?: number }
 
+/** Model endpoints the specs reach, allowed in the AI data sharing prompt with the seeded `agentKeys`; a spec's `aiConsent` replaces both. */
+const AI_CONSENT = ["openai https://api.openai.com", "anthropic https://api.anthropic.com", "chatgpt https://chatgpt.com", "openai-compatible https://openrouter.ai", "openai-compatible https://models.test"];
+
 /** Serves the iOS shell from memory. `repository` makes Documents a clean Git repository; `accounts` seeds Git accounts. */
 /** An added token names its login; the token `rejected` fails validation. */
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
@@ -12,8 +15,8 @@ export interface BridgeAgentResponse { status?: number; chunks?: string[]; body?
 /** `notificationPermission` seeds the iOS permission; `__iosTest.liveActivityToken(hex)` reports a Live Activity push token. */
 /** `agentResponses` answers model requests by path; a list answers successive requests and repeats its last entry. `agentKeys` seeds saved keys as `api origin`.
  * `agentChatGPT` records `agent_models_chatgpt` calls; the first poll is `pending`, the next completes the sign-in. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[] } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys }) => {
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[], aiConsent = undefined as string[] | undefined } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys, aiConsent, defaultConsent }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -46,7 +49,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
       }
       return credentials();
     }
-    const storage = new Map<string, unknown>(Object.entries(stored));
+    const storage = new Map<string, unknown>([["profile:ai-consent", aiConsent ?? [...defaultConsent, ...seededKeys]], ...Object.entries(stored)]);
     const runtimeRequests: Record<string, unknown>[] = [];
     function runtimeCredentials(request: { operation: string; url: string; runtimeId?: string; code?: string }) {
       runtimeRequests.push({ ...request });
@@ -302,5 +305,5 @@ export async function installBridge(page: Page, { repository = false, accounts =
         agentKeys, agentRequests, agentCancels, agentChatGPT, get opened() { return opened; }, get signing() { return signing; },
       },
     });
-  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys, aiConsent, defaultConsent: AI_CONSENT });
 }

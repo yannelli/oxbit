@@ -1,4 +1,4 @@
-# Oxbit 0.13.0: App Store Connect fields (iOS, en-US)
+# Oxbit 0.13.1: App Store Connect fields (iOS, en-US)
 
 Created: 2026-10-19. Last updated: 2026-10-19.
 
@@ -23,7 +23,7 @@ Values to enter on each App Store Connect page, in page order. "Current" is what
 
 The home screen name comes from the build's display name and stays "Oxbit". The subtitle above also fits with the store name `Oxbit`.
 
-## Version 0.13.0 page
+## Version page (0.13.1)
 
 | Field | Limit | Enter |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ The home screen name comes from the build's display name and stays "Oxbit". The 
 | Marketing URL | URL | `https://oxbit.dev/` |
 | What's New | 4000 | `store-copy.json` › `whatsNew` (491). App Store Connect asks for it from the second App Store version on. |
 | Copyright | | `2026 Ryan Yannelli` |
-| Build | | 0.13.0 (34), uploaded 2026-10-19, processing state VALID |
+| Build | | 0.13.1, the first build with the privacy manifest and the AI data sharing prompt. Build 0.13.0 (34) lacks both. |
 | Version release | | Manually release this version |
 | Phased release | | Off for a first release |
 
@@ -76,14 +76,14 @@ Fill in the last line with the devices you tested this build on.
 ```text
 Oxbit is a code editor for iPhone and iPad. It needs no account or sign-in and has no in-app purchases, ads, or analytics.
 
-Local editing: open the Oxbit folder under On this device, or choose a folder with Open Folder (Files app picker). Create files from the Explorer. Search, formatting, and the language servers for TypeScript, JavaScript, JSON, YAML, Python, Dockerfile, and shell scripts run on the device in JavaScriptCore.
+Local editing: open the Oxbit folder under On this device, or choose a folder with Open Folder (Files app picker). Create files from the Explorer. Search, formatting, and the language servers for TypeScript, JavaScript, JSON, YAML, Python, Dockerfile, and shell scripts run on the device in JavaScriptCore. The app downloads no executable code: its content security policy allows scripts from the app bundle only, so extensions on iOS are the ones bundled with the app.
 
 Git: Clone Repository on the workspace screen clones a public HTTPS repository, for example https://github.com/octocat/Hello-World.git, using libgit2 on the device. Commits need an author name and email in Git Accounts and Commit Author. Pushing to a private repository needs the user's own GitHub or Gitea token.
 
 AI features (optional, off until the user adds their own key or endpoint):
 - Oxbit Agent (Agent panel) sends the user's prompt and the files it reads to the model service the user picks: OpenAI, Anthropic, an OpenAI-compatible URL, or ChatGPT sign-in.
 - AI inline completions (Settings > AI) send the code around the cursor to OpenRouter, a custom OpenAI-compatible API, a local Ollama or llama.cpp server on the user's network, or the agent's provider.
-Oxbit runs no AI service of its own and stores keys in the Keychain. Without a key, these screens open and requests report that a key is needed.
+Before the first request to each model service, the app asks "Share data with <service>?" and names what it sends; nothing is sent until the user taps Allow. Oxbit runs no AI service of its own and stores keys in the Keychain. Without a key, these screens open and requests report that a key is needed.
 
 Optional connections: SSH and SFTP workspaces connect to servers the user enters. Connect Runtime pairs with the open source Oxbit runtime (npm install -g @oxbit/cli, then oxbit --lan) on the user's computer; terminals and tasks run on that computer. Notifications and Live Activities report agent status from that runtime.
 
@@ -137,24 +137,18 @@ Declare for iPhone and iPad after checking each one on a device:
 | Field | Enter |
 | --- | --- |
 | Price | Free (USD 0) |
-| Availability | All countries or regions. France needs the encryption declaration below or must be excluded. |
-| Make available in new countries automatically | On (current: Off) |
+| Availability | Keep France excluded (see export compliance). On 2026-10-19 the app was set to 10 territories: GBR, CAN, UKR, NLD, ITA, DEU, KOR, POL, DNK, USA. Add the others you want, except France. |
+| Make available in new countries automatically | Off, so France is not added later |
 | Apple silicon Mac / Apple Vision Pro | Off. A separate macOS app exists, and the iPad build has not been checked on Mac. |
 | Tax category | App Store software (default) |
 
 ## App Encryption Documentation (export compliance)
 
-The build bundles industry-standard encryption outside Apple's frameworks: OpenSSL through libgit2 (`vendored-openssl`) and russh with aws-lc-rs, AES, and ChaCha20 for SSH. `Info.plist` declares `ITSAppUsesNonExemptEncryption = NO`, so App Store Connect asks no questions.
+The build bundles industry-standard encryption outside Apple's frameworks: OpenSSL through libgit2 (`vendored-openssl`) and russh with aws-lc-rs, AES, and ChaCha20 for SSH. None of it is proprietary.
 
-Apple's table for this case: "Your app uses an industry standard algorithm, not provided within the Apple operating system → Upload your French encryption declaration", required only for distribution in France ([source](https://developer.apple.com/help/app-store-connect/reference/export-compliance-documentation-for-encryption)).
+Apple's table for this case: "Your app uses an industry standard algorithm, not provided within the Apple operating system → Upload your French encryption declaration", required only for distribution in France ([source](https://developer.apple.com/help/app-store-connect/reference/export-compliance-documentation-for-encryption)). The App Store Connect API refuses to create a declaration for this case: "Cannot create appEncryptionDeclarations unless either containsProprietaryCryptography is True or containsThirdPartyCryptography and availableOnFrenchStore are both True" (checked 2026-10-19).
 
-Answers when App Store Connect asks:
-
-1. Does your app use encryption? **Yes**
-2. Algorithm type: **Standard encryption algorithms instead of, or in addition to, using or accessing the encryption within Apple's operating system**
-3. Available in France: **Yes** and upload the French declaration, or **No** and exclude France in Availability.
-
-To get these questions, set `ITSAppUsesNonExemptEncryption` to `YES` in `apps/ios/src-tauri/Info.ios.plist` for the next build, or remove the key and answer per build.
+Decision (2026-10-19): France stays out of availability, so no declaration or document is needed. `ITSAppUsesNonExemptEncryption` stays `NO`, which keeps CI distribution to TestFlight automatic. Adding France later needs a declaration with `availableOnFrenchStore` and the French document.
 
 ## EU Digital Services Act trader status
 

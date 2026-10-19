@@ -210,3 +210,31 @@ test("the in-app agent lists its slash commands, saves a conversation in app sto
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("Still blue.")).toBeVisible();
 });
+
+test("the first model request to a provider asks to share data, and Don't Allow stops it", async ({ page }) => {
+  await installBridge(page, {
+    aiConsent: [],
+    agentKeys: ["openai https://api.openai.com", "anthropic https://api.anthropic.com"],
+    agentResponses: { "/v1/responses": { chunks: SSE }, "/v1/messages": { chunks: ["data: 1\n\n"] } },
+  });
+  await openDocuments(page);
+  const send = (api: string, path: string) => page.evaluate(async ({ service, api, path }) => {
+    const models = (window as any).__oxbit.kernel.services.get(service);
+    try {
+      let text = "";
+      for await (const chunk of models.stream({ api, method: "POST", path, body: {} })) text += chunk;
+      return text.length > 0;
+    } catch (error: any) {
+      return error.message as string;
+    }
+  }, { service: AGENT_MODELS_SERVICE, api, path });
+  const allowed = send("openai", "/v1/responses");
+  await expect(page.getByText("Share data with OpenAI?")).toBeVisible();
+  await page.getByRole("button", { name: "Allow", exact: true }).click();
+  expect(await allowed).toBe(true);
+  expect(await send("openai", "/v1/responses")).toBe(true);
+  const refused = send("anthropic", "/v1/messages");
+  await page.getByRole("button", { name: "Don't Allow" }).click();
+  expect(await refused).toContain("sharing data with Anthropic is not allowed");
+  expect((await bridge(page)).requests.map((request: { path: string }) => request.path)).toEqual(["/v1/responses", "/v1/responses"]);
+});
