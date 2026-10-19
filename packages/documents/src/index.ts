@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { lineEdits } from "./line-diff.js";
 import { Awareness } from "y-protocols/awareness";
 import type {
   DocumentEdit,
@@ -21,6 +22,8 @@ export interface DocumentViewState {
   head: number;
   scrollTop: number;
   scrollLeft?: number;
+  /** Document position of the first line in view, and how far above the viewport top it starts. */
+  top?: { pos: number; offset: number };
   folds?: { from: number; to: number }[];
   selection?: { ranges: { anchor: number; head: number }[]; main: number };
 }
@@ -95,30 +98,7 @@ export class DocumentHandle {
     const previous = this.text.toString();
     const next = normalize(text);
     if (previous === next) return;
-    let from = 0;
-    while (
-      from < previous.length &&
-      from < next.length &&
-      previous[from] === next[from]
-    )
-      from++;
-    let end = 0;
-    while (
-      end < previous.length - from &&
-      end < next.length - from &&
-      previous[previous.length - 1 - end] === next[next.length - 1 - end]
-    )
-      end++;
-    this.transact(
-      [
-        {
-          from,
-          to: previous.length - end,
-          insert: next.slice(from, next.length - end),
-        },
-      ],
-      origin,
-    );
+    this.transact(lineEdits(previous, next), origin);
   }
   transact(edits: TextEdit[], origin: unknown = LOCAL_ORIGIN): void {
     if (this.readonly && origin === LOCAL_ORIGIN)

@@ -43,7 +43,7 @@ interface OverlayHost {
 const decorations = StateEffect.define<DecorationSet>();
 const field = StateField.define<DecorationSet>({
   create: () => Decoration.none,
-  update(value, transaction) { if (transaction.docChanged) value = Decoration.none; for (const effect of transaction.effects) if (effect.is(decorations)) value = effect.value; return value; },
+  update(value, transaction) { if (transaction.docChanged) value = value.map(transaction.changes); for (const effect of transaction.effects) if (effect.is(decorations)) value = effect.value; return value; },
   provide: value => EditorView.decorations.from(value),
 });
 class HintWidget extends WidgetType {
@@ -124,14 +124,16 @@ export class LanguageOverlays {
   }
   refresh(reset = false) {
     if (reset) this.cached = undefined;
-    this.epoch++; this.controller?.abort(); this.links.clear();
-    for (const view of this.views) { hideDocumentation(view); view.dispatch({ effects: decorations.of(Decoration.none) }); }
+    // The current decorations stay until the fetch replaces them, so a refresh does not flash.
+    this.epoch++; this.controller?.abort();
+    for (const view of this.views) hideDocumentation(view);
     this.schedule();
   }
   private schedule() { clearTimeout(this.timer); this.controller?.abort(); this.timer = setTimeout(() => { void this.fetch(); }, 150); }
   private async fetch() {
     const view = this.views.values().next().value as EditorView | undefined;
-    if (!view || !this.host.ready()) return;
+    if (!view) return;
+    if (!this.host.ready()) { this.links.clear(); for (const target of this.views) target.dispatch({ effects: decorations.of(Decoration.none) }); return; }
     const text = view.state.doc.toString(), epoch = this.epoch, controller = new AbortController(); this.controller = controller;
     const caps = this.host.capabilities(), large = new TextEncoder().encode(text).byteLength > 1024 * 1024 && !this.host.enabled("editor.largeFileIntelligence");
     const textDocument = { uri: this.host.uri() }, ranges: Range<Decoration>[] = [];
@@ -163,7 +165,7 @@ export class LanguageOverlays {
       }
       if (caps.documentLinkProvider && !large) {
         const links = await this.host.request("textDocument/documentLink", { textDocument }, controller.signal).catch(() => []);
-        if (!controller.signal.aborted) this.links.clear();
+        if (!controller.signal.aborted && epoch === this.epoch) this.links.clear();
         for (const link of links ?? []) { try {
           const from = textOffset(text, link.range.start), to = textOffset(text, link.range.end), id = `${epoch}:${from}:${to}`;
           if (to <= from) continue;

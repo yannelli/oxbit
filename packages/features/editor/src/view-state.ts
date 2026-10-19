@@ -1,6 +1,6 @@
 import { EditorSelection, type EditorState } from "@codemirror/state";
 import { foldedRanges } from "@codemirror/language";
-import type { EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import type { DocumentViewState } from "@oxbit/documents";
 export function restoredSelection(
   saved: DocumentViewState | undefined,
@@ -25,15 +25,28 @@ export function savedFolds(state: EditorState) {
     folds.push({ from: cursor.from, to: cursor.to });
   return folds;
 }
-export function captureView(view: EditorView): DocumentViewState {
+/** The view's selection, folds and scroll position. A detached or hidden view reports scrollTop 0, so it keeps the scroll from `previous`. */
+export function captureView(view: EditorView, previous?: DocumentViewState): DocumentViewState {
+  const laidOut = view.dom.isConnected && view.scrollDOM.clientHeight > 0;
+  const block = laidOut ? view.lineBlockAtHeight(view.scrollDOM.scrollTop - view.documentPadding.top) : undefined;
   return {
     anchor: view.state.selection.main.anchor,
     head: view.state.selection.main.head,
     selection: view.state.selection.toJSON(),
-    scrollTop: view.scrollDOM.scrollTop,
-    scrollLeft: view.scrollDOM.scrollLeft,
+    scrollTop: laidOut ? view.scrollDOM.scrollTop : previous?.scrollTop ?? 0,
+    scrollLeft: laidOut ? view.scrollDOM.scrollLeft : previous?.scrollLeft ?? 0,
+    ...(block ? { top: { pos: block.from, offset: view.scrollDOM.scrollTop - view.documentPadding.top - block.top } }
+      : previous?.top ? { top: previous.top } : {}),
     folds: savedFolds(view.state),
   };
+}
+
+/** Scrolls back to a captured position. The line position survives height estimates that are not measured yet, which a pixel scrollTop does not. */
+export function restoreScroll(view: EditorView, saved: DocumentViewState) {
+  view.scrollDOM.scrollLeft = saved.scrollLeft || 0;
+  if (saved.top && saved.top.pos <= view.state.doc.length)
+    view.dispatch({ effects: EditorView.scrollIntoView(saved.top.pos, { y: "start", yMargin: -saved.top.offset }) });
+  else view.scrollDOM.scrollTop = saved.scrollTop || 0;
 }
 export const LARGE_DOCUMENT_LENGTH = 1024 * 1024;
 export function detectedIndentation(

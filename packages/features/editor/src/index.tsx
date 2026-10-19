@@ -76,6 +76,7 @@ import { contributedLanguage, editorLanguageId } from "./languages.js";
 import { contributedDecorations } from "./decorations.js";
 import {
   captureView,
+  restoreScroll,
   restoredSelection,
   LARGE_DOCUMENT_LENGTH,
   detectedIndentation,
@@ -487,7 +488,7 @@ export function CodeEditor({
               )
             ) {
               const s = update.state.selection.main;
-              handle.views.set(viewId, captureView(update.view));
+              handle.views.set(viewId, captureView(update.view, handle.views.get(viewId)));
               kernel.events.emit("editor.selection", {
                 id: handle.id,
                 viewId,
@@ -528,7 +529,7 @@ export function CodeEditor({
               return false;
             },
             scroll: () => {
-              handle.views.set(viewId, captureView(view));
+              handle.views.set(viewId, captureView(view, handle.views.get(viewId)));
               return false;
             },
           }),
@@ -548,10 +549,7 @@ export function CodeEditor({
           )
           .map((fold) => foldEffect.of(fold)),
       });
-    if (saved) {
-      view.scrollDOM.scrollTop = saved.scrollTop || 0;
-      view.scrollDOM.scrollLeft = saved.scrollLeft || 0;
-    }
+    if (saved) restoreScroll(view, saved);
     const unsubscribe = kernel.context.subscribe(() => {
       view.dispatch({
         effects: [
@@ -563,7 +561,7 @@ export function CodeEditor({
       });
     });
     return () => {
-      handle.views.set(viewId, captureView(view));
+      handle.views.set(viewId, captureView(view, handle.views.get(viewId)));
       unsubscribe();
       if (workbench.editors.get(viewId) === view)
         workbench.editors.delete(viewId);
