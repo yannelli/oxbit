@@ -4,28 +4,68 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0e1013" />
-  <meta name="description" content="How Oxbit handles information in its apps and on oxbit.dev." />
-  <title>Privacy — Oxbit</title>
+  <meta name="description" content="How Oxbit handles workspace files, credentials, AI provider connections, notifications, and website requests, with storage and privacy choices." />
+  <title>Privacy | Oxbit</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+  <link rel="canonical" href="https://oxbit.dev/privacy/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Oxbit" />
+  <meta property="og:title" content="Privacy | Oxbit" />
+  <meta property="og:description" content="How Oxbit handles workspace files, credentials, AI provider connections, notifications, and website requests, with storage and privacy choices." />
+  <meta property="og:url" content="https://oxbit.dev/privacy/" />
+  <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta property="og:image:alt" content="Oxbit, an open source development environment" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Privacy | Oxbit" />
+  <meta name="twitter:description" content="How Oxbit handles workspace files, credentials, AI provider connections, notifications, and website requests, with storage and privacy choices." />
+  <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "url": "https://oxbit.dev/privacy/", "name": "Privacy | Oxbit", "description": "How Oxbit handles workspace files, credentials, AI provider connections, notifications, and website requests, with storage and privacy choices."}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://oxbit.dev/"}, {"@type": "ListItem", "position": 2, "name": "Privacy", "item": "https://oxbit.dev/privacy/"}]}]}</script>
 </head>
 <body class="privacy-page">
   <a class="skip" href="#main">Skip to content</a>
-  <header class="nav">
+  <header class="nav" data-nav>
     <div class="container nav-inner">
       <a class="brand" href="/" aria-label="Oxbit home">
         <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
         <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
       </a>
-      <nav aria-label="Primary"><a href="/">Home</a></nav>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/features/">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
+      </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/">Support</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/" aria-current="page">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
     </div>
   </header>
 
   <main class="privacy-main" id="main">
     <article class="privacy-article container">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Privacy</span></nav>
       <p class="kicker">Oxbit</p>
       <h1>Privacy</h1>
-      <p class="privacy-date">Updated October 12, 2026</p>
+      <p class="privacy-date">Updated October 19, 2026</p>
       <p>Oxbit is published by Ryan Yannelli. This policy covers the Oxbit editor on iPhone, iPad, desktop, and in the browser, and the oxbit.dev website.</p>
 
       <h2>Information kept on your device</h2>
@@ -41,22 +81,52 @@
       <p>HTML previews block external resources by default. If you allow external resources for a preview or open an external link, your device contacts those sites and they can receive request information such as your IP address.</p>
 
       <h2>Website and support</h2>
-      <p>oxbit.dev is served through Cloudflare, which processes request information such as IP address, browser details, and requested pages to deliver and operate the site. The homepage loads fonts from Google Fonts, which also receives requests from your browser. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a> and <a href="https://developers.google.com/fonts/faq/privacy" rel="noopener">Google Fonts privacy information</a>. This privacy page uses local styles and system fonts.</p>
+      <p>oxbit.dev is served through Cloudflare, which processes request information such as IP address, browser details, and requested pages to deliver and operate the site. Some pages load fonts from Google Fonts, which also receives requests from your browser. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a> and <a href="https://developers.google.com/fonts/faq/privacy" rel="noopener">Google Fonts privacy information</a>. This privacy page uses local styles and system fonts.</p>
       <p>If you open a support request or issue on <a href="https://github.com/yannelli/oxbit/issues" rel="noopener">GitHub</a>, the information you submit is visible according to GitHub's settings for that public repository.</p>
 
       <h2>Your choices and retention</h2>
       <p>You can stop optional connections, remove recent workspaces in the iPhone and iPad app, and remove credentials through the relevant connection controls. Forgetting a recent workspace removes its shortcut; it does not delete files in that folder. You can delete files where they are stored and clear app or browser storage through your device or browser settings. Data sent to Git remotes, AI services, collaborators, or other sites is subject to those services' controls and retention practices.</p>
 
       <h2>Contact and changes</h2>
-      <p>For privacy questions, use the <a href="https://github.com/yannelli/oxbit/issues" rel="noopener">Oxbit GitHub issues</a>. Changes to this policy will appear here with an updated date.</p>
+      <p>For privacy questions, email <a href="mailto:ryanyannelli@gmail.com">ryanyannelli@gmail.com</a>. Changes to this policy will appear here with an updated date.</p>
     </article>
   </main>
 
-  <footer class="footer privacy-footer">
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+      </div>
+      <div class="footer-cols">
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
+        </div>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
+        </div>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
+        </div>
+      </div>
+    </div>
     <div class="container footer-legal">
-      <span>© 2026 <a href="https://ryanyannelli.com" rel="noopener">Ryan Yannelli</a></span>
-      <span><a href="/">Oxbit home</a> · Privacy</span>
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
     </div>
   </footer>
+  <script src="/main.js" defer></script>
 </body>
 </html>

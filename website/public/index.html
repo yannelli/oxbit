@@ -3,20 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oxbit — An open source dev environment that runs anywhere</title>
-  <meta name="description" content="Oxbit is a code editor with coding agents built in. It runs in a browser, on macOS and Linux, and on iPhone and iPad. Connect the Node runtime for files, terminals, Git, tasks, language services, and agents." />
+  <title>Oxbit | Open source code editor with coding agents</title>
+  <meta name="description" content="Oxbit is an open source code editor for browser, macOS, Linux, iPhone, and iPad, with coding agents, Git, language services, and runtime tools." />
   <meta name="theme-color" content="#0e1013" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Oxbit — An open source dev environment that runs anywhere" />
-  <meta property="og:description" content="Codex, Claude Agent, Gemini CLI, and Oxbit Agent next to split views, language servers, Git, tasks, and terminals. In a browser, on the desktop, and on iPhone and iPad." />
-  <meta property="og:image" content="/brand/oxbit-social-card.png" />
-  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+  <link rel="canonical" href="https://oxbit.dev/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Oxbit" />
+  <meta property="og:title" content="Oxbit | Open source code editor with coding agents" />
+  <meta property="og:description" content="Oxbit is an open source code editor for browser, macOS, Linux, iPhone, and iPad, with coding agents, Git, language services, and runtime tools." />
+  <meta property="og:url" content="https://oxbit.dev/" />
+  <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta property="og:image:alt" content="Oxbit, an open source development environment" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Oxbit | Open source code editor with coding agents" />
+  <meta name="twitter:description" content="Oxbit is an open source code editor for browser, macOS, Linux, iPhone, and iPad, with coding agents, Git, language services, and runtime tools." />
+  <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "url": "https://oxbit.dev/", "name": "Oxbit | Open source code editor with coding agents", "description": "Oxbit is an open source code editor for browser, macOS, Linux, iPhone, and iPad, with coding agents, Git, language services, and runtime tools.", "mainEntity": {"@id": "https://oxbit.dev/#app"}}, {"@type": "WebSite", "@id": "https://oxbit.dev/#website", "url": "https://oxbit.dev/", "name": "Oxbit", "publisher": {"@id": "https://oxbit.dev/#author"}}, {"@type": "SoftwareApplication", "@id": "https://oxbit.dev/#app", "name": "Oxbit", "url": "https://oxbit.dev/", "description": "Oxbit is an open source code editor for browser, macOS, Linux, iPhone, and iPad, with coding agents, Git, language services, and runtime tools.", "applicationCategory": "DeveloperApplication", "operatingSystem": "macOS, Linux, iOS, iPadOS, Web", "license": "https://github.com/yannelli/oxbit/blob/main/LICENSE", "downloadUrl": "https://oxbit.dev/get-started/", "author": {"@id": "https://oxbit.dev/#author"}}, {"@type": "Person", "@id": "https://oxbit.dev/#author", "name": "Ryan Yannelli", "url": "https://github.com/yannelli"}]}</script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -35,19 +44,31 @@
         <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
       </a>
       <nav class="nav-links" aria-label="Primary">
-        <a href="#features">Features</a>
-        <a href="#agents">Agents</a>
-        <a href="#platforms">Platforms</a>
-        <a href="#runtime">Runtime</a>
-        <a href="https://github.com/yannelli/oxbit/tree/main/docs" rel="noopener">Docs</a>
+        <a href="/features/">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
       </nav>
       <div class="nav-actions">
-        <a class="btn btn-ghost btn-sm" href="https://github.com/yannelli/oxbit" rel="noopener">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub
-        </a>
-        <a class="btn btn-primary btn-sm" href="#get-started">Get started</a>
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
       </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/">Support</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
     </div>
   </header>
 
@@ -57,7 +78,7 @@
       <div class="container hero-inner">
         <p class="eyebrow" data-reveal>
           <span class="dot"></span>
-          <span data-version>v0.12.0</span> · MIT licensed · Open source
+          <a href="/changelog/"><span data-version>v0.12.0</span></a> · MIT licensed · Open source
         </p>
         <h1 class="hero-title" data-reveal>
           A dev environment<br />
@@ -71,17 +92,18 @@
         <div class="hero-cta" data-reveal>
           <div class="cmd" data-copy-root>
             <span class="cmd-prompt">$</span>
-            <code data-copy-text>npm install -g @oxbit/cli</code>
+            <code data-copy-text>npm install -g @oxbit/cli --allow-scripts=@oxbit/cli,node-pty</code>
             <button class="copy" type="button" aria-label="Copy install command" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
           </div>
           <div class="hero-buttons">
-            <a class="btn btn-primary" href="#get-started">Install Oxbit</a>
+            <a class="btn btn-primary" href="/get-started/">Install Oxbit</a>
             <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener">Download desktop app</a>
             <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
           </div>
         </div>
+        <p class="home-proof"><a href="/about/">Independent and open source</a> · <a href="/security/">Understand workspace trust</a> · <a href="/changelog/">See what changed</a></p>
       </div>
 
       <div class="container hero-shot" data-reveal data-tilt>
@@ -110,7 +132,7 @@
       <div class="container">
         <div class="section-head" data-reveal>
           <p class="kicker">Features</p>
-          <h2>Everything a workbench needs.<br /><span class="muted">Nothing it doesn't.</span></h2>
+          <h2>Your tools, in one workbench.</h2>
         </div>
 
         <div class="bento">
@@ -156,7 +178,7 @@
 
           <article class="card card-wide" data-reveal data-spot>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></div>
-            <h3>Recovery that keeps its word</h3>
+            <h3>Drafts and session recovery</h3>
             <p>Browser workspaces persist files, settings, layout, and drafts in IndexedDB. Runtime workspaces check revisions before saving, preserve drafts, and reconnect surviving terminals and agent sessions. Commands with uncertain outcomes are not repeated automatically.</p>
             <ul class="chips" aria-label="Recovery details">
               <li>Drafts preserved</li><li>Revision checks</li><li>Terminal reconnect</li><li>Agent reattach</li><li>Workspace JSON import / export</li>
@@ -308,7 +330,7 @@
         <div class="cta-panel" data-reveal data-spot>
           <div class="cta-copy">
             <p class="kicker">Quick start</p>
-            <h2>Up in a minute.</h2>
+            <h2>Open your first workspace.</h2>
             <p class="lead">On macOS or Linux, install Node 24, Git, and ripgrep. On Linux, npm also compiles the terminal addon, which needs Python, make, and a C++ compiler. Then:</p>
             <ol class="steps">
               <li><span>1</span>Install <code class="inline">@oxbit/cli</code> with npm</li>
@@ -322,10 +344,19 @@
             <button class="copy" type="button" aria-label="Copy quick start" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
-            <pre><code data-copy-text>npm install -g @oxbit/cli
+            <pre><code data-copy-text>npm install -g @oxbit/cli --allow-scripts=@oxbit/cli,node-pty
 
 oxbit ~/code/my-project</code></pre>
           </div>
+        </div>
+      </div>
+    </section>
+    <section class="section home-explore" aria-labelledby="explore-title">
+      <div class="container">
+        <div class="section-head"><p class="kicker">Explore Oxbit</p><h2 id="explore-title">Take a closer look.</h2></div>
+        <div class="card-grid">
+          <article class="card"><h3>Find your workflow</h3><p>Compare platforms, explore the editor, and follow a setup guide for your device.</p><ul class="resource-links"><li><a href="/features/">Editor and agent features <span>→</span></a></li><li><a href="/platforms/">Platforms and requirements <span>→</span></a></li><li><a href="/docs/">Documentation <span>→</span></a></li></ul></article>
+          <article class="card"><h3>Get to know the project</h3><p>Read release updates, find direct answers, and meet the person behind Oxbit.</p><ul class="resource-links"><li><a href="/changelog/">Changelog <span>→</span></a></li><li><a href="/faq/">Frequently asked questions <span>→</span></a></li><li><a href="/about/">About Oxbit <span>→</span></a></li></ul></article>
         </div>
       </div>
     </section>
@@ -334,36 +365,36 @@ oxbit ~/code/my-project</code></pre>
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" />
-        <p>An open source dev environment that runs anywhere.</p>
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
       </div>
       <div class="footer-cols">
-        <div>
-          <h4>Project</h4>
-          <a href="https://github.com/yannelli/oxbit" rel="noopener">GitHub</a>
-          <a href="https://github.com/yannelli/oxbit/releases" rel="noopener">Releases</a>
-          <a href="https://www.npmjs.com/org/oxbit" rel="noopener">npm packages</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE" rel="noopener">MIT License</a>
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
         </div>
-        <div>
-          <h4>Docs</h4>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/architecture.md" rel="noopener">Architecture</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/sdk.md" rel="noopener">SDK reference</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/agent-acp.md" rel="noopener">Agent ACP</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/oxbit-agent.md" rel="noopener">Oxbit Agent CLI</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/security.md" rel="noopener">Security</a>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
         </div>
-        <div>
-          <h4>Platforms</h4>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/desktop.md" rel="noopener">Desktop</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/remote-ssh.md" rel="noopener">SSH workspaces</a>
-          <a href="https://github.com/yannelli/oxbit/blob/main/docs/ios.md" rel="noopener">iOS and iPadOS</a>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
         </div>
       </div>
     </div>
     <div class="container footer-legal">
-      <span>© 2026 <a href="https://ryanyannelli.com" rel="noopener">Ryan Yannelli</a>. MIT licensed.</span>
-      <span><a href="/privacy/">Privacy</a> · Bundled fonts and dependencies retain their third-party licenses.</span>
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
     </div>
   </footer>
 

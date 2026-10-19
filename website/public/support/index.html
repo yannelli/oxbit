@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0e1013" />
+  <title>Support | Oxbit</title>
+  <meta name="description" content="Get help with Oxbit, find setup documentation, report bugs on GitHub, send TestFlight feedback, or contact the maintainer privately." />
+  <link rel="canonical" href="https://oxbit.dev/support/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Oxbit" />
+  <meta property="og:title" content="Support | Oxbit" />
+  <meta property="og:description" content="Find Oxbit documentation, report a reproducible bug, send beta feedback, and reach the project maintainer." />
+  <meta property="og:url" content="https://oxbit.dev/support/" />
+  <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Oxbit, an open-source development environment" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Support | Oxbit" />
+  <meta name="twitter:description" content="Documentation, GitHub bug reports, TestFlight feedback, and maintainer contact for Oxbit." />
+  <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta name="twitter:image:alt" content="Oxbit, an open-source development environment" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":["WebPage","ContactPage"],"@id":"https://oxbit.dev/support/#page","url":"https://oxbit.dev/support/","name":"Oxbit support","description":"Documentation, bug reporting, beta feedback, and maintainer contact for Oxbit.","about":{"@id":"https://oxbit.dev/#app"},"breadcrumb":{"@id":"https://oxbit.dev/support/#breadcrumbs"}},{"@type":"BreadcrumbList","@id":"https://oxbit.dev/support/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://oxbit.dev/"},{"@type":"ListItem","position":2,"name":"Support","item":"https://oxbit.dev/support/"}]}]}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+</head>
+<body class="subpage">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav" data-nav>
+    <div class="container nav-inner">
+      <a class="brand" href="/" aria-label="Oxbit home">
+        <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
+        <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/features/">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
+      </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/" aria-current="page">Support</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" class="page-main">
+    <div class="container page-heading">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true"> / </span><span aria-current="page">Support</span></nav>
+      <p class="kicker">Help and feedback</p>
+      <h1>Get help with Oxbit</h1>
+      <p class="lead">Find setup instructions, report a bug, or contact the project maintainer.</p>
+    </div>
+
+    <article class="container page-content prose">
+      <section>
+        <h2>Start with the documentation</h2>
+        <p>The <a href="/docs/">documentation hub</a> links installation, runtime connections, SSH workspaces, agents, source control, and recovery guides. For installation options and platform requirements, visit <a href="/get-started/">downloads</a>.</p>
+        <p>For runtime connection problems, check that the runtime is running and pair with its printed code. Terminals, tasks, Git, and language services require <strong>Trust workspace tools</strong> in <strong>Runtime connection</strong>. Read the <a href="https://github.com/yannelli/oxbit/blob/main/docs/runtime.md" rel="noopener">runtime guide</a> and <a href="/security/">workspace trust explanation</a> before enabling tools for a project.</p>
+      </section>
+
+      <section>
+        <h2>Report a bug or request a feature</h2>
+        <p>Search <a href="https://github.com/yannelli/oxbit/issues" rel="noopener">existing GitHub issues</a> first, then <a href="https://github.com/yannelli/oxbit/issues/new" rel="noopener">open an issue</a> with enough information to reproduce the problem:</p>
+        <ul>
+          <li>The Oxbit version or commit, and the build number for a TestFlight build.</li>
+          <li>Your device, operating system, and browser version, when applicable.</li>
+          <li>Whether the workspace uses browser storage, a device folder, a local runtime, or an SSH connection.</li>
+          <li>The steps to reproduce, what you expected, and what happened.</li>
+          <li>A small example, screenshot, or relevant log excerpt with secrets and personal information removed.</li>
+        </ul>
+        <p>GitHub issues are public. Remove API keys, tokens, pairing codes, private source code, and personal information before submitting a report. Send undisclosed vulnerabilities through the <a href="/security/#reporting">private security reporting process</a>.</p>
+        <p>For a feature request, describe the task you want to complete and the behavior that would help.</p>
+      </section>
+
+      <section>
+        <h2>Send iPhone and iPad beta feedback</h2>
+        <p>If you installed Oxbit through <a href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">TestFlight</a>, use TestFlight's feedback controls to send a screenshot or crash report. Include the device, iOS or iPadOS version, build number, and steps that led to the problem.</p>
+        <p>Use <a href="https://github.com/yannelli/oxbit/issues" rel="noopener">GitHub issues</a> for a public report that you can follow and update. The <a href="/changelog/">changelog</a> lists release changes.</p>
+      </section>
+
+      <section>
+        <h2>Contact the maintainer</h2>
+        <p>For general questions that need a private conversation, email Ryan Yannelli at <a href="mailto:ryanyannelli@gmail.com">ryanyannelli@gmail.com</a>. For a security vulnerability, use the same address and include the details listed in the <a href="https://github.com/yannelli/oxbit/blob/main/SECURITY.md" rel="noopener">security reporting policy</a>.</p>
+        <p>The <a href="/privacy/">privacy policy</a> explains information shared through support, connections, and optional services.</p>
+      </section>
+    </article>
+
+    <div class="container page-cta">
+      <h2>Have a reproducible issue?</h2>
+      <p>Check existing reports and include the steps needed to reproduce yours.</p>
+      <a class="btn btn-primary" href="https://github.com/yannelli/oxbit/issues" rel="noopener">Open GitHub issues</a>
+      <a class="btn btn-ghost" href="/docs/">Browse documentation</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+      </div>
+      <div class="footer-cols">
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
+        </div>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
+        </div>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
+    </div>
+  </footer>
+  <script src="/main.js" defer></script>
+</body>
+</html>

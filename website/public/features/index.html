@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Code editor and agent features | Oxbit</title>
+  <meta name="description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta name="theme-color" content="#0e1013" />
+  <link rel="canonical" href="https://oxbit.dev/features/" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Oxbit" />
+  <meta property="og:title" content="Code editor and agent features | Oxbit" />
+  <meta property="og:description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta property="og:url" content="https://oxbit.dev/features/" />
+  <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta property="og:image:alt" content="Oxbit, an open source development environment" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Code editor and agent features | Oxbit" />
+  <meta name="twitter:description" content="Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery." />
+  <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "@id": "https://oxbit.dev/features/#page", "url": "https://oxbit.dev/features/", "name": "Code editor and agent features | Oxbit", "description": "Explore Oxbit’s split editor, AI editing, coding agents, Git, terminals, tasks, language services, and workspace recovery.", "isPartOf": {"@id": "https://oxbit.dev/#website"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://oxbit.dev/"}, {"@type": "ListItem", "position": 2, "name": "Code editor and agent features", "item": "https://oxbit.dev/features/"}]}]}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+</head>
+<body class="subpage">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav" data-nav>
+    <div class="container nav-inner">
+      <a class="brand" href="/" aria-label="Oxbit home">
+        <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
+        <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/features/" aria-current="page">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
+      </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/" aria-current="page">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/">Support</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main" class="page-main">
+    <div class="container page-heading">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Code editor and agent features</span></nav>
+      <p class="kicker">The workbench</p>
+      <h1>Your code, tools, and agents.<br /><span class="muted">In one workspace.</span></h1>
+      <p class="lead">Oxbit combines a CodeMirror editor with Git, language services, and coding agents. Connect a runtime for terminals and project tools, or use the on-device features on iPhone and iPad.</p>
+    </div>
+    <div class="container page-content">
+      <figure class="page-shot"><img src="/screens/agent-desktop-dark.png" alt="Oxbit editor with a TypeScript file and coding agent diff review" width="1440" height="900" /><figcaption>The editor and agent panel share the same workspace.</figcaption></figure>
+      <div class="card-grid">
+        <section class="card" id="editor"><p class="kicker">01 / Edit</p><h2>Make space for your code.</h2><p>Split views, multiple cursors, find and replace, formatters, and Markdown and HTML previews. Choose themes and icon packs for your workspace.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/language-support.md">Explore language support →</a></section>
+        <section class="card" id="ai"><p class="kicker">02 / Ask</p><h2>AI where you edit.</h2><p>Enable inline completions for ghost text suggestions, or select code and run Edit Selection with AI. Suggestions use the model provider configured for Oxbit Agent. Inline completions are off by default.</p><a class="text-link" href="/changelog/#v0-12-0">New in v0.12.0 →</a></section>
+        <section class="card" id="agents"><p class="kicker">03 / Delegate</p><h2>Choose your coding agent.</h2><p>Enable Agent ACP in Extensions to use Codex, Claude Agent, Gemini CLI, and other ACP agents in a trusted runtime workspace. Review diffs, attach context, and return to sessions after a disconnect.</p><p>Oxbit Agent also runs on iPhone and iPad with your chosen model service. Provider accounts and usage costs are separate.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/agent-acp.md">Set up agents →</a></section>
+        <section class="card" id="tools"><p class="kicker">04 / Run</p><h2>Keep project tools close.</h2><p>Stage changes, commit, browse history, and manage branches in Source Control. A connected runtime runs terminals, tasks, project services, and managed language servers.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/tasks.md">Read the tasks guide →</a></section>
+      </div>
+      <section class="page-band prose" id="recovery"><p class="kicker">Work across connections</p><h2>Return to your workspace.</h2><p>Browser workspaces store files, settings, layout, and drafts in IndexedDB. Runtime saves check file revisions, drafts survive failed saves, and surviving terminal and agent sessions reconnect. Commands with uncertain outcomes are inspected before another attempt.</p><p><a href="/security/">Read the trust and recovery boundaries</a> or <a href="/platforms/">compare what runs on each platform</a>.</p></section>
+      <div class="page-cta"><div><p class="kicker">Make it yours</p><h2>Start with your next project.</h2></div><a class="btn btn-primary" href="/get-started/">Get started →</a></div>
+    </div>
+  </main>
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+      </div>
+      <div class="footer-cols">
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
+        </div>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
+        </div>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
+    </div>
+  </footer>
+  <script src="/main.js" defer></script>
+</body>
+</html>

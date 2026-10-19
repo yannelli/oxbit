@@ -1,10 +1,21 @@
 (() => {
+  document.documentElement.classList.add('js');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const nav = document.querySelector('[data-nav]');
-  const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 8);
+  const onScroll = () => nav?.classList.toggle('is-scrolled', window.scrollY > 8);
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
+
+  const menu = document.querySelector('.mobile-menu');
+  menu?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !menu.open) return;
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  });
+  menu?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => { menu.open = false; });
+  });
 
   const revealed = document.querySelectorAll('[data-reveal]');
   if (reduceMotion || !('IntersectionObserver' in window)) {
@@ -25,19 +36,28 @@
     const source = root && root.querySelector('[data-copy-text]');
     if (!source) return;
     const original = button.innerHTML;
+    const originalLabel = button.getAttribute('aria-label');
+    const status = document.createElement('span');
+    status.className = 'sr-only';
+    status.setAttribute('role', 'status');
+    root.append(status);
     button.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(source.textContent.trim());
       } catch {
+        status.textContent = 'Copy failed. Select and copy the command text.';
         return;
       }
+      status.textContent = 'Command copied.';
       button.classList.add('is-done');
       button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
       button.setAttribute('aria-label', 'Copied');
       setTimeout(() => {
         button.classList.remove('is-done');
         button.innerHTML = original;
-        button.setAttribute('aria-label', 'Copy');
+        if (originalLabel) button.setAttribute('aria-label', originalLabel);
+        else button.removeAttribute('aria-label');
+        status.textContent = '';
       }, 1600);
     });
   });

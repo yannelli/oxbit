@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0e1013" />
+  <title>Security | Oxbit</title>
+  <meta name="description" content="Understand Oxbit runtime pairing, workspace trust, command and extension privileges, data recovery limits, and private vulnerability reporting." />
+  <link rel="canonical" href="https://oxbit.dev/security/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Oxbit" />
+  <meta property="og:title" content="Security | Oxbit" />
+  <meta property="og:description" content="How Oxbit separates runtime access from workspace tool trust, handles recovery, and accepts private vulnerability reports." />
+  <meta property="og:url" content="https://oxbit.dev/security/" />
+  <meta property="og:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Oxbit, an open-source development environment" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Security | Oxbit" />
+  <meta name="twitter:description" content="Runtime pairing, workspace trust, recovery limits, and private vulnerability reporting for Oxbit." />
+  <meta name="twitter:image" content="https://oxbit.dev/brand/oxbit-social-card.png" />
+  <meta name="twitter:image:alt" content="Oxbit, an open-source development environment" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://oxbit.dev/security/#page","url":"https://oxbit.dev/security/","name":"Oxbit security","description":"Runtime access, workspace trust, recovery boundaries, and vulnerability reporting for Oxbit.","about":{"@id":"https://oxbit.dev/#app"},"breadcrumb":{"@id":"https://oxbit.dev/security/#breadcrumbs"}},{"@type":"BreadcrumbList","@id":"https://oxbit.dev/security/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://oxbit.dev/"},{"@type":"ListItem","position":2,"name":"Security","item":"https://oxbit.dev/security/"}]}]}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+</head>
+<body class="subpage">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav" data-nav>
+    <div class="container nav-inner">
+      <a class="brand" href="/" aria-label="Oxbit home">
+        <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
+        <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/features/">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
+      </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/">Support</a>
+          <a href="/security/" aria-current="page">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" class="page-main">
+    <div class="container page-heading">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true"> / </span><span aria-current="page">Security</span></nav>
+      <p class="kicker">Access and trust</p>
+      <h1>Understand workspace security</h1>
+      <p class="lead">Runtime access, permission to run workspace tools, and the services you connect each have separate controls.</p>
+    </div>
+
+    <article class="container page-content prose">
+      <section>
+        <h2>Runtime connections and pairing</h2>
+        <p>The runtime listens on loopback by default, so its default address is local to the computer running it. Network access is an explicit hosting choice, such as starting the CLI with <code>--lan</code>. See <a href="https://github.com/yannelli/oxbit/blob/main/docs/runtime.md" rel="noopener">runtime configuration</a> before exposing a runtime to a network.</p>
+        <p>Owner pairing creates a session token. The runtime stores a hash of that token and issues an HttpOnly, SameSite cookie; browser reconnect also keeps the token in session storage. Treat the pairing code and session credentials as secrets.</p>
+        <p>Access grants control file reads and writes, collaboration, terminals, tasks, Git, language services, and extension operations separately. Grants are revocable. Revoking a grant closes its connections and terminates processes owned by that grant.</p>
+      </section>
+
+      <section>
+        <h2>Workspace trust and code execution</h2>
+        <p>Tool trust is a separate workspace decision from pairing and access grants. Selecting <strong>Trust workspace tools</strong> enables tools such as terminals, tasks, Git, and language services. Revoking workspace trust terminates workspace tools.</p>
+        <p>Terminal and task commands run with the runtime user's operating-system privileges. Git hooks and language-server tools can execute workspace code. The runtime owner is responsible for that operating-system account and its credentials.</p>
+        <p>Trusted extensions share the browser or runtime process that loads them. Extension capability declarations do not sandbox JavaScript in that process. Trusted extensions and workspace commands do not have sandbox isolation.</p>
+        <p>Collaboration is off by default and can be enabled in Extensions. Sharing a workspace creates revocable grants; consider both the access you grant and the tool trust enabled for that workspace.</p>
+      </section>
+
+      <section>
+        <h2>AI providers and connected services</h2>
+        <p>AI agents send prompts, conversation content, and workspace data they read to the model service you select. Oxbit supports provider and endpoint choices, including OpenAI, Anthropic, and OpenAI-compatible services. External agents and extensions use their configured services.</p>
+        <p>Those services handle received data under their own policies. Review the <a href="/privacy/">Oxbit privacy policy</a> for device storage, credentials, connections, and optional services.</p>
+      </section>
+
+      <section>
+        <h2>Saves, drafts, and connection recovery</h2>
+        <p>Runtime file saves compare disk revisions before writing and use an atomic rename. A changed file produces a conflict instead of silently treating an old revision as current. Browser directory writes also check revisions, but an external change between the check and commit can be overwritten.</p>
+        <p>Draft recovery stores document state in browser storage. Failed saves, missing files, and permission errors preserve draft content. Closing the browser before a pending storage update finishes can lose the final unpersisted change.</p>
+        <p>After a connection loss, surviving terminal sessions can reattach. If the runtime process stops, its terminals stop too. Recovery checks the status of commands or commits with uncertain outcomes and does not automatically run them again.</p>
+        <p>Read <a href="https://github.com/yannelli/oxbit/blob/main/docs/persistence.md" rel="noopener">documents and recovery</a> for save conflicts and storage limits, and <a href="https://github.com/yannelli/oxbit/blob/main/docs/security.md" rel="noopener">trust and recovery boundaries</a> for technical details.</p>
+      </section>
+
+      <section id="reporting">
+        <h2>Report a vulnerability privately</h2>
+        <p>Email <a href="mailto:ryanyannelli@gmail.com">ryanyannelli@gmail.com</a>. Keep undisclosed vulnerabilities out of public issues, as described in the <a href="https://github.com/yannelli/oxbit/blob/main/SECURITY.md" rel="noopener">published reporting policy</a>.</p>
+        <p>Include:</p>
+        <ul>
+          <li>The affected version or commit and operating system.</li>
+          <li>Steps to reproduce and the security impact.</li>
+          <li>A minimal example or relevant logs with credentials and personal data removed.</li>
+        </ul>
+        <p>For ordinary bugs and setup questions, visit <a href="/support/">support</a>.</p>
+      </section>
+    </article>
+
+    <div class="container page-cta">
+      <h2>Inspect the implementation</h2>
+      <p>The source and technical documentation describe the runtime's trust and recovery boundaries.</p>
+      <a class="btn btn-primary" href="https://github.com/yannelli/oxbit/blob/main/docs/security.md" rel="noopener">Read security documentation</a>
+      <a class="btn btn-ghost" href="/privacy/">Read the privacy policy</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+      </div>
+      <div class="footer-cols">
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
+        </div>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
+        </div>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
+    </div>
+  </footer>
+  <script src="/main.js" defer></script>
+</body>
+</html>
