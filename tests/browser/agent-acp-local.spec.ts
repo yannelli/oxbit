@@ -254,7 +254,7 @@ test("the Oxbit agent runs a turn in the app: its file write waits for review, a
   await expect(panel.getByText("Wrote notes.md.")).toBeVisible();
   const phone = (page.viewportSize()?.width ?? 1440) < 1100;
   expect(await page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("agent-acp"))).toBe(true);
-  expect(await page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
   await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" })).toHaveCount(0);
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 
@@ -357,7 +357,7 @@ test("the Oxbit agent delegates a task to a subagent whose file write is applied
   await details.getByRole("button", { name: "Apply change", exact: true }).click();
   await expect(details.getByText("Wrote notes.md.").first()).toBeVisible();
   const phone = (page.viewportSize()?.width ?? 1440) < 1100;
-  expect(await page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.state.groups.some((group: any) => group.tabs.some((tab: any) => tab.path === "notes.md")))).toBe(!phone);
   await expect(details).toBeVisible();
   expect(await page.evaluate(async () => (await (window as any).__oxbit.filesystem.read("notes.md")).text)).toBe("agent note\n");
 
