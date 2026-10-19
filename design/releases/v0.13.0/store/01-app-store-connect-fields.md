@@ -4,6 +4,101 @@ Created: 2026-10-19. Last updated: 2026-10-19.
 
 Values to enter on each App Store Connect page, in page order. "Current" is what App Store Connect held on 2026-10-19 (read through the API). Character counts are Unicode characters; Keywords and Review Notes limits are bytes, and the text here is ASCII. `store-copy.json` holds the same copy for scripts.
 
+## Copy and paste
+
+Each block holds the exact text for one field. Copy the block and paste it into the field; line breaks are kept. The App Review notes are under [Review notes](#review-notes).
+
+### App Information
+
+#### Name
+
+```text
+Oxbit: Code Editor & AI Agent
+```
+
+#### Subtitle
+
+```text
+Git, SSH, and AI completions
+```
+
+#### Privacy Policy URL
+
+```text
+https://oxbit.dev/privacy/
+```
+
+### Version page
+
+#### Promotional Text
+
+```text
+New in 0.13: AI completions as you type, from OpenRouter, your own OpenAI-compatible API, or a local model on your Mac, with model suggestions showing price and scores.
+```
+
+#### Description
+
+```text
+Oxbit is a code editor for iPhone and iPad with an AI coding agent, Git, and SSH built in. Edit projects on your device, connect to your own servers, and pick up where you left off.
+
+EDIT ON YOUR DEVICE
+Open the Oxbit folder or any folder from the Files app. Edit with syntax highlighting, search across the project, quick open, and formatting. Language servers for TypeScript, JavaScript, JSON, YAML, Python, Dockerfile, and shell scripts run on the device for completions, diagnostics, and go to definition. Unsaved drafts and your layout come back after a relaunch.
+
+AI THAT WORKS IN YOUR PROJECT
+Ask Oxbit Agent to explain code, find files, or make edits, then review its changes in the editor. Bring your own key for OpenAI, Anthropic, or any OpenAI-compatible service, or sign in with ChatGPT. Dictate messages when typing is slow.
+
+AI COMPLETIONS AS YOU TYPE
+Turn on inline completions and accept a suggestion with Tab. Choose OpenRouter, a custom OpenAI-compatible API, a local model running in Ollama or llama.cpp on your Mac, or the agent's own provider. Settings suggests current models with their price, context size, and benchmark score.
+
+GIT BUILT IN
+Clone repositories, stage changes, commit, and push and pull without a computer. Browse history, switch branches, and work with stashes. Add GitHub and Gitea accounts and pick one per repository; tokens stay in the Keychain.
+
+SSH AND YOUR COMPUTER
+Open folders on a server over SSH and SFTP with keys or passwords from the Keychain. Pair with the Oxbit runtime on your Mac or Linux computer for its terminals, tasks, and language tools, and get a notification or Live Activity when its agent finishes.
+
+PREVIEW AS YOU WRITE
+Preview HTML and CSS next to the source and read rendered Markdown. Previews block scripts and remote resources until you allow them.
+
+MADE FOR IPHONE AND IPAD
+A key bar adds Tab, Escape, arrows, symbols, undo, and redo above the keyboard. On iPad, split the editor and use hardware keyboard shortcuts. Choose from bundled themes and icon packs.
+
+Oxbit is free and open source, with no account and no ads. Requires iOS or iPadOS 26 or later.
+```
+
+#### Keywords
+
+```text
+ide,programming,developer,coding,javascript,typescript,python,html,css,markdown,json,yaml,sftp,llm
+```
+
+#### Support URL
+
+```text
+https://oxbit.dev/support/
+```
+
+#### Marketing URL
+
+```text
+https://oxbit.dev/
+```
+
+#### What's New in This Version
+
+```text
+AI completions as you type: choose OpenRouter, a custom OpenAI-compatible API, a local model in Ollama or llama.cpp, or the agent's provider. Settings suggests models with price, context size, and benchmark scores, and Set AI Provider API Key stores the key in the Keychain.
+
+Settings text fields keep every keystroke while you type.
+Copy Path confirms what it copied, and Copy Relative Path is new.
+Refreshed icons with lighter strokes.
+Long workspace names fit on one line in the Explorer.
+```
+
+#### Copyright
+
+```text
+2026 Ryan Yannelli
+```
 ## App Information (app level)
 
 | Field | Limit | Enter | Current |
@@ -27,12 +122,12 @@ The home screen name comes from the build's display name and stays "Oxbit". The 
 
 | Field | Limit | Enter |
 | --- | --- | --- |
-| Promotional Text | 170 | `store-copy.json` › `promotionalText` (168) |
-| Description | 4000 | `store-copy.json` › `description` (2130) |
+| Promotional Text | 170 | [Copy and paste](#copy-and-paste) (168) |
+| Description | 4000 | [Copy and paste](#copy-and-paste) (2130) |
 | Keywords | 100 bytes | `ide,programming,developer,coding,javascript,typescript,python,html,css,markdown,json,yaml,sftp,llm` (98) |
 | Support URL | URL | `https://oxbit.dev/support/` |
 | Marketing URL | URL | `https://oxbit.dev/` |
-| What's New | 4000 | `store-copy.json` › `whatsNew` (491). App Store Connect asks for it from the second App Store version on. |
+| What's New | 4000 | [Copy and paste](#copy-and-paste) (491). App Store Connect asks for it from the second App Store version on. |
 | Copyright | | `2026 Ryan Yannelli` |
 | Build | | 0.13.1, the first build with the privacy manifest and the AI data sharing prompt. Build 0.13.0 (34) lacks both. |
 | Version release | | Manually release this version |
