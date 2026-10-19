@@ -1,6 +1,6 @@
 # iOS release artwork
 
-Created: 2026-10-02. Last updated: 2026-10-05.
+Created: 2026-10-02. Last updated: 2026-10-19.
 
 Use this guide when refreshing the iOS icon, preparing App Store screenshots,
 or exporting the v0.3.1 marketing package.
@@ -115,6 +115,17 @@ on 2026-10-05 UTC after an unintended icon change. The earlier local IPA contain
 the withdrawn icon and must not be redistributed. The corrected artwork has
 not been packaged into a replacement IPA or release. See the
 [alpha.5 comparison](release-audit-0.3.1.md) for findings and correction status.
+
+## 0.13.0 App Store screenshots
+
+[`design/releases/v0.13.0`](../design/releases/v0.13.0) holds six screens for iPhone 6.9" (1320 × 2868), iPhone 6.3" (1206 × 2622), and iPad 13" (2064 × 2752), the iOS 27 creative assets, promo graphics, and the submission sheet in `store/`. Captures are WebKit renders of the iOS frontend with the mocked bridge from `tests/ios/bridge.ts`; `provenance.json` records the source.
+
+```sh
+node scripts/ios/capture-store-screenshots.mjs
+node scripts/ios/render-store-assets.mjs
+```
+
+Add `--only=<screen-id>` to the capture command to recapture one screen. Apple's current rules are in [App Store submission requirements](app-store-submission.md).
 
 ## Apple references
 
