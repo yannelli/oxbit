@@ -364,13 +364,15 @@ test("tooltip delay is configurable and explorer rows use a pointer", async ({
     page.getByRole("spinbutton", { name: "Tooltip Delay" }),
   ).toHaveValue("0");
   await page.getByRole("spinbutton", { name: "Tooltip Delay" }).fill("650");
-  expect(
-    await page.evaluate(() =>
-      (window as any).__oxbit.kernel.configuration.get(
-        "workbench.tooltipDelay",
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).__oxbit.kernel.configuration.get(
+          "workbench.tooltipDelay",
+        ),
       ),
-    ),
-  ).toBe(650);
+    )
+    .toBe(650);
   await page.reload();
   await page.waitForFunction(() => (window as any).__oxbit?.ready);
   expect(
