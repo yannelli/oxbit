@@ -8,7 +8,7 @@ The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and 
 
 | Feature | Use | Keys |
 | --- | --- | --- |
-| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
+| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. Deleting or moving the cursor dismisses the suggestion and cancels a running request without starting a new one. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
 | Edit Selection with AI | Asks for an instruction, replaces the selection with the model's rewrite, and highlights the new text. With no selection it inserts code at the cursor. The edit is one undo step. If the selected text changes while the request runs, nothing is applied. | Ctrl/Cmd+Alt+K. Escape cancels a running request. |
 
 Ctrl/Cmd+K is a chord prefix in Oxbit, so the inline edit uses Ctrl/Cmd+Alt+K.
@@ -20,7 +20,7 @@ Ctrl/Cmd+K is a chord prefix in Oxbit, so the inline edit uses Ctrl/Cmd+Alt+K.
 | `ai.inlineCompletions.enabled` | `false` | Request suggestions while typing. |
 | `ai.inlineCompletions.delay` | `350` | Milliseconds of idle time before a request. |
 | `ai.inlineCompletions.maxTokens` | `256` | Output token cap per suggestion (16 to 4,096). |
-| `ai.inlineCompletions.maxLines` | `24` | Lines kept from a suggestion. `1` also asks the model for the rest of the current line only. |
+| `ai.inlineCompletions.maxLines` | `2` | Lines in a suggestion. The system prompt asks for at most this many and `cleanCompletion` cuts longer replies. `1` asks for the rest of the current line only. |
 | `ai.inlineCompletions.linesBefore` | `150` | Lines before the cursor sent as context. `0` sends the start of the cursor's line. |
 | `ai.inlineCompletions.linesAfter` | `50` | Lines after the cursor sent as context. `0` sends the rest of the cursor's line. |
 | `ai.inlineCompletions.contextTokens` | `2048` | Context budget per request, estimated at 4 characters per token. Lines farthest from the cursor go first; the code after the cursor keeps at least a quarter of the budget. Open files take up to a quarter when included. |

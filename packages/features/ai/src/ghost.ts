@@ -6,7 +6,7 @@ export interface Suggestion {
   text: string;
 }
 export interface GhostOptions {
-  /** Whether typing requests suggestions; `requestSuggestion` works either way. */
+  /** Whether typing requests suggestions. Deleting and moving the cursor only dismiss; `requestSuggestion` works either way. */
   automatic(): boolean;
   delay(): number;
   /** Resolves to the cleaned suggestion for the cursor at `pos`, or "". */
@@ -98,7 +98,7 @@ const ghostPlugin = ViewPlugin.fromClass(class {
   update(update: ViewUpdate) {
     if (!update.docChanged && !update.selectionSet) return;
     this.cancel();
-    const typed = update.transactions.some((transaction) => transaction.isUserEvent("input.type") || transaction.isUserEvent("delete"));
+    const typed = update.transactions.some((transaction) => transaction.isUserEvent("input.type"));
     const config = update.state.facet(options);
     if (typed && config?.automatic() && !currentSuggestion(update.state)) this.schedule(update.view, config.delay());
   }

@@ -90,7 +90,8 @@ describe("completion context options", () => {
     const system = completionSystem({ maxLines: 1, instructions: " Use tabs. " });
     expect(system).toContain("Complete only the rest of the current line.");
     expect(system.endsWith("Instructions from the user:\nUse tabs.")).toBe(true);
-    expect(completionSystem({ maxLines: 24 })).not.toContain("Instructions");
+    expect(completionSystem({ maxLines: 2 })).toContain("Reply with at most 2 lines.");
+    expect(completionSystem({ maxLines: 2 })).not.toContain("Instructions");
   });
 
   it("cuts a suggestion to the line limit", () => {

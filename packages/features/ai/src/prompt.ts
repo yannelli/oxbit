@@ -49,7 +49,7 @@ export const EDIT_SYSTEM = [
 const header = ({ path, language }: CompletionContext) => `Path: ${path}${language ? `\nLanguage: ${language}` : ""}`;
 
 export function completionSystem({ maxLines, instructions }: { maxLines: number; instructions?: string }) {
-  const lines = maxLines === 1 ? `${COMPLETION_SYSTEM} Complete only the rest of the current line.` : COMPLETION_SYSTEM;
+  const lines = `${COMPLETION_SYSTEM} ${maxLines === 1 ? "Complete only the rest of the current line." : `Reply with at most ${maxLines} lines.`}`;
   return instructions?.trim() ? `${lines}\n\nInstructions from the user:\n${instructions.trim()}` : lines;
 }
 

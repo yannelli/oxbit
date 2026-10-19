@@ -342,9 +342,9 @@ var settings_schema_default = {
     },
     "ai.inlineCompletions.maxLines": {
       title: "Inline completion max lines",
-      description: "Most lines shown in one suggestion. 1 asks for single-line suggestions only.",
+      description: "Most lines in one suggestion. The model is asked for at most this many, and longer replies are cut. 1 asks for the rest of the current line only.",
       type: "number",
-      default: 24,
+      default: 2,
       minimum: 1,
       maximum: 200
     },
