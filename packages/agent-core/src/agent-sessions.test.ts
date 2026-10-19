@@ -80,7 +80,7 @@ describe("Agent sessions", () => {
     await tick();
     expect(t.updates.at(-1)!.availableCommands.map((command: { name: string }) => command.name)).toEqual(["context", "greet", "status", "reset"]);
     await agent.prompt(sessionId, text("/etc/hosts is missing"));
-    expect(t.messages().at(-1)).toEqual({ role: "user", content: "/etc/hosts is missing" });
+    expect(t.messages().at(-1)).toEqual({ role: "user", content: expect.stringMatching(/^\/etc\/hosts is missing(\n\n<context-usage>.*<\/context-usage>)?$/) });
   });
   it("offers tool provider tools per step and keeps built-in names", async () => {
     const echo = { spec: { name: "echo", description: "Echo", parameters: { type: "object" } }, kind: "other" as const, title: () => "Echo",

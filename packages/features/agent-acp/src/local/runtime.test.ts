@@ -49,8 +49,8 @@ describe("LocalAgentRuntime", () => {
     const forked = await runtime.request<ACPConnection>("acp.call", { id: first.id, method: "session/fork" });
     expect(forked.sessionId).not.toBe(first.sessionId);
     await prompt(runtime, first.id, "m2", "Which door?");
-    const messages = (requests.at(-1)!.body as { messages: { role: string; content: unknown }[] }).messages;
-    expect(messages.filter((message) => message.role !== "system").map((message) => message.content))
+    const messages = (requests.at(-1)!.body as { messages: { role: string; content: string }[] }).messages;
+    expect(messages.filter((message) => message.role !== "system").map((message) => message.content.replace(/\n\n<context-usage>.*<\/context-usage>$/, "")))
       .toEqual(["Remember the blue door", "Noted", "Which door?"]);
   });
   it("rejects start without a key and answers unavailable runtime methods", async () => {
