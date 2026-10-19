@@ -40,7 +40,6 @@
 .prose li + li { margin-top: 10px; }
 .prose a, .link-card a { color: var(--mint-2); text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
 .prose strong { color: var(--text); }
-.prose .kicker { color: var(--mint); }
 .page-cta, .page-callout { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 28px; margin-top: 56px; padding: 36px; border: 1px solid rgba(139, 213, 202, 0.25); border-radius: var(--radius); background: linear-gradient(120deg, #8bd5ca10, var(--surface)); }
 .page-cta h2, .page-callout h2 { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.025em; line-height: 1.2; }
 .action-row, .page-actions, .page-links { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -101,7 +100,6 @@ thead { background: var(--surface); }
   .page-cta, .page-callout { padding: 24px; }
   .release-entry { grid-template-columns: 1fr; gap: 20px; }
   .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hero .eyebrow { font-size: 11px; gap: 7px; }
 }
 @media (max-width: 400px) {
   .brand-word { display: none; }

@@ -66,19 +66,18 @@
   <main id="main" class="page-main">
     <div class="container page-heading">
       <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span>Platforms and requirements</span></nav>
-      <p class="kicker">Choose your setup</p>
-      <h1>One workbench.<br /><span class="muted">A few ways to work.</span></h1>
+      <h1>Platforms and requirements</h1>
       <p class="lead">Use Oxbit in a browser, install the desktop app, or join the iPhone and iPad beta. Where your workspace runs determines which tools are available.</p>
     </div>
     <div class="container page-content">
       <div class="card-grid platform-cards">
-        <section class="card" id="browser"><p class="kicker">Browser + CLI</p><h2>A tab for your project.</h2><p>Run <code class="inline">oxbit</code> on your computer to serve the editor and connect it to your files. Browser workspaces also store files and drafts locally in IndexedDB and support directory access where the browser provides it.</p><p>Terminals, tasks, Git, and managed language servers use a trusted runtime connection.</p><a class="text-link" href="/get-started/#cli">Install the CLI →</a></section>
-        <section class="card" id="desktop"><p class="kicker">macOS + Linux</p><h2>A desktop workspace.</h2><p>The Tauri app bundles Node, ripgrep, the terminal addon, managed language services, and Oxbit Agent CLI. Connect over SSH to work in a remote folder.</p><p><strong>Requires:</strong> an Apple Silicon Mac with macOS 26 or later, or Ubuntu 24.04 or later on x64 or arm64.</p><a class="text-link" href="https://github.com/yannelli/oxbit/releases/latest">Download desktop installers →</a></section>
-        <section class="card" id="ios"><p class="kicker">iPhone + iPad / Beta</p><h2>Your project on your device.</h2><p>Edit the app’s Documents folder or folders selected through Files. Git, language services, and Oxbit Agent run on the device. Connect to a computer runtime for terminals and tasks, or use SSH and SFTP for remote work.</p><p><strong>Requires:</strong> iOS 26 or iPadOS 26 or later. Distribution is through TestFlight.</p><a class="text-link" href="https://testflight.apple.com/join/P2WqdUYS">Join the TestFlight beta →</a></section>
-        <section class="card" id="remote"><p class="kicker">Remote workspaces</p><h2>Keep tools on your server.</h2><p>Start a runtime on a computer you control and pair the editor using its code. Desktop SSH connections install the bundled headless runtime on supported Linux and macOS hosts without requiring Node or npm on the host.</p><p>The runtime binds to loopback by default. Network access and tool trust are separate setup decisions.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/remote-ssh.md">Read the SSH setup guide →</a></section>
+        <section class="card" id="browser"><h2>Browser and CLI</h2><p>Run <code class="inline">oxbit</code> on your computer to serve the editor and connect it to your files. Browser workspaces also store files and drafts locally in IndexedDB and support directory access where the browser provides it.</p><p>Terminals, tasks, Git, and managed language servers use a trusted runtime connection.</p><a class="text-link" href="/get-started/#cli">Install the CLI</a></section>
+        <section class="card" id="desktop"><h2>macOS and Linux</h2><p>The Tauri app bundles Node, ripgrep, the terminal addon, managed language services, and Oxbit Agent CLI. Connect over SSH to work in a remote folder.</p><p><strong>Requires:</strong> an Apple Silicon Mac with macOS 26 or later, or Ubuntu 24.04 or later on x64 or arm64.</p><a class="text-link" href="https://github.com/yannelli/oxbit/releases/latest">Download desktop installers</a></section>
+        <section class="card" id="ios"><h2>iPhone and iPad (beta)</h2><p>Edit the app’s Documents folder or folders selected through Files. Git, language services, and Oxbit Agent run on the device. Connect to a computer runtime for terminals and tasks, or use SSH and SFTP for remote work.</p><p><strong>Requires:</strong> iOS 26 or iPadOS 26 or later. Distribution is through TestFlight.</p><a class="text-link" href="https://testflight.apple.com/join/P2WqdUYS">Join the TestFlight beta</a></section>
+        <section class="card" id="remote"><h2>Remote workspaces</h2><p>Start a runtime on a computer you control and pair the editor using its code. Desktop SSH connections install the bundled headless runtime on supported Linux and macOS hosts without requiring Node or npm on the host.</p><p>The runtime binds to loopback by default. Network access and tool trust are separate setup decisions.</p><a class="text-link" href="https://github.com/yannelli/oxbit/blob/main/docs/remote-ssh.md">Read the SSH setup guide</a></section>
       </div>
       <section class="prose page-band"><h2>Which setup fits your workflow?</h2><div class="table-wrap" role="region" aria-label="Platform comparison" tabindex="0"><table><thead><tr><th scope="col">Workflow</th><th scope="col">Browser workspace</th><th scope="col">Desktop / runtime</th><th scope="col">iPhone / iPad</th></tr></thead><tbody><tr><th scope="row">Edit files</th><td>Browser storage or directory access</td><td>Files on the runtime computer</td><td>Documents, Files, or remote folders</td></tr><tr><th scope="row">Terminals and tasks</th><td>Connect a runtime</td><td>Included after workspace trust</td><td>Connect a runtime</td></tr><tr><th scope="row">Coding agents</th><td>Connect a runtime</td><td>ACP agents and Oxbit Agent CLI</td><td>Oxbit Agent on device, or runtime agents</td></tr><tr><th scope="row">Source Control</th><td>Connect a runtime</td><td>Git on the runtime computer</td><td>Git on device, or runtime Git</td></tr></tbody></table></div><p>Model services receive the prompts and context used for AI features. See <a href="/privacy/">privacy</a> for storage and connection details.</p></section>
-      <div class="page-cta"><div><p class="kicker">Pick a starting point</p><h2>Open your first workspace.</h2></div><a class="btn btn-primary" href="/get-started/">Get started →</a></div>
+      <div class="page-cta"><div><h2>Set up Oxbit on your device</h2></div><a class="btn btn-primary" href="/get-started/">Get started</a></div>
     </div>
   </main>
   <footer class="footer">
@@ -86,7 +85,7 @@
       <div class="footer-brand">
         <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
         <p>An open source code editor with coding agents built in.</p>
-        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>.</p>
       </div>
       <div class="footer-cols">
         <div><h4>Product</h4>

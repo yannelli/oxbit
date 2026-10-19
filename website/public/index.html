@@ -76,17 +76,12 @@
     <!-- HERO -->
     <section class="hero">
       <div class="container hero-inner">
-        <p class="eyebrow" data-reveal>
-          <span class="dot"></span>
-          <a href="/changelog/"><span data-version>v0.12.0</span></a> · MIT licensed · Open source
-        </p>
-        <h1 class="hero-title" data-reveal>
-          A dev environment<br />
-          <span class="grad">that runs anywhere.</span>
+                <h1 class="hero-title" data-reveal>
+          A code editor with coding agents built in.
         </h1>
         <p class="hero-sub" data-reveal>
-          Oxbit is a code editor with coding agents built in. It runs in a browser, on macOS
-          and Linux, and on iPhone and iPad. Connect the Node runtime for files, terminals, Git,
+          Oxbit runs in a browser, on macOS and Linux, and on iPhone and iPad. It is free
+          and open source under the MIT license. Connect the Node runtime for files, terminals, Git,
           tasks, language services, and agents.
         </p>
         <div class="hero-cta" data-reveal>
@@ -103,7 +98,7 @@
             <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
           </div>
         </div>
-        <p class="home-proof"><a href="/about/">Independent and open source</a> · <a href="/security/">Understand workspace trust</a> · <a href="/changelog/">See what changed</a></p>
+        <p class="home-proof"><a href="/changelog/">Latest release: <span data-version>v0.12.0</span></a> · <a href="/about/">Who maintains Oxbit</a> · <a href="/security/">How workspace trust works</a></p>
       </div>
 
       <div class="container hero-shot" data-reveal data-tilt>
@@ -131,15 +126,14 @@
     <section class="section" id="features">
       <div class="container">
         <div class="section-head" data-reveal>
-          <p class="kicker">Features</p>
-          <h2>Your tools, in one workbench.</h2>
+          <h2>Editor features</h2>
         </div>
 
         <div class="bento">
           <article class="card card-wide" data-reveal data-spot>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg></div>
             <h3>Split views and multiple cursors</h3>
-            <p>Find and replace, formatters, Markdown and HTML previews, themes, and icon packs. The editor is CodeMirror, tuned for long sessions.</p>
+            <p>Find and replace, formatters, Markdown and HTML previews, themes, and icon packs. The editor is built on CodeMirror.</p>
             <div class="card-art art-editor" aria-hidden="true">
               <pre><code><span class="k">export</span> <span class="k">function</span> <span class="f">useTelemetry</span>(deviceId: <span class="t">string</span>) {
   <span class="k">const</span> [data, setData] = <span class="f">useState</span>&lt;<span class="t">Telemetry</span>&gt;();
@@ -192,8 +186,7 @@
     <section class="section section-alt" id="agents">
       <div class="container">
         <div class="section-head" data-reveal>
-          <p class="kicker">Agents</p>
-          <h2>Bring your agents.<br /><span class="muted">Or use ours.</span></h2>
+          <h2>Use an ACP agent or Oxbit Agent</h2>
         </div>
         <div class="ext-grid">
           <article class="card card-tall" data-reveal data-spot>
@@ -252,9 +245,8 @@
     <section class="section" id="platforms">
       <div class="container">
         <div class="section-head" data-reveal>
-          <p class="kicker">Platforms</p>
-          <h2>One editor. Every screen.</h2>
-          <p class="lead">The same workbench and agent panel in a browser tab, in a native desktop window, and on iPhone and iPad.</p>
+          <h2>Browser, desktop, iPhone, and iPad</h2>
+          <p class="lead">Each platform has the same editor and agent panel. What runs locally depends on the platform.</p>
         </div>
 
         <div class="platforms">
@@ -295,8 +287,7 @@
     <section class="section section-alt" id="runtime">
       <div class="container split">
         <div class="split-copy" data-reveal>
-          <p class="kicker">Runtime</p>
-          <h2>One command.<br />Your project, served.</h2>
+          <h2>Start a runtime from your project folder</h2>
           <p class="lead">
             <code class="inline">oxbit</code> starts a runtime, opens the editor in your browser, and returns to the shell.
             Run it again in the same project and it reuses the runtime. The printed URL carries a pairing code
@@ -329,8 +320,7 @@
       <div class="container">
         <div class="cta-panel" data-reveal data-spot>
           <div class="cta-copy">
-            <p class="kicker">Quick start</p>
-            <h2>Open your first workspace.</h2>
+            <h2>Install the CLI</h2>
             <p class="lead">On macOS or Linux, install Node 24, Git, and ripgrep. On Linux, npm also compiles the terminal addon, which needs Python, make, and a C++ compiler. Then:</p>
             <ol class="steps">
               <li><span>1</span>Install <code class="inline">@oxbit/cli</code> with npm</li>
@@ -353,10 +343,10 @@ oxbit ~/code/my-project</code></pre>
     </section>
     <section class="section home-explore" aria-labelledby="explore-title">
       <div class="container">
-        <div class="section-head"><p class="kicker">Explore Oxbit</p><h2 id="explore-title">Take a closer look.</h2></div>
+        <div class="section-head"><h2 id="explore-title">More about Oxbit</h2></div>
         <div class="card-grid">
           <article class="card"><h3>Find your workflow</h3><p>Compare platforms, explore the editor, and follow a setup guide for your device.</p><ul class="resource-links"><li><a href="/features/">Editor and agent features <span>→</span></a></li><li><a href="/platforms/">Platforms and requirements <span>→</span></a></li><li><a href="/docs/">Documentation <span>→</span></a></li></ul></article>
-          <article class="card"><h3>Get to know the project</h3><p>Read release updates, find direct answers, and meet the person behind Oxbit.</p><ul class="resource-links"><li><a href="/changelog/">Changelog <span>→</span></a></li><li><a href="/faq/">Frequently asked questions <span>→</span></a></li><li><a href="/about/">About Oxbit <span>→</span></a></li></ul></article>
+          <article class="card"><h3>Get to know the project</h3><p>Read release updates, read common questions, and see who maintains Oxbit.</p><ul class="resource-links"><li><a href="/changelog/">Changelog <span>→</span></a></li><li><a href="/faq/">Frequently asked questions <span>→</span></a></li><li><a href="/about/">About Oxbit <span>→</span></a></li></ul></article>
         </div>
       </div>
     </section>
@@ -367,7 +357,7 @@ oxbit ~/code/my-project</code></pre>
       <div class="footer-brand">
         <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
         <p>An open source code editor with coding agents built in.</p>
-        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>. Built in the open.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>.</p>
       </div>
       <div class="footer-cols">
         <div><h4>Product</h4>
