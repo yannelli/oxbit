@@ -62,6 +62,21 @@
     });
   });
 
+  const localLinks = new Map([...document.querySelectorAll('.local-nav a[href^="#"]')].map((link) => [link.hash.slice(1), link]));
+  if (localLinks.size && 'IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        localLinks.forEach((link) => link.removeAttribute('aria-current'));
+        localLinks.get(entry.target.id)?.setAttribute('aria-current', 'location');
+      }
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    localLinks.forEach((_, id) => {
+      const section = document.getElementById(id);
+      if (section) sectionObserver.observe(section);
+    });
+  }
+
   document.querySelectorAll('[data-spot]').forEach((card) => {
     card.addEventListener('pointermove', (event) => {
       const rect = card.getBoundingClientRect();
