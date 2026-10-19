@@ -62,6 +62,7 @@ export const extension: Extension = {
     id: "orbitlabs.bundle-inspector",
     name: "Bundle Inspector",
     version: "1.0.0",
+    enabledByDefault: false,
     sdk: "^1.0.0",
     environments: ["browser", "embedded"],
     activation: ["onStartup", "onCommand:bundle.analyze", "onCommand:bundle.openReport"],
