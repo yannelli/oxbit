@@ -113,11 +113,12 @@ final class AgentModels: NSObject, URLSessionDataDelegate {
       return
     }
     do {
-      guard let key = try keys.read(endpoint.account) else {
+      if let key = try keys.read(endpoint.account) {
+        endpoint.authorize(&request, key: key)
+      } else if !endpoint.isLocalHttp {
         invoke.reject("Add an API key in Agent setup", code: "MISSING_KEY")
         return
       }
-      endpoint.authorize(&request, key: key)
     } catch {
       invoke.reject(error.localizedDescription, code: "AGENT_MODELS")
       return

@@ -45,6 +45,7 @@ export function Settings({
   const phone = usePhone();
   const list = useRef<HTMLDivElement>(null);
   const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
+  const aiKey = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("ai.setApiKey").enabled);
   const records = kernel.extensions.list();
   const owner = extension ? records.find(record => record.manifest.id === extension) : undefined;
   const settings = owner ? owner.manifest.configuration ?? [] : kernel.configuration.list();
@@ -62,6 +63,7 @@ export function Settings({
   const showAll = searching || !!owner;
   const actions: SettingAction[] = owner || modified ? [] : [
     { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
+    ...(aiKey ? [{ last: true, category: "Editor · AI", title: tr("AI provider API key"), description: tr("Save the key for the OpenRouter or Custom OpenAI API provider. The iPhone keeps it in the Keychain; a runtime keeps it in the Oxbit agent's auth.json."), label: tr("Set API Key…"), command: "ai.setApiKey" }] : []),
     ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
   ];
   const servers = owner || modified ? [] : records
@@ -71,15 +73,18 @@ export function Settings({
     const { page, section } = splitCategory(category);
     return [tr(page), page, section, section && sectionLabel(category!, section)];
   };
+  const actionEntries = (last: boolean) => actions.filter(action => !!action.last === last)
+    .filter(action => matchesQuery([action.title, action.description, ...placeFields(action.category)], query))
+    .map(action => ({ kind: "action" as const, category: action.category, action }));
   const entries: Entry[] = [
-    ...actions.filter(action => matchesQuery([action.title, action.description, ...placeFields(action.category)], query))
-      .map(action => ({ kind: "action" as const, category: action.category, action })),
+    ...actionEntries(false),
     ...servers.map(record => ({ kind: "server" as const, category: SERVERS_CATEGORY, record })),
     ...settings
       .filter(s => owner || searching || !s.category?.startsWith(SERVER_PREFIX))
       .filter(s => !modified || scopedSetting(kernel, s, scope, language || undefined).modified)
       .filter(s => matchesQuery([tr(s.title), s.id, s.description && tr(s.description), ...placeFields(s.category)], query))
       .map(setting => ({ kind: "setting" as const, category: setting.category, setting })),
+    ...actionEntries(true),
   ];
   const pages = groupSettings(entries);
   const activePage = pages.find(item => item.name === page) ?? (phone ? undefined : pages[0]);
