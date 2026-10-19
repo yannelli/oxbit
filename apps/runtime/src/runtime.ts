@@ -358,6 +358,7 @@ export async function createRuntime(options: RuntimeOptions) {
     workspaceId: "default",
     workspaceKey: options.desktop?.workspaceKey ?? hash(root).slice(0, 24),
     workspaceName: path.basename(root),
+    ...(session.owner ? { workspaceRoot: root } : {}),
     capabilities: session.capabilities,
     owner: session.owner,
     trusted,

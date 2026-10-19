@@ -47,6 +47,8 @@ export class RuntimeClient implements RpcClient {
     owner: boolean;
     workspaceKey?: string;
     workspaceName?: string;
+    /** The workspace's absolute path on the runtime host, sent to owner sessions. */
+    workspaceRoot?: string;
   };
   readonly url: string;
   constructor(
@@ -140,6 +142,10 @@ export class RuntimeClient implements RpcClient {
               workspaceName:
                 typeof session.workspaceName === "string"
                   ? session.workspaceName
+                  : undefined,
+              workspaceRoot:
+                typeof session.workspaceRoot === "string"
+                  ? session.workspaceRoot
                   : undefined,
             };
             this.emit("connection.change", { state: "connected" });

@@ -185,6 +185,8 @@
   "Delete": "Delete",
   "Reveal Active File in Explorer": "Reveal Active File in Explorer",
   "Copy Path": "Copy Path",
+  "Select a file or folder to copy its path": "Select a file or folder to copy its path",
+  "Copy Relative Path": "Copy Relative Path",
   "Close Editor": "Close Editor",
   "Close Other Editors": "Close Other Editors",
   "Pin Editor": "Pin Editor",

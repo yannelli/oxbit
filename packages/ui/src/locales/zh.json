@@ -185,6 +185,8 @@
   "Delete": "删除",
   "Reveal Active File in Explorer": "在资源管理器中显示活动文件",
   "Copy Path": "复制路径",
+  "Select a file or folder to copy its path": "选择要复制路径的文件或文件夹",
+  "Copy Relative Path": "复制相对路径",
   "Close Editor": "关闭编辑器",
   "Close Other Editors": "关闭其他编辑器",
   "Pin Editor": "固定编辑器",

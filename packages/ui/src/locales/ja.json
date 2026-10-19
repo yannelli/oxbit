@@ -185,6 +185,8 @@
   "Delete": "削除",
   "Reveal Active File in Explorer": "エクスプローラーでアクティブなファイルを表示",
   "Copy Path": "パスをコピー",
+  "Select a file or folder to copy its path": "パスをコピーするファイルまたはフォルダーを選択してください",
+  "Copy Relative Path": "相対パスをコピー",
   "Close Editor": "エディターを閉じる",
   "Close Other Editors": "他のエディターを閉じる",
   "Pin Editor": "エディターをピン留め",
