@@ -25,7 +25,13 @@ html[data-native-titlebar="macos"] .desktop-shell .workbench.focus-mode::before 
   flex: 0 0 40px;
   background: var(--bg-app);
 }
-html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell .titlebar {
+html[data-native-titlebar="macos"] .floating-workbench > .floating-title {
+  height: 40px;
+  padding: 0 10px 0 88px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html[data-native-titlebar="macos"][data-window-fullscreen="true"] :is(.desktop-shell .titlebar, .floating-workbench > .floating-title) {
   padding-left: 10px;
 }
 html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell .workbench.focus-mode::before {

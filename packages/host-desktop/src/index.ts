@@ -81,6 +81,8 @@ export const native = {
   close: (kind: CloseRequest["reason"], key?: string) =>
     invoke<void>("desktop_request_close", { kind, key }),
   closePanel: (id: string) => invoke<void>("desktop_close_panel", { id }),
+  panelTitlebar: (id: string, action: "drag" | "zoom" | "fullscreen") =>
+    invoke<boolean>("desktop_panel_titlebar", { id, action }),
   vote: (id: string, accepted: boolean) =>
     invoke<void>("desktop_close_vote", { id, accepted }),
   finished: (id: string, error?: string) =>
