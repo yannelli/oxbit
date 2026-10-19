@@ -741,6 +741,10 @@ export async function createRuntime(options: RuntimeOptions) {
         return {};
       case "ai.complete":
         return ai.complete(params, signal);
+      case "ai.key":
+        return ai.key(params);
+      case "ai.models":
+        return ai.models(params, signal);
       case "push.register":
         return pushDevices.register(session.id, connection.id, params);
       case "push.state":
