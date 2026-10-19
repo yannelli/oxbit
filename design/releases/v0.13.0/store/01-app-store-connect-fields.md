@@ -19,7 +19,7 @@ Oxbit: Code Editor & AI Agent
 #### Subtitle
 
 ```text
-Git, SSH, and AI completions
+A full IDE for iPhone & iPad
 ```
 
 #### Privacy Policy URL
@@ -68,7 +68,7 @@ Oxbit is free and open source, with no account and no ads. Requires iOS or iPadO
 #### Keywords
 
 ```text
-ide,programming,developer,coding,javascript,typescript,python,html,css,markdown,json,yaml,sftp,llm
+git,ssh,sftp,programming,developer,javascript,typescript,python,html,css,markdown,json,yaml,llm
 ```
 
 #### Support URL
@@ -104,7 +104,7 @@ Long workspace names fit on one line in the Explorer.
 | Field | Limit | Enter | Current |
 | --- | --- | --- | --- |
 | Name | 2 to 30 | `Oxbit: Code Editor & AI Agent` (29) | `Oxbit` |
-| Subtitle | 30 | `Git, SSH, and AI completions` (28) | `Code editor for iPhone & iPad` |
+| Subtitle | 30 | `A full IDE for iPhone & iPad` (28) | `Code editor for iPhone & iPad` |
 | Privacy Policy URL | URL | `https://oxbit.dev/privacy/` | same |
 | User Privacy Choices URL | URL, optional | leave empty | empty |
 | Primary category | | Developer Tools | same |
@@ -124,7 +124,7 @@ The home screen name comes from the build's display name and stays "Oxbit". The 
 | --- | --- | --- |
 | Promotional Text | 170 | [Copy and paste](#copy-and-paste) (168) |
 | Description | 4000 | [Copy and paste](#copy-and-paste) (2130) |
-| Keywords | 100 bytes | `ide,programming,developer,coding,javascript,typescript,python,html,css,markdown,json,yaml,sftp,llm` (98) |
+| Keywords | 100 bytes | `git,ssh,sftp,programming,developer,javascript,typescript,python,html,css,markdown,json,yaml,llm` (95) |
 | Support URL | URL | `https://oxbit.dev/support/` |
 | Marketing URL | URL | `https://oxbit.dev/` |
 | What's New | 4000 | [Copy and paste](#copy-and-paste) (491). App Store Connect asks for it from the second App Store version on. |
@@ -133,7 +133,7 @@ The home screen name comes from the build's display name and stays "Oxbit". The 
 | Version release | | Manually release this version |
 | Phased release | | Off for a first release |
 
-Keywords skip the words already in the name and subtitle (oxbit, code, editor, ai, agent, git, ssh, completions) and contain no other app or company names (guideline 2.3.7).
+Keywords skip the words already in the name and subtitle (oxbit, code, editor, ai, agent, ide, iphone, ipad) and contain no other app or company names (guideline 2.3.7).
 
 ### Screenshots
 
