@@ -88,6 +88,8 @@ export interface WorkbenchState {
   };
   workspaceOpen: boolean;
   projectName: string;
+  /** Absolute path of the workspace on its host, when the runtime reports it. */
+  workspaceRoot?: string;
   revision: number;
   recent: string[];
   keybindings: Record<string, string>;

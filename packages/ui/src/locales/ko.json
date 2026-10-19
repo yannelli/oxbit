@@ -185,6 +185,8 @@
   "Delete": "삭제",
   "Reveal Active File in Explorer": "탐색기에 활성 파일 표시",
   "Copy Path": "경로 복사",
+  "Select a file or folder to copy its path": "경로를 복사할 파일이나 폴더를 선택하세요",
+  "Copy Relative Path": "상대 경로 복사",
   "Close Editor": "편집기 닫기",
   "Close Other Editors": "다른 편집기 닫기",
   "Pin Editor": "편집기 고정",

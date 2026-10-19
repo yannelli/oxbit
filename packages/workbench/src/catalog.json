@@ -190,6 +190,12 @@
       "when": "editor"
     },
     {
+      "id": "file.copyRelativePath",
+      "title": "Copy Relative Path",
+      "cat": "File",
+      "when": "editor"
+    },
+    {
       "id": "editor.closeTab",
       "title": "Close Editor",
       "cat": "View",

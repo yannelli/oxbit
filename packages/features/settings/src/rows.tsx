@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
-import type { ExtensionRecord, Kernel, Setting } from "@oxbit/sdk";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ExtensionRecord, Kernel, Setting, SettingSuggestion, SettingSuggestions } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
 import { IconButton, IconThemeSelect, Select, translate as tr } from "@oxbit/ui";
 import { scopedSetting } from "./scopes.js";
 
-export interface SettingAction { category: string; title: string; description: string; label: string; command: string }
+/** `last` lists the action after its section's settings. */
+export interface SettingAction { category: string; title: string; description: string; label: string; command: string; last?: boolean }
 
 function Row({ className = "", id, title, description, notice, actions, children, error }: {
   className?: string; id?: string; title: string; description?: string; notice?: ReactNode; actions?: ReactNode; children: ReactNode; error?: string;
@@ -58,6 +59,20 @@ export function ServerRow({ record, kernel, workbench }: { record: ExtensionReco
   );
 }
 
+/** The `settingSuggestions` contribution for `id`, loaded again when its key changes. */
+function useSuggestions(kernel: Kernel, id: string) {
+  const source = kernel.contributions.list("settingSuggestions").map(item => item.data as SettingSuggestions).find(item => item?.setting === id);
+  const key = source?.key();
+  const [items, setItems] = useState<SettingSuggestion[]>([]);
+  useEffect(() => {
+    if (!source) return setItems([]);
+    const controller = new AbortController();
+    source.list(controller.signal).then(setItems, () => !controller.signal.aborted && setItems([]));
+    return () => controller.abort();
+  }, [source, key]);
+  return source ? items : undefined;
+}
+
 const draftOf = (value: unknown) => (typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
 
 export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
@@ -66,7 +81,22 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   const { value, modified } = scopedSetting(kernel, s, scope, language);
   const [error, setError] = useState(""),
     [draft, setDraft] = useState(draftOf(value));
-  useEffect(() => setDraft(draftOf(value)), [JSON.stringify(value)]);
+  const editing = useRef(false), pending = useRef<(() => void) | undefined>(undefined), timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flush = () => {
+    clearTimeout(timer.current);
+    const commit = pending.current;
+    pending.current = undefined;
+    commit?.();
+  };
+  // Typed values save after a pause so each keystroke does not write the settings file.
+  const later = (commit: () => void) => {
+    pending.current = commit;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 400);
+  };
+  const typing = { onFocus: () => { editing.current = true; }, onBlur: () => { editing.current = false; flush(); } };
+  useEffect(() => flush, []);
+  useEffect(() => { if (!editing.current) setDraft(draftOf(value)); }, [JSON.stringify(value)]);
   const title = tr(s.title);
   const set = (value: unknown) => {
     try {
@@ -102,17 +132,19 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
       }}>{tr("Remove Workspace value")}</button>
     </p>
   );
+  const suggestions = useSuggestions(kernel, s.id);
   const iconTheme = s.id === "workbench.iconTheme" || s.id === "workbench.productIconTheme";
   const stringList = s.type === "array" && s.items === "string" && Array.isArray(value);
-  const stacked = stringList || s.type === "object" || s.type === "array" || iconTheme || s.id === "workbench.colorTheme";
+  const stacked = !!suggestions?.length || stringList || s.type === "object" || s.type === "array" || iconTheme || s.id === "workbench.colorTheme";
   const control = s.type === "boolean" ? (
     <input type="checkbox" role="switch" className="setting-switch" aria-label={title} checked={!!value} onChange={event => set(event.target.checked)} />
   ) : stringList ? (
     <StringChips label={title} value={(value as unknown[]).map(String)} invalid={!!error} onChange={set} />
   ) : s.type === "object" || s.type === "array" ? (
-    <textarea aria-label={title} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} onChange={event => {
-      setDraft(event.target.value);
-      try { set(JSON.parse(event.target.value)); } catch (error) { setError(String(error)); }
+    <textarea aria-label={title} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} {...typing} onChange={event => {
+      const text = event.target.value;
+      setDraft(text);
+      later(() => { try { set(JSON.parse(text)); } catch (error) { setError(String(error)); } });
     }} />
   ) : s.id === "workbench.colorTheme" ? (
     <Select label={title} value={String(value)} onChange={set} options={kernel.contributions.list("theme").map(item => ({ value: (item.data as { stableId?: string })?.stableId ?? item.id, label: `${item.title} · ${(item.data as { packName?: string })?.packName ?? item.owner ?? item.id}` }))} />
@@ -123,23 +155,43 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
     </>
   ) : s.enum ? (
     <Select label={title} value={String(value)} onChange={value => set(s.type === "number" ? Number(value) : value)}
-      options={s.enum.map(value => ({ value: String(value), label: typeof value === "string" ? tr(value) : String(value) }))} />
+      options={s.enum.map((value, index) => ({ value: String(value), label: s.enumLabels?.[index] ? tr(s.enumLabels[index]) : typeof value === "string" ? tr(value) : String(value) }))} />
   ) : (
-    <input aria-label={title} type={s.type === "number" ? "number" : "text"} min={s.min} max={s.max} value={draft} aria-invalid={!!error}
+    <input aria-label={title} type={s.type === "number" ? "number" : "text"} min={s.min} max={s.max} value={draft} aria-invalid={!!error} {...typing}
       onChange={event => {
-        setDraft(event.target.value);
-        if (s.type === "number" && !event.target.value.trim()) {
+        const text = event.target.value;
+        setDraft(text);
+        if (s.type === "number" && !text.trim()) {
+          pending.current = undefined;
           setError(tr("Enter a number."));
           return;
         }
-        set(s.type === "number" ? Number(event.target.value) : event.target.value);
+        later(() => set(s.type === "number" ? Number(text) : text));
       }} />
+  );
+  const choose = (next: string) => {
+    pending.current = undefined;
+    setDraft(next);
+    set(next);
+  };
+  const suggested = !!suggestions?.length && (
+    <ul className="setting-suggestions" aria-label={tr("Suggestions for {0}", { "0": title })}>
+      {suggestions.map(item => (
+        <li key={item.value}>
+          <button type="button" className="setting-suggestion" aria-pressed={value === item.value} title={item.value} onClick={() => choose(item.value)}>
+            <span>{item.label}</span>
+            {item.detail && <small>{item.detail}</small>}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
   const compact = !stacked && (s.type === "boolean" || s.type === "number" || !!s.enum);
   const variant = [stacked ? "stacked" : "", compact ? "compact" : "", s.type === "boolean" ? "switch-row" : "", modified ? "modified" : ""].filter(Boolean).join(" ");
   return (
     <Row className={variant} id={s.id} title={title} description={s.description ? tr(s.description) : undefined} notice={notice} actions={actions} error={error}>
       {control}
+      {suggested}
     </Row>
   );
 }

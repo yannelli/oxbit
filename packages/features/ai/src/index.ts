@@ -1,6 +1,8 @@
 import type { EditorView } from "@codemirror/view";
 import {
+  AGENT_MODELS_SERVICE,
   languageForKernel,
+  type AgentModels,
   type EditorDecorationContribution,
   type Extension,
   type FeatureOptions,
@@ -9,10 +11,12 @@ import { AI_SETTINGS, aiConfiguration } from "./configuration.js";
 import { ghostText, requestSuggestion } from "./ghost.js";
 import { editMarks, inlineEditExtension, runInlineEdit } from "./inline-edit.js";
 import { COMPLETION_SYSTEM, cleanCompletion, completionPrompt } from "./prompt.js";
-import { AI_SERVICE, createAiService } from "./service.js";
+import { AI_PROVIDER_NAMES, AI_SERVICE, RUNTIME_PROVIDERS, aiEndpoint, aiProvider, createAiService } from "./service.js";
+import { modelSuggestions } from "./suggestions.js";
 
 export { AI_SETTINGS, aiConfiguration } from "./configuration.js";
-export { AI_SERVICE, AI_UNAVAILABLE, createAiService, type AiRequest, type AiService } from "./service.js";
+export { AI_SERVICE, AI_UNAVAILABLE, aiProvider, createAiService, type AiProvider, type AiRequest, type AiService } from "./service.js";
+export { modelSuggestions } from "./suggestions.js";
 
 const COMPLETION_MAX_TOKENS = 256;
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -32,7 +36,7 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
       manifestVersion: 1,
       id: "oxbit.ai",
       name: "AI Editing",
-      description: "Ghost text completions and inline edits from the Oxbit agent's model provider.",
+      description: "Ghost text completions and inline edits from the Oxbit agent, OpenRouter, a custom OpenAI API, or a local model.",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
@@ -65,6 +69,31 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
         },
       };
       ctx.own(ctx.contributions.register({ id: "oxbit.ai.editor", kind: "editorDecoration", title: "AI Editing", data: decoration }));
+      ctx.own(ctx.contributions.register({ id: "oxbit.ai.models", kind: "settingSuggestions", title: "AI models", data: modelSuggestions(kernel, runtime) }));
+      ctx.own(ctx.commands.register({
+        id: "ai.setApiKey",
+        title: "Set AI Provider API Key",
+        category: "AI",
+        async run() {
+          const provider = aiProvider(kernel);
+          if (provider === "agent" || provider === "local") {
+            workbench.notify(provider === "agent" ? "The agent provider uses the key from Agent setup." : "The local provider sends no key.", "info", { ttl: 4000, source: "AI" });
+            return;
+          }
+          try {
+            const endpoint = aiEndpoint(kernel, provider);
+            const key = (await workbench.prompt(`API key for ${AI_PROVIDER_NAMES[provider]}`))?.trim();
+            if (!key) return;
+            const models = kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
+            if (models) await models.keys.save(endpoint, key);
+            else if (runtime?.connected) await runtime.request("ai.key", { operation: "save", provider: RUNTIME_PROVIDERS[provider], baseUrl: endpoint.baseUrl, key });
+            else throw new Error("Connect to a runtime to save the key");
+            workbench.notify(`Saved the API key for ${AI_PROVIDER_NAMES[provider]}.`, "info", { ttl: 4000, source: "AI" });
+          } catch (error) {
+            workbench.notify(`Could not save the API key: ${message(error)}`, "error", { source: "AI" });
+          }
+        },
+      }));
       ctx.own(ctx.commands.register({
         id: "ai.inlineEdit",
         title: "Edit Selection with AI",

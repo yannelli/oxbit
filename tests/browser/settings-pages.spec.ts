@@ -169,3 +169,47 @@ test("the Language Servers page lists each server with a switch and a Configure 
   await page.getByRole("button", { name: "Reset File Types" }).click();
   await expect(page.locator('[data-setting-id="languageServer.yaml.fileTypes"]')).not.toHaveClass(/modified/);
 });
+
+test("typing in a text setting keeps every character and saves once after a pause", async ({ page }) => {
+  await openSettings(page);
+  await page.getByRole("textbox", { name: "Search settings" }).fill("AI model");
+  const input = page.getByRole("textbox", { name: "AI model", exact: true });
+  await page.evaluate(() => {
+    const configuration = (window as any).__oxbit.kernel.configuration;
+    const set = configuration.set.bind(configuration);
+    (window as any).__aiModelWrites = [];
+    configuration.set = (id: string, value: unknown, ...rest: unknown[]) => {
+      if (id === "ai.model") (window as any).__aiModelWrites.push(value);
+      return set(id, value, ...rest);
+    };
+  });
+  await input.click();
+  await input.pressSequentially("gpt-6", { delay: 40 });
+  await page.evaluate(() => {
+    const z = (window as any).__oxbit;
+    z.kernel.configuration.import({ user: { "ai.model": "stale" } }, { persist: false });
+    z.workbench.touch();
+  });
+  await input.pressSequentially("-luna", { delay: 40 });
+  await expect(input).toHaveValue("gpt-6-luna");
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.configuration.get("ai.model"))).toBe("gpt-6-luna");
+  expect(await page.evaluate(() => (window as any).__aiModelWrites)).toEqual(["gpt-6-luna"]);
+});
+
+test("AI settings offer named providers and model suggestions with price and score details", async ({ page }) => {
+  await openSettings(page);
+  await page.getByRole("textbox", { name: "Search settings" }).fill("AI ");
+  await expect(page.getByRole("button", { name: "Set API Key…" })).toBeVisible();
+  const provider = page.getByRole("combobox", { name: "AI provider", exact: true });
+  await provider.click();
+  await expect(page.getByRole("option")).toHaveText(["Agent harness", "OpenRouter", "Custom OpenAI API", "Local model (Ollama or llama.cpp)"]);
+  await page.getByRole("option", { name: "OpenRouter" }).click();
+  const list = page.getByRole("list", { name: "Suggestions for AI model" });
+  await expect(list.getByRole("button").first()).toContainText("Mercury 2.5");
+  await expect(list.getByRole("button").first()).toContainText("$0.04 / $0.15");
+  await list.getByRole("button", { name: /GPT-6 Luna/ }).click();
+  await expect(page.getByRole("textbox", { name: "AI model", exact: true })).toHaveValue("openai/gpt-6-luna");
+  await expect.poll(() => page.evaluate(() => (window as any).__oxbit.kernel.configuration.get("ai.model"))).toBe("openai/gpt-6-luna");
+  await expect(list.getByRole("button", { name: /GPT-6 Luna/ })).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: `${shots}/desktop-ai-models.png` });
+});

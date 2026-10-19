@@ -358,6 +358,7 @@ export async function createRuntime(options: RuntimeOptions) {
     workspaceId: "default",
     workspaceKey: options.desktop?.workspaceKey ?? hash(root).slice(0, 24),
     workspaceName: path.basename(root),
+    ...(session.owner ? { workspaceRoot: root } : {}),
     capabilities: session.capabilities,
     owner: session.owner,
     trusted,
@@ -741,6 +742,10 @@ export async function createRuntime(options: RuntimeOptions) {
         return {};
       case "ai.complete":
         return ai.complete(params, signal);
+      case "ai.key":
+        return ai.key(params);
+      case "ai.models":
+        return ai.models(params, signal);
       case "push.register":
         return pushDevices.register(session.id, connection.id, params);
       case "push.state":

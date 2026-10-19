@@ -37,6 +37,13 @@ test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/
 }) => {
   await ready(page);
   expect(
+    await page.evaluate(() =>
+      (window as any).__oxbit.kernel.extensions
+        .list()
+        .find((e: any) => e.manifest.id === "orbitlabs.bundle-inspector").state,
+    ),
+  ).toBe("disabled");
+  expect(
     await page.evaluate(
       (id) =>
         (window as any).__oxbit.kernel.extensions

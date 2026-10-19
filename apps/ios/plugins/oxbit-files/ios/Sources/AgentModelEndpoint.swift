@@ -8,7 +8,8 @@ struct AgentModelFailure: LocalizedError {
 }
 
 /// A model API base. `openai`, `anthropic` and `chatgpt` have fixed bases; `openai-compatible` uses the
-/// user's https base URL. Requests stay on the base's origin and under its path prefix.
+/// user's https base URL, or http on a local network host such as Ollama on a Mac. Requests stay on the
+/// base's origin and under its path prefix.
 struct AgentModelEndpoint {
   static let anthropicVersion = "2023-06-01"
 
@@ -26,25 +27,46 @@ struct AgentModelEndpoint {
       base = URLComponents(string: "https://chatgpt.com/backend-api")!
     case "openai-compatible":
       let text = baseUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-      guard var components = URLComponents(string: text), components.scheme?.lowercased() == "https",
-        let host = components.percentEncodedHost, !host.isEmpty, components.user == nil,
+      guard var components = URLComponents(string: text), let scheme = components.scheme?.lowercased(),
+        let host = components.percentEncodedHost, !host.isEmpty,
+        scheme == "https" || (scheme == "http" && AgentModelEndpoint.isLocal(host)), components.user == nil,
         components.password == nil, components.query == nil, components.fragment == nil
       else {
-        throw AgentModelFailure("Enter an https:// base URL without credentials, a query, or a fragment.")
+        throw AgentModelFailure("Enter an https:// base URL, or http:// for a local network address, without credentials, a query, or a fragment.")
       }
       let prefix = components.percentEncodedPath
       guard !prefix.contains(".."), !prefix.lowercased().contains("%2e") else {
         throw AgentModelFailure("The base URL path cannot contain \"..\".")
       }
-      components.scheme = "https"
+      components.scheme = scheme
       components.percentEncodedHost = host.lowercased()
-      if components.port == 443 { components.port = nil }
+      if components.port == (scheme == "https" ? 443 : 80) { components.port = nil }
       while components.percentEncodedPath.hasSuffix("/") { components.percentEncodedPath.removeLast() }
       base = components
     default:
       throw AgentModelFailure("Unknown model API \(api).")
     }
   }
+
+  /// Loopback, private, carrier-grade NAT, link-local and `.local` hosts, which the app's ATS settings allow over http.
+  static func isLocal(_ host: String) -> Bool {
+    let name = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+    if name == "localhost" || name.hasSuffix(".local") { return true }
+    if name.contains(":") {
+      return name == "::1" || name.hasPrefix("fc") || name.hasPrefix("fd")
+        || ["fe8", "fe9", "fea", "feb"].contains { name.hasPrefix($0) }
+    }
+    let parts = name.split(separator: ".", omittingEmptySubsequences: false).map { UInt8($0) }
+    guard parts.count == 4, let a = parts[0], let b = parts[1], parts[2] != nil, parts[3] != nil else { return false }
+    switch (a, b) {
+    case (10, _), (127, _), (192, 168), (169, 254): return true
+    case (172, 16...31), (100, 64...127): return true
+    default: return false
+    }
+  }
+
+  /// An http base on a local network host, where a model server such as Ollama runs without a key.
+  var isLocalHttp: Bool { base.scheme == "http" }
 
   var origin: String {
     var origin = base
@@ -61,7 +83,7 @@ struct AgentModelEndpoint {
       !path.contains("#"), !path.lowercased().contains("%2e"), path.rangeOfCharacter(from: invalid) == nil,
       let url = URL(string: (base.string ?? "") + path),
       let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-      components.scheme == "https", components.percentEncodedHost?.lowercased() == base.percentEncodedHost,
+      components.scheme == base.scheme, components.percentEncodedHost?.lowercased() == base.percentEncodedHost,
       components.port == base.port,
       components.user == nil, components.password == nil, components.fragment == nil,
       components.percentEncodedPath.hasPrefix(base.percentEncodedPath + "/")

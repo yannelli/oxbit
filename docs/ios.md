@@ -121,7 +121,7 @@ Keys are Keychain generic passwords under the service `com.yannelli.oxbit.agent`
 | --- | --- | --- |
 | `openai` | `https://api.openai.com` | `Authorization: Bearer <key>` |
 | `anthropic` | `https://api.anthropic.com` | `x-api-key: <key>` and `anthropic-version: 2023-06-01` |
-| `openai-compatible` | The `https://` `baseUrl`, origin plus optional path prefix | `Authorization: Bearer <key>` |
+| `openai-compatible` | The `https://` `baseUrl`, origin plus optional path prefix, or `http://` on a loopback, private (10/8, 172.16/12, 192.168/16), carrier-grade NAT (100.64/10), link-local, IPv6 ULA or `.local` host | `Authorization: Bearer <key>`; an `http://` base without a saved key sends no header, for Ollama or llama.cpp on a Mac |
 | `chatgpt` | `https://chatgpt.com/backend-api` | `Authorization: Bearer <access token>`, `chatgpt-account-id`, `OpenAI-Beta: responses=experimental`, `originator: oxbit`, and `Accept: text/event-stream` on `POST` |
 
 `chatgpt` signs in with the Codex CLI device code flow and OAuth client (`ChatGPTAuth.swift`). The account `chatgpt https://chatgpt.com` holds JSON with the access, refresh, and ID tokens, the expiry, and the account ID from the token's `https://api.openai.com/auth` claim. `ChatGPTTokens.swift` refreshes the token when it expires within 5 minutes, one refresh at a time, and once more when a request answers 401; the 401 request is then sent again. A refresh answered 400 or 401 deletes the credential. A missing or rejected sign-in rejects with code `MISSING_KEY` and `Sign in with ChatGPT in Agent setup`, and `agent_models_key` refuses `save` for `chatgpt`.

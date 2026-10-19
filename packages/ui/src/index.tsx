@@ -35,7 +35,7 @@ export function IconImage({ asset, size = 16 }: { asset: IconAsset; size?: numbe
   const box = { width: size, height: size, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" } as const;
   if (asset.kind === "image") return <img className="themed-icon" aria-hidden="true" alt="" draggable={false} src={asset.url} width={size} height={size} style={{ ...box, objectFit: "contain" }} />;
   if (asset.kind === "font") return <span className="themed-icon" aria-hidden="true" style={{ ...box, fontFamily: asset.family, fontSize: size * (parseFloat(asset.size ?? "100%") / 100), fontWeight: asset.weight ?? "normal", fontStyle: asset.style ?? "normal", color: asset.color ?? "currentColor", lineHeight: 1 }}>{asset.character}</span>;
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={asset.path} /></svg>;
+  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d={asset.path} /></svg>;
 }
 export function Icon({ name, size = 16 }: { name: string; size?: number }) {
   const custom = useContext(contributedIcons), { service } = useContext(iconThemeContext);

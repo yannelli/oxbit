@@ -127,3 +127,19 @@ test("explorer root label stays on one row for long workspace names", async ({ p
   expect(box.scroll).toBeGreaterThan(box.client);
   expect(box.height).toBeLessThanOrEqual(box.row);
 });
+
+test("Copy Path copies the absolute path and Copy Relative Path the workspace path", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
+  await page.evaluate(() => (window as any).__oxbit.workbench.set({ sidebar: true, sidebarId: "explorer", workspaceRoot: "/Users/dev/orbit-dash/" }));
+  const row = page.locator('[role="treeitem"][title="src"]');
+  const copy = async (item: string) => {
+    await row.click({ button: "right" });
+    await page.getByRole("menuitem", { name: new RegExp(`^${item}`) }).click();
+    return page.evaluate(() => navigator.clipboard.readText());
+  };
+  expect(await copy("Copy Path")).toBe("/Users/dev/orbit-dash/src");
+  await expect(page.locator(".notification").last()).toContainText("Copied /Users/dev/orbit-dash/src");
+  expect(await copy("Copy Relative Path")).toBe("src");
+});
