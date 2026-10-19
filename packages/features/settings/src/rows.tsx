@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ExtensionRecord, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
 import { IconButton, IconThemeSelect, Select, translate as tr } from "@oxbit/ui";
@@ -66,7 +66,22 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   const { value, modified } = scopedSetting(kernel, s, scope, language);
   const [error, setError] = useState(""),
     [draft, setDraft] = useState(draftOf(value));
-  useEffect(() => setDraft(draftOf(value)), [JSON.stringify(value)]);
+  const editing = useRef(false), pending = useRef<(() => void) | undefined>(undefined), timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flush = () => {
+    clearTimeout(timer.current);
+    const commit = pending.current;
+    pending.current = undefined;
+    commit?.();
+  };
+  // Typed values save after a pause so each keystroke does not write the settings file.
+  const later = (commit: () => void) => {
+    pending.current = commit;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 400);
+  };
+  const typing = { onFocus: () => { editing.current = true; }, onBlur: () => { editing.current = false; flush(); } };
+  useEffect(() => flush, []);
+  useEffect(() => { if (!editing.current) setDraft(draftOf(value)); }, [JSON.stringify(value)]);
   const title = tr(s.title);
   const set = (value: unknown) => {
     try {
@@ -110,9 +125,10 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   ) : stringList ? (
     <StringChips label={title} value={(value as unknown[]).map(String)} invalid={!!error} onChange={set} />
   ) : s.type === "object" || s.type === "array" ? (
-    <textarea aria-label={title} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} onChange={event => {
-      setDraft(event.target.value);
-      try { set(JSON.parse(event.target.value)); } catch (error) { setError(String(error)); }
+    <textarea aria-label={title} aria-invalid={!!error} value={draft} rows={Math.min(8, Math.max(3, draft.split("\n").length))} spellCheck={false} {...typing} onChange={event => {
+      const text = event.target.value;
+      setDraft(text);
+      later(() => { try { set(JSON.parse(text)); } catch (error) { setError(String(error)); } });
     }} />
   ) : s.id === "workbench.colorTheme" ? (
     <Select label={title} value={String(value)} onChange={set} options={kernel.contributions.list("theme").map(item => ({ value: (item.data as { stableId?: string })?.stableId ?? item.id, label: `${item.title} · ${(item.data as { packName?: string })?.packName ?? item.owner ?? item.id}` }))} />
@@ -125,14 +141,16 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
     <Select label={title} value={String(value)} onChange={value => set(s.type === "number" ? Number(value) : value)}
       options={s.enum.map(value => ({ value: String(value), label: typeof value === "string" ? tr(value) : String(value) }))} />
   ) : (
-    <input aria-label={title} type={s.type === "number" ? "number" : "text"} min={s.min} max={s.max} value={draft} aria-invalid={!!error}
+    <input aria-label={title} type={s.type === "number" ? "number" : "text"} min={s.min} max={s.max} value={draft} aria-invalid={!!error} {...typing}
       onChange={event => {
-        setDraft(event.target.value);
-        if (s.type === "number" && !event.target.value.trim()) {
+        const text = event.target.value;
+        setDraft(text);
+        if (s.type === "number" && !text.trim()) {
+          pending.current = undefined;
           setError(tr("Enter a number."));
           return;
         }
-        set(s.type === "number" ? Number(event.target.value) : event.target.value);
+        later(() => set(s.type === "number" ? Number(text) : text));
       }} />
   );
   const compact = !stacked && (s.type === "boolean" || s.type === "number" || !!s.enum);
