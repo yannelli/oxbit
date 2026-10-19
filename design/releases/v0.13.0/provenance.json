@@ -1,0 +1,225 @@
+{
+  "kind": "webkit-render",
+  "nativeCapture": false,
+  "generatedAt": "2026-10-19T17:58:41.142Z",
+  "sourceHead": "68cbf30a675ca6675556a2fe52c5b9b54d5f588d",
+  "version": "0.13.0",
+  "source": "WebKit renders of the iOS frontend (apps/ios) served by Vite, with the mocked Tauri bridge from tests/ios/bridge.ts and tests/ios/ssh-bridge.ts",
+  "sample": "sample-workspace/Fieldnotes",
+  "sampleSha256": "ee9d6b0db12af73d9b99b1d5069d10b78e90f0f942516fcfed2689d43658fa5f",
+  "browserEngine": "webkit",
+  "browserVersion": "26.5",
+  "devices": [
+    {
+      "name": "iphone",
+      "screen": [
+        440,
+        956
+      ],
+      "viewport": [
+        440,
+        860
+      ],
+      "deviceScaleFactor": 3,
+      "insets": {
+        "top": 62,
+        "bottom": 34
+      }
+    },
+    {
+      "name": "iphone-6.3",
+      "screen": [
+        402,
+        874
+      ],
+      "viewport": [
+        402,
+        778
+      ],
+      "deviceScaleFactor": 3,
+      "insets": {
+        "top": 62,
+        "bottom": 34
+      }
+    },
+    {
+      "name": "ipad",
+      "screen": [
+        1032,
+        1376
+      ],
+      "viewport": [
+        1032,
+        1332
+      ],
+      "deviceScaleFactor": 2,
+      "insets": {
+        "top": 24,
+        "bottom": 20
+      }
+    }
+  ],
+  "statusBar": "drawn by scripts/ios/render-store-assets.mjs: 9:41, Wi-Fi, full battery",
+  "injectedStyle": "*::-webkit-scrollbar{display:none} hides scroll indicators after scripted scrolling",
+  "captures": [
+    {
+      "path": "captures/iphone/01-ai-completion.png",
+      "state": "01-ai-completion",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": [
+        {
+          "message": "Error: Calls to EditorView.update are not allowed while an update is in progress",
+          "count": 59
+        }
+      ]
+    },
+    {
+      "path": "captures/iphone/02-agent.png",
+      "state": "02-agent",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone/03-ai-models.png",
+      "state": "03-ai-models",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone/04-source-control.png",
+      "state": "04-source-control",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone/05-html-preview.png",
+      "state": "05-html-preview",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone/06-workspaces.png",
+      "state": "06-workspaces",
+      "device": "iphone",
+      "width": 1320,
+      "height": 2580,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone-6.3/01-ai-completion.png",
+      "state": "01-ai-completion",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": [
+        {
+          "message": "Error: Calls to EditorView.update are not allowed while an update is in progress",
+          "count": 59
+        }
+      ]
+    },
+    {
+      "path": "captures/iphone-6.3/02-agent.png",
+      "state": "02-agent",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone-6.3/03-ai-models.png",
+      "state": "03-ai-models",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone-6.3/04-source-control.png",
+      "state": "04-source-control",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone-6.3/05-html-preview.png",
+      "state": "05-html-preview",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/iphone-6.3/06-workspaces.png",
+      "state": "06-workspaces",
+      "device": "iphone-6.3",
+      "width": 1206,
+      "height": 2334,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/ipad/01-ai-completion.png",
+      "state": "01-ai-completion",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": [
+        {
+          "message": "Error: Calls to EditorView.update are not allowed while an update is in progress",
+          "count": 59
+        }
+      ]
+    },
+    {
+      "path": "captures/ipad/02-agent.png",
+      "state": "02-agent",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/ipad/03-ai-models.png",
+      "state": "03-ai-models",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/ipad/04-source-control.png",
+      "state": "04-source-control",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/ipad/05-html-preview.png",
+      "state": "05-html-preview",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": []
+    },
+    {
+      "path": "captures/ipad/06-workspaces.png",
+      "state": "06-workspaces",
+      "device": "ipad",
+      "width": 2064,
+      "height": 2664,
+      "consoleErrors": []
+    }
+  ]
+}

@@ -56,12 +56,12 @@ export async function loadCaptures(directory, sets = screenshotSets, nativeCaptu
   return captures;
 }
 
-const escape = text => String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
-const dataUrl = (bytes, type = "image/png") => `data:${type};base64,${bytes.toString("base64")}`;
-const brand = (await readFile(join(root, "apps/web/public/brand/oxbit-mark.svg"), "utf8"))
+export const escape = text => String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
+export const dataUrl = (bytes, type = "image/png") => `data:${type};base64,${bytes.toString("base64")}`;
+export const brand = (await readFile(join(root, "apps/web/public/brand/oxbit-mark.svg"), "utf8"))
   .replace('width="64"', "").replace('height="64"', "").replaceAll("#8bd5ca", "currentColor");
 
-function page(body, styles, fonts) {
+export function page(body, styles, fonts) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Oxbit release artwork</title><style>
 @font-face{font-family:Instrument;src:url(${fonts.regular});font-weight:400}@font-face{font-family:Instrument;src:url(${fonts.semibold});font-weight:600}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:Instrument,system-ui,sans-serif;background:#14161a;color:#f2f3ef;-webkit-font-smoothing:antialiased}

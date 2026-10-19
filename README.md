@@ -93,6 +93,8 @@ See [iOS setup and runtime connections](docs/ios.md).
 The [documentation index](docs/INDEX.md) links agent hosting and tools, native source control, SSH and SFTP, language-server, runtime discovery and keep-alive, runtime parity, and settings UI guides with official references.
 The [AI inline completion models](docs/ai-inline-models.md) page lists the suggested models for each AI provider, with prices, benchmark scores, and their sources, checked 2026-10-19.
 The [model API reference](docs/agent-model-apis.md) covers the streaming requests and events the built-in Oxbit agent uses for OpenAI, Anthropic, and OpenAI-compatible APIs, with official links.
+The [App Store submission requirements](docs/app-store-submission.md) page lists Apple's screenshot, metadata, privacy, and compliance rules for iOS and iPadOS, checked 2026-10-19.
+
 The [iOS release artwork guide](docs/ios-release-assets.md) covers icon exports,
 App Store screenshots, and promo exports with Apple's design and size references.
 
