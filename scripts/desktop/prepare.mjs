@@ -139,6 +139,11 @@ try {
     ],
     { cwd: stage, env: { PATH: "/usr/bin:/bin", HOME: os.homedir() } },
   );
+  // The desktop app runs `oxbit remote` through cli.js with the bundled Node.
+  run(path.join(stage, "bin/node"), [path.join(stage, "cli.js"), "--version"], {
+    cwd: "/",
+    env: { PATH: "/usr/bin:/bin", HOME: os.homedir() },
+  });
   run(process.execPath, ["scripts/remote/prepare.mjs", "--from-stage", stage]);
   console.log(`Desktop runtime staged at ${stage}`);
 } finally {

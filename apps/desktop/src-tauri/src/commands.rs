@@ -284,6 +284,22 @@ pub fn desktop_file_opened(
     Ok(())
 }
 
+/// The staged runtime: bundled Node, `desktop.js`, `cli.js`, and their dependencies.
+pub fn runtime_resources(app: &AppHandle) -> Result<PathBuf, String> {
+    let resource = app
+        .path()
+        .resource_dir()
+        .map_err(|_| "Application resources are unavailable")?
+        .join("runtime");
+    Ok(
+        if cfg!(debug_assertions) && !resource.join("bin/node").is_file() {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/runtime")
+        } else {
+            resource
+        },
+    )
+}
+
 #[tauri::command]
 pub async fn desktop_connection(
     app: AppHandle,
@@ -303,8 +319,7 @@ pub async fn desktop_connection(
             }
         }
         let token = if let Some(record) = runtimes.remove(&key) { record.process.stop(); record.token } else { format!("{}{}", uuid::Uuid::new_v4().simple(), uuid::Uuid::new_v4().simple()) };
-        let resource = app.path().resource_dir().map_err(|_| "Application resources are unavailable")?.join("runtime");
-        let resource = if cfg!(debug_assertions) && !resource.join("bin/node").is_file() { PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/runtime") } else { resource };
+        let resource = runtime_resources(&app)?;
         let data = desktop.directory.join("projects").join(&key).join("runtime");
         let git = {
             let model = desktop.model.lock().unwrap();

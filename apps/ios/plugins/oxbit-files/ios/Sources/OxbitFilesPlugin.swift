@@ -35,6 +35,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let notifications = Notifications()
   private let remoteNotifications = RemoteNotifications()
   private let agentModels = AgentModels()
+  private let deviceSecrets = DeviceSecrets()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -145,6 +146,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func agentModelsChatgpt(_ invoke: Invoke) {
     agentModels.chatgpt(invoke)
+  }
+
+  @objc public func deviceSecret(_ invoke: Invoke) {
+    deviceSecrets.handle(invoke)
   }
 
   @objc public func pickFolder(_ invoke: Invoke) {

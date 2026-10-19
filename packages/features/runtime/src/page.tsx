@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon, translate as tr } from "@oxbit/ui";
 import type { RuntimeConnector, RuntimeStatus } from "@oxbit/workbench";
-import { Card, DiscoveredRuntimes, KeepAliveSettings, SavedRuntimes, SshServers, type RuntimeSettingsAccess } from "./sections.js";
+import { Card, DiscoveredRuntimes, KeepAliveSettings, PairLinkCard, PairedComputers, SavedRuntimes, SshServers, type RuntimeSettingsAccess } from "./sections.js";
+import { RemoteAccessCard } from "./remote-access.js";
 import { formatUptime } from "./store.js";
 
 const stateLabels: Record<RuntimeStatus["state"], string> = {
@@ -109,6 +110,9 @@ export function RuntimePage({ connector, settings, onClose }: {
         {connected && connector.trust && <TrustCard status={status} busy={busy} perform={perform} trust={value => connector.trust!(value)} />}
         {settings && <KeepAliveSettings settings={settings} />}
         <SavedRuntimes connector={connector} current={connected ? status.targetKey : undefined} busy={busy} perform={perform} />
+        {connector.computers && <PairedComputers connector={connector} busy={busy} perform={perform} />}
+        {connector.remoteAccess && <RemoteAccessCard remote={connector.remoteAccess} busy={busy} perform={perform} />}
+        {connector.pairLink && <PairLinkCard pairLink={connector.pairLink.bind(connector)} busy={busy} perform={perform} />}
         {connector.discover && <DiscoveredRuntimes connector={connector} busy={busy} perform={perform} onPair={pairWith} />}
         {connector.sshHosts && connector.startSsh && <SshServers connector={connector} busy={busy} perform={perform} />}
         {connector.pair && <PairCard pair={connector.pair.bind(connector)} startCommand={connector.startCommand} url={pairUrl} setUrl={setPairUrl} codeRef={pairCode} busy={busy} perform={perform} />}

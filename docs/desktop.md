@@ -1,6 +1,6 @@
 # Oxbit desktop
 
-Created: 2026-09-07. Last updated: 2026-10-09.
+Created: 2026-09-07. Last updated: 2026-10-19.
 
 Oxbit uses Tauri 2 and the shared React workbench. The desktop targets are **Apple Silicon macOS 26+** and **Ubuntu 24.04+ x64 and arm64**. Ubuntu 24.04 is the build baseline and minimum supported Linux distribution. Windows, Intel Macs, and app stores are outside this implementation.
 
@@ -56,6 +56,10 @@ the AppImage helper can miss system-library notices across Ubuntu's merged
 `/lib` and `/usr/lib` paths. This list does not claim every build dependency ships.
 
 The staged-runtime gate copies the result to a path with spaces and Unicode outside the checkout, makes application resources read-only, uses no Node or bun on PATH, and verifies readiness, filesystem saves, bundled search, real PTY output/resize, TypeScript completion, trust enforcement, bad authentication/origin rejection, stable recovery, and cleanup on parent-channel loss.
+
+`vite.desktop.config.ts` builds two entries into the staged runtime: `desktop.js`, which the app launches per project, and `cli.js`, the `oxbit` CLI. They share a `runtime-<hash>.js` chunk. `desktop:prepare` runs `bin/node cli.js --version` with `PATH=/usr/bin:/bin` to check that the CLI starts without a system Node.
+
+The Runtime page's **Remote access** card runs `bin/node cli.js remote <action> --json` through the `desktop_remote_access` command (`apps/desktop/src-tauri/src/remote_access.rs`): the switch runs `enable --no-pair` and `disable`, **Pair a device** streams `pair` output to the window, and each device row runs `revoke`. The login item that `enable` installs points at the bundled Node and `cli.js` inside the app, so moving or deleting the app stops the host at the next login until remote access is turned on again. See [remote access](remote-access.md).
 
 ## Projects and recovery
 

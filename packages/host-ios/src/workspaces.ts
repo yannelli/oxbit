@@ -3,11 +3,12 @@ import { SESSION_SCOPE } from "./persistence.js";
 
 export interface RecentWorkspace {
   id: string;
-  kind: "documents" | "bookmark" | "runtime" | "ssh" | "sshRuntime";
+  kind: "documents" | "bookmark" | "runtime" | "ssh" | "sshRuntime" | "remote";
   name: string;
   url?: string;
   bookmark?: string;
   directory?: string;
+  /** The SSH host id, or for `remote` the paired computer's host id. */
   hostId?: string;
   remotePath?: string;
   /** The runtime's identity `id`; one recent per runtime survives a port change. */

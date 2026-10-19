@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open a pairing link | Oxbit</title>
+  <meta name="description" content="Open an Oxbit remote access pairing link on iPhone or iPad to connect to a computer." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pages.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-noise"></div>
+  </div>
+  <header class="nav" data-nav>
+    <div class="container nav-inner">
+      <a class="brand" href="/" aria-label="Oxbit home">
+        <img src="/brand/oxbit-mark.svg" alt="" width="28" height="28" />
+        <img class="brand-word" src="/brand/oxbit-wordmark.svg" alt="Oxbit" height="20" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/features/">Features</a>
+        <a href="/platforms/">Platforms</a>
+        <a href="/docs/">Docs</a>
+        <a href="/changelog/">Changelog</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm nav-github" href="https://github.com/yannelli/oxbit">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/get-started/">Get started</a>
+      </div>
+      <details class="mobile-menu">
+        <summary class="btn btn-ghost btn-sm">Menu</summary>
+        <nav aria-label="Mobile">
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/docs/">Docs</a>
+          <a href="/changelog/">Changelog</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/about/">About</a>
+          <a href="/support/">Support</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main class="notfound" id="main">
+    <div class="container">
+      <h1>Connect to your computer</h1>
+      <div data-ready hidden>
+        <p>This link pairs Oxbit on this iPhone or iPad with <strong data-host>your computer</strong>. It works once and expires two minutes after it was created.</p>
+        <p><a class="btn btn-primary" data-open href="oxbit://c">Open in Oxbit</a> <button class="btn btn-ghost" type="button" data-copy>Copy link</button></p>
+        <p>Oxbit not installed? <a href="https://testflight.apple.com/join/P2WqdUYS">Join the TestFlight beta</a>, then open this link again.</p>
+      </div>
+      <div data-missing hidden>
+        <p>This pairing link is incomplete. On your computer, run <code>oxbit remote pair</code> and scan the new code.</p>
+      </div>
+      <noscript><p>Open this link on an iPhone or iPad with Oxbit installed, or paste it into Oxbit's Runtime page.</p></noscript>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="/" aria-label="Oxbit home"><img src="/brand/oxbit-logo.svg" alt="Oxbit" height="32" /></a>
+        <p>An open source code editor with coding agents built in.</p>
+        <p>By <a href="https://github.com/yannelli">Ryan Yannelli</a>.</p>
+      </div>
+      <div class="footer-cols">
+        <div><h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/platforms/">Platforms</a>
+          <a href="/get-started/">Get started</a>
+          <a href="/changelog/">Changelog</a>
+        </div>
+        <div><h4>Resources</h4>
+          <a href="/docs/">Documentation</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/yannelli/oxbit">GitHub</a>
+          <a href="https://github.com/yannelli/oxbit/releases">All releases</a>
+        </div>
+        <div><h4>Project</h4>
+          <a href="/about/">About Oxbit</a>
+          <a href="/security/">Security</a>
+          <a href="/privacy/">Privacy</a>
+          <a href="https://github.com/yannelli/oxbit/blob/main/LICENSE">MIT license</a>
+          <a href="https://www.npmjs.com/org/oxbit">npm packages</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-legal">
+      <span>© 2026 <a href="https://ryanyannelli.com">Ryan Yannelli</a>. MIT licensed.</span>
+      <a href="https://github.com/yannelli/oxbit/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
+    </div>
+  </footer>
+  <script src="/main.js" defer></script>
+  <script src="/c/pair.js" defer></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
   <key>NSLocalNetworkUsageDescription</key><string>Find Oxbit runtimes on your local network and connect to the one on your computer to open projects and use terminals, Git, and language tools.</string>
   <key>NSMicrophoneUsageDescription</key><string>Dictate messages to coding agents.</string>
   <key>NSSpeechRecognitionUsageDescription</key><string>Turn your speech into text for messages to coding agents.</string>
-  <key>NSBonjourServices</key><array><string>_oxbit._tcp</string></array>
+  <key>NSBonjourServices</key><array><string>_oxbit._tcp</string><string>_oxbit-remote._tcp</string></array>
   <key>NSAppTransportSecurity</key><dict>
     <key>NSAllowsLocalNetworking</key><true/>
     <key>NSExceptionDomains</key><dict>
@@ -33,6 +33,10 @@
   <key>UISupportsDocumentBrowser</key><false/>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
   <key>NSSupportsLiveActivities</key><true/>
+  <key>CFBundleURLTypes</key><array><dict>
+    <key>CFBundleURLName</key><string>com.yannelli.oxbit</string>
+    <key>CFBundleURLSchemes</key><array><string>oxbit</string></array>
+  </dict></array>
   <key>CFBundleDocumentTypes</key><array><dict>
     <key>CFBundleTypeName</key><string>Project folder or source file</string>
     <key>CFBundleTypeRole</key><string>Editor</string>

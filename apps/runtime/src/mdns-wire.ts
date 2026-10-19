@@ -37,6 +37,8 @@ export interface AdvertisedRecords {
   port: number;
   v4: string[];
   v6: string[];
+  /** DNS-SD service type such as `_oxbit-remote._tcp`; defaults to the runtime service. */
+  service?: string;
 }
 
 export function truncateUtf8(value: string, maxBytes: number) {
@@ -54,12 +56,12 @@ export function instanceLabel(hostname: string, id: string) {
   return truncateUtf8(host, 63 - Buffer.byteLength(suffix)) + suffix;
 }
 
-export const serviceName = (): Name => [...RUNTIME_SERVICE_TYPE.split("."), "local"];
+export const serviceName = (type = RUNTIME_SERVICE_TYPE): Name => [...type.split("."), "local"];
 export const hostName = (id: string): Name => [`oxbit-${id.slice(0, 8)}`, "local"];
 export const nameKey = (name: Name) => name.map((l) => l.toLowerCase()).join("\0");
 
 export function records(ad: AdvertisedRecords, ttl?: number): ResourceRecord[] {
-  const service = serviceName();
+  const service = serviceName(ad.service);
   const instance = [instanceLabel(ad.name, ad.id), ...service];
   const host = hostName(ad.id);
   const rr = (name: Name, type: number, base: number, rest: Partial<ResourceRecord>) => ({

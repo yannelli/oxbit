@@ -1,6 +1,6 @@
 ## Default Permission
 
-Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity and report its push tokens, post agent notifications and report taps on them, register for remote notifications, and send model API requests for the in-app agent with an API key or ChatGPT sign-in kept in Keychain.
+Pick Files app folders and files, reopen folders from bookmarks, locate the Documents directory, list SSH key metadata, find Oxbit runtimes on the local network, dictate text with speech recognition, show agent turns as a Live Activity and report its push tokens, post agent notifications and report taps on them, register for remote notifications, send model API requests for the in-app agent with an API key or ChatGPT sign-in kept in Keychain, and keep the remote access device key in Keychain.
 
 #### This default permission set includes the following:
 
@@ -30,6 +30,7 @@ Pick Files app folders and files, reopen folders from bookmarks, locate the Docu
 - `allow-agent-models-cancel`
 - `allow-agent-models-key`
 - `allow-agent-models-chatgpt`
+- `allow-device-secret`
 
 ## Permission Table
 
@@ -192,6 +193,32 @@ Enables the commit_signing command without any pre-configured scope.
 <td>
 
 Denies the commit_signing command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:allow-device-secret`
+
+</td>
+<td>
+
+Enables the device_secret command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`oxbit-files:deny-device-secret`
+
+</td>
+<td>
+
+Denies the device_secret command without any pre-configured scope.
 
 </td>
 </tr>

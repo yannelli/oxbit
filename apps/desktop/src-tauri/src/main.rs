@@ -10,6 +10,7 @@ mod model;
 mod notifications;
 #[cfg(all(feature = "native-test", target_os = "macos"))]
 mod panel_test_delegate;
+mod remote_access;
 mod supervisor;
 mod updates;
 
@@ -531,6 +532,7 @@ fn main() {
             commands::desktop_clipboard,
             commands::desktop_reveal,
             commands::desktop_archive,
+            remote_access::desktop_remote_access,
             closing::desktop_request_close,
             closing::desktop_close_vote,
             closing::desktop_close_finished,

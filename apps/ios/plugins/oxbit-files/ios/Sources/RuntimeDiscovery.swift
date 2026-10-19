@@ -8,24 +8,19 @@ private struct RuntimeDiscoveryArgs: Decodable {
 
 private struct RuntimeDiscoveryList: Encodable {
   let runtimes: [DiscoveredRuntime]
+  let hosts: [DiscoveredRemoteHost]
   let localNetworkDenied: Bool
 }
 
-/// Browses `_oxbit._tcp` in `local.` and resolves each service to an address the WebView can open.
+/// Browses `_oxbit._tcp` runtimes and `_oxbit-remote._tcp` remote access hosts in `local.`.
 /// The WebView polls `list`; browsing ends on `stop` or after two minutes without `start` or `list`.
 final class RuntimeDiscovery {
   private static let idle: TimeInterval = 120
-  private static let policyDenied = DNSServiceErrorType(kDNSServiceErr_PolicyDenied)
-  private static let resolveTimeout: TimeInterval = 5
   private let queue = DispatchQueue(label: "com.yannelli.oxbit.runtime-discovery")
-  private var browser: NWBrowser?
+  private lazy var runtimes = BonjourServices(type: "_oxbit._tcp", queue: queue)
+  private lazy var hosts = BonjourServices(type: "_oxbit-remote._tcp", queue: queue)
   private var wanted = false
-  /// The browser waits with PolicyDenied while Local Network access is off, and turns ready when it is allowed.
-  private var localNetworkDenied = false
   private var idleTimer: DispatchWorkItem?
-  private var services: [NWEndpoint: [String: String]] = [:]
-  private var resolved: [NWEndpoint: DiscoveredRuntime] = [:]
-  private var probes: [NWEndpoint: NWConnection] = [:]
 
   func handle(_ invoke: Invoke) {
     let operation: String
@@ -49,9 +44,19 @@ final class RuntimeDiscovery {
         invoke.reject("Unknown runtime discovery operation.", code: "RUNTIME_DISCOVERY")
         return
       }
-      invoke.resolve(RuntimeDiscoveryList(
-        runtimes: DiscoveredRuntime.unique(Array(self.resolved.values)), localNetworkDenied: self.localNetworkDenied))
+      invoke.resolve(self.list())
     }
+  }
+
+  private func list() -> RuntimeDiscoveryList {
+    RuntimeDiscoveryList(
+      runtimes: DiscoveredRuntime.unique(runtimes.resolved.compactMap {
+        DiscoveredRuntime(txt: $0.txt, service: $0.service, host: $0.host, port: $0.port)
+      }),
+      hosts: DiscoveredRemoteHost.unique(hosts.resolved.compactMap {
+        DiscoveredRemoteHost(txt: $0.txt, service: $0.service, host: $0.host, port: $0.port)
+      }),
+      localNetworkDenied: runtimes.localNetworkDenied || hosts.localNetworkDenied)
   }
 
   private func browse() {
@@ -59,8 +64,48 @@ final class RuntimeDiscovery {
     let timer = DispatchWorkItem { [weak self] in self?.cancel() }
     idleTimer = timer
     queue.asyncAfter(deadline: .now() + Self.idle, execute: timer)
+    runtimes.start()
+    hosts.start()
+  }
+
+  private func cancel() {
+    idleTimer?.cancel()
+    idleTimer = nil
+    runtimes.cancel()
+    hosts.cancel()
+  }
+}
+
+private struct ResolvedService {
+  let txt: [String: String]
+  let service: String
+  let host: String
+  let port: UInt16
+}
+
+/// One Bonjour service type and the address each of its services resolved to. Call it on `queue`.
+private final class BonjourServices {
+  private static let policyDenied = DNSServiceErrorType(kDNSServiceErr_PolicyDenied)
+  private static let resolveTimeout: TimeInterval = 5
+  private let type: String
+  private let queue: DispatchQueue
+  private var browser: NWBrowser?
+  /// The browser waits with PolicyDenied while Local Network access is off, and turns ready when it is allowed.
+  private(set) var localNetworkDenied = false
+  private var services: [NWEndpoint: [String: String]] = [:]
+  private var addresses: [NWEndpoint: ResolvedService] = [:]
+  private var probes: [NWEndpoint: NWConnection] = [:]
+
+  var resolved: [ResolvedService] { Array(addresses.values) }
+
+  init(type: String, queue: DispatchQueue) {
+    self.type = type
+    self.queue = queue
+  }
+
+  func start() {
     guard browser == nil else { return }
-    let browser = NWBrowser(for: .bonjourWithTXTRecord(type: "_oxbit._tcp", domain: nil), using: NWParameters())
+    let browser = NWBrowser(for: .bonjourWithTXTRecord(type: type, domain: nil), using: NWParameters())
     browser.stateUpdateHandler = { [weak self, weak browser] state in
       guard let self, let browser, self.browser === browser else { return }
       switch state {
@@ -79,16 +124,14 @@ final class RuntimeDiscovery {
     browser.start(queue: queue)
   }
 
-  private func cancel() {
-    idleTimer?.cancel()
-    idleTimer = nil
+  func cancel() {
     browser?.cancel()
     browser = nil
     localNetworkDenied = false
     probes.values.forEach { $0.cancel() }
     probes.removeAll()
     services.removeAll()
-    resolved.removeAll()
+    addresses.removeAll()
   }
 
   private func update(_ results: Set<NWBrowser.Result>) {
@@ -99,10 +142,10 @@ final class RuntimeDiscovery {
     }
     for endpoint in services.keys where current[endpoint] == nil {
       probes.removeValue(forKey: endpoint)?.cancel()
-      resolved.removeValue(forKey: endpoint)
+      addresses.removeValue(forKey: endpoint)
     }
     for (endpoint, txt) in current where services[endpoint] != txt {
-      resolved.removeValue(forKey: endpoint)
+      addresses.removeValue(forKey: endpoint)
       probes.removeValue(forKey: endpoint)?.cancel()
       if txt["id"] != nil { resolve(endpoint, txt: txt, ipv4: true) }
     }
@@ -122,7 +165,7 @@ final class RuntimeDiscovery {
       connection.cancel()
       self.probes.removeValue(forKey: endpoint)
       if let (host, port) = address {
-        self.resolved[endpoint] = DiscoveredRuntime(txt: txt, service: Self.service(endpoint), host: host, port: port)
+        self.addresses[endpoint] = ResolvedService(txt: txt, service: Self.service(endpoint), host: host, port: port)
       } else if ipv4 {
         self.resolve(endpoint, txt: txt, ipv4: false)
       }

@@ -1,6 +1,7 @@
 import { createWorkbenchSession, mirrorUserChanges, RuntimeClient, RuntimeFileSystem, type Session } from "@oxbit/app-workbench";
 import { connectRuntime, runtimeScope } from "./runtime.js";
 import { runtimeConnector } from "./runtime-connector.js";
+import { remoteHosts } from "./remote-hosts.js";
 import { normalizePath } from "@oxbit/host-browser";
 import {
   IosFileSystem,
@@ -37,11 +38,12 @@ export type OpenRequest =
   | { kind: "runtime"; url: string; code?: string; runtimeId?: string }
   | { kind: "ssh"; hostId: string; path: string; label: string }
   | { kind: "sshRuntime"; hostId: string; path: string; label: string; onEvent?: (event: RemoteRuntimeEvent) => void }
+  | { kind: "remote"; hostId: string; path: string }
   | { kind: "recent"; recent: RecentWorkspace };
 
 const iconPackStore = new IosIconPackStore();
 
-async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ssh" | "sshRuntime" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
+async function resolvePath(request: Exclude<OpenRequest, { kind: "runtime" | "ssh" | "sshRuntime" | "remote" }>): Promise<{ path: string; recent: Omit<RecentWorkspace, "lastOpened"> }> {
   if (request.kind === "documents" || (request.kind === "recent" && request.recent.kind === "documents")) {
     const directory = request.kind === "documents" ? request.directory : request.recent.directory;
     const relative = directory ? normalizePath(directory) : undefined;
@@ -69,26 +71,13 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
     if (!url) throw new Error("This runtime address is missing. Connect to it again.");
     const runtime = await connectRuntime(url, request.kind === "runtime" ? request.code : undefined,
       request.kind === "runtime" ? request.runtimeId : request.recent.runtimeId);
-    let session: Session | undefined;
-    try {
-      const scope = await runtimeScope(runtime);
-      const filesystem = new RuntimeFileSystem(runtime, scope);
-      const persistence = new IosPersistence(scope);
-      session = await createWorkbenchSession({ filesystem, runtime, persistence, protectUnload: false, iconPackStore, runtimeConnector });
-      mirrorUserSettings(session, persistence);
-      const recent: RecentWorkspace = {
-        id: "runtime:" + scope.slice(4), kind: "runtime", url: runtime.url, runtimeId: runtime.identity?.id,
-        name: runtime.session?.workspaceName ?? runtime.identity?.name ?? new URL(runtime.url).hostname, lastOpened: Date.now(),
-      };
-      await rememberWorkspace(recent);
-      await native.storageSet(SESSION_SCOPE, LAST_KEY, recent.id);
-      return { recent, session };
-    } catch (error) {
-      if (session) await session.dispose();
-      else runtime.dispose();
-      throw error;
-    }
+    return openRuntimeSession(runtime, scope => ({
+      id: "runtime:" + scope.slice(4), kind: "runtime", url: runtime.url, runtimeId: runtime.identity?.id,
+      name: runtime.session?.workspaceName ?? runtime.identity?.name ?? new URL(runtime.url).hostname, lastOpened: Date.now(),
+    }));
   }
+  if (request.kind === "remote" || (request.kind === "recent" && request.recent.kind === "remote"))
+    return openRemote(request.kind === "remote" ? request : { hostId: request.recent.hostId, path: request.recent.remotePath });
   if (request.kind === "ssh") return openSsh(request);
   if (request.kind === "sshRuntime") return openSshRuntime(request);
   if (request.kind === "recent" && (request.recent.kind === "ssh" || request.recent.kind === "sshRuntime"))
@@ -117,6 +106,39 @@ export async function openWorkspace(request: OpenRequest): Promise<OpenWorkspace
     if (recent.kind === "bookmark") await native.closeFolder(recent.id).catch(() => {});
     throw error;
   }
+}
+
+/** A workbench session over a connected runtime client; `recentOf` names the recent from the session scope. */
+async function openRuntimeSession(runtime: RuntimeClient, recentOf: (scope: string) => RecentWorkspace): Promise<OpenWorkspace> {
+  let session: Session | undefined;
+  try {
+    const scope = await runtimeScope(runtime);
+    const persistence = new IosPersistence(scope);
+    session = await createWorkbenchSession({
+      filesystem: new RuntimeFileSystem(runtime, scope), runtime, persistence, protectUnload: false, iconPackStore, runtimeConnector,
+    });
+    mirrorUserSettings(session, persistence);
+    const recent = recentOf(scope);
+    await rememberWorkspace(recent);
+    await native.storageSet(SESSION_SCOPE, LAST_KEY, recent.id);
+    return { recent, session };
+  } catch (error) {
+    if (session) await session.dispose();
+    else runtime.dispose();
+    throw error;
+  }
+}
+
+/** A folder on a paired computer; the computer starts or reuses the folder's runtime. */
+async function openRemote({ hostId, path }: { hostId?: string; path?: string }): Promise<OpenWorkspace> {
+  await remoteHosts.load();
+  const host = hostId ? remoteHosts.get(hostId) : undefined;
+  if (!host || !path) throw new Error("This computer is no longer paired. Run oxbit remote pair on your computer for a new link.");
+  const runtime = await host.connectRuntime(path);
+  return openRuntimeSession(runtime, scope => ({
+    id: "remote:" + scope.slice(4), kind: "remote", hostId, remotePath: path, lastOpened: Date.now(),
+    name: `${host.record.name}: ${runtime.session?.workspaceName ?? (path.split("/").at(-1) || path)}`,
+  }));
 }
 
 /** The host must already be connected; the SSH connect dialog handles passwords and host keys. */

@@ -92,6 +92,12 @@
   display: block; padding: 8px 10px; border-radius: 6px; background: var(--bg-editor);
   font-family: var(--font-mono); font-size: var(--font-mono-font-size); user-select: text; -webkit-user-select: text; overflow-wrap: anywhere;
 }
+.runtime-remote-pairing { display: flex; flex-direction: column; gap: 8px; }
+.runtime-remote-pairing p { margin: 0; }
+.runtime-remote-result { display: flex; align-items: center; gap: 6px; color: var(--ok); }
+.runtime-qr { width: 168px; height: 168px; }
+.runtime-qr-light { fill: var(--qr-light); }
+.runtime-qr-dark { fill: var(--qr-dark); }
 .runtime-status-item[data-state=connected] { color: var(--fg); }
 .runtime-status-item[data-state=failed] > svg { color: var(--err); }
 .runtime-status-item[aria-busy=true] > svg, .connection-button[aria-busy=true] > svg { animation: runtime-spin 1.2s linear infinite; }

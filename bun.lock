@@ -31,7 +31,7 @@
     },
     "apps/agent": {
       "name": "@oxbit/agent",
-      "version": "0.11.7",
+      "version": "0.12.1",
       "bin": {
         "oxbit-agent": "dist/index.js",
       },
@@ -47,7 +47,7 @@
     },
     "apps/desktop": {
       "name": "@oxbit/desktop",
-      "version": "0.11.7",
+      "version": "0.12.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/host-browser": "workspace:*",
@@ -69,7 +69,7 @@
     },
     "apps/ios": {
       "name": "@oxbit/ios",
-      "version": "0.11.7",
+      "version": "0.12.1",
       "dependencies": {
         "@oxbit/app-workbench": "workspace:*",
         "@oxbit/feature-runtime": "workspace:*",
@@ -95,9 +95,13 @@
         "@oxbit/sdk": "workspace:*",
       },
     },
+    "apps/relay": {
+      "name": "@oxbit/relay",
+      "version": "0.1.0",
+    },
     "apps/runtime": {
       "name": "@oxbit/runtime",
-      "version": "0.11.7",
+      "version": "0.12.1",
       "dependencies": {
         "@oxbit/agent": "workspace:*",
         "@oxbit/agent-core": "workspace:*",
@@ -932,6 +936,8 @@
     "@oxbit/protocol": ["@oxbit/protocol@workspace:packages/protocol"],
 
     "@oxbit/push-relay": ["@oxbit/push-relay@workspace:apps/push-relay"],
+
+    "@oxbit/relay": ["@oxbit/relay@workspace:apps/relay"],
 
     "@oxbit/runtime": ["@oxbit/runtime@workspace:apps/runtime"],
 

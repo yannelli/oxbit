@@ -92,3 +92,44 @@ struct DiscoveredRuntime: Encodable, Equatable {
     return byId.values.sorted { ($0.name, $0.runtimeId) < ($1.name, $1.runtimeId) }
   }
 }
+
+/// A remote access host found by Bonjour, in the shape of host-ios `DiscoveredRemoteHost`.
+struct DiscoveredRemoteHost: Encodable, Equatable {
+  let hostId: String
+  let name: String
+  let version: String?
+  let host: String
+  let port: Int
+
+  /// The first 22 base64url characters of a SHA-256 digest.
+  static func validId(_ id: String) -> Bool {
+    id.count == 22
+      && id.unicodeScalars.allSatisfy {
+        $0.isASCII && (CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_")
+      }
+  }
+
+  /// `txt` holds the `_oxbit-remote._tcp` TXT keys; the resolved port wins over the TXT `port`.
+  init?(txt: [String: String], service: String, host: String, port: UInt16?) {
+    guard let id = txt["id"], DiscoveredRemoteHost.validId(id) else { return nil }
+    let host = DiscoveredRuntime.host(host)
+    guard !host.isEmpty, let port = port.map(Int.init) ?? txt["port"].flatMap(Int.init),
+      (1...65535).contains(port)
+    else { return nil }
+    hostId = id
+    name = txt["name"].flatMap { $0.isEmpty ? nil : $0 } ?? service
+    version = txt["version"].flatMap { $0.isEmpty ? nil : $0 }
+    self.host = host
+    self.port = port
+  }
+
+  /// One entry per host id, IPv4 first, ordered by name.
+  static func unique(_ hosts: [DiscoveredRemoteHost]) -> [DiscoveredRemoteHost] {
+    var byId: [String: DiscoveredRemoteHost] = [:]
+    for host in hosts {
+      if let kept = byId[host.hostId], !kept.host.contains(":") || host.host.contains(":") { continue }
+      byId[host.hostId] = host
+    }
+    return byId.values.sorted { ($0.name, $0.hostId) < ($1.name, $1.hostId) }
+  }
+}

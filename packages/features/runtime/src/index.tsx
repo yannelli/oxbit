@@ -10,7 +10,7 @@ import "./runtime.css";
 
 export { RuntimePage } from "./page.js";
 export type { RuntimeSettingsAccess } from "./sections.js";
-export { RuntimeStatusStore, clientStatus, oneTap, formatUptime, type RuntimeClientLike } from "./store.js";
+export { RuntimeStatusStore, clientStatus, oneTap, formatUptime, formatLastSeen, presenceLabel, type RuntimeClientLike } from "./store.js";
 export { runtimeConfiguration, keepAliveMs, keepAliveOptions, KEEP_ALIVE_SETTING, AUTO_RECONNECT_SETTING, type KeepAlive } from "./configuration.js";
 
 const connectorOf = (kernel: Kernel) => kernel.services.optional<RuntimeConnector>(RUNTIME_CONNECTOR_SERVICE);

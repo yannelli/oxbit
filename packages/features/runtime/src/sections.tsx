@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Icon, Select, translate as tr } from "@oxbit/ui";
 import type { DiscoveredRuntime, RuntimeConnector, RuntimeTarget, SshHostSummary } from "@oxbit/workbench";
 import { AUTO_RECONNECT_SETTING, KEEP_ALIVE_SETTING, keepAliveOptions } from "./configuration.js";
+import { presenceLabel } from "./store.js";
 
 /** Reads and writes runtime settings with or without a workbench kernel. */
 export interface RuntimeSettingsAccess {
@@ -141,6 +142,53 @@ export function SshServers({ connector, busy, perform }: { connector: RuntimeCon
         </ul>
       ) : hosts && <p className="runtime-hint">{tr("No SSH hosts saved yet.")}</p>}
       {connector.manageSsh && <button className="button" onClick={() => connector.manageSsh!()}>{tr("Manage SSH hosts…")}</button>}
+    </Card>
+  );
+}
+
+/** Computers paired through remote access; opening one shows its folders. */
+export function PairedComputers({ connector, busy, perform }: { connector: RuntimeConnector; busy?: string; perform: Perform }) {
+  const computers = useSyncExternalStore(connector.subscribe, () => connector.computers!());
+  if (!computers.length) return null;
+  return (
+    <Card title={tr("Paired computers")} icon="cloud">
+      <ul className="runtime-list">
+        {computers.map(target => (
+          <li key={target.key}>
+            <Icon name={target.online ? "cloudCheck" : target.online === false ? "cloudOff" : "cloud"} />
+            <span className="runtime-list-text">{target.name}<small role="status">{presenceLabel(target)}</small></span>
+            <button className="button" disabled={!!busy} aria-busy={busy === target.key}
+              onClick={() => perform(target.key, () => connector.connect(target))}>{tr("Open")}</button>
+            {connector.forget && (
+              <button className="icon-button" aria-label={tr("Forget {0}", { 0: target.name })} disabled={!!busy}
+                onClick={() => perform("forget:" + target.key, () => connector.forget!(target))}>
+                <Icon name="x" size={14} />
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+export function PairLinkCard({ pairLink, busy, perform }: { pairLink: (link: string) => Promise<void>; busy?: string; perform: Perform }) {
+  const [link, setLink] = useState("");
+  return (
+    <Card title={tr("Pair a computer")} icon="plus" wide>
+      <form className="runtime-pair" onSubmit={event => { event.preventDefault(); perform("pairLink", async () => { await pairLink(link.trim()); setLink(""); }); }}>
+        <p className="runtime-hint">{tr("Run oxbit remote pair on your computer, then paste the link here.")}</p>
+        <code className="runtime-command">oxbit remote pair</code>
+        <label>{tr("Pairing link")}
+          <input required autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://oxbit.dev/c#o=…"
+            aria-label={tr("Pairing link")} value={link} onChange={event => setLink(event.target.value)} disabled={!!busy} />
+        </label>
+        <div className="toolbar">
+          <button type="submit" className="button primary" disabled={!!busy || !link.trim()} aria-busy={busy === "pairLink"}>
+            {busy === "pairLink" ? tr("Connecting…") : tr("Connect")}
+          </button>
+        </div>
+      </form>
     </Card>
   );
 }

@@ -2,6 +2,8 @@ import { AUTO_RECONNECT_SETTING, KEEP_ALIVE_SETTING, RuntimeStatusStore, clientS
 import type { DiscoveredRuntime, RuntimeConnector, RuntimeTarget, SshHostSummary } from "@oxbit/workbench";
 import { SESSION_SCOPE, discovery, native, ssh, type RecentWorkspace } from "@oxbit/host-ios";
 import type { OpenRequest, OpenWorkspace } from "./workspaces.js";
+import { COMPUTER_PREFIX, computerTarget, readPairingLink, remoteHosts } from "./remote-hosts.js";
+import type { Offer } from "@oxbit/sdk/tunnel";
 
 const SETTINGS_KEY = "runtime-settings";
 const runtimeSettings = [KEEP_ALIVE_SETTING, AUTO_RECONNECT_SETTING];
@@ -14,13 +16,22 @@ export interface IosRuntimeHost {
   forget(id: string): Promise<void>;
   startSsh(hostId: string, path: string): void;
   manageSsh(): void;
+  /** Shows a paired computer's projects and folders. */
+  showRemote(hostId: string): void;
+  /** Asks before pairing with the computer in a pairing link. */
+  confirmPairing(offer: Offer): void;
+  forgetRemote(hostId: string): Promise<void>;
 }
 
 function targetOf(recent: RecentWorkspace): RuntimeTarget {
+  if (recent.kind === "remote")
+    return { key: recent.id, kind: "remote", name: recent.name, hostId: recent.hostId, path: recent.remotePath, detail: recent.remotePath, lastConnected: recent.lastOpened };
   return recent.kind === "sshRuntime"
     ? { key: recent.id, kind: "ssh", name: recent.name, hostId: recent.hostId, path: recent.remotePath, detail: `Oxbit runtime · ${recent.remotePath}`, lastConnected: recent.lastOpened }
     : { key: recent.id, kind: "url", name: recent.name, url: recent.url, runtimeId: recent.runtimeId, detail: recent.url, lastConnected: recent.lastOpened };
 }
+
+const savedKinds: RecentWorkspace["kind"][] = ["runtime", "sshRuntime", "remote"];
 
 /** One per app launch; the open workspace changes as the user connects and closes runtimes. */
 export class IosRuntimeConnector implements RuntimeConnector {
@@ -32,8 +43,21 @@ export class IosRuntimeConnector implements RuntimeConnector {
   private all: RecentWorkspace[] = [];
   private mirror: Record<string, unknown> = {};
   private detach: (() => void)[] = [];
+  private paired?: { version: number; targets: RuntimeTarget[] };
   status = this.store.get;
-  subscribe = this.store.subscribe;
+  subscribe = (listener: () => void) => {
+    const offStatus = this.store.subscribe(listener);
+    const offHosts = remoteHosts.subscribe(listener);
+    return () => {
+      offStatus();
+      offHosts();
+    };
+  };
+  /** Paired computers; the array changes only when a computer or its presence changes. */
+  computers = (): RuntimeTarget[] => {
+    if (this.paired?.version !== remoteHosts.version) this.paired = { version: remoteHosts.version, targets: remoteHosts.list().map(computerTarget) };
+    return this.paired.targets;
+  };
 
   /** The start screen has no kernel, so runtime settings are mirrored to app storage. */
   async loadSettings() {
@@ -56,7 +80,7 @@ export class IosRuntimeConnector implements RuntimeConnector {
 
   setRecents(recents: RecentWorkspace[]) {
     this.all = recents;
-    this.saved = recents.filter(item => item.kind === "runtime" || item.kind === "sshRuntime");
+    this.saved = recents.filter(item => savedKinds.includes(item.kind));
   }
 
   attach(workspace?: OpenWorkspace) {
@@ -75,11 +99,12 @@ export class IosRuntimeConnector implements RuntimeConnector {
     follow();
     this.detach.push(configuration.subscribe(follow));
     if (!runtime) return this.store.replace({ state: "disconnected", error: this.store.get().error });
-    const remote = workspace.recent.kind === "sshRuntime";
+    const { kind, hostId, name, remotePath } = workspace.recent;
+    const remote = kind === "sshRuntime" || kind === "remote";
     const sync = () => this.store.replace({
       state: runtime.connected ? "connected" : this.store.get().state === "failed" ? "failed" : "reconnecting",
-      ...clientStatus(runtime, remote ? "ssh" : "url", workspace.recent.name), targetKey: workspace.recent.id,
-      ...(remote ? { host: workspace.recent.name.split(":")[0], port: undefined, workspace: workspace.recent.remotePath } : {}),
+      ...clientStatus(runtime, kind === "remote" ? "remote" : remote ? "ssh" : "url", name), targetKey: workspace.recent.id,
+      ...(remote ? { host: (hostId && remoteHosts.get(hostId)?.record.name) ?? name.split(":")[0], port: undefined, workspace: remotePath } : {}),
     });
     sync();
     this.detach.push(
@@ -91,7 +116,7 @@ export class IosRuntimeConnector implements RuntimeConnector {
   /** The open workspace's runtime; an SFTP folder starts one on its host at that folder. */
   quickTarget(): RuntimeTarget | undefined {
     const current = this.workspace?.recent;
-    if (current && (current.kind === "runtime" || current.kind === "sshRuntime")) return targetOf(current);
+    if (current && savedKinds.includes(current.kind)) return targetOf(current);
     if (current?.kind === "ssh" && current.hostId && current.remotePath) {
       const { hostId, remotePath } = current;
       const saved = this.saved.find(item => item.kind === "sshRuntime" && item.hostId === hostId && item.remotePath === remotePath);
@@ -101,7 +126,10 @@ export class IosRuntimeConnector implements RuntimeConnector {
     return this.saved[0] && targetOf(this.saved[0]);
   }
   async recents() { return this.saved.map(targetOf); }
-  async forget(target: RuntimeTarget) { await this.host?.forget(target.key); }
+  async forget(target: RuntimeTarget) {
+    if (target.key.startsWith(COMPUTER_PREFIX) && target.hostId) await this.host?.forgetRemote(target.hostId);
+    else await this.host?.forget(target.key);
+  }
 
   private async open(request: OpenRequest, label: string) {
     if (!this.host) throw new Error("Oxbit is still starting.");
@@ -113,6 +141,12 @@ export class IosRuntimeConnector implements RuntimeConnector {
     }
   }
   async connect(target: RuntimeTarget) {
+    if (target.kind === "remote") {
+      if (!target.hostId) throw new Error("This computer is no longer paired. Run oxbit remote pair on your computer for a new link.");
+      if (!target.path) return this.host?.showRemote(target.hostId);
+      if (target.key === this.workspace?.recent.id) return this.restart();
+      return this.open({ kind: "remote", hostId: target.hostId, path: target.path }, target.name);
+    }
     if (target.kind === "ssh") {
       if (this.workspace?.remote && target.key === this.workspace.recent.id) return this.restart();
       if (target.hostId) this.host?.startSsh(target.hostId, target.path ?? "~");
@@ -124,12 +158,18 @@ export class IosRuntimeConnector implements RuntimeConnector {
   pair(url: string, code: string) {
     return this.open({ kind: "runtime", url, code }, url);
   }
+  async pairLink(link: string) {
+    const offer = await readPairingLink(link);
+    if (!this.host) throw new Error("Oxbit is still starting.");
+    this.host.confirmPairing(offer);
+  }
   async disconnect() {
     if (this.workspace?.session.runtime) await this.host?.close();
   }
   async restart() {
     const workspace = this.workspace;
     const runtime = workspace?.session.runtime;
+    if (workspace?.recent.kind === "remote") return this.restartRemote(workspace);
     if (!workspace?.remote) {
       runtime?.reconnect();
       return;
@@ -144,6 +184,21 @@ export class IosRuntimeConnector implements RuntimeConnector {
     await runtime?.reconnect().catch(() => {});
     if (this.workspace === workspace) this.store.set({ state: runtime?.connected ? "connected" : "reconnecting", progress: undefined });
   }
+  /** Reconnects the computer's tunnel, then the runtime over it. */
+  private async restartRemote(workspace: OpenWorkspace) {
+    const runtime = workspace.session.runtime;
+    const host = workspace.recent.hostId ? remoteHosts.get(workspace.recent.hostId) : undefined;
+    this.store.set({ state: "connecting", progress: `Reconnecting to ${host?.record.name ?? workspace.recent.name}…`, error: undefined });
+    try {
+      if (!host) throw new Error("This computer is no longer paired. Run oxbit remote pair on your computer for a new link.");
+      await host.reconnect();
+      if (runtime && !runtime.connected) await runtime.reconnect();
+    } catch (error) {
+      if (this.workspace === workspace) this.store.fail(error);
+      throw error;
+    }
+    if (this.workspace === workspace) this.store.set({ state: runtime?.connected ? "connected" : "reconnecting", progress: undefined });
+  }
   async trust(trusted: boolean) {
     const session = this.workspace?.session;
     if (!session?.runtime) return;
@@ -153,9 +208,10 @@ export class IosRuntimeConnector implements RuntimeConnector {
     session.workbench.touch();
   }
   discover(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied?: boolean) => void) {
-    return discovery.watch((runtimes, localNetworkDenied) => listener(runtimes.map(runtime => ({
-      ...runtime, paired: this.saved.some(recent => recent.runtimeId === runtime.runtimeId),
-    })), localNetworkDenied));
+    return discovery.watch((runtimes, localNetworkDenied, hosts) => {
+      remoteHosts.setDiscovered(hosts ?? []);
+      listener(runtimes.map(runtime => ({ ...runtime, paired: this.saved.some(recent => recent.runtimeId === runtime.runtimeId) })), localNetworkDenied);
+    });
   }
   async sshHosts(): Promise<SshHostSummary[]> {
     const hosts = await ssh.hosts();

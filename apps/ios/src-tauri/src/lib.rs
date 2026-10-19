@@ -24,6 +24,14 @@ pub struct AppState {
     pub ssh: ssh::Ssh,
 }
 
+/// URLs the system opened the app with, kept until the web view drains them.
+static OPENED_URLS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+#[tauri::command]
+fn ios_opened_urls() -> Vec<String> {
+    std::mem::take(&mut *OPENED_URLS.lock().unwrap())
+}
+
 /// Serves the HTML preview shell, which runs a previewed page's scripts without the app's script policy.
 fn preview_shell<R: tauri::Runtime>(
     _context: tauri::UriSchemeContext<'_, R>,
@@ -108,7 +116,19 @@ pub fn run() {
             ssh::fs_commands::ios_ssh_transfer_cancel,
             search::ios_search_request,
             search::ios_search_cancel,
+            ios_opened_urls,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Oxbit");
+        .build(tauri::generate_context!())
+        .expect("error while building Oxbit")
+        .run(|app, event| {
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            if let tauri::RunEvent::Opened { urls } = event {
+                use tauri::Emitter;
+                OPENED_URLS
+                    .lock()
+                    .unwrap()
+                    .extend(urls.iter().map(ToString::to_string));
+                let _ = app.emit("ios-opened-url", ());
+            }
+        });
 }

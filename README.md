@@ -51,6 +51,7 @@ a TUI, print mode and an ACP server: `npm install -g @oxbit/agent`, then run
 | `oxbit --port 9300` | Choose a port for a new runtime; stop an existing one first |
 | `oxbit --lan` | Serve on your network and advertise the runtime to the iOS app |
 | `oxbit --keep-alive 1h` | Stop the runtime after an hour with no connected client |
+| `oxbit remote enable` | Reach this computer from a paired iPhone or iPad on any network ([remote access](docs/remote-access.md)) |
 | `oxbit --help` | Show all options |
 
 Each runtime binds a port the operating system assigns, unless `--port` or `PORT`
@@ -86,6 +87,8 @@ The Tauri iOS app runs on iOS 26+. Edit the app's Documents folder or folders
 selected through Files. TypeScript, JavaScript, JSON, and JSONC language services
 run on the device. Source Control runs Git on device folders. Connect to a runtime
 on another computer for terminals, tasks, and other language servers.
+Run `oxbit remote enable` on the computer and open the pairing link on the device to
+connect from any network without an account; see [remote access](docs/remote-access.md).
 GitHub tokens and runtime pairing credentials are stored in Keychain.
 
 Run `bun run ios:dev "Oxbit iPhone"` or `bun run ios:simulator` on macOS with Xcode.

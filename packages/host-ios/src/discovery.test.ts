@@ -4,7 +4,7 @@ const invoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => undefined }));
 
-const { discovery, DISCOVERY_POLL_MS, native, ssh, rememberWorkspace } = await import("./index.js");
+const { discovery, DISCOVERY_POLL_MS, native, ssh, rememberWorkspace, remoteDeviceKeyStore, remoteHostAddress } = await import("./index.js");
 const DISCOVERY = "plugin:oxbit-files|runtime_discovery";
 const mac = { runtimeId: "runtime-0123", name: "mac", version: "0.5.0", host: "192.168.1.10", port: 9277, url: "http://192.168.1.10:9277" };
 const linux = { runtimeId: "runtime-4567", name: "linux", host: "192.168.1.11", port: 9277, url: "http://192.168.1.11:9277" };
@@ -64,6 +64,35 @@ describe("discovery.watch", () => {
   });
 });
 
+describe("remote access hosts", () => {
+  const studio = { hostId: "AbCdEfGhIjKlMnOpQrSt_-", name: "Studio Mac", version: "1.0.0", host: "192.168.1.20", port: 7400 };
+
+  it("delivers _oxbit-remote._tcp hosts apart from runtimes, one per host id", async () => {
+    vi.useFakeTimers();
+    invoke.mockResolvedValue({ runtimes: [mac], hosts: [studio, { ...studio, host: "fe80::2" }], localNetworkDenied: false });
+    const seen: unknown[] = [];
+    const dispose = discovery.watch((runtimes, _denied, hosts) => seen.push([runtimes, hosts]));
+    await vi.advanceTimersByTimeAsync(DISCOVERY_POLL_MS);
+    dispose();
+    expect(seen).toEqual([[[mac], [studio]]]);
+    expect(remoteHostAddress(studio)).toBe("192.168.1.20:7400");
+    expect(remoteHostAddress({ host: "fe80::2", port: 7400 })).toBe("[fe80::2]:7400");
+  });
+
+  it("keeps the device key in a Keychain item", async () => {
+    const pair = { publicKey: "pub", privateKey: "priv" };
+    invoke.mockResolvedValueOnce({}).mockResolvedValueOnce({}).mockResolvedValueOnce({ value: JSON.stringify(pair) });
+    await expect(remoteDeviceKeyStore.load()).resolves.toBeUndefined();
+    await remoteDeviceKeyStore.save(pair);
+    await expect(remoteDeviceKeyStore.load()).resolves.toEqual(pair);
+    expect(invoke.mock.calls.map(([command, args]) => [command, args])).toEqual([
+      ["plugin:oxbit-files|device_secret", { operation: "get", name: "remote-device-key" }],
+      ["plugin:oxbit-files|device_secret", { operation: "set", name: "remote-device-key", value: JSON.stringify(pair) }],
+      ["plugin:oxbit-files|device_secret", { operation: "get", name: "remote-device-key" }],
+    ]);
+  });
+});
+
 describe("runtime bridge", () => {
   it("passes the runtime ID and health operation to native credentials", async () => {
     const runtime = { id: "runtime-0123", name: "mac", version: "0.5.0", startedAt: 1 };
@@ -90,6 +119,15 @@ describe("runtime bridge", () => {
 });
 
 describe("recents by runtime ID", () => {
+  it("replaces a remote folder on the same computer and keeps other kinds apart", async () => {
+    invoke.mockResolvedValueOnce([
+      { id: "remote:old", kind: "remote", name: "Studio Mac: app", hostId: "host-1", remotePath: "/Users/dev/app", lastOpened: 1 },
+      { id: "ssh:x", kind: "ssh", name: "Box: app", hostId: "host-1", remotePath: "/Users/dev/app", lastOpened: 2 },
+    ]).mockResolvedValueOnce(undefined);
+    const next = await rememberWorkspace({ id: "remote:new", kind: "remote", name: "Studio Mac: app", hostId: "host-1", remotePath: "/Users/dev/app" });
+    expect(next.map((item) => item.id)).toEqual(["remote:new", "ssh:x"]);
+  });
+
   const remember = async (stored: unknown[], entry: Parameters<typeof rememberWorkspace>[0]) => {
     invoke.mockResolvedValueOnce(stored).mockResolvedValueOnce(undefined);
     return rememberWorkspace(entry);

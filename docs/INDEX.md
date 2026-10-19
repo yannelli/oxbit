@@ -1,6 +1,6 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-18.
+Created: 2026-10-02. Last updated: 2026-10-19.
 
 | Guide | Use when |
 | --- | --- |
@@ -13,6 +13,7 @@ Created: 2026-10-02. Last updated: 2026-10-18.
 | [Editor consistency contracts](editor-consistency.md) | Changing document lifecycle, file operations, tab navigation, replacement semantics, Settings resolution, and runtime operation retention; Zed, ECMAScript, and idempotency references. |
 | [Signed releases](release.md) | Cutting a release; signing and publishing; versioned TestFlight notes, `Internal Testing` assignment, `Public Beta` promotion, and export compliance; secrets and renewal; Apple TestFlight API references for distribution changes. |
 | [npm packages](npm.md) | Publishing `@oxbit/sdk`, `@oxbit/cli` and `@oxbit/agent`; staging layout; install scripts; trusted publishing setup and token removal; npm trusted publishing and provenance references. |
+| [Remote access](remote-access.md) | Changing `oxbit remote`, pairing links, the `oxbit-relay` Worker, the end-to-end Noise tunnel (`@oxbit/sdk/tunnel`), the host's folder browser, or device connections over the LAN or relay; relay, tunnel and control stream wire formats, limits and close codes. |
 | [Remote workspaces over SSH](remote-ssh.md) | Building SSH runtime payloads for `darwin-arm64`, `linux-x64`, and `linux-arm64`; the release's `remote-runtime-*` assets and the manifest pinned into the iOS build; the remote runtime lease and `runtime.keepAlive`; running the SSH live harnesses against an arm64 container; Node, ripgrep, node-pty, GitHub arm runner, and Docker multi-platform references. |
 | [Oxbit desktop](desktop.md) | Building, testing, and packaging the Tauri app for macOS arm64 and Ubuntu 24.04 x64/arm64; Linux bundle helper pins; updater manifest platforms; release checks. |
 | [iOS setup](ios.md) | Building the iOS app, connecting to a computer runtime, Bonjour discovery of `oxbit --lan` runtimes, keep-alive for SSH-started runtimes, and the in-app agent's model API requests from Swift with Keychain keys and origin pinning; NWBrowser, NSBonjourServices, RFC 6762/6763, URLSession redirect, Keychain accessibility, Anthropic and OpenAI authentication, and Tauri mobile plugin references. |

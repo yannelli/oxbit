@@ -1,5 +1,5 @@
 import { splitRuntimeError, type RuntimeIdentity } from "@oxbit/protocol";
-import type { RuntimeConnector, RuntimeStatus } from "@oxbit/workbench";
+import type { RuntimeConnector, RuntimeStatus, RuntimeTarget } from "@oxbit/workbench";
 
 /** Observable connection status an app keeps across workbench sessions. */
 export class RuntimeStatusStore {
@@ -74,4 +74,21 @@ export function formatUptime(startedAt: number | undefined, now = Date.now()) {
   if (minutes < 1) return "<1m";
   const days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60), rest = minutes % 60;
   return days ? `${days}d ${hours}h` : hours ? `${hours}h ${rest}m` : `${rest}m`;
+}
+
+/** "just now", "5 min ago", "3 h ago", "2 days ago", then the date. */
+export function formatLastSeen(at: number, now = Date.now()) {
+  const minutes = Math.floor(Math.max(0, now - at) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)} h ago`;
+  const days = Math.floor(minutes / 1440);
+  return days < 7 ? `${days} ${days === 1 ? "day" : "days"} ago` : new Date(at).toLocaleDateString();
+}
+
+/** "Online", "Offline · last seen 5 min ago", or the target's detail while presence is unknown. */
+export function presenceLabel(target: Pick<RuntimeTarget, "online" | "lastSeen" | "detail">, now = Date.now()) {
+  if (target.online) return "Online";
+  if (target.online === false) return target.lastSeen ? `Offline · last seen ${formatLastSeen(target.lastSeen, now)}` : "Offline";
+  return target.detail ?? "Connecting…";
 }

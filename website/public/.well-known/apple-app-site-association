@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["2P58V89SR7.com.yannelli.oxbit"],
+        "components": [
+          { "/": "/c", "comment": "Remote access pairing links" },
+          { "/": "/c/", "comment": "Remote access pairing links" }
+        ]
+      }
+    ]
+  }
+}

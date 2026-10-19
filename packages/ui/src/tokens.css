@@ -28,6 +28,9 @@ button:disabled{cursor:not-allowed}
 @keyframes zsheet{from{transform:translateY(100%)}to{transform:none}}
 @keyframes zpulse{50%{opacity:.35}}
 
+/* QR codes stay dark on light in every theme so cameras can read them. */
+:root{--qr-light:#ffffff;--qr-dark:#000000}
+
 /* Pride decoration is scoped to the two built-in Rainbow variants. */
 [data-theme-id="oxbit.creative/rainbow-dark"],
 [data-theme-id="oxbit.creative/rainbow-light"] {

@@ -1,7 +1,7 @@
 # Oxbit for iOS and iPadOS
 
 Created: 2026-09-09
-Last updated: 2026-10-12
+Last updated: 2026-10-19
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
@@ -90,6 +90,10 @@ Connecting opens the computer's workspace. Choose **Trust workspace tools** to p
 
 Pairing uses native URLSession, with redirects refused, and stores the token in the device Keychain under the runtime's `id` from `/api/pair`, so a changed port or address keeps the saved credential and the recent workspace. Tokens saved by earlier versions under the runtime URL move to the `id` the first time they are read. The native `health` operation reads `/api/health`, which the WebView cannot fetch across origins, to identify a runtime before pairing. The WebView receives the token only in memory and authenticates its WebSocket using the existing runtime protocol. Plain HTTP is allowed for local and private network addresses; public endpoints should use HTTPS.
 
+### Connect from any network
+
+Run `oxbit remote enable` on the computer and open the printed link on the device: scan it with the Camera app, which opens `oxbit.dev/c` and its **Open in Oxbit** button, or paste it on the Runtime page under **Pair a computer**. Oxbit asks "Connect to <name>?" and then lists the computer's recent projects and a folder browser. The computer stays under **Paired computers** with its online state and last-seen time; the device connects over the LAN when the computer's `_oxbit-remote._tcp` service is in Bonjour, and through the relay otherwise. The device's X25519 key is in the Keychain (`device_secret` in the `oxbit-files` plugin). Links reach the WebView through the `oxbit` URL scheme, tao's `RunEvent::Opened`, and the `ios_opened_urls` command; a link that launches the app is queued until the WebView reads it. Protocol and security details are in [remote access](remote-access.md).
+
 ### Keep SSH-started runtimes running
 
 A runtime started over [SSH](ios-ssh.md) receives a keep-alive lease in its launch frame. It keeps running after the SSH connection closes, for example while iOS suspends the app, until no WebSocket client or heartbeat has reached it for the lease. The `runtime.keepAlive` setting chooses the lease in milliseconds; 0 keeps the runtime running until it is stopped, and the default is 75000.
@@ -168,6 +172,12 @@ segfaults in `objc_retain` under `-[UIApplication _connectUISceneFromFBSScene:]`
 before the first frame. `apps/ios/vendor/tao` is 0.35.3 with the upstream 0.36.0
 fix on that one line, `Retained::autorelease_ptr(config)`. Drop the vendored copy
 once `tauri-runtime-wry` takes tao 0.36 or later.
+
+The vendored `connect_scene` also sends the connection options' `URLContexts`
+and `userActivities` web page URLs as `Event::Opened`, so a pairing link that
+launches the app reaches it. Upstream tao reads them only in
+`scene:openURLContexts:` and `scene:continueUserActivity:`, which run for an app
+that is already open. Keep that change if the vendored copy is replaced.
 
 ## Verification
 
