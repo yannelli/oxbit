@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "wrangler deploy --dry-run"
+    "check": "node check.mjs && node --check public/main.js && wrangler deploy --dry-run"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
