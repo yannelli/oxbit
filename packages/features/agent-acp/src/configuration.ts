@@ -13,6 +13,7 @@ export const settingId = (provider: string, key: string) =>
 /** The in-app Oxbit agent's compaction settings. */
 export const OXBIT_COMPACT_SETTINGS = { auto: "agentACP.oxbit.autoCompact", at: "agentACP.oxbit.compactAt" } as const;
 export const COMPACT_PERCENTS = ["50", "60", "70", "80", "90"];
+export const OXBIT_INSTRUCTIONS_SETTING = "agentACP.oxbit.instructions";
 
 type Configuration = { get<T>(id: string): T | undefined } | undefined;
 
@@ -122,6 +123,14 @@ export const agentConfiguration: Setting[] = [
     id: OXBIT_AGENT_SETTINGS.model,
     title: "Oxbit Agent model",
     description: "Model ID for new conversations.",
+    category: "Agent ACP",
+    type: "string",
+    default: "",
+  },
+  {
+    id: OXBIT_INSTRUCTIONS_SETTING,
+    title: "Oxbit Agent instructions",
+    description: "Instructions the in-app Oxbit Agent follows in every workspace, after the workspace's AGENTS.md and CLAUDE.md files.",
     category: "Agent ACP",
     type: "string",
     default: "",

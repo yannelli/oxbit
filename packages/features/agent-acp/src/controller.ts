@@ -1708,8 +1708,8 @@ export class AgentController {
         const workbench = this.options.workbench as typeof this.options.workbench & { state?: { groups?: { tabs: { path?: string }[] }[] } };
         const openFiles = [...new Set((workbench.state?.groups ?? []).flatMap(group => group.tabs.map(tab => tab.path).filter((item): item is string => !!item)))].slice(0, 100);
         const activeFile = this.options.workbench.activePath();
+        const service = this.options.kernel.services.optional<any>("language");
         const diagnostics = (target?: string) => {
-          const service = this.options.kernel.services.get<any>("language");
           const paths = target ? [target] : openFiles;
           return paths.flatMap(file => (service?.diagnostics?.get(file) ?? []).slice(0, 100).map((item: any) => ({
             path: file, line: (item.range?.start?.line ?? 0) + 1,
@@ -1719,7 +1719,9 @@ export class AgentController {
           }))).slice(0, 200);
         };
         if (request.method === "oxbit/diagnostics") {
-          if (valid()) await this.respond(request, { diagnostics: diagnostics(path) });
+          const reason = !service?.diagnostics ? "No language service is running in this workspace"
+            : path === undefined && !openFiles.length ? "No files are open. Pass a path to check a file." : undefined;
+          if (valid()) await this.respond(request, reason ? { diagnostics: [], available: false, reason } : { diagnostics: diagnostics(path) });
           return;
         }
         if (request.method === "oxbit/open_file") {

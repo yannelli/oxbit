@@ -1,7 +1,7 @@
-import { Compaction, Instructions, MODES, Skills, controlExtensions, workspaceFiles, type AgentCommand, type AgentExtensions, type CommandContext,
+import { Compaction, Instructions, MODES, Skills, controlExtensions, findFiles, workspaceFiles, type AgentCommand, type AgentExtensions, type CommandContext,
   type Params, type PermissionMode, type SessionStore } from "@oxbit/agent-core";
 import type { ACPConfigOption, FileSystem } from "@oxbit/sdk";
-import { COMPACT_PERCENTS, OXBIT_COMPACT_SETTINGS } from "../configuration.js";
+import { COMPACT_PERCENTS, OXBIT_COMPACT_SETTINGS, OXBIT_INSTRUCTIONS_SETTING } from "../configuration.js";
 type Configuration = { get<T>(id: string): T | undefined; set(id: string, value: unknown, scope?: any): unknown };
 
 const ON_OFF = [{ value: "on", name: "On" }, { value: "off", name: "Off" }];
@@ -72,16 +72,18 @@ export interface LocalExtensionOptions {
   update(sessionId: string, update: Params): void;
 }
 
-/** Instructions and skills from the workspace, compaction, /goal, /loop, /config and saved sessions. Hooks and MCP need a host process. */
+/** Instructions from the workspace and the instructions setting, skills from the workspace, find_files, compaction, /goal, /loop, /config and saved sessions. Hooks and MCP need a host process. */
 export function localExtensions({ filesystem, root, configuration, sessions, update }: LocalExtensionOptions) {
   const files = workspaceFiles(filesystem, root);
-  const instructions = new Instructions({ files });
+  const instructions = new Instructions({ files, get append() {
+    return configuration.get<string>(OXBIT_INSTRUCTIONS_SETTING) || undefined;
+  } });
   const skills = new Skills({ files, roots: [] });
   const control = controlExtensions({ update });
   const settings = compactSettings(configuration);
   const extensions: AgentExtensions = {
     context: [instructions, ...control.context, skills],
-    tools: [...control.tools, skills],
+    tools: [...control.tools, skills, { tools: () => filesystem.findFiles ? [findFiles] : [] }],
     commands: [settings.compaction, ...control.commands, { commands: () => [settings.config] },
       { commands: async (session) => (await skills.discover(session.cwd), skills.commands(session).filter((command) => command.name !== "config")) }],
     continuations: control.continuations,

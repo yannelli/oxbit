@@ -4,6 +4,7 @@ import { LocalAgentRuntime } from "./runtime.js";
 import { memoryPersistence } from "./sessions.js";
 import type { AgentHost } from "@oxbit/agent-core";
 import { chatText, chatTool, fakeModels, hanging, settings, type Reply } from "@oxbit/agent-core/test-models";
+import { OXBIT_INSTRUCTIONS_SETTING } from "../configuration.js";
 
 const EVENTS = ["acp.turnStarted", "acp.turnEnded", "acp.update", "acp.request", "acp.requestsExpired", "acp.cancelled", "acp.queue", "acp.exit", "acp.subagent"];
 /** A workspace FileSystem over relative paths and file texts. */
@@ -272,5 +273,25 @@ describe("LocalAgentRuntime", () => {
     expect(named("acp.subagent").at(-1)!.subagent.phase).toBe("unknown");
     await runtime.request("acp.stop", { id: connection.id });
     expect(named("acp.subagent").at(-1)).toEqual(expect.objectContaining({ activeCount: 0, subagent: expect.objectContaining({ id, state: "disconnected" }) }));
+  });
+  it("fills context limits from the built-in table for listed OpenAI models", async () => {
+    const fake = fakeModels([], { list: { data: [{ id: "gpt-5.5" }, { id: "custom-model" }] } });
+    const configuration = settings({ "agentACP.oxbit.api": "openai" });
+    const options = { kernel: { configuration }, filesystem: workspace({}), workbench: {} } as unknown as FeatureOptions;
+    const runtime = new LocalAgentRuntime(options, () => fake.models);
+    const started = await runtime.request<ACPConnection>("acp.start", { provider: "oxbit" });
+    const catalog = await agentHost(runtime, started.id).catalog!();
+    expect(catalog.find((model) => model.id === "gpt-5.5")?.contextWindow).toBeGreaterThan(0);
+    expect(catalog.find((model) => model.id === "custom-model")?.contextWindow).toBeUndefined();
+  });
+  it("sends the instructions setting and offers find_files when the filesystem can find files", async () => {
+    const { runtime, connect, requests, configuration } = setup([chatText("Done")]);
+    configuration.set(OXBIT_INSTRUCTIONS_SETTING, "Answer in haiku.");
+    ((runtime as any).options.filesystem as Record<string, unknown>).findFiles = async () => ["src/a.ts"];
+    const session = await connect();
+    await prompt(runtime, session.id, "m1");
+    const body = requests.at(-1)!.body as { messages: { role: string; content: string }[]; tools: { function: { name: string } }[] };
+    expect(body.messages[0].content).toContain("Answer in haiku.");
+    expect(body.tools.map((tool) => tool.function.name)).toContain("find_files");
   });
 });

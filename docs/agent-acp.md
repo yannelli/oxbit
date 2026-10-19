@@ -103,10 +103,17 @@ with the user's key:
   or the code expires. Start without a sign-in shows "Sign in with ChatGPT in Agent setup".
 - The model list comes from `GET /v1/models` (`GET /codex/models` for the ChatGPT plan); the model and reasoning controls are
   session settings, and the chosen model is saved to `agentACP.oxbit.model`.
-- Tools: list, search, read, write and edit files, diagnostics, a plan, and `task`,
-  which runs a subagent with a fresh context (see [Dispatched subagents](#dispatched-subagents)).
+- Tools: list, search, read, write and edit files, `find_files` (quick-open path matching,
+  where the folder supports it), diagnostics, a plan, and `task`, which runs a subagent with a
+  fresh context (see [Dispatched subagents](#dispatched-subagents)).
   Writes and edits, including a subagent's, open the same review card as other agents.
-  There is no shell.
+  There is no shell, and the system prompt tells the model so. `diagnostics` returns a reason
+  when no language service runs in the workspace, or when no file is open and no path is given.
+- `agentACP.oxbit.instructions` adds instructions to every in-app session, after the workspace's
+  AGENTS.md and CLAUDE.md files.
+- From the second prompt on, the model gets the last request's token count, the context window
+  and the auto-compaction threshold in a `<context-usage>` note at the end of the prompt. Replays
+  of a saved conversation leave the note out.
 - Commands and settings are listed under [In-app commands and sessions](#in-app-commands-and-sessions).
 - **Attach changes** sends `git.status` and `git.diff` to the device folder's Git client.
   `@` commits use `git.log`, `git.show` and `git.commitDiff` from the same client.
@@ -147,9 +154,10 @@ slash menu lists them from `available_commands_update`:
   loaded this conversation." A conversation that does not load stays read-only.
 - Auto-compaction follows `agentACP.oxbit.autoCompact` (default on) and `agentACP.oxbit.compactAt`.
   The session controls **Auto-compact** and **Compact at** and `/config` change the same settings.
-  It runs when the model list reports a context window (`max_input_tokens`, `context_length`
-  or `context_window`, and 272,000 tokens for the ChatGPT plan). OpenAI's `/v1/models` reports none,
-  so OpenAI models compact on `/compact` only.
+  It runs when the model has a known context window: from the model list (`max_input_tokens`,
+  `context_length` or `context_window`, and 272,000 tokens for the ChatGPT plan), then the built-in
+  table of current OpenAI and Anthropic models. When the OpenAI or Anthropic model list fails to load,
+  the built-in table supplies the models.
 - Sessions are saved in the workbench's host storage (`ui.json` per workspace on iOS) under
   `oxbit-agent-session:<folder id>:<session id>`, with an index under
   `oxbit-agent-sessions:<folder id>`. A workspace keeps its 16 newest sessions. A session over
