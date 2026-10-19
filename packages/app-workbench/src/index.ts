@@ -256,6 +256,7 @@ export async function createWorkbenchSession({
         : sampleWorkspace
           ? "orbit-dash"
           : "Directory workspace",
+      workspaceRoot: runtime?.session?.workspaceRoot,
     });
     if (!workbench.state.groups.some((g) => g.tabs.length)) {
       const paths = !sampleWorkspace

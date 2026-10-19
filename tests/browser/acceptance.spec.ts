@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { writeFile, mkdir, readFile, realpath } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { mkdtemp } from "node:fs/promises";
@@ -140,12 +140,14 @@ test("the printed pairing link opens the runtime workspace on first launch", asy
       connected: !!(window as any).__oxbit.runtime?.connected,
       filesystem: (window as any).__oxbit.filesystem.id,
       projectName: (window as any).__oxbit.workbench.state.projectName,
+      workspaceRoot: (window as any).__oxbit.workbench.state.workspaceRoot,
       hash: location.hash,
     })),
   ).toEqual({
     connected: true,
     filesystem: expect.stringContaining("runtime:"),
     projectName: path.basename(root),
+    workspaceRoot: await realpath(root),
     hash: "",
   });
   expect(

@@ -96,6 +96,7 @@ export function Explorer({
           "file.delete",
           "-",
           "file.copyPath",
+          "file.copyRelativePath",
           ...(touch ? [] : ["file.reveal"]),
         ],
       },
@@ -580,15 +581,16 @@ export function createFeature({
         });
         await workbench.refreshFiles();
       });
-      cmd(
-        "file.copyPath",
-        "Copy Path",
-        () =>
-          navigator.clipboard.writeText(
-            workbench.state.selectedPath || workbench.activePath() || "",
-          ),
-        "Ctrl+Alt+C",
-      );
+      const copy = async (absolute: boolean) => {
+        const relative = workbench.state.selectedPath || workbench.activePath() || "";
+        const root = workbench.state.workspaceRoot?.replace(/\/+$/, "");
+        const text = absolute && root ? (relative ? `${root}/${relative}` : root) : relative;
+        if (!text) throw new Error(tr("Select a file or folder to copy its path"));
+        await navigator.clipboard.writeText(text);
+        workbench.notify(tr("Copied {0}", { "0": text }), "info", { ttl: 2500 });
+      };
+      cmd("file.copyPath", "Copy Path", () => copy(true), "Ctrl+Alt+C");
+      cmd("file.copyRelativePath", "Copy Relative Path", () => copy(false));
       cmd("file.reveal", "Reveal Active File in Explorer", () => {
         const path = workbench.activePath();
         if (path) {
