@@ -1,6 +1,6 @@
 {
   "version": "0.13.0",
-  "generatedAt": "2026-10-19T17:58:45.865Z",
+  "generatedAt": "2026-10-19T18:54:57.379Z",
   "screenshotSource": "WebKit renders of the iOS frontend (apps/ios) served by Vite, with the mocked Tauri bridge from tests/ios/bridge.ts and tests/ios/ssh-bridge.ts",
   "browserEngine": "webkit",
   "renderer": "Chromium (Playwright) at 1x for the marketing frame",
@@ -257,8 +257,8 @@
       "height": 1646,
       "colorType": 2,
       "colorSpace": "sRGB",
-      "bytes": 937531,
-      "sha256": "47a11e5d6c41367014fa5569d7b5598a403d506acccc8ae51b8f28ad678fc3b1",
+      "bytes": 999281,
+      "sha256": "5621af12020658a73445b74ed5062ff21a6f46771d0309c417dcc5b2fb6cdb23",
       "purpose": "product-page-header"
     },
     {

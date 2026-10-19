@@ -74,6 +74,16 @@ function promo({ width, height }, fonts) {
   return page(body, `.promo{position:absolute;inset:0;width:2400px;height:${tall}px;transform:scale(${scale});transform-origin:top left;background:radial-gradient(ellipse at 84% 50%,#25403b 0%,transparent 57%),#14161a;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:100px 120px;gap:80px}.brand{font-size:55px;gap:20px}.brand svg{width:72px;height:72px}.tag{margin-top:40px;font-size:28px}h1{font-size:122px;line-height:1.03;margin-top:35px}p{font-size:35px;line-height:1.5;color:#b2bdbc;margin-top:30px}.end{margin-top:62px;color:#8bd5ca;font-size:28px;display:flex;gap:50px}.end span{color:#b2bdbc}.showcase{height:100%;position:relative;display:grid;place-items:center}.hero-mark{width:${mark}px;height:${mark}px;color:#8bd5ca;position:relative}.hero-mark svg{width:100%;height:100%}.grid-art{position:absolute;width:${mark + 100}px;height:${mark + 100}px;background-image:linear-gradient(#8bd5ca12 1px,transparent 1px),linear-gradient(90deg,#8bd5ca12 1px,transparent 1px);background-size:100px 100px;mask-image:radial-gradient(ellipse,black 35%,transparent 75%)}.corner{position:absolute;bottom:${Math.min(80, (tall - mark) / 4)}px;right:55px;color:#a8b6b4;font-size:25px;letter-spacing:.025em}`, fonts);
 }
 
+/** iPhone crops about 300 px from each side and iPad about 250 px from the top and bottom, with navigation over the top band (App Store previews, 2026-10-19). */
+const headerSafe = { x: 760, y: 520, width: 2320, height: 820 };
+
+function productPageHeader(fonts) {
+  const { x, y, width, height } = headerSafe;
+  const mark = 700;
+  const body = `<main class="header"><div class="grid-art"></div><div class="safe"><div class="copy"><h1>Code with AI.\nAnywhere.</h1><p>Completions, an agent, Git, and SSH<br>on your iPhone and iPad.</p></div><div class="hero-mark">${brand}</div></div></main><script>document.body.dataset.ready="true"</script>`;
+  return page(body, `.header{position:absolute;inset:0;background:radial-gradient(ellipse at 66% 56%,#25403b 0%,transparent 45%),#14161a}.grid-art{position:absolute;inset:0;background-image:linear-gradient(#8bd5ca10 1px,transparent 1px),linear-gradient(90deg,#8bd5ca10 1px,transparent 1px);background-size:120px 120px;mask-image:radial-gradient(ellipse at 66% 56%,black 20%,transparent 60%)}.safe{position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:space-between}h1{font-size:184px;line-height:1.02}p{font-size:58px;line-height:1.4;color:#b2bdbc;margin-top:48px}.hero-mark{width:${mark}px;height:${mark}px;flex:none;color:#8bd5ca}.hero-mark svg{width:100%;height:100%}`, fonts);
+}
+
 async function main() {
   const version = JSON.parse(await readFile(join(root, "package.json"), "utf8")).version;
   if (version !== "0.13.0") throw new Error(`Artwork targets 0.13.0; package version is ${version}`);
@@ -111,6 +121,11 @@ async function main() {
           const box = element.getBoundingClientRect();
           if (box.bottom > innerHeight + 0.5 || box.right > innerWidth + 0.5 || box.x < 0 || box.y < 0) throw new Error(`Artwork extends beyond the canvas: ${element.tagName}.${element.className}`);
         }
+        const safe = document.querySelector(".safe")?.getBoundingClientRect();
+        if (safe) for (const element of document.querySelectorAll(".safe h1,.safe p,.safe .hero-mark")) {
+          const box = element.getBoundingClientRect();
+          if (box.x < safe.x || box.y < safe.y || box.right > safe.right + 0.5 || box.bottom > safe.bottom + 0.5) throw new Error(`Artwork extends beyond the safe area: ${element.tagName}.${element.className}`);
+        }
       });
       const png = withSrgb(await renderPage.screenshot({ type: "png", omitBackground: false }));
       const size = pngDimensions(png);
@@ -126,7 +141,7 @@ async function main() {
       await exportPage(`screenshots/${set.id}/${slide.id}.png`, screenshot(slide, set, capture, fonts, index), set.width, set.height,
         { source: capture.path, sourceSha256: capture.sha256, title: set.device === "ipad" && slide.tabletTitle ? slide.tabletTitle : slide.title });
     }
-    for (const item of promos) await exportPage(`promo/${item.name}.png`, promo(item, fonts), item.width, item.height, { purpose: item.name });
+    for (const item of promos) await exportPage(`promo/${item.name}.png`, item.name === "product-page-header" ? productPageHeader(fonts) : promo(item, fonts), item.width, item.height, { purpose: item.name });
   } finally {
     await browser.close();
   }
