@@ -89,3 +89,14 @@ export function contextGrid(usage: ContextUsage, cells = 200): string[] {
 export const formatTokens = (tokens: number) => tokens < 1000 ? String(tokens)
   : tokens < 1e6 ? `${+(tokens / 1000).toFixed(1)}k` : `${+(tokens / 1e6).toFixed(2)}M`;
 export const formatPercent = (tokens: number, window: number) => `${(tokens / window * 100).toFixed(1)}%`;
+
+/** The last request's provider-reported size against the window, appended to the next prompt so the model can see it. */
+export function usageNote(host: AgentHost, session: LiveSession) {
+  const info = session.catalog.find((model) => model.id === session.model);
+  const window = info?.contextWindow;
+  if (!session.usage || !window) return "";
+  const used = session.usage.input + session.usage.output;
+  const threshold = host.extensions?.compactor?.autoThreshold?.(window, info?.maxOutput);
+  const compaction = threshold === undefined ? "Auto compaction is off." : `Auto compaction runs at ${threshold.toLocaleString("en-US")} tokens.`;
+  return `\n\n<context-usage>The last request used ${used.toLocaleString("en-US")} of ${window.toLocaleString("en-US")} context tokens (${Math.round(used / window * 100)}%). ${compaction}</context-usage>`;
+}

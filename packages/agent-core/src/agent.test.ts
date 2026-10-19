@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Agent } from "./agent.js";
+import { basePrompt } from "./turn.js";
 import type { AgentHost } from "./host.js";
 import { chatText, chatTool, endpointOf, fakeModels, settings, type Reply } from "./test-models.js";
 
@@ -117,5 +118,13 @@ describe("Agent", () => {
     await expect(agent.prompt(sessionId, [{ type: "text", text: "First" }])).rejects.toThrow("Model API error 401: bad key");
     await agent.prompt(sessionId, [{ type: "text", text: "Second" }]);
     expect((requests.at(-1)!.body as any).messages.slice(1)).toEqual([{ role: "user", content: "Second" }]);
+  });
+});
+
+describe("basePrompt", () => {
+  it("tells a model without a shell that it cannot run commands", () => {
+    expect(basePrompt("/root", true, false)).toContain("This host has no shell, so you cannot run commands, tests or builds.");
+    expect(basePrompt("/root", true, true)).toContain("Run shell commands with bash.");
+    expect(basePrompt("/root", true, true)).not.toContain("no shell");
   });
 });

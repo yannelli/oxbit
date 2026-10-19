@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { USAGE_NOTE } from "./session-records.js";
 import { Agent } from "./agent.js";
 import type { CommandContext, Params, SessionView } from "./extensions.js";
 import { goalOf } from "./goal.js";
@@ -8,7 +9,7 @@ import { start, testHost, text } from "./test-host.js";
 
 const notes = (updates: Params[]) => updates.filter((update) => update.sessionUpdate === "agent_message_chunk" && update.content.text.startsWith("\n\n"))
   .map((update) => update.content.text.trim());
-const users = (messages: Params[]) => messages.filter((message) => message.role === "user").map((message) => message.content as string);
+const users = (messages: Params[]) => messages.filter((message) => message.role === "user").map((message) => (message.content as string).replace(USAGE_NOTE, ""));
 function fixture(maxIterations?: number) {
   const updates: Params[] = [];
   const loop = createLoop({ update: (_id, update) => updates.push(update), maxIterations });

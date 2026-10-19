@@ -66,9 +66,22 @@ export const listFiles: AgentTool = {
   kind: "read",
   title: (args) => `List ${args.path || "."}`,
   async run(args, context) {
-    const entries = await context.filesystem.list(resolvePath(context.root, args.path).relative);
+    const entries = (await context.filesystem.list(resolvePath(context.root, args.path).relative)).filter((entry) => entry.path.split("/").pop() !== ".git");
     const names = entries.slice(0, 500).map((entry) => entry.path + (entry.kind === "directory" ? "/" : ""));
     return names.join("\n") + (entries.length > 500 ? `\n[${entries.length - 500} more entries]` : "") || "The directory is empty";
+  },
+};
+/** For hosts whose filesystem has quick-open matching and no shell to run find or rg. */
+export const findFiles: AgentTool = {
+  spec: { name: "find_files", description: "Find workspace files by path. Matches paths that contain the query's characters in order, ignoring case, "
+    + "for example \"btn.tsx\" finds src/components/Button.tsx. Skips gitignored files, .git and node_modules.",
+    parameters: object({ query: { type: "string", description: "Part of a file name or path" } }, ["query"]) },
+  kind: "search",
+  title: (args) => `Find ${args.query ?? ""}`,
+  async run(args, context) {
+    if (!context.filesystem.findFiles) throw new Error("Finding files is unavailable in this workspace");
+    const paths = await context.filesystem.findFiles(string(args, "query", false), context.signal);
+    return paths.slice(0, 200).join("\n") + (paths.length > 200 ? `\n[${paths.length - 200} more paths; narrow the query]` : "") || "No files match";
   },
 };
 export const search: AgentTool = {
@@ -135,6 +148,7 @@ export const diagnostics: AgentTool = {
   async run(args, context) {
     const relative = args.path === undefined ? undefined : file(context, args).relative;
     const result = await context.request("oxbit/diagnostics", { sessionId: context.sessionId, toolCallId: context.toolCallId, ...(relative ? { path: relative } : {}) });
+    if (result?.available === false) return result.reason || "Diagnostics are unavailable in this workspace";
     const lines = (result?.diagnostics ?? []).map((item: Params) =>
       `${item.path}:${item.line}:${item.character} ${item.source ? `[${item.source}] ` : ""}${item.message}`);
     return lines.join("\n") || "No diagnostics";

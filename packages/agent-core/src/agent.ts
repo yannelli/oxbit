@@ -5,6 +5,7 @@ import { MODES, modeOf, replay, toRecord } from "./session-records.js";
 import { generateTitle, titleInput } from "./title.js";
 import { ADAPTERS, CONTEXT_LIMIT, PromptTurn, normalize, type LiveSession } from "./turn.js";
 import { contextCommand } from "./context-command.js";
+import { usageNote } from "./context-usage.js";
 import type { AgentHost } from "./host.js";
 import type { AgentCommand, CommandContext, Params, PermissionMode } from "./extensions.js";
 
@@ -244,6 +245,7 @@ export class Agent {
       return { stopReason: "end_turn" };
     }
     if (submit.additionalContext) text += `\n\n${submit.additionalContext.slice(0, CONTEXT_LIMIT)}`;
+    text += usageNote(this.host, session);
     const user: Turn = { role: "user", text };
     session.turns.push(user);
     try {

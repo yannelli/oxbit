@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { TOOLS, bash, builtinTools, relativePath, resolvePath, runTool } from "./tools.js";
+import { TOOLS, bash, builtinTools, findFiles, relativePath, resolvePath, runTool } from "./tools.js";
 import type { ToolContext } from "./extensions.js";
 
 const call = (name: string, args: unknown) => ({ id: `call-${name}`, name, arguments: JSON.stringify(args) });
@@ -19,7 +19,7 @@ function context(files: Record<string, string> = {}) {
   });
   const value: Omit<ToolContext, "toolCallId"> = {
     root: "/root", sessionId: "session", mode: "ask", signal: new AbortController().signal, request, update: (update) => updates.push(update),
-    filesystem: { list: vi.fn(async () => [{ path: "src", name: "src", kind: "directory" }, { path: "a.ts", name: "a.ts", kind: "file" }]) } as any,
+    filesystem: { list: vi.fn(async () => [{ path: ".git", name: ".git", kind: "directory" }, { path: "src", name: "src", kind: "directory" }, { path: "a.ts", name: "a.ts", kind: "file" }]) } as any,
   };
   return { context: value, updates, request, files };
 }
@@ -126,5 +126,24 @@ describe("bash", () => {
     const result = await runTool(call("bash", { command: "sleep 100", timeout_ms: 20 }), t.context, [bash]);
     expect(result.output).toBe("out\n[Timed out after 20 ms]");
     expect(t.methods()).toContain("terminal/kill");
+  });
+});
+
+describe("find_files and diagnostics fallbacks", () => {
+  it("finds paths through the filesystem's quick-open matcher and caps the list", async () => {
+    const { context: tools } = context();
+    expect((await runTool(call("find_files", { query: "btn" }), tools, [findFiles])).output).toBe("Finding files is unavailable in this workspace");
+    tools.filesystem.findFiles = vi.fn(async () => Array.from({ length: 205 }, (_, i) => `src/b${i}.ts`));
+    const output = (await runTool(call("find_files", { query: "btn" }), tools, [findFiles])).output;
+    expect(tools.filesystem.findFiles).toHaveBeenCalledWith("btn", tools.signal);
+    expect(output.split("\n")).toHaveLength(201);
+    expect(output).toMatch(/\[5 more paths; narrow the query\]$/);
+    tools.filesystem.findFiles = vi.fn(async () => []);
+    expect((await runTool(call("find_files", { query: "zzz" }), tools, [findFiles])).output).toBe("No files match");
+  });
+  it("returns the host's reason when diagnostics are unavailable", async () => {
+    const { context: tools, request } = context();
+    request.mockResolvedValueOnce({ diagnostics: [], available: false, reason: "No language service is running in this workspace" });
+    expect((await runTool(call("diagnostics", {}), tools)).output).toBe("No language service is running in this workspace");
   });
 });

@@ -1,7 +1,7 @@
 import { MISSING_AGENT_KEY, MISSING_CHATGPT_SIGN_IN, OXBIT_AGENT_PROVIDER, OXBIT_AGENT_SETTINGS, type ACPConnection, type ACPQueuedPrompt, type AgentModels,
   type FeatureOptions, type Persistence, type RpcClient, type Unsubscribe } from "@oxbit/sdk";
 import { SubagentRegistry } from "@oxbit/sdk/acp-subagents";
-import { Agent, relativePath, resolvePath, type RetryPolicy } from "@oxbit/agent-core";
+import { Agent, BUILTIN_MODELS, fillLimits, listModels, relativePath, resolvePath, type ModelInfo, type RetryPolicy } from "@oxbit/agent-core";
 import { oxbitEndpoint } from "../configuration.js";
 import { compactSettings, localExtensions } from "./extensions.js";
 import { StoredSessions, memoryPersistence } from "./sessions.js";
@@ -111,6 +111,18 @@ export class LocalAgentRuntime implements RpcClient {
     this.publish(connection, "acp.queue", { queue: connection.queue, paused: connection.queuePaused });
     return { queue: [...connection.queue], paused: connection.queuePaused };
   }
+  /** The listed models with context and output limits from the built-in table; that table stands in when listing fails. */
+  private async catalog(endpoint: ReturnType<typeof oxbitEndpoint>) {
+    const builtin = endpoint.api === "openai" || endpoint.api === "anthropic" ? endpoint.api : undefined;
+    let listed: ModelInfo[];
+    try {
+      listed = await listModels(this.models()!, endpoint);
+    } catch (error) {
+      if (!builtin) throw error;
+      listed = BUILTIN_MODELS[builtin].map((model) => ({ ...model }));
+    }
+    return fillLimits(listed, { builtin });
+  }
   private async start(signal?: AbortSignal) {
     const models = this.models();
     if (!models) throw new Error("Connect to a runtime workspace first");
@@ -132,7 +144,12 @@ export class LocalAgentRuntime implements RpcClient {
         this.expire(connection, update.subagentSessionId);
     };
     const { extensions, settings } = localExtensions({ filesystem: this.options.filesystem, root: this.root, configuration, sessions: this.sessions, update });
+    let catalog: Promise<ModelInfo[]> | undefined;
     const agent = new Agent({
+      catalog: () => catalog ??= this.catalog(oxbitEndpoint(configuration)).catch((error) => {
+        catalog = undefined;
+        throw error;
+      }),
       models: this.models, endpoint: () => oxbitEndpoint(configuration), capabilities: { fs: true, terminal: false, childSessions: true }, subagents: {},
       model: () => configuration.get<string>(OXBIT_AGENT_SETTINGS.model),
       saveModel: (model) => configuration.set(OXBIT_AGENT_SETTINGS.model, model, "user"),

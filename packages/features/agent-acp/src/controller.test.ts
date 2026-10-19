@@ -67,7 +67,8 @@ describe("ACP editor integration", () => {
     workbench.state = { groups: [{ tabs: [{ path: "hello.txt" }] }] };
     workbench.activePath = () => "hello.txt";
     workbench.activeEditor = () => ({ state: { selection: { main: { from: 6, to: 19, empty: false } } } });
-    (options.kernel as any).services = { optional: () => undefined, get: () => ({ diagnostics: new Map([["hello.txt", [{ message: "Issue", range: { start: { line: 1, character: 2 } } }]]]) }) };
+    const language = { diagnostics: new Map([["hello.txt", [{ message: "Issue", range: { start: { line: 1, character: 2 } } }]]]) };
+    (options.kernel as any).services = { optional: (id: string) => id === "language" ? language : undefined };
     listeners.get("acp.request")!({ id: "connection", requestId: "workspace", method: "oxbit/workspace", params: {} });
     await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
     expect(runtime.request).toHaveBeenCalledWith("acp.respond", expect.objectContaining({ result: expect.objectContaining({
@@ -75,6 +76,21 @@ describe("ACP editor integration", () => {
       selection: expect.objectContaining({ text: "selected text" }),
       diagnostics: [expect.objectContaining({ path: "hello.txt", line: 2, character: 3 })],
     }) }));
+    agent.dispose();
+  });
+  it("tells the agent why diagnostics are unavailable", async () => {
+    const { agent, listeners, runtime, options } = setup();
+    (options.workbench as any).activePath = () => undefined;
+    listeners.get("acp.request")!({ id: "connection", requestId: "none", method: "oxbit/diagnostics", params: { path: "hello.txt" } });
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(1);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.respond", expect.objectContaining({
+      result: { diagnostics: [], available: false, reason: "No language service is running in this workspace" } }));
+    (options.kernel as any).services = { optional: (id: string) => id === "language" ? { diagnostics: new Map() } : undefined };
+    (options.workbench as any).state = { groups: [] };
+    listeners.get("acp.request")!({ id: "connection", requestId: "closed", method: "oxbit/diagnostics", params: {} });
+    await expect.poll(() => runtime.request.mock.calls.length).toBe(2);
+    expect(runtime.request).toHaveBeenLastCalledWith("acp.respond", expect.objectContaining({
+      result: { diagnostics: [], available: false, reason: "No files are open. Pass a path to check a file." } }));
     agent.dispose();
   });
   it("answers reads from unsaved editor state with line limits", async () => {

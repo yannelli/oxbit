@@ -22,10 +22,12 @@ export const toRecord = (session: SessionView): SessionRecord => ({
 });
 
 /** Sends a saved conversation as ACP session/update notifications for session/load. */
+export const USAGE_NOTE = /\n\n<context-usage>[^<]*<\/context-usage>$/;
+
 export function replay(turns: readonly Turn[], tools: readonly AgentTool[], update: (update: Params) => void) {
   const text = (value: string) => ({ type: "text", text: value });
   for (const turn of turns) {
-    if (turn.role === "user") update({ sessionUpdate: "user_message_chunk", content: text(turn.text) });
+    if (turn.role === "user") update({ sessionUpdate: "user_message_chunk", content: text(turn.text.replace(USAGE_NOTE, "")) });
     else if (turn.role === "assistant") {
       if (turn.text) update({ sessionUpdate: "agent_message_chunk", content: text(turn.text) });
       for (const call of turn.calls) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Agent } from "./agent.js";
 import { Compaction } from "./compaction.js";
 import { contextGrid, type ContextUsage } from "./context-usage.js";
+import { replay } from "./session-records.js";
 import type { AgentExtensions, AgentTool, Params } from "./extensions.js";
 import type { ModelInfo } from "./model.js";
 import { chatText } from "./test-models.js";
@@ -89,5 +90,26 @@ describe("contextGrid", () => {
   });
   it("scales categories to the grid when the estimate exceeds the window", () => {
     expect(contextGrid(usage([300, 100], 200, 150), 4)).toEqual(["c0", "c0", "c0", "c1"]);
+  });
+});
+
+describe("context usage note", () => {
+  it("tells the model the last request's size on the next prompt and hides it from replays", async () => {
+    const harness = await run([{ id: "m", name: "M", contextWindow: 200000, maxOutput: 8000 }], extensions(), [chatText("one"), chatText("two")]);
+    await harness.agent.prompt(harness.sessionId, text("first"));
+    expect(harness.messages().at(-1)).toEqual({ role: "user", content: "first" });
+    await harness.agent.prompt(harness.sessionId, text("second"));
+    expect(harness.messages().at(-1)!.content).toBe("second\n\n<context-usage>The last request used 12 of 200,000 context tokens (0%). "
+      + `Auto compaction runs at ${new Compaction().threshold(200000, 8000).toLocaleString("en-US")} tokens.</context-usage>`);
+    const replayed: Params[] = [];
+    replay([{ role: "user", text: harness.messages().at(-1)!.content as string }], [], (update) => replayed.push(update));
+    expect(replayed[0].content.text).toBe("second");
+  });
+
+  it("adds nothing when the window is unknown", async () => {
+    const harness = await run([{ id: "m", name: "M" }], extensions(), [chatText("one"), chatText("two")]);
+    await harness.agent.prompt(harness.sessionId, text("first"));
+    await harness.agent.prompt(harness.sessionId, text("second"));
+    expect(harness.messages().at(-1)).toEqual({ role: "user", content: "second" });
   });
 });

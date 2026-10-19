@@ -23,7 +23,7 @@ export const SUBAGENT_PROMPT = [
 ].join("\n");
 const DESCRIPTION = `Delegate a self-contained task to a subagent. It starts with a fresh context and the same tools except ${OXBIT_SUBAGENT_TOOL}, `
   + "works until done, and returns its final message as this tool's result. The call blocks until the subagent finishes. "
-  + "The user does not see that message, so summarize what matters. Use it for broad searches, multi-file investigations or independent changes, "
+  + "The user can open that message from the thread, but your reply should still state what matters from it. Use it for broad searches, multi-file investigations or independent changes, "
   + `to keep this conversation's context small. Several ${OXBIT_SUBAGENT_TOOL} calls in one response run in parallel. `
   + "Its file edits and commands go through the same user review as yours.";
 
