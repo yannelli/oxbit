@@ -4,6 +4,7 @@ export * from "./panels.js";
 import type { ComponentType } from "react";
 export const SDK_VERSION = "1.0.0";
 export * from "./languages.js";
+export * from "./fences.js";
 export * from "./language-servers.js";
 export * from "./settings-schema.js";
 export type Environment = "browser" | "runtime" | "embedded";

@@ -796,6 +796,24 @@
       "type": "boolean",
       "default": false
     },
+    "editor.embeddedCode.highlighting": {
+      "title": "Highlight Code Fences",
+      "description": "Highlight fenced code in Markdown and in comments with the fence's language.",
+      "type": "boolean",
+      "default": true
+    },
+    "editor.embeddedCode.languageServers": {
+      "title": "Language Servers in Code Fences",
+      "description": "Send fenced code in Markdown and in comments to the language server for its language, for completion, hover, signature help, semantic highlighting and inlay hints.",
+      "type": "boolean",
+      "default": true
+    },
+    "editor.embeddedCode.diagnostics": {
+      "title": "Problems in Code Fences",
+      "description": "Show language server problems for fenced code. Snippets that use undeclared names or missing packages report errors.",
+      "type": "boolean",
+      "default": true
+    },
     "workbench.locale": {
       "title": "Display Language",
       "type": "string",
@@ -1233,6 +1251,15 @@
         },
         "editor.largeFileIntelligence": {
           "$ref": "#/properties/editor.largeFileIntelligence"
+        },
+        "editor.embeddedCode.highlighting": {
+          "$ref": "#/properties/editor.embeddedCode.highlighting"
+        },
+        "editor.embeddedCode.languageServers": {
+          "$ref": "#/properties/editor.embeddedCode.languageServers"
+        },
+        "editor.embeddedCode.diagnostics": {
+          "$ref": "#/properties/editor.embeddedCode.diagnostics"
         },
         "workbench.locale": {
           "$ref": "#/properties/workbench.locale"

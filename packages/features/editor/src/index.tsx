@@ -5,7 +5,7 @@ import { languageForKernel, resolveLanguage } from "@oxbit/sdk";
 import { php } from "@codemirror/lang-php";
 import { vue } from "@codemirror/lang-vue";
 import { xml } from "@codemirror/lang-xml";
-import { StreamLanguage } from "@codemirror/language";
+import { StreamLanguage, type Language } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
@@ -74,6 +74,7 @@ import type { DocumentHandle } from "@oxbit/documents";
 import type { LanguageDefinition, Extension, Kernel } from "@oxbit/sdk";
 import { contributedLanguage, editorLanguageId } from "./languages.js";
 import { contributedDecorations } from "./decorations.js";
+import { commentFenceHighlighting, fenceCodeLanguages } from "./fence-syntax.js";
 import {
   captureView,
   restoreScroll,
@@ -188,6 +189,13 @@ export function languageFor(path: string, kernel?: Kernel, firstLine?: string): 
     return ((custom.data as LanguageDefinition).editorExtensions ||
       []) as CMExtension[];
   const id = kernel ? languageForKernel(kernel, path, firstLine).id : resolveLanguage(path, { firstLine }).id;
+  if (kernel?.configuration.get<boolean>("editor.embeddedCode.highlighting", id) === false) return syntaxForLanguage(id);
+  const definitions = kernel?.contributions.list("language").map((item) => item.data as LanguageDefinition) ?? [];
+  const syntax = syntaxForLanguage(id, fenceCodeLanguages(syntaxForLanguage, definitions));
+  return id === "markdown" || id === "mdx" ? syntax : [syntax, commentFenceHighlighting(id, syntaxForLanguage)];
+}
+
+function syntaxForLanguage(id: string, codeLanguages?: (info: string) => Language | null): CMExtension {
   switch (id) {
     case "typescript": return javascript({ typescript: true });
     case "typescriptreact": return javascript({ typescript: true, jsx: true });
@@ -200,8 +208,8 @@ export function languageFor(path: string, kernel?: Kernel, firstLine?: string): 
     case "astro": return astroSyntax();
     case "php": case "blade": return php();
     case "xml": return xml();
-    case "markdown": return markdown();
-    case "mdx": return markdown({ htmlTagLanguage: javascript({ jsx: true }) });
+    case "markdown": return markdown(codeLanguages ? { codeLanguages } : {});
+    case "mdx": return markdown({ htmlTagLanguage: javascript({ jsx: true }), ...(codeLanguages ? { codeLanguages } : {}) });
     case "shellscript": return StreamLanguage.define(shell);
     case "toml": return StreamLanguage.define(toml);
     case "dockerfile": return StreamLanguage.define(dockerFile);
