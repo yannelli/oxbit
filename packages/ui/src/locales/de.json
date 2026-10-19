@@ -812,6 +812,8 @@
   "How long a runtime Oxbit started keeps running after the last client disconnects. Terminals and tasks continue while it runs.": "Wie lange eine von Oxbit gestartete Runtime weiterläuft, nachdem sich der letzte Client getrennt hat. Terminals und Aufgaben laufen in dieser Zeit weiter.",
   "Keep Runtime Alive": "Runtime aktiv halten",
   "Reconnect Automatically": "Automatisch neu verbinden",
+  "Stay Connected in the Background": "Im Hintergrund verbunden bleiben",
+  "Use approximate location while a runtime, SSH connection or agent turn is open, so iOS keeps terminals and agents connected when you switch apps. The location indicator shows while it runs. Oxbit does not store or send your location.": "Nutzt den ungefähren Standort, solange eine Runtime, SSH-Verbindung oder ein Agent-Durchlauf offen ist, damit iOS Terminals und Agents beim App-Wechsel verbunden hält. Während der Nutzung wird die Standortanzeige eingeblendet. Oxbit speichert und sendet Ihren Standort nicht.",
   "Saved runtimes": "Gespeicherte Runtimes",
   "Forget {0}": "{0} vergessen",
   "In use": "Aktiv",

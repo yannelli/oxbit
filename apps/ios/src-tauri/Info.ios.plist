@@ -33,6 +33,8 @@
   <key>UISupportsDocumentBrowser</key><false/>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
   <key>NSSupportsLiveActivities</key><true/>
+  <key>UIBackgroundModes</key><array><string>location</string></array>
+  <key>NSLocationWhenInUseUsageDescription</key><string>When you turn on Stay Connected in the Background, Oxbit uses your approximate location so iOS keeps your terminals, remote runtime and agent connections open while you use other apps. Oxbit does not store or send your location.</string>
   <key>CFBundleDocumentTypes</key><array><dict>
     <key>CFBundleTypeName</key><string>Project folder or source file</string>
     <key>CFBundleTypeRole</key><string>Editor</string>

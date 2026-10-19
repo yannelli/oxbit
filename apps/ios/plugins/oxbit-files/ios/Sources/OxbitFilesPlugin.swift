@@ -35,6 +35,7 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
   private let notifications = Notifications()
   private let remoteNotifications = RemoteNotifications()
   private let agentModels = AgentModels()
+  private let backgroundLocation = BackgroundLocation()
   private var pending: Invoke?
   private var open: [String: URL] = [:]
 
@@ -129,6 +130,10 @@ class OxbitFilesPlugin: Plugin, UIDocumentPickerDelegate {
 
   @objc public func unwatchNotificationTaps(_ invoke: Invoke) {
     notifications.unwatchTaps(invoke)
+  }
+
+  @objc public func backgroundLocation(_ invoke: Invoke) {
+    backgroundLocation.handle(invoke)
   }
 
   @objc public func agentModelsStream(_ invoke: Invoke) {

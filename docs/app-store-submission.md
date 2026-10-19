@@ -48,6 +48,7 @@ The optional iOS 27 creative assets (guideline 2.3.14, 2026-10-16) are a product
 | 2.5.2 | No downloaded code that adds features | Runtime extensions are off on iOS; check URL installs of browser extensions |
 | 4.7 | Non-bundled software, chatbots, and plug-ins need consent, filtering, and an index | Relevant if extensions or chat features load remote code |
 | 1.2 | AI content creation apps need filtering, reporting, blocking, and contact information | The coding agent returns the user's own provider's output |
+| 2.5.4 | Background modes only for their intended purpose | `location` keeps connections open when the user turns on Stay Connected in the Background; see [iOS background location](ios-background-location.md) |
 | 2.5.5 | Works on IPv6-only networks | Check runtime pairing |
 | 2.5.19 (new) | No hidden or undocumented features | |
 

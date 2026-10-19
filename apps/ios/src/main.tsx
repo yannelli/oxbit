@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
 import { AGENT_ACTIVITY_SERVICE, AGENT_MODELS_SERVICE, type AgentActivityUpdate } from "@oxbit/sdk";
-import { IosAgentModels, IosGitClient, IosPush, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
+import { BACKGROUND_LOCATION_SETTING, BackgroundKeepAlive, backgroundLocationSetting, IosAgentModels, IosGitClient, IosPush, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
 import { withAiConsent } from "./ai-consent.js";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
@@ -265,10 +265,22 @@ function App() {
       if (id === "ssh.upload" || id === "ssh.download")
         disposables.push(session.kernel.contributions.register({ id: `ios.${id}.explorer`, kind: "menu", location: "explorer", command: id, title }));
     }
+    const keepAlive = new BackgroundKeepAlive(native.backgroundLocation, () => document.visibilityState === "visible", () => session.workbench.notify(
+      "Location access is off for Oxbit, so connections close when you switch apps. Allow location in Settings › Oxbit, or turn off Stay Connected in the Background.", "error"));
+    const configuration = session.kernel.configuration;
+    disposables.push(configuration.register(backgroundLocationSetting));
+    const followSetting = () => void keepAlive.update({ enabled: configuration.get(BACKGROUND_LOCATION_SETTING) === true });
+    followSetting();
+    disposables.push({ dispose: configuration.subscribe(followSetting) });
+    void keepAlive.update({ connected: Boolean(session.runtime) || workspace.recent.kind === "ssh" });
+    const onVisible = () => { if (document.visibilityState === "visible") void keepAlive.visible(); };
+    document.addEventListener("visibilitychange", onVisible);
+    disposables.push({ dispose: () => { document.removeEventListener("visibilitychange", onVisible); void keepAlive.dispose(); } });
     let activity: AgentActivityUpdate | null = null;
     disposables.push(session.kernel.services.register(AGENT_ACTIVITY_SERVICE, {
       update: (update: AgentActivityUpdate | null) => {
         activity = update;
+        void keepAlive.update({ working: update?.status === "working" || update?.status === "waiting" });
         return native.agentActivity(update);
       },
     }));

@@ -43,3 +43,4 @@ export { IosNotification, installNotifications, notificationPermission, onNotifi
 export { IosPush, PUSH_DEVICE_KEY, PUSH_HANDLES_KEY } from "./push.js";
 export { IosAgentModels } from "./agent-models.js";
 export { IosSpeechRecognition, installSpeechRecognition, type SpeechErrorCode, type SpeechErrorEvent, type SpeechResultEvent } from "./speech.js";
+export { BackgroundKeepAlive, BACKGROUND_LOCATION_SETTING, backgroundLocationSetting, type BackgroundLocationResult, type KeepAliveState } from "./keep-alive.js";
