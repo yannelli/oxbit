@@ -1,6 +1,7 @@
 @import "./theme-defaults.generated.css";
 @import "./classicos98.css";
 @import "./pride.css";
+@import "./vivid.css";
 
 html,body{margin:0;min-height:100%;background:var(--bg-app,#14161a);font-family:var(--font-body-font-family,system-ui,sans-serif);-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}

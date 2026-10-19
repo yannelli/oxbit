@@ -162,3 +162,7 @@ html[data-native-titlebar="macos"][data-window-fullscreen="true"] .desktop-shell
 .ssh-form input { width: 100%; box-sizing: border-box; }
 .ssh-form p { margin: 0; color: var(--fg-3); }
 .ssh-form [role="alert"] { color: var(--error); }
+.desktop-update-notes { white-space: pre-wrap; color: var(--fg-2); }
+.desktop-update-progress { display: grid; gap: 6px; margin-top: 12px; }
+.desktop-update-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.desktop-update-progress span { color: var(--fg-2); font-variant-numeric: tabular-nums; }

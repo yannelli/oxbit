@@ -6,6 +6,7 @@ import vscode from "./packs/oxbit.vscode.json";
 import highContrast from "./packs/oxbit.vscode-hc.json";
 import classicOS98 from "./packs/oxbit.classicos98.json";
 import creative from "./packs/oxbit.creative.json";
+import vivid from "./packs/oxbit.vivid.json";
 export const bundledPacks = [
   core,
   loadBearing,
@@ -14,6 +15,7 @@ export const bundledPacks = [
   highContrast,
   classicOS98,
   creative,
+  vivid,
 ] as ThemePack[];
 export function packContributions(pack: ThemePack) {
   return pack.themes.map((theme) => {
@@ -44,3 +46,4 @@ export const vscodeThemes = packContributions(bundledPacks[3]);
 export const vscodeHighContrastThemes = packContributions(bundledPacks[4]);
 export const classicOS98Themes = packContributions(bundledPacks[5]);
 export const creativeThemes = packContributions(creative as ThemePack);
+export const vividThemes = packContributions(vivid as ThemePack);

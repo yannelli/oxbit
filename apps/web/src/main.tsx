@@ -390,6 +390,7 @@ function SessionView({
           className="runtime-connect"
           data-theme={theme}
           data-theme-pack={currentTheme(session.kernel).packId}
+          data-theme-id={currentTheme(session.kernel).id}
           data-density="compact"
           style={{
             ...themeVariables(session.kernel),
