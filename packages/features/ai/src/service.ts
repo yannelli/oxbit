@@ -1,4 +1,4 @@
-import { ADAPTERS, providerSpec } from "@oxbit/agent-core";
+import { ADAPTERS, providerSpec, withOutputLimit } from "@oxbit/agent-core";
 import {
   AGENT_MODELS_SERVICE,
   OXBIT_AGENT_SETTINGS,
@@ -57,8 +57,8 @@ export function createAiService(kernel: Kernel, runtime?: RpcClient): AiService 
   async function local(models: AgentModels, endpoint: AgentModelEndpoint, model: string, request: AiRequest, signal?: AbortSignal) {
     const adapter = ADAPTERS[endpoint.api];
     const effort = setting(AI_SETTINGS.effort);
-    const body = adapter.request({ model, system: request.system, turns: [{ role: "user", text: request.prompt }], tools: [],
-      ...(effort ? { effort } : {}), ...(request.maxTokens ? { maxTokens: request.maxTokens } : {}) });
+    const body = withOutputLimit(endpoint.api, adapter.request({ model, system: request.system, turns: [{ role: "user", text: request.prompt }], tools: [],
+      ...(effort ? { effort } : {}), ...(request.maxTokens ? { maxTokens: request.maxTokens } : {}) }), request.maxTokens);
     let text = "";
     for await (const event of adapter.events(models.stream({ ...endpoint, ...body }, signal)))
       if (event.type === "text") text += event.text;

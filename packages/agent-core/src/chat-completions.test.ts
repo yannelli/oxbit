@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chatCompletions } from "./chat-completions.js";
+import { withOutputLimit } from "./turn.js";
 import { chunks, split, sse } from "./test-models.js";
 import type { Turn } from "./model.js";
 
@@ -50,5 +51,13 @@ describe("Chat Completions adapter", () => {
       { role: "assistant", content: null, reasoning_content: "R", tool_calls: [{ id: "call_1", type: "function", function: { name: "read_file", arguments: "{}" } }] },
       { role: "tool", tool_call_id: "call_1", content: "text" },
     ]);
+  });
+
+  it("adds the output cap that each API reads to a one-shot request", () => {
+    const request = chatCompletions.request({ model: "m", system: "S", turns: [], tools: [] });
+    expect(withOutputLimit("openai-compatible", request, 64).body).toMatchObject({ model: "m", max_tokens: 64 });
+    expect(withOutputLimit("openai", { body: {} }, 64).body).toEqual({ max_output_tokens: 64 });
+    expect(withOutputLimit("chatgpt", request, 64)).toBe(request);
+    expect(withOutputLimit("openai-compatible", request)).toBe(request);
   });
 });

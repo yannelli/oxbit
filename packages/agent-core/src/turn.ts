@@ -34,6 +34,14 @@ export const ADAPTERS: Record<AgentModelApi, ModelAdapter> = {
   anthropic: anthropicMessages,
   chatgpt: chatgptResponses,
 };
+/** The body field each API reads as the output token cap. The Anthropic adapter sets max_tokens itself, and the ChatGPT backend rejects max_output_tokens. */
+const OUTPUT_LIMIT: Partial<Record<AgentModelApi, string>> = { openai: "max_output_tokens", "openai-compatible": "max_tokens" };
+
+/** Adds `maxTokens` as the API's output cap to a one-shot request from `ADAPTERS[api].request`. */
+export function withOutputLimit<T extends { body?: unknown }>(api: AgentModelApi, request: T, maxTokens?: number): T {
+  const field = OUTPUT_LIMIT[api];
+  return field && maxTokens ? { ...request, body: { ...request.body as object, [field]: maxTokens } } : request;
+}
 const MAX_STEPS = 64;
 /** Stop hook blocks per prompt before the turn ends anyway. */
 export const STOP_BLOCK_LIMIT = 10;

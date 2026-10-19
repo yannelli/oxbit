@@ -7,10 +7,10 @@ const chatText = (text: string) => [
 ];
 
 /** The browser workspace has no runtime, so a fake agentModels service with a saved key answers AI requests with `replies` in order. */
-async function open(page: Page, replies: string[][]) {
+async function open(page: Page, replies: string[][], settings: Record<string, unknown> = {}) {
   await page.goto("/");
   await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
-  await page.evaluate(async (replies) => {
+  await page.evaluate(async ({ replies, settings }) => {
     const z = (window as any).__oxbit;
     const requests: any[] = (window as any).__aiRequests = [];
     z.kernel.services.register("agentModels", {
@@ -19,10 +19,10 @@ async function open(page: Page, replies: string[][]) {
     });
     for (const [id, value] of Object.entries({
       "agentACP.oxbit.api": "openai-compatible", "agentACP.oxbit.baseUrl": "https://models.test/api", "agentACP.oxbit.model": "agent-model",
-      "ai.model": "fast-model", "ai.inlineCompletions.enabled": true, "ai.inlineCompletions.delay": 100,
+      "ai.model": "fast-model", "ai.inlineCompletions.enabled": true, "ai.inlineCompletions.delay": 100, ...settings,
     })) await z.kernel.configuration.set(id, value, "user");
     await z.workbench.openFile("src/App.tsx");
-  }, replies);
+  }, { replies, settings });
   await page.locator(".cm-content[contenteditable=true]").click();
   await page.keyboard.press("ControlOrMeta+End");
 }
@@ -40,6 +40,31 @@ test("ghost text appears after typing and Tab accepts it", async ({ page }) => {
   await page.keyboard.press("Tab");
   await expect(ghost).toHaveCount(0);
   expect(await text(page)).toContain("const greeting = \"hello\";");
+});
+
+test("inline completion settings limit the request and the suggestion", async ({ page }) => {
+  await open(page, [chatText("\"hello\";\nconsole.log(greeting);")], {
+    "ai.inlineCompletions.maxTokens": 64, "ai.inlineCompletions.maxLines": 1, "ai.inlineCompletions.linesBefore": 0,
+    "ai.inlineCompletions.includePath": false, "ai.inlineCompletions.instructions": "Prefer double quotes.",
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("const greeting = ");
+  await expect(page.locator(".cm-ai-ghost")).toHaveText("\"hello\";");
+  const request = await page.evaluate(() => (window as any).__aiRequests[0]);
+  expect(request.body.max_tokens).toBe(64);
+  const [system, user] = request.body.messages;
+  expect(system.content).toContain("Complete only the rest of the current line.");
+  expect(system.content).toContain("Prefer double quotes.");
+  expect(user.content.startsWith("const greeting = <|cursor|>")).toBe(true);
+});
+
+test("excluded files request no suggestions", async ({ page }) => {
+  await open(page, [chatText("42;")], { "ai.inlineCompletions.disabledGlobs": ["**/*.tsx"] });
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("const answer = ");
+  await page.waitForTimeout(600);
+  await expect(page.locator(".cm-ai-ghost")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).__aiRequests.length)).toBe(0);
 });
 
 test("Escape dismisses ghost text and leaves the document unchanged", async ({ page }) => {

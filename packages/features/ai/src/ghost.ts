@@ -1,6 +1,5 @@
-import { Facet, Prec, StateEffect, StateField, type EditorState, type Extension, type Transaction } from "@codemirror/state";
+import { Facet, Prec, StateEffect, StateField, type EditorState, type Extension, type Text, type Transaction } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, keymap, type ViewUpdate } from "@codemirror/view";
-import { PREFIX_CHARS, SUFFIX_CHARS } from "./prompt.js";
 
 export interface Suggestion {
   from: number;
@@ -10,8 +9,8 @@ export interface GhostOptions {
   /** Whether typing requests suggestions; `requestSuggestion` works either way. */
   automatic(): boolean;
   delay(): number;
-  /** Resolves to the cleaned suggestion for the cursor, or "". */
-  suggest(context: { prefix: string; suffix: string }, signal: AbortSignal): Promise<string>;
+  /** Resolves to the cleaned suggestion for the cursor at `pos`, or "". */
+  suggest(doc: Text, pos: number, signal: AbortSignal): Promise<string>;
   onError?(error: unknown): void;
 }
 
@@ -121,10 +120,7 @@ const ghostPlugin = ViewPlugin.fromClass(class {
     const controller = new AbortController();
     this.controller = controller;
     try {
-      const text = await config.suggest({
-        prefix: state.doc.sliceString(Math.max(0, pos - PREFIX_CHARS), pos),
-        suffix: state.doc.sliceString(pos, Math.min(state.doc.length, pos + SUFFIX_CHARS)),
-      }, controller.signal);
+      const text = await config.suggest(state.doc, pos, controller.signal);
       if (controller.signal.aborted || view.state.doc !== state.doc || view.state.selection.main.head !== pos) return;
       if (text) view.dispatch({ effects: setSuggestion.of({ from: pos, text }) });
     } catch (error) {

@@ -2,6 +2,7 @@ import type { EditorView } from "@codemirror/view";
 import {
   AGENT_MODELS_SERVICE,
   languageForKernel,
+  lspGlobMatches,
   type AgentModels,
   type EditorDecorationContribution,
   type Extension,
@@ -10,7 +11,7 @@ import {
 import { AI_SETTINGS, aiConfiguration } from "./configuration.js";
 import { ghostText, requestSuggestion } from "./ghost.js";
 import { editMarks, inlineEditExtension, runInlineEdit } from "./inline-edit.js";
-import { COMPLETION_SYSTEM, cleanCompletion, completionPrompt } from "./prompt.js";
+import { CHARS_PER_TOKEN, cleanCompletion, completionPrompt, completionSystem, contextWindow, nearbyProblems, openFileContext, type OpenFile } from "./prompt.js";
 import { AI_PROVIDER_NAMES, AI_SERVICE, RUNTIME_PROVIDERS, aiEndpoint, aiProvider, createAiService } from "./service.js";
 import { modelSuggestions } from "./suggestions.js";
 
@@ -18,7 +19,7 @@ export { AI_SETTINGS, aiConfiguration } from "./configuration.js";
 export { AI_SERVICE, AI_UNAVAILABLE, aiProvider, createAiService, type AiProvider, type AiRequest, type AiService } from "./service.js";
 export { modelSuggestions } from "./suggestions.js";
 
-const COMPLETION_MAX_TOKENS = 256;
+const SETTINGS = new Map(aiConfiguration.map((setting) => [setting.id, setting]));
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 export function createFeature({ kernel, runtime, workbench, documents }: Pick<FeatureOptions, "kernel" | "runtime" | "workbench" | "documents">): Extension {
@@ -31,6 +32,21 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
     workbench.notify(`AI completion failed: ${text}`, "error", { source: "AI" });
   };
   const activeView = () => workbench.activeEditor() as EditorView | undefined;
+  const diagnostics = new Map<string, unknown[]>();
+  /** The setting for `language`, rounded and held to the setting's range. */
+  const limit = (id: string, language: string) => {
+    const spec = SETTINGS.get(id)!, value = kernel.configuration.get<number>(id, language);
+    const number = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : spec.default as number;
+    return Math.min(spec.max ?? number, Math.max(spec.min ?? number, number));
+  };
+  const excluded = (path: string, language: string) =>
+    (kernel.configuration.get<string[]>(AI_SETTINGS.disabledGlobs, language) ?? []).some((pattern) => lspGlobMatches(pattern, path));
+  const otherOpenFiles = (path: string, language: string): OpenFile[] => {
+    const open = (documents as { documents?: Map<string, { text: { toString(): string } }> } | undefined)?.documents;
+    return [...open?.entries() ?? []].reverse()
+      .filter(([other]) => other !== path && !excluded(other, language))
+      .map(([other, handle]) => ({ path: other, text: handle.text.toString() }));
+  };
   return {
     manifest: {
       manifestVersion: 1,
@@ -46,21 +62,37 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
     },
     activate(ctx) {
       ctx.own(ctx.services.register(AI_SERVICE, service));
+      ctx.own(kernel.events.on("diagnostics.change", ({ path, diagnostics: items }) => {
+        if (items.length) diagnostics.set(path, items);
+        else diagnostics.delete(path);
+      }));
       const decoration: EditorDecorationContribution = {
         createExtensions: ({ path }) => {
           const language = languageForKernel(kernel, path).id;
           return [
             ghostText({
-              automatic: () => kernel.configuration.get<boolean>(AI_SETTINGS.inlineCompletions, language) === true,
+              automatic: () => kernel.configuration.get<boolean>(AI_SETTINGS.inlineCompletions, language) === true && !excluded(path, language),
               delay: () => kernel.configuration.get<number>(AI_SETTINGS.delay, language) ?? 350,
-              async suggest(context, signal) {
+              async suggest(doc, pos, signal) {
+                if (excluded(path, language)) return "";
+                const flag = (id: string) => kernel.configuration.get<boolean>(id, language);
+                const tokens = limit(AI_SETTINGS.contextTokens, language), maxLines = limit(AI_SETTINGS.maxLines, language);
+                const openFiles = flag(AI_SETTINGS.includeOpenFiles) === true ? openFileContext(otherOpenFiles(path, language), Math.floor(tokens / 4)) : [];
+                const openChars = openFiles.reduce((sum, file) => sum + file.text.length, 0);
+                const window = contextWindow(doc, pos, {
+                  linesBefore: limit(AI_SETTINGS.linesBefore, language),
+                  linesAfter: limit(AI_SETTINGS.linesAfter, language),
+                  tokens: tokens - Math.ceil(openChars / CHARS_PER_TOKEN),
+                });
+                const problems = flag(AI_SETTINGS.includeDiagnostics) === true ? nearbyProblems(diagnostics.get(path) ?? [], window.firstLine, window.lastLine) : [];
+                const context = { prefix: window.prefix, suffix: window.suffix };
                 const reply = await service.complete({
-                  system: COMPLETION_SYSTEM,
-                  prompt: completionPrompt({ path, language, ...context }),
-                  maxTokens: COMPLETION_MAX_TOKENS,
+                  system: completionSystem({ maxLines, instructions: kernel.configuration.get<string>(AI_SETTINGS.instructions, language) }),
+                  prompt: completionPrompt({ path, language, ...context, includePath: flag(AI_SETTINGS.includePath) !== false, problems, openFiles }),
+                  maxTokens: limit(AI_SETTINGS.maxTokens, language),
                 }, signal);
                 reported = undefined;
-                return cleanCompletion(reply, context);
+                return cleanCompletion(reply, context, maxLines);
               },
               onError: report,
             }),

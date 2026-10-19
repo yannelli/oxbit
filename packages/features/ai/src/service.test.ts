@@ -35,9 +35,9 @@ describe("createAiService", () => {
     const kernel = kernelWith({ "agentACP.oxbit.api": "openai-compatible", "agentACP.oxbit.baseUrl": "https://models.test/api", [AI_SETTINGS.model]: "fast" });
     const { models, requests } = fakeModels([chatText("done")]);
     kernel.services.register(AGENT_MODELS_SERVICE, models);
-    await expect(createAiService(kernel).complete({ system: "s", prompt: "p" })).resolves.toBe("done");
+    await expect(createAiService(kernel).complete({ system: "s", prompt: "p", maxTokens: 64 })).resolves.toBe("done");
     expect(requests[0]).toMatchObject({ api: "openai-compatible", baseUrl: "https://models.test/api", path: "/v1/chat/completions" });
-    expect((requests[0].body as any).model).toBe("fast");
+    expect(requests[0].body).toMatchObject({ model: "fast", max_tokens: 64 });
   });
 
   it("sends through the runtime when the host has no key", async () => {
