@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const README = ["# Demo", "", "Text before.", "", "```ts", "const message: string = 42;", "message.toUp", "```", "", "```json", "{ \"a\": 1 }", "```", ""].join("\n");
+const README = ["# Demo", "", "Text before.", "", "```ts", "const message: string = 42;", "message.toUp", "function count(total: number) { return total; }", "count(1);", "```", "", "```json", "{ \"a\": 1 }", "```", ""].join("\n");
 
 async function open(page: Page, path: string, text: string) {
   await page.goto("/#pair=oxbit-acceptance-2026");
@@ -22,6 +22,8 @@ test("Markdown fences get syntax highlighting, problems, hover and completion fr
   await expect.poll(() => fenceLine.locator("span").count()).toBeGreaterThan(2);
   await expect.poll(() => diagnostics(page, "fences.md"), { timeout: 30_000 }).toContainEqual(expect.stringMatching(/^5:6 Type 'number' is not assignable to type 'string'/));
   await expect(page.locator(".cm-lintRange-error").first()).toBeVisible();
+  await expect(fenceLine.locator(".lsp-semantic").first()).toBeVisible();
+  await expect(page.locator(".lsp-inlay-hint", { hasText: "total" })).toHaveText("total:");
   const paths = await page.evaluate(() => [...(window as any).__oxbit.documents.documents.keys()]);
   expect(paths.filter((path: string) => path.includes(".fence-"))).toEqual([]);
 

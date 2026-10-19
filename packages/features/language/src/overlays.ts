@@ -31,7 +31,7 @@ export function semanticRanges(text: string, data: number[], legend: TokenLegend
   }
   return ranges;
 }
-interface OverlayHost {
+export interface OverlayHost {
   capabilities(): Record<string, any>;
   ready(): boolean;
   uri(): string;
@@ -46,7 +46,7 @@ const field = StateField.define<DecorationSet>({
   update(value, transaction) { if (transaction.docChanged) value = value.map(transaction.changes); for (const effect of transaction.effects) if (effect.is(decorations)) value = effect.value; return value; },
   provide: value => EditorView.decorations.from(value),
 });
-class HintWidget extends WidgetType {
+export class HintWidget extends WidgetType {
   private cleanups = new WeakMap<HTMLElement, () => void>();
   constructor(private hint: any, private host: OverlayHost, private text: string) { super(); }
   eq(other: HintWidget) { return this.text === other.text && JSON.stringify(this.hint) === JSON.stringify(other.hint); }
@@ -186,4 +186,36 @@ export class LanguageOverlays {
     } catch { /* Syntax remains usable when background intelligence fails. */ }
   }
   dispose() { clearTimeout(this.timer); this.controller?.abort(); this.cached = undefined; this.links.clear(); this.epoch++; }
+}
+
+const fenceDecorations = StateEffect.define<DecorationSet>();
+const fenceField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) { if (transaction.docChanged) value = value.map(transaction.changes); for (const effect of transaction.effects) if (effect.is(fenceDecorations)) value = effect.value; return value; },
+  provide: value => EditorView.decorations.from(value),
+});
+/** Semantic tokens and inlay hints for the code fences of one host document, loaded by the language service. */
+export class FenceOverlays {
+  private views = new Set<EditorView>();
+  private timer?: ReturnType<typeof setTimeout>;
+  private controller?: AbortController;
+  constructor(private load: (signal: AbortSignal) => Promise<Range<Decoration>[] | undefined>) {}
+  extension() {
+    return [fenceField, ViewPlugin.define(view => {
+      this.views.add(view); this.schedule();
+      return { update: update => { if (update.docChanged) this.schedule(); }, destroy: () => { this.views.delete(view); if (!this.views.size) { clearTimeout(this.timer); this.controller?.abort(); } } };
+    }), EditorView.baseTheme({ ".lsp-semantic *": { color: "inherit !important", backgroundColor: "inherit !important", fontStyle: "inherit !important", fontWeight: "inherit !important", textDecoration: "inherit !important" } })];
+  }
+  schedule() { clearTimeout(this.timer); this.controller?.abort(); if (this.views.size) this.timer = setTimeout(() => { void this.fetch(); }, 200); }
+  private async fetch() {
+    const view = this.views.values().next().value as EditorView | undefined;
+    if (!view) return;
+    const text = view.state.doc.toString(), controller = new AbortController(); this.controller = controller;
+    try {
+      const ranges = await this.load(controller.signal);
+      if (controller.signal.aborted || !ranges) return;
+      const value = Decoration.set(ranges, true);
+      for (const target of this.views) if (target.state.doc.toString() === text) target.dispatch({ effects: fenceDecorations.of(value) });
+    } catch { /* Fence intelligence is optional. */ }
+  }
 }

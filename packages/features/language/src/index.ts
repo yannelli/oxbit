@@ -1,9 +1,9 @@
 import { ExternalSource, Hierarchy, WorkspaceSymbols, navigationTargets, type NavigationTarget } from "./navigation.js";
-import { LanguageOverlays, semanticTypes, semanticModifiers } from "./overlays.js";
+import { FenceOverlays, HintWidget, LanguageOverlays, semanticRanges, semanticTypes, semanticModifiers, type OverlayHost } from "./overlays.js";
 import { completionItems, completionTransactions } from "./completion.js";
 import { documentationPopups, showDocumentation, showSignature } from "./popups.js";
 import { logLinkExtensions } from "./log-links.js";
-import { languages, languageForKernel, findFences, fencePath, fenceText, toFenceOffset, type CodeFence, type LanguageDefinition, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
+import { languages, languageForKernel, findFences, fencePath, fenceText, fromFenceOffset, toFenceOffset, type CodeFence, type LanguageDefinition, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
 import { LocalLanguageTransport } from "./local.js";
 import { managedServerName } from "./managed-extensions.js";
 import { translate as tr } from "@oxbit/ui";
@@ -14,9 +14,9 @@ import {
   type CompletionResult,
   pickedCompletion,
 } from "@codemirror/autocomplete";
-import { hoverTooltip, EditorView, ViewPlugin } from "@codemirror/view";
+import { hoverTooltip, Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { setDiagnostics, type Diagnostic } from "@codemirror/lint";
-import { EditorState, type Extension as CMExtension } from "@codemirror/state";
+import { EditorState, type Extension as CMExtension, type Range } from "@codemirror/state";
 import type {
   Extension,
   FeatureOptions,
@@ -30,7 +30,7 @@ import type {
 import { LanguageProviders, documentLanguage } from "./providers.js";
 import type { DocumentHandle } from "@oxbit/documents";
 import { hoverDOM } from "./hover.js";
-import { fenceResultToHost, type FenceDocument } from "./embedded.js";
+import { fenceResultToHost, fenceToHost, type FenceDocument } from "./embedded.js";
 import { LanguageStatus } from "./status.js";
 import { documentSymbols } from "./symbols.js";
 import { ProjectIntelligenceView } from "./project.js";
@@ -236,6 +236,7 @@ export class LanguageService {
   private fenceHosts = new Map<string, Set<EditorView>>();
   private fenceExtensionCache = new Map<string, CMExtension[]>();
   private startingFences = false;
+  private fenceOverlays = new Map<string, FenceOverlays>();
   private overlays = new Map<string, LanguageOverlays>();
   private managedServices = new Map<string, LanguageService>();
   private disabledPaths = new Set<string>();
@@ -1025,6 +1026,8 @@ export class LanguageService {
         }
         this.syncedText.set(path, doc.text.toString());
         if (generation === this.generation) this.synced.set(path, version);
+        const fence = this.fenceDocument(path);
+        if (fence) (this.providerContext?.owner ?? this).fenceOverlays.get(fence.host)?.schedule();
       });
     this.syncQueue = pending;
     return pending;
@@ -1480,6 +1483,7 @@ export class LanguageService {
     }
     // Editor views reject dispatches while they apply the change that triggered this update.
     if (changed) queueMicrotask(() => { if (!this.disposed) this.refreshDiagnostics(host); });
+    if (!wanted.size) this.fenceOverlays.get(host)?.schedule();
   }
   /** Starts runtime servers for a fence, including managed services recreated after a settings change. */
   private startFenceServices(path: string) {
@@ -1551,6 +1555,7 @@ export class LanguageService {
           return result?.contents ? { pos, above: true, create: () => ({ dom: hoverDOM(result.contents) }) } : null;
         } catch { return null; }
       }),
+      this.fenceOverlay(host).extension(),
       EditorView.domEventHandlers({
         keyup: (event, view) => {
           const head = view.state.selection.main.head, target = this.fenceAt(host, head);
@@ -1563,6 +1568,50 @@ export class LanguageService {
     ];
     this.fenceExtensionCache.set(host, cached);
     return cached;
+  }
+  private fenceOverlay(host: string) {
+    let overlay = this.fenceOverlays.get(host);
+    if (!overlay) {
+      overlay = new FenceOverlays(signal => this.fenceDecorations(host, signal));
+      this.fenceOverlays.set(host, overlay);
+    }
+    return overlay;
+  }
+  private async fenceDecorations(host: string, signal: AbortSignal): Promise<Range<Decoration>[] | undefined> {
+    const hostText = this.o.documents.get(host)?.text.toString(), ranges: Range<Decoration>[] = [];
+    const hintHost: OverlayHost = {
+      capabilities: () => ({}), ready: () => true, uri: () => this.uri(host), enabled: () => true,
+      request: () => Promise.reject(new Error("Fence inlay hints do not resolve")),
+      open: async (uri, pos) => { await this.navigate({ uri, range: { start: pos, end: pos } }); },
+      applyHints: async (hint, text) => {
+        const document = this.o.documents.get(host);
+        if (!document || document.text.toString() !== text) throw new Error("Inlay hint is obsolete");
+        if (hint.textEdits?.length) await this.o.documents.applyEdits([{ path: host, expectedVersion: document.version, expectedRevision: document.savedRevision, changes: hint.textEdits.map((edit: any) => ({ from: offset(text, edit.range.start), to: offset(text, edit.range.end), insert: edit.newText })) }]);
+      },
+    };
+    for (const entry of [...this.fenceDocuments.values()].filter(item => item.host === host)) {
+      if (entry.hostText !== hostText) return undefined;
+      const enabled = (setting: string) => this.o.kernel.configuration.get<boolean>(setting, entry.fence.language.id) !== false;
+      const range = { start: { line: 0, character: 0 }, end: textPosition(entry.text, entry.text.length) };
+      const semantic = this.eligible(entry.path, "textDocument/semanticTokens")[0], provider = semantic?.effective(entry.path).semanticTokensProvider;
+      if (semantic && provider && enabled("editor.semanticHighlighting")) {
+        const response = await semantic.request(provider.full ? "textDocument/semanticTokens/full" : "textDocument/semanticTokens/range", { textDocument: { uri: semantic.uri(entry.path) }, ...(provider.full ? {} : { range }) }, signal).catch(() => undefined);
+        try { for (const token of semanticRanges(entry.text, response?.data ?? [], provider.legend)) ranges.push(token.value.range(fromFenceOffset(entry.fence, token.from), fromFenceOffset(entry.fence, token.to))); } catch { /* Ignore an invalid token stream. */ }
+      }
+      const hints = this.eligible(entry.path, "textDocument/inlayHint")[0];
+      if (hints && (enabled("editor.inlayHints.types") || enabled("editor.inlayHints.parameters"))) {
+        const values = await hints.request("textDocument/inlayHint", { textDocument: { uri: hints.uri(entry.path) }, range }, signal).catch(() => []);
+        for (const original of values ?? []) {
+          if (original.kind === 1 && !enabled("editor.inlayHints.types") || original.kind === 2 && !enabled("editor.inlayHints.parameters")) continue;
+          try {
+            const hint = { ...fenceResultToHost(original, entry, hints.uri(entry.path), hints.uri(host)), position: fenceToHost(entry, original.position) };
+            ranges.push(Decoration.widget({ widget: new HintWidget(hint, hintHost, entry.hostText), side: 1 }).range(textOffset(entry.hostText, hint.position)));
+          } catch { /* Ignore malformed hints. */ }
+        }
+      }
+      if (signal.aborted) return undefined;
+    }
+    return ranges;
   }
   /** Fence features for a host with no language server, added as language data so the host keeps its own completions. */
   private fenceOnlyExtensions(host: string): CMExtension[] {
