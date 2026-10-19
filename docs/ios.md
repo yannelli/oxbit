@@ -1,7 +1,7 @@
 # Oxbit for iOS and iPadOS
 
 Created: 2026-09-09
-Last updated: 2026-10-12
+Last updated: 2026-10-19
 
 Oxbit runs on iPhone and iPad as a Tauri 2 app in `apps/ios`. It shares the React workbench with the browser and desktop apps. It edits the app's own Documents folder, which the Files app shows under **On My iPhone** or **On My iPad › Oxbit**, and folders chosen from the Files app. Connecting to a runtime opens a project on your computer with its files, terminals, tasks, Git, and language servers.
 
@@ -108,6 +108,8 @@ Device folders (the Oxbit Documents folder and Files app folders) register the `
 | `agent_models_stream` | `id`, `api`, `baseUrl`, `method` (`GET` or `POST`), `path`, `body` as JSON text, `channel` | Resolves once the task starts. The channel receives `chunk` events with base64 body bytes, then `end` with the status, or `failed` with the URLSession error. For a non-2xx status, `end` carries the first 64 KiB of the body. A missing key rejects with code `MISSING_KEY` and `Add an API key in Agent setup`. |
 | `agent_models_cancel` | `id` | Cancels the task and drops its remaining events. Resolves for finished and unknown ids. |
 | `agent_models_chatgpt` | `operation` (`start`, `poll`), `deviceAuthId` and `userCode` for `poll` | `start` returns `{ deviceAuthId, userCode, verificationUrl, interval, expiresAt }`. `poll` returns `{ status }` (`pending`, `slow_down`, `complete`); on `complete` Swift has exchanged the code and saved the tokens. Other answers reject with code `AGENT_CHATGPT`. |
+
+`withAiConsent` in `apps/ios/src/ai-consent.ts` wraps the service the app registers. Before the first request to each endpoint it asks "Share data with <service>?" and names the data sent, as App Review Guideline 5.1.2(i) requires. Allow is saved under the `profile` storage scope, key `ai-consent`, as `<api> <origin>` entries; Don't Allow holds until the workspace reopens. `tests/ios/bridge.ts` grants the endpoints the specs use unless a spec passes `aiConsent`.
 
 `IosAgentModels.stream` decodes the chunks with `TextDecoder`, so a character split across two network reads arrives whole. A non-2xx status throws an `AgentModelError` with `status` and `body`. Aborting its `AbortSignal`, or leaving the `for await` loop early, sends `agent_models_cancel`; an abort rethrows the signal's reason.
 

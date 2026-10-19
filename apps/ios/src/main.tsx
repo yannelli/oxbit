@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import type { Session } from "@oxbit/app-workbench";
 import { AGENT_ACTIVITY_SERVICE, AGENT_MODELS_SERVICE, type AgentActivityUpdate } from "@oxbit/sdk";
 import { IosAgentModels, IosGitClient, IosPush, installNotifications, installSpeechRecognition, native, ssh, type RecentWorkspace, type RemoteRuntimeEvent, type SshFileSystem } from "@oxbit/host-ios";
+import { withAiConsent } from "./ai-consent.js";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
 import { StartScreen } from "./start-screen.js";
@@ -274,7 +275,7 @@ function App() {
     if (session.runtime) disposables.push(push.attach(session.runtime, () => activity));
     // Runtime workspaces use the service only for conversation titles.
     if (session.runtime || workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark")
-      disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, agentModels));
+      disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, withAiConsent(agentModels, (title, message, choices) => session.workbench.ask(title, message, choices))));
     // Agent ACP posts the app's notifications.
     const tap = native.onNotificationTap(() => {
       if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");

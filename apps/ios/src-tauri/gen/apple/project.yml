@@ -37,6 +37,8 @@ targets:
         buildPhase: resources
         type: folder
       - path: LaunchScreen.storyboard
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: oxbit-ios_iOS/Info.plist
       properties:
