@@ -113,3 +113,17 @@ test("explorer loads expanded folders, reveals search results, and exports colla
     ),
   )).toBe(false);
 });
+
+test("explorer root label stays on one row for long workspace names", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(() => (window as any).__oxbit?.ready === true);
+  const name = "SSH · ubuntu@devbox/~/workspace/light-app/with/a/very/long/path";
+  await page.evaluate((projectName) => (window as any).__oxbit.workbench.set({ projectName, sidebar: true, sidebarId: "explorer" }), name);
+  await page.locator(".sidebar").evaluate((sidebar) => { (sidebar as HTMLElement).style.width = "240px"; });
+  const root = page.locator(".section-label", { hasText: name });
+  await expect(root).toHaveAttribute("title", name);
+  const label = root.locator(".truncate");
+  const box = await label.evaluate((element) => ({ scroll: element.scrollWidth, client: element.clientWidth, height: element.getBoundingClientRect().height, row: element.parentElement!.getBoundingClientRect().height }));
+  expect(box.scroll).toBeGreaterThan(box.client);
+  expect(box.height).toBeLessThanOrEqual(box.row);
+});

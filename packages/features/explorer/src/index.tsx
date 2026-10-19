@@ -169,10 +169,11 @@ export function Explorer({
         className="section-label border-top"
         onClick={() => setTree(!tree)}
         aria-expanded={tree}
+        title={s.projectName}
       >
         <FolderArrow path={s.projectName} root expanded={tree} />
         <FolderIcon path={s.projectName} root expanded={tree} />
-        {s.projectName}
+        <span className="truncate">{s.projectName}</span>
       </button>
       {tree && (
         <div
