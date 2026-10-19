@@ -292,6 +292,12 @@ var settings_schema_default = {
       type: "string",
       default: ""
     },
+    "agentACP.oxbit.instructions": {
+      title: "Oxbit Agent instructions",
+      description: "Instructions the in-app Oxbit Agent follows in every workspace, after the workspace's AGENTS.md and CLAUDE.md files.",
+      type: "string",
+      default: ""
+    },
     "agentACP.oxbit.autoCompact": {
       title: "Oxbit Agent auto-compact",
       description: "In-app Oxbit Agent conversations summarize older turns when the context window fills. Needs a model whose context window the catalog reports. /compact works either way.",
@@ -1061,6 +1067,9 @@ var settings_schema_default = {
         },
         "agentACP.oxbit.model": {
           $ref: "#/properties/agentACP.oxbit.model"
+        },
+        "agentACP.oxbit.instructions": {
+          $ref: "#/properties/agentACP.oxbit.instructions"
         },
         "agentACP.oxbit.autoCompact": {
           $ref: "#/properties/agentACP.oxbit.autoCompact"
