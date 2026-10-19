@@ -3,6 +3,7 @@ import {
   coreThemes,
   loadBearingThemes,
   binxThemes,
+  vividThemes,
   creativeThemes,
 } from "./bundled.js";
 import { rainbowIconPack } from "./rainbow/index.js";
@@ -17,6 +18,7 @@ interface ColorTheme {
 export { loadBearingThemes } from "./bundled.js";
 export { binxThemes } from "./bundled.js";
 export { creativeThemes } from "./bundled.js";
+export { vividThemes } from "./bundled.js";
 export { rainbowIconPack };
 export { vscodeThemes, vscodeHighContrastThemes } from "./bundled.js";
 export {
@@ -48,7 +50,7 @@ export function createFeature({
       id: "oxbit.themes",
       name: "Oxbit Themes",
       description:
-        "Graphite, Paper, Load Bearing, Binx, Rainbow Pride, Camo, Terminal, and retro themes from the 60s, 70s and 80s.",
+        "Graphite, Paper, Load Bearing, Binx, Vivid (Nova, Lagoon, Ember), Rainbow Pride, Camo, Terminal, and retro themes from the 60s, 70s and 80s.",
       version: "1.0.0",
       sdk: "^1.0.0",
       environments: ["browser", "embedded"],
@@ -58,6 +60,7 @@ export function createFeature({
         ...coreThemes,
         ...loadBearingThemes,
         ...binxThemes,
+        ...vividThemes,
         ...creativeThemes,
       ],
     },
@@ -103,7 +106,7 @@ export function createFeature({
               ),
           }),
         );
-      for (const theme of [...binxThemes, ...creativeThemes])
+      for (const theme of [...binxThemes, ...vividThemes, ...creativeThemes])
         ctx.own(
           ctx.commands.register({
             id: `theme.${theme.id.replace("oxbit.", "")}`,

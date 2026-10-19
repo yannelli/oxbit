@@ -29,6 +29,20 @@ The **Binx** pack includes three dark themes:
 
 Choose a variant in **Settings → Color Theme**, or search for **Use Binx** in the command palette. All three palettes live in `src/packs/oxbit.binx.json`. The light/dark toggle switches from these dark-only variants to Paper; toggling back uses Graphite.
 
+## Vivid
+
+The **Vivid** pack adds three families, each with a dark and a light variant:
+
+| Family | Neutrals | Accent |
+| --- | --- | --- |
+| **Nova** | Cool indigo-gray | Electric violet |
+| **Lagoon** | Deep ocean blue-gray | Aqua |
+| **Ember** | Warm stone | Vermilion |
+
+Choose a variant in **Settings → Color Theme**, or search **Use Nova**, **Use Lagoon**, or **Use Ember** in the command palette. The light/dark toggle stays within the family.
+
+The palettes were authored in OKLCH. `src/packs/oxbit.vivid.json` holds the sRGB values, which pass the 4.5:1 checks for text, accents, and syntax. On displays that report `(color-gamut: p3)`, `packages/ui/src/vivid.css` replaces the accent, selection, diagnostic, Git, and syntax variables with `color(display-p3 …)` values at the same OKLCH lightness and a wider chroma. Theme variables are set as inline styles, so these overrides use `!important`, scoped by `data-theme-id`. Backgrounds, text, and terminal ANSI colors keep their sRGB values.
+
 ## ClassicOS 98
 
 **ClassicOS 98** is a Windows 98/2000 era desktop treatment: a colour theme pack, a matching icon pack, and scoped chrome CSS. The `oxbit.themes-classicos98` extension is off by default; enable it on its Extensions page to add the themes and commands. Installs whose saved `workbench.colorTheme` is a ClassicOS theme get it added to `extension-enabled` on startup, unless it was disabled explicitly.

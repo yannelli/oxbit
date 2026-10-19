@@ -54,8 +54,8 @@ export function IconPackManager({ kernel, workbench, selectKind, selectRequest =
     <div className="toolbar" aria-label="Sample icons">{preview.samples.map((asset, i) => <IconImage key={i} asset={asset} size={24} />)}</div>
     {preview.warnings.map((warning, i) => <p key={i}>{warning}</p>)}
     <p>Only declarative theme data, referenced assets, attribution and licenses are installed. Extension code is never executed.</p>
-    <div className="toolbar"><button className="button primary" disabled={busy} onClick={() => void perform(async () => { await service.install(preview); closePreview(); setStatus('Icon pack installed. Choose a theme to apply it.'); })}>{service.list().some(p => p.id === preview.id) ? 'Replace Icon Pack' : 'Install Icon Pack'}</button><button className="button" disabled={busy} onClick={closePreview}>Cancel</button></div>
     {status && <p role="alert">{status}</p>}
+    <div className="dialog-actions"><button className="button" disabled={busy} onClick={closePreview}>Cancel</button><button className="button primary" disabled={busy} onClick={() => void perform(async () => { await service.install(preview); closePreview(); setStatus('Icon pack installed. Choose a theme to apply it.'); })}>{service.list().some(p => p.id === preview.id) ? 'Replace Icon Pack' : 'Install Icon Pack'}</button></div>
   </Dialog>}
   </div>;
 }

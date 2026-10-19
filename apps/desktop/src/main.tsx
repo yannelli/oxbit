@@ -105,6 +105,7 @@ function App() {
   const [update, setUpdate] = useState<UpdateStatus>();
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
+  const [download, setDownload] = useState<{ downloaded: number; total?: number }>();
   const discardOnClose = useRef(false);
   const pendingClose = useRef<string | undefined>(undefined);
   const [close, setClose] = useState<{
@@ -238,12 +239,7 @@ function App() {
       add(
         await listen<{ downloaded: number; total?: number }>(
           "desktop-update-progress",
-          ({ payload }) =>
-            setProgress(
-              payload.total
-                ? `${Math.round((payload.downloaded / payload.total) * 100)}%`
-                : `${Math.round(payload.downloaded / 1048576)} MB`,
-            ),
+          ({ payload }) => setDownload(payload),
         ),
       );
       try {
@@ -442,7 +438,7 @@ function App() {
     />
   );
   return (
-    <div className="desktop-shell" style={active?.session ? themeVariables(active.session.kernel) : undefined} data-theme={theme} data-theme-pack={active?.session ? currentTheme(active.session.kernel).packId : undefined} data-density="compact">
+    <div className="desktop-shell" style={active?.session ? themeVariables(active.session.kernel) : undefined} data-theme={theme} data-theme-pack={active?.session ? currentTheme(active.session.kernel).packId : undefined} data-theme-id={active?.session ? currentTheme(active.session.kernel).id : undefined} data-density="compact">
       {!active?.session && (
         <header className="titlebar" role="menubar" aria-label="Application menu" inert={manager.isClosing}>
           <div className="brand" role="img" aria-label="Oxbit">
@@ -558,31 +554,28 @@ function App() {
               <p>{tool.guidance}</p>
             </section>
           ))}
-          <button
-            className="button"
-            disabled={busy}
-            onClick={() => perform(showTools(true))}
-          >
-            {busy ? "Checking…" : "Check GitHub Authentication"}
-          </button>
-          {active?.session && (
+          <div className="dialog-actions">
+            {active?.session && (
+              <button
+                className="button"
+                disabled={busy || !active.session.runtime?.session?.trusted}
+                onClick={() => perform(startGhLogin(active.session!))}
+              >
+                Sign In with gh in Terminal
+              </button>
+            )}
             <button
-              className="button"
-              disabled={busy || !active.session.runtime?.session?.trusted}
-              onClick={() => perform(startGhLogin(active.session!))}
+              className="button primary"
+              disabled={busy}
+              onClick={() => perform(showTools(true))}
             >
-              Sign In with gh in Terminal
+              {busy ? "Checking…" : "Check GitHub Authentication"}
             </button>
-          )}
+          </div>
         </Dialog>
       )}
       {panel === "update" && (
-        <Dialog
-          title="Oxbit Updates"
-          onClose={() => {
-            if (!busy) setPanel(undefined);
-          }}
-        >
+        <Dialog title="Oxbit Updates" onClose={() => setPanel(undefined)}>
           <p>
             {update?.status === "available"
               ? `Oxbit ${update.version} is available.`
@@ -592,27 +585,43 @@ function App() {
                   ? "Updates are unavailable in this unsigned development build."
                   : "You’re up to date."}
           </p>
-          {update?.notes && <p>{update.notes}</p>}
-          {update?.status === "available" && (
-            <button
-              className="button primary"
-              disabled={busy}
-              onClick={() => {
-                setBusy(true);
-                perform(native.downloadUpdate().finally(() => setBusy(false)));
-              }}
-            >
-              {busy ? `Downloading ${progress}` : "Download and Install…"}
-            </button>
+          {update?.notes && !isReleaseTitle(update.notes, update.version) && <p className="desktop-update-notes">{update.notes}</p>}
+          {download && (
+            <div className="desktop-update-progress">
+              <progress
+                aria-label="Download progress"
+                max={download.total || undefined}
+                value={download.total ? download.downloaded : undefined}
+              />
+              <span role="status">
+                {download.total
+                  ? `Downloading… ${Math.round((download.downloaded / download.total) * 100)}%`
+                  : `Downloading… ${Math.round(download.downloaded / 1048576)} MB`}
+              </span>
+            </div>
           )}
-          {update?.url && (
-            <button
-              className="button"
-              onClick={() => perform(native.external(update.url!))}
-            >
-              View Downloads
-            </button>
-          )}
+          {(update?.url || update?.status === "available") && <div className="dialog-actions">
+            {update?.url && (
+              <button
+                className={update.status === "available" ? "button" : "button primary"}
+                onClick={() => perform(native.external(update.url!))}
+              >
+                View Downloads
+              </button>
+            )}
+            {update?.status === "available" && (
+              <button
+                className="button primary"
+                disabled={!!download}
+                onClick={() => {
+                  setDownload({ downloaded: 0 });
+                  perform(native.downloadUpdate().finally(() => setDownload(undefined)));
+                }}
+              >
+                {download ? "Downloading…" : "Download and Install"}
+              </button>
+            )}
+          </div>}
         </Dialog>
       )}
       {close && (
@@ -690,6 +699,9 @@ function App() {
       )}
     </div>
   );
+}
+function isReleaseTitle(notes: string, version?: string) {
+  return !!version && notes.trim().replace(/^(oxbit\s+)?v?/i, "") === version;
 }
 function RuntimeError({ text }: { text: string }) {
   const { message, detail } = splitRuntimeError(text);

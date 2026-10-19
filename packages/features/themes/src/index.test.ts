@@ -11,6 +11,7 @@ import {
   createVSCodeHighContrastFeature,
   vscodeThemes,
   vscodeHighContrastThemes,
+  vividThemes,
 } from "./index.js";
 
 const kernels: Kernel[] = [];
@@ -43,10 +44,16 @@ describe("bundled theme families", () => {
       "Binx Moon",
       "Camo",
       "80s Neon",
+      "Ember (dark)",
+      "Ember (light)",
       "60s Fallout",
       "Graphite (dark)",
+      "Lagoon (dark)",
+      "Lagoon (light)",
       "Load Bearing (dark)",
       "Load Bearing (light)",
+      "Nova (dark)",
+      "Nova (light)",
       "Paper (light)",
       "Rainbow Dark",
       "Rainbow Light",
@@ -94,7 +101,7 @@ describe("bundled theme families", () => {
     expect(kernel.configuration.get("workbench.colorTheme")).toBe(
       "oxbit.load-bearing/load-bearing-dark",
     );
-    expect(kernel.contributions.list("theme")).toHaveLength(14);
+    expect(kernel.contributions.list("theme")).toHaveLength(20);
     await kernel.commands.execute("theme.binx-midnight");
     expect(kernel.configuration.get("workbench.colorTheme")).toBe(
       "oxbit.binx/binx-midnight",
@@ -120,6 +127,7 @@ describe("bundled theme families", () => {
     for (const theme of [
       ...loadBearingThemes,
       ...binxThemes,
+      ...vividThemes,
       ...creativeThemes,
       ...vscodeThemes,
       ...vscodeHighContrastThemes,
@@ -151,6 +159,7 @@ describe("bundled theme families", () => {
     for (const theme of [
       ...loadBearingThemes,
       ...binxThemes,
+      ...vividThemes,
       ...creativeThemes,
       ...vscodeHighContrastThemes,
     ]) {
@@ -194,7 +203,7 @@ describe("VS Code theme packs", () => {
     expect(kernel.configuration.get("workbench.colorTheme")).toBe(
       "Graphite (dark)",
     );
-    expect(kernel.contributions.list("theme")).toHaveLength(22);
+    expect(kernel.contributions.list("theme")).toHaveLength(28);
     expect(vscodeThemes).toHaveLength(6);
     expect(vscodeHighContrastThemes).toHaveLength(2);
   });
@@ -225,7 +234,7 @@ describe("VS Code theme packs", () => {
   it("disables and restores the packs independently, including their commands", async () => {
     const kernel = await setupPacks();
     await kernel.extensions.disable("oxbit.themes-vscode");
-    expect(kernel.contributions.list("theme")).toHaveLength(16);
+    expect(kernel.contributions.list("theme")).toHaveLength(22);
     expect(
       kernel.commands.list().some((c) => c.id === "theme.vscode-dark-modern"),
     ).toBe(false);
@@ -235,7 +244,7 @@ describe("VS Code theme packs", () => {
     );
     await kernel.extensions.activate("oxbit.themes-vscode");
     await kernel.extensions.disable("oxbit.themes-vscode-high-contrast");
-    expect(kernel.contributions.list("theme")).toHaveLength(20);
+    expect(kernel.contributions.list("theme")).toHaveLength(26);
     expect(
       kernel.commands.list().some((c) => c.id === "theme.vscode-hc-light"),
     ).toBe(false);
@@ -244,7 +253,7 @@ describe("VS Code theme packs", () => {
       "oxbit.vscode/vscode-dark-modern",
     );
     await kernel.extensions.activate("oxbit.themes-vscode-high-contrast");
-    expect(kernel.contributions.list("theme")).toHaveLength(22);
+    expect(kernel.contributions.list("theme")).toHaveLength(28);
   });
 
   it("preserves inherited Plus syntax, Modern surfaces, and 2026 overrides", () => {

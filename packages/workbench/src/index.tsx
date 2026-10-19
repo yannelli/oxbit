@@ -1934,10 +1934,10 @@ function WorkbenchDialog({ workbench }: { workbench: WorkbenchController }) {
         />
       )}
       <div className="dialog-actions">
-        {dialog.choices.map((choice, i) => (
+        {[...dialog.choices].reverse().map((choice) => (
           <button
             key={choice}
-            className={`button ${i === 0 ? (dialog.danger ? "danger" : "primary") : ""}`}
+            className={`button ${choice === dialog.choices[0] ? (dialog.danger ? "danger" : "primary") : ""}`}
             onClick={() => workbench.finishDialog(choice, value)}
           >
             {tr(choice)}
