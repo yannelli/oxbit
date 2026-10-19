@@ -1619,7 +1619,8 @@ export class LanguageService {
     const key = `${host}\0only`;
     let cached = this.fenceExtensionCache.get(key);
     if (!cached) {
-      cached = [documentationPopups, EditorState.languageData.of(() => [{ autocomplete: this.fenceCompletion(host) }]), ...this.fenceExtensions(host)];
+      const source = this.fenceCompletion(host);
+      cached = [documentationPopups, EditorState.languageData.of((_state, pos) => this.fenceAt(host, pos) ? [{ autocomplete: source }] : []), ...this.fenceExtensions(host)];
       this.fenceExtensionCache.set(key, cached);
     }
     return cached;
