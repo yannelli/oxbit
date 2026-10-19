@@ -1085,3 +1085,5 @@ input[type=checkbox][role=switch].setting-switch:checked::after{background:var(-
   .setting-field.compact>.setting-control>.custom-select{width:max-content;min-width:96px;max-width:45vw}
   .setting-field.compact>.setting-control>input[type=number]{width:96px}
 }
+.setting-suggestions{display:flex;flex-direction:column;gap:2px;width:100%;margin:2px 0 0;padding:0;list-style:none}.setting-suggestion{display:flex;align-items:baseline;gap:10px;width:100%;min-height:26px;padding:3px 8px;border-radius:4px;text-align:left;color:var(--fg-2)}.setting-suggestion:hover{background:var(--bg-hover)}.setting-suggestion[aria-pressed=true]{background:var(--bg-selected);color:var(--fg)}.setting-suggestion>span{flex:none;white-space:nowrap}.setting-suggestion>small{min-width:0;color:var(--fg-3);font-size:calc(var(--font-small-font-size) * 0.92);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:599px){.setting-suggestion{min-height:44px;flex-wrap:wrap;row-gap:2px}.setting-suggestion>small{white-space:normal}}

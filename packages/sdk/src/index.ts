@@ -43,6 +43,8 @@ export interface Setting {
   default: Json;
   validate?: (value: unknown) => void;
   enum?: (string | number)[];
+  /** Settings page labels for `enum`, in the same order. */
+  enumLabels?: string[];
   min?: number;
   max?: number;
   category?: string;
@@ -74,7 +76,21 @@ export type ContributionKind =
   | "filesystem"
   | "transport"
   | "outputChannel"
-  | "editorDecoration";
+  | "editorDecoration"
+  | "settingSuggestions";
+export interface SettingSuggestion {
+  value: string;
+  label: string;
+  /** Short facts shown after the label, such as price or a benchmark score. */
+  detail?: string;
+}
+/** Data of a `settingSuggestions` contribution: values the Settings page offers under a string setting. */
+export interface SettingSuggestions {
+  setting: string;
+  /** Changes when the suggestions would change, for example after a provider setting changes. */
+  key(): string;
+  list(signal?: AbortSignal): Promise<SettingSuggestion[]>;
+}
 export interface Contribution {
   id: string;
   owner?: string;

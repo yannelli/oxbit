@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EditorState, type TransactionSpec } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { AGENT_MODELS_SERVICE, type RpcClient } from "@oxbit/sdk";
@@ -46,6 +46,46 @@ describe("createAiService", () => {
     const { runtime, calls } = fakeRuntime("from runtime");
     await expect(createAiService(kernel, runtime).complete({ system: "s", prompt: "p", maxTokens: 9 })).resolves.toBe("from runtime");
     expect(calls).toEqual([{ method: "ai.complete", params: { system: "s", prompt: "p", maxTokens: 9, model: "fast", effort: "low" } }]);
+  });
+
+  it("sends to OpenRouter with the host's saved OpenRouter key", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "openrouter", [AI_SETTINGS.model]: "vendor/fast" });
+    const { models, requests } = fakeModels([chatText("done")]);
+    const has = vi.fn(async () => true);
+    models.keys.has = has;
+    kernel.services.register(AGENT_MODELS_SERVICE, models);
+    await expect(createAiService(kernel).complete({ system: "s", prompt: "p" })).resolves.toBe("done");
+    expect(has).toHaveBeenCalledWith({ api: "openai-compatible", baseUrl: "https://openrouter.ai/api" });
+    expect(requests[0]).toMatchObject({ api: "openai-compatible", baseUrl: "https://openrouter.ai/api", path: "/v1/chat/completions" });
+    expect((requests[0].body as any).model).toBe("vendor/fast");
+  });
+
+  it("asks for a key before sending to OpenRouter without one", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "openrouter", [AI_SETTINGS.model]: "vendor/fast" });
+    kernel.services.register(AGENT_MODELS_SERVICE, fakeModels([], { key: false }).models);
+    await expect(createAiService(kernel).complete({ system: "s", prompt: "p" })).rejects.toThrow("Run Set AI Provider API Key to add a key for OpenRouter");
+  });
+
+  it("sends to a local server without a key and needs a model", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "local", [AI_SETTINGS.baseUrl]: "http://192.168.1.20:11434" });
+    const { models, requests } = fakeModels([chatText("local")], { key: false });
+    kernel.services.register(AGENT_MODELS_SERVICE, models);
+    await expect(createAiService(kernel).complete({ system: "s", prompt: "p" })).rejects.toThrow("Set AI model to a model on the local model server");
+    kernel.configuration.set(AI_SETTINGS.model, "qwen2.5-coder:7b");
+    await expect(createAiService(kernel).complete({ system: "s", prompt: "p" })).resolves.toBe("local");
+    expect(requests[0]).toMatchObject({ baseUrl: "http://192.168.1.20:11434", path: "/v1/chat/completions" });
+  });
+
+  it("names the provider and base URL to the runtime", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "local", [AI_SETTINGS.model]: "qwen2.5-coder:7b" });
+    const { runtime, calls } = fakeRuntime("from runtime");
+    await expect(createAiService(kernel, runtime).complete({ system: "s", prompt: "p" })).resolves.toBe("from runtime");
+    expect(calls[0].params).toEqual({ system: "s", prompt: "p", model: "qwen2.5-coder:7b", provider: "ollama", baseUrl: "http://localhost:11434" });
+    kernel.configuration.set(AI_SETTINGS.provider, "openai-compatible");
+    await expect(createAiService(kernel, runtime).complete({ system: "s", prompt: "p" })).rejects.toThrow("Set AI base URL");
+    kernel.configuration.set(AI_SETTINGS.baseUrl, "https://api.example.com");
+    await createAiService(kernel, runtime).complete({ system: "s", prompt: "p" });
+    expect(calls[1].params).toMatchObject({ provider: "openai-compatible", baseUrl: "https://api.example.com" });
   });
 
   it("explains what is missing without a runtime or a host service", async () => {

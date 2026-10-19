@@ -54,6 +54,47 @@ describe("AiCompletions", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("sends to the provider the request names with that provider's saved key", async () => {
+    const home = await agentHome({ provider: "anthropic", model: "agent-model" }, { "apikey:openrouter": "sk-router" });
+    const { calls, fetch } = recordingFetch(chatText("x"));
+    await new AiCompletions({ home, env: {}, fetch }).complete({ system: "s", prompt: "p", provider: "openrouter", model: "vendor/fast" });
+    expect(calls[0].url).toBe("https://openrouter.ai/api/v1/chat/completions");
+    expect(calls[0].headers.get("authorization")).toBe("Bearer sk-router");
+    expect(calls[0].body.model).toBe("vendor/fast");
+  });
+
+  it("sends to a local server at the request's base URL without a key", async () => {
+    const home = await agentHome({ provider: "anthropic" }, {});
+    const { calls, fetch } = recordingFetch(chatText("x"));
+    await new AiCompletions({ home, env: {}, fetch }).complete({ system: "s", prompt: "p", provider: "ollama", baseUrl: "http://127.0.0.1:8080", model: "qwen3.5:9b" });
+    expect(calls[0].url).toBe("http://127.0.0.1:8080/v1/chat/completions");
+    expect(calls[0].headers.get("authorization")).toBeNull();
+  });
+
+  it("saves the key a custom OpenAI API request uses and lists that server's models", async () => {
+    const home = await agentHome({}, {});
+    const ai = new AiCompletions({ home, env: {}, fetch: async (url, init) => {
+      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer sk-custom");
+      return new Response(JSON.stringify({ data: [{ id: "served-a" }] }), { status: 200 });
+    } });
+    const custom = { provider: "openai-compatible", baseUrl: "https://api.example.com/" };
+    expect(await ai.key({ operation: "has", ...custom })).toEqual({ saved: false });
+    await ai.key({ operation: "save", ...custom, key: " sk-custom " });
+    expect(await ai.key({ operation: "has", ...custom })).toEqual({ saved: true });
+    expect(JSON.parse(await fs.readFile(path.join(home, "auth.json"), "utf8"))).toMatchObject({ "apikey:openai-compatible https://api.example.com": "sk-custom" });
+    expect(await ai.models(custom)).toEqual({ models: ["served-a"] });
+    await ai.key({ operation: "remove", ...custom });
+    expect(await ai.key({ operation: "has", ...custom })).toEqual({ saved: false });
+  });
+
+  it("rejects providers outside the editor list and keys with spaces", async () => {
+    const ai = new AiCompletions({ home: await agentHome({}, {}), env: {} });
+    await expect(ai.complete({ system: "s", prompt: "p", provider: "anthropic", model: "m" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.complete({ system: "s", prompt: "p", provider: "openrouter" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.key({ operation: "save", provider: "ollama", key: "k" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.key({ operation: "save", provider: "openrouter", key: "sk two" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+  });
+
   it("rejects invalid parameters", async () => {
     const ai = new AiCompletions({ home: await agentHome({}, {}), env: {} });
     await expect(ai.complete({ system: "s" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
