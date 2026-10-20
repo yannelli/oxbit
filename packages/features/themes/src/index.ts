@@ -33,6 +33,11 @@ export {
 } from "./classicos98-pack.js";
 export { classicOS98Themes } from "./bundled.js";
 export {
+  createThemeEditorFeature,
+  THEME_EDITOR_FEATURE_ID,
+  THEME_EDITOR_COMMANDS,
+} from "./editor/index.js";
+export {
   classicOS98IconPack,
   CLASSICOS98_PACK_ID,
   CLASSICOS98_REVISION,

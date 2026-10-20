@@ -46,6 +46,7 @@ export function Settings({
   const list = useRef<HTMLDivElement>(null);
   const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
   const aiKey = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("ai.setApiKey").enabled);
+  const themeEditor = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("theme.editor.new").enabled);
   const records = kernel.extensions.list();
   const owner = extension ? records.find(record => record.manifest.id === extension) : undefined;
   const settings = owner ? owner.manifest.configuration ?? [] : kernel.configuration.list();
@@ -63,6 +64,7 @@ export function Settings({
   const showAll = searching || !!owner;
   const actions: SettingAction[] = owner || modified ? [] : [
     { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
+    ...(themeEditor ? [{ category: "Appearance", title: tr("Theme Editor"), description: tr("Create a color theme or edit a copy of the current one."), label: tr("New Color Theme"), command: "theme.editor.new" }] : []),
     ...(aiKey ? [{ last: true, category: "Editor · AI", title: tr("AI provider API key"), description: tr("Save the key for the OpenRouter or Custom OpenAI API provider. The iPhone keeps it in the Keychain; a runtime keeps it in the Oxbit agent's auth.json."), label: tr("Set API Key…"), command: "ai.setApiKey" }] : []),
     ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
   ];

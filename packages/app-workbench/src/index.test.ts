@@ -29,6 +29,7 @@ vi.doMock("@oxbit/feature-themes", () => ({
   createVSCodeFeature: () => feature("vscode"),
   createVSCodeHighContrastFeature: () => feature("high-contrast"),
   createClassicOS98Feature: () => feature("classic"),
+  createThemeEditorFeature: () => feature("theme-editor"),
   classicOS98IconPack: { id: "classic", revision: "1", enabled: true },
   rainbowIconPack: { id: "rainbow", revision: "1", enabled: true },
   nativeIconPack: undefined,
