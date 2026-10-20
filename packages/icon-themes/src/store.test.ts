@@ -9,10 +9,10 @@ const cleanup: (() => void)[] = [];
 afterEach(() => { for (const fn of cleanup.splice(0)) fn(); vi.restoreAllMocks(); });
 async function sample() { return importPack(new Blob([await readFile('tests/fixtures/icon-packs/vscode-minimal.zip')]), 'minimal.zip'); }
 function store(name = crypto.randomUUID()) { const s = new BrowserPackStore(name); cleanup.push(() => s.dispose()); return s; }
-async function service(storage: PackStore) {
+async function service(storage: PackStore, builtin?: Pack) {
   const kernel = createKernel(), notice = vi.fn();
   for (const id of ['workbench.iconTheme','workbench.productIconTheme']) kernel.configuration.register({ id, title: id, type: 'string', default: 'oxbit.default' });
-  const s = new IconThemeService(kernel, storage, notice); await s.initialize();
+  const s = new IconThemeService(kernel, storage, notice, builtin); await s.initialize();
   cleanup.push(() => { s.dispose(); kernel.dispose(); });
   return { service: s, kernel, notice };
 }
@@ -49,6 +49,31 @@ describe('atomic pack persistence', () => {
     });
     await expect(s.put({ ...pack, revision: crypto.randomUUID(), version: 'broken' })).rejects.toThrow('storage failure');
     expect((await s.read())[0].version).toBe(pack.version);
+  });
+});
+function relabel(pack: Pack, id: string): Pack {
+  return { ...structuredClone(pack), id, revision: crypto.randomUUID(), themes: pack.themes.map(t => ({ ...t, id: id + t.id.slice(pack.id.length) })) };
+}
+describe('built-in default pack', () => {
+  it('serves oxbit.default and unavailable selections without listing the pack', async () => {
+    const storage = store(), installed = await sample();
+    const { service: s, kernel, notice } = await service(storage, relabel(installed, 'oxbit.builtin'));
+    const fallback = s.file({ path: 'x' }, 'dark');
+    expect(fallback?.kind).toBe('image');
+    expect(s.list()).toEqual([]); expect(s.themes('fileIconTheme')).toEqual([]);
+    expect(s.product('search')).toBeUndefined();
+    await storage.put(installed); await s.refresh();
+    kernel.configuration.set('workbench.iconTheme', s.themes('fileIconTheme')[0].id);
+    expect(s.file({ path: 'x' }, 'dark')).not.toEqual(fallback);
+    await s.enable(installed.id, false);
+    expect(s.file({ path: 'x' }, 'dark')).toEqual(fallback);
+    expect(notice).toHaveBeenCalledTimes(1);
+  });
+  it('keeps text badges when the built-in resources fail validation', async () => {
+    const builtin = relabel(await sample(), 'oxbit.builtin');
+    Object.values(builtin.assets).find(a => a.mime === 'image/svg+xml')!.base64 = btoa('<svg><script/></svg>');
+    const { service: s } = await service(store(), builtin);
+    expect(s.file({ path: 'x' }, 'dark')).toBeUndefined();
   });
 });
 describe('shared service lifecycle', () => {

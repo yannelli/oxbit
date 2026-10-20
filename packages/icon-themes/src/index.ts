@@ -18,10 +18,17 @@ export class IconThemeService implements IconThemes {
   private generation = 0;
   private disposed = false;
   private notices = new Set<string>();
-  constructor(private kernel: Kernel, private store: PackStore, private notify: (message: string) => void) {}
+  private builtin?: PackResources;
+  /** `builtin` serves `oxbit.default` and every unavailable selection; it is not stored, listed or removable. */
+  constructor(private kernel: Kernel, private store: PackStore, private notify: (message: string) => void, private builtinPack?: Pack) {}
   async initialize() {
     this.lifetime.push(this.store.subscribe(() => { void this.refresh().catch(e => this.notice('storage', `Icon pack storage unavailable: ${String(e)}. Open Extensions → Icon Packs to retry.`)); }));
     this.lifetime.push(this.kernel.configuration.subscribe(() => { this.checkMissing(); this.emit(); }));
+    if (this.builtinPack) {
+      const resources = new PackResources(this.builtinPack);
+      try { await resources.load(); if (this.disposed) resources.dispose(); else this.builtin = resources; }
+      catch { /* Invalid built-in resources leave the workbench on its text badges. */ }
+    }
     await this.refresh();
   }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -32,7 +39,7 @@ export class IconThemeService implements IconThemes {
     const missing: string[] = [];
     for (const kind of ['fileIconTheme', 'productIconTheme'] as const) {
       const id = this.kernel.configuration.get<string>(iconSetting(kind));
-      if (id && id !== 'oxbit.default' && !this.selected(kind)) missing.push(id);
+      if (id && id !== 'oxbit.default' && !this.installed(kind)) missing.push(id);
     }
     if (missing.length) this.notice('missing', `Icon theme “${missing.join('”, “')}” is unavailable. Using Oxbit defaults; the selection is retained. Re-enable or reinstall it in Extensions → Icon Packs.`);
     else this.notices.delete('missing');
@@ -78,9 +85,14 @@ export class IconThemeService implements IconThemes {
   }
   async enable(id: string, enabled: boolean) { await this.store.enable(id, enabled); await this.refresh(); }
   async remove(id: string) { await this.store.remove(id); await this.refresh(); }
-  private selected(kind: IconThemeKind): { theme: StoredTheme; resources: PackResources } | undefined {
+  private installed(kind: IconThemeKind): { theme: StoredTheme; resources: PackResources } | undefined {
     const id = this.kernel.configuration.get<string>(iconSetting(kind));
     for (const resources of this.resources.values()) { const theme = resources.pack.themes.find(t => t.id === id && t.kind === kind); if (theme) return { theme, resources }; }
+  }
+  private selected(kind: IconThemeKind): { theme: StoredTheme; resources: PackResources } | undefined {
+    const installed = this.installed(kind); if (installed) return installed;
+    const theme = this.builtin?.pack.themes.find(t => t.kind === kind);
+    return theme && this.builtin && { theme, resources: this.builtin };
   }
   file(resource: IconResource, variant: IconVariant) {
     const selected = this.selected('fileIconTheme'); if (!selected) return;
@@ -100,6 +112,7 @@ export class IconThemeService implements IconThemes {
     for (const registration of this.registrations) registration.dispose();
     for (const preview of [...this.previews.keys()]) preview.dispose();
     for (const resources of this.resources.values()) resources.dispose();
+    this.builtin?.dispose(); this.builtin = undefined;
     this.resources.clear(); this.listeners.clear(); this.store.dispose();
   }
 }
