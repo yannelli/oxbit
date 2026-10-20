@@ -85,6 +85,26 @@ export function htmlPreviewTests() {
     expect(await page.evaluate(() => (window as any).__previewExecuted)).toBeUndefined();
   });
 
+  test("Preview options turn JavaScript on and off", async ({ page }) => {
+    await fixture(page);
+    await scriptFixture(page);
+    await page.getByRole("button", { name: "Open HTML preview", exact: true }).click();
+    const preview = page.frameLocator('iframe[title="HTML preview"]');
+    await expect(preview.locator("h1")).toHaveText("Static");
+    await page.getByRole("button", { name: "Preview options" }).click();
+    const options = page.getByRole("dialog", { name: "Preview options" });
+    const javascript = options.getByLabel("JavaScript", { exact: true });
+    await expect(javascript).toHaveValue("off");
+    await expect(options).not.toContainText("JavaScript is disabled");
+    await javascript.selectOption("on");
+    await expect(preview.locator("h1")).toHaveText("Script ran");
+    await expect(options.getByLabel("External resources")).toBeDisabled();
+    await expect(options).toContainText("JavaScript is on, so this preview loads external resources.");
+    await javascript.selectOption("off");
+    await expect(preview.locator("h1")).toHaveText("Static");
+    await expect(page.locator(".html-preview-scripts")).toBeVisible();
+  });
+
 
   test("HTML preview loads local CSS and images, updates drafts, and navigates pages", async ({ page }) => {
     await fixture(page);
