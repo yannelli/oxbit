@@ -1,6 +1,6 @@
 # AI editing
 
-Created: 2026-10-18. Last updated: 2026-10-19.
+Created: 2026-10-18. Last updated: 2026-10-20.
 
 The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and inline edits to the CodeMirror editor. Both send code from the open file to the provider `ai.provider` names: the Oxbit agent's provider, OpenRouter, a custom OpenAI-compatible API, or a local Ollama or llama.cpp server.
 
@@ -54,7 +54,9 @@ On a runtime, `local` reaches `http://` on loopback hosts only, the rule `normal
 
 Requests use Chat Completions with a system prompt. Use chat or instruct models; fill-in-the-middle-only models return unusable text.
 
-`ai.complete`, `ai.key` and `ai.models` require an owner session and a trusted workspace, the same rule as `acp.*`. It passes the request's abort signal to the model request, so a cancelled client request stops it. The runtime imports `@oxbit/agent/auth`, `@oxbit/agent/config` and `@oxbit/agent/providers`, which `vite.config.ts` and `vite.desktop.config.ts` bundle.
+`ai.rawComplete` sends a prompt unchanged to a model server on the runtime's computer, for models trained on their own prompt format: Ollama's `/api/generate` with `raw: true` (default `http://127.0.0.1:11434`) or a `/v1/completions` server such as llama.cpp (`server: "openai-compatible"`, default `http://127.0.0.1:8080`). It decodes greedily, takes `maxTokens` and up to 8 `stop` strings, sends no key, and rejects base URLs that are not on a loopback host.
+
+`ai.complete`, `ai.rawComplete`, `ai.key` and `ai.models` require an owner session and a trusted workspace, the same rule as `acp.*`. It passes the request's abort signal to the model request, so a cancelled client request stops it. The runtime imports `@oxbit/agent/auth`, `@oxbit/agent/config` and `@oxbit/agent/providers`, which `vite.config.ts` and `vite.desktop.config.ts` bundle.
 
 ## Prompts
 
@@ -71,7 +73,7 @@ For inline completions, `contextWindow` in `src/prompt.ts` takes the lines aroun
 ## Tests
 
 - `packages/features/ai/src/*.test.ts`: prompt cleanup, ghost state, inline edit application, transport and provider selection, and model suggestions.
-- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, named providers, `ai.key` and `ai.models`, with a fake `fetch`.
+- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, named providers, `ai.key` and `ai.models`, and `ai.rawComplete` request bodies, loopback checks and errors, with a fake `fetch`.
 - `tests/browser/settings-pages.spec.ts`: provider labels, suggestion details, and choosing a suggested model.
 - `tests/browser/ai-editor.spec.ts`: ghost text accept and dismiss, the inline completion limits, instructions and excluded files, and the inline edit with undo, against a fake `agentModels` service.
 

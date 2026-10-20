@@ -25,6 +25,35 @@ const text = (params: Record<string, unknown>, key: string, limit: number, optio
 const EDITOR_PROVIDERS = new Set<ProviderId>(["openrouter", "openai-compatible", "ollama"]);
 const KEYED_PROVIDERS = new Set<ProviderId>(["openrouter", "openai-compatible"]);
 
+/** Servers `rawComplete` sends to, with the base URL each uses when the request names none. */
+const RAW_SERVERS: Record<string, string> = { ollama: "http://127.0.0.1:11434", "openai-compatible": "http://127.0.0.1:8080" };
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+const MAX_STOPS = 8;
+
+/** Raw completions send no key, so they only go to a model server on the runtime's computer. */
+function localBase(input: string) {
+  let base: string;
+  try {
+    base = normalizeBase(input);
+  } catch (error) {
+    throw new RpcError("INVALID_PARAMS", (error as Error).message);
+  }
+  if (!LOOPBACK_HOSTS.has(new URL(base).hostname)) throw new RpcError("INVALID_PARAMS", "Use a model server on this computer, such as http://127.0.0.1:11434");
+  return base;
+}
+
+/** Ollama answers errors as `{"error": "..."}`; OpenAI-compatible servers as `{"error": {"message": "..."}}`. */
+function serverError(status: number, body: string) {
+  let detail = body.trim().slice(0, 1000);
+  try {
+    const parsed = JSON.parse(detail);
+    detail = typeof parsed?.error === "string" ? parsed.error : parsed?.error?.message ?? parsed?.message ?? detail;
+  } catch {
+    // The body is plain text.
+  }
+  return `Model server error ${status}${detail ? `: ${detail}` : ""}`;
+}
+
 function editorProvider(params: Record<string, unknown>, allowed = EDITOR_PROVIDERS) {
   const provider = text(params, "provider", 40, true) as ProviderId | undefined;
   if (provider && !allowed.has(provider)) throw new RpcError("INVALID_PARAMS", "Invalid provider");
@@ -62,6 +91,49 @@ export class AiCompletions {
       if (signal?.aborted) throw error;
       throw new RpcError("MODEL_ERROR", modelError(error).message);
     }
+    return { text: output, model };
+  }
+
+  /**
+   * One text completion from a local Ollama server (`/api/generate` with `raw`) or a `/v1/completions` server such as llama.cpp,
+   * with greedy decoding. The prompt reaches the model unchanged, without a chat template, for models trained on their own format.
+   */
+  async rawComplete(params: Record<string, unknown>, signal?: AbortSignal) {
+    const server = text(params, "server", 40, true) ?? "ollama";
+    if (!Object.hasOwn(RAW_SERVERS, server)) throw new RpcError("INVALID_PARAMS", "Invalid server");
+    const base = localBase(text(params, "baseUrl", 2048, true) ?? RAW_SERVERS[server]);
+    const model = text(params, "model", 200)!.trim();
+    if (!model) throw new RpcError("INVALID_PARAMS", "Invalid model");
+    const prompt = text(params, "prompt", MAX_PROMPT_CHARS)!;
+    const maxTokens = params.maxTokens ?? 256;
+    if (!Number.isSafeInteger(maxTokens) || (maxTokens as number) < 1 || (maxTokens as number) > MAX_OUTPUT_TOKENS)
+      throw new RpcError("INVALID_PARAMS", "Invalid maxTokens");
+    const stop = params.stop ?? [];
+    if (!Array.isArray(stop) || stop.length > MAX_STOPS || stop.some((item) => typeof item !== "string" || !item || item.length > 64))
+      throw new RpcError("INVALID_PARAMS", "Invalid stop");
+    const ollama = server === "ollama";
+    const body = ollama
+      ? { model, prompt, raw: true, stream: false, options: { temperature: 0, num_predict: maxTokens, ...(stop.length ? { stop } : {}) } }
+      : { model, prompt, max_tokens: maxTokens, temperature: 0, stream: false, ...(stop.length ? { stop } : {}) };
+    let response: Response;
+    try {
+      response = await (this.options.fetch ?? fetch)(`${base}${ollama ? "/api/generate" : "/v1/completions"}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal,
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new RpcError("MODEL_ERROR", `Could not reach the model server at ${base}: ${(error as Error).message}`);
+    }
+    const reply = await response.text();
+    if (!response.ok) throw new RpcError("MODEL_ERROR", serverError(response.status, reply));
+    let output: unknown;
+    try {
+      const data = JSON.parse(reply);
+      output = ollama ? data?.response : data?.choices?.[0]?.text;
+    } catch {
+      throw new RpcError("MODEL_ERROR", "The model server's reply is not JSON");
+    }
+    if (typeof output !== "string") throw new RpcError("MODEL_ERROR", "The model server's reply has no completion text");
     return { text: output, model };
   }
 

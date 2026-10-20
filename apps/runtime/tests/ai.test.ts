@@ -101,3 +101,59 @@ describe("AiCompletions", () => {
     await expect(ai.complete({ system: "s", prompt: "p", maxTokens: 0 })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
   });
 });
+
+describe("AiCompletions.rawComplete", () => {
+  function jsonFetch(reply: unknown, status = 200) {
+    const calls: { url: string; body: any }[] = [];
+    const fetch = async (url: string, init?: RequestInit) => {
+      calls.push({ url, body: JSON.parse(String(init?.body)) });
+      return new Response(JSON.stringify(reply), { status });
+    };
+    return { calls, fetch };
+  }
+
+  it("sends the prompt to Ollama's generate API in raw mode with greedy decoding", async () => {
+    const { calls, fetch } = jsonFetch({ response: "def greet(name):\n" });
+    const result = await new AiCompletions({ fetch }).rawComplete({ model: "sweep", prompt: "<|file_sep|>a.py\n", maxTokens: 512, stop: ["<|file_sep|>"] });
+    expect(result).toEqual({ text: "def greet(name):\n", model: "sweep" });
+    expect(calls).toEqual([{
+      url: "http://127.0.0.1:11434/api/generate",
+      body: { model: "sweep", prompt: "<|file_sep|>a.py\n", raw: true, stream: false, options: { temperature: 0, num_predict: 512, stop: ["<|file_sep|>"] } },
+    }]);
+  });
+
+  it("sends to a /v1/completions server at the request's base URL", async () => {
+    const { calls, fetch } = jsonFetch({ choices: [{ text: "x = 1" }] });
+    const result = await new AiCompletions({ fetch }).rawComplete({ server: "openai-compatible", baseUrl: "http://localhost:8080/v1/", model: "m", prompt: "p", maxTokens: 8 });
+    expect(result.text).toBe("x = 1");
+    expect(calls[0]).toEqual({ url: "http://localhost:8080/v1/completions", body: { model: "m", prompt: "p", max_tokens: 8, temperature: 0, stream: false } });
+  });
+
+  it("only sends to model servers on this computer", async () => {
+    const { calls, fetch } = jsonFetch({ response: "" });
+    const ai = new AiCompletions({ fetch });
+    await expect(ai.rawComplete({ baseUrl: "https://api.example.com", model: "m", prompt: "p" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.rawComplete({ baseUrl: "http://192.168.1.20:11434", model: "m", prompt: "p" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("rejects invalid parameters", async () => {
+    const ai = new AiCompletions({ fetch: jsonFetch({}).fetch });
+    await expect(ai.rawComplete({ server: "anthropic", model: "m", prompt: "p" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.rawComplete({ model: " ", prompt: "p" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.rawComplete({ model: "m", prompt: "p", maxTokens: 0 })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    await expect(ai.rawComplete({ model: "m", prompt: "p", stop: [""] })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+  });
+
+  it("reports the server's error message", async () => {
+    const { fetch } = jsonFetch({ error: "model 'sweep' not found" }, 404);
+    await expect(new AiCompletions({ fetch }).rawComplete({ model: "sweep", prompt: "p" }))
+      .rejects.toMatchObject({ code: "MODEL_ERROR", message: "Model server error 404: model 'sweep' not found" });
+  });
+
+  it("reports an unreachable server", async () => {
+    const fetch = async () => { throw new TypeError("fetch failed"); };
+    await expect(new AiCompletions({ fetch }).rawComplete({ model: "sweep", prompt: "p" }))
+      .rejects.toMatchObject({ code: "MODEL_ERROR", message: "Could not reach the model server at http://127.0.0.1:11434: fetch failed" });
+  });
+});
