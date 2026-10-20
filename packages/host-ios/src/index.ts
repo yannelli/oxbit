@@ -10,6 +10,7 @@ export {
   type GitCredentials,
   type GitCredentialRequest,
   type RuntimeCredentialRequest,
+  type DeviceSecretRequest,
   GIT_ACCOUNT_KEY,
   GIT_SSH_KEY,
   type CommitSigningKey,
@@ -36,7 +37,8 @@ export { IosFileSystem, SshFileSystem, revisionOf } from "./filesystem.js";
 export { IosPersistence, PROFILE_SCOPE, SESSION_SCOPE } from "./persistence.js";
 export { IosIconPackStore } from "./icon-packs.js";
 export { IosLanguageTransport, createIosLanguageFeature, createIosLanguageFeatures, iosLanguageServers, migrateIosLanguageState, type IosLanguageServerKind } from "./language.js";
-export { discovery, DISCOVERY_POLL_MS, type DiscoveredRuntime } from "./discovery.js";
+export { discovery, DISCOVERY_POLL_MS, remoteHostAddress, type DiscoveredRuntime, type DiscoveredRemoteHost } from "./discovery.js";
+export { remoteDeviceKeyStore, REMOTE_DEVICE_KEY } from "./remote.js";
 export { loadRecents, rememberWorkspace, forgetWorkspace, RECENTS_LIMIT, type RecentWorkspace } from "./workspaces.js";
 export { searchRoot, findRootFiles } from "./search.js";
 export { IosNotification, installNotifications, notificationPermission, onNotificationGrant, type NotificationPermission } from "./notifications.js";

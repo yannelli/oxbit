@@ -8,6 +8,7 @@ import { setting } from "./branding.js";
 import { runtimeVersion } from "./version.js";
 import { lanUrl, wildcardHost } from "./lan.js";
 import { advertise, type Advertiser } from "./mdns.js";
+import { REMOTE_USAGE, runRemote } from "./remote/commands.js";
 import {
   dataDirFor,
   delay,
@@ -49,7 +50,8 @@ Options
       --status         Report the runtime serving the workspace
   -h, --help           Show this message
   -v, --version        Show the runtime version
-`;
+
+${REMOTE_USAGE}`;
 
 export interface Invocation {
   target: string;
@@ -305,6 +307,15 @@ async function detach(
   );
 }
 
+/** Remote access keeps folder runtimes it starts alive for 30 minutes without a client. */
+export const REMOTE_KEEP_ALIVE = 30 * 60 * 1000;
+
+/** Starts a detached loopback runtime for `root` the way `oxbit [path]` does, recording it in `dataDir`. */
+export function startRuntime(root: string, dataDir: string, entry: string, keepAlive = REMOTE_KEEP_ALIVE) {
+  const invocation: Invocation = { target: root, port: 0, host: DEFAULT_HOST, lan: false, open: false, foreground: false, keepAlive, action: "open" };
+  return detach(invocation, { root }, dataDir, entry);
+}
+
 async function stop(dataDir: string, root: string) {
   const daemon = await liveDaemon(dataDir);
   if (!daemon) {
@@ -354,6 +365,8 @@ export async function run(
     cwd = process.cwd(),
     entry = fileURLToPath(import.meta.url),
   } = context;
+  if (argv[0] === "remote")
+    return runRemote(argv.slice(1), { env, entry, startRuntime: (root, dataDir) => startRuntime(root, dataDir, entry) });
   const invocation = parse(argv, env);
   if ("error" in invocation) {
     process.stderr.write(`${invocation.error}\n\n${USAGE}`);

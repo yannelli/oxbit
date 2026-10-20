@@ -1,7 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RecentWorkspace } from "@oxbit/host-ios";
 
-const mocks = vi.hoisted(() => ({ resume: vi.fn(), hosts: vi.fn() }));
+const mocks = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  const remote = {
+    version: 0, list: [] as unknown[], listeners,
+    hosts: {
+      get version() { return remote.version; },
+      list: () => remote.list, get: vi.fn(), setDiscovered: vi.fn(),
+      subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); },
+    },
+  };
+  return { resume: vi.fn(), hosts: vi.fn(), remote, readLink: vi.fn() };
+});
+vi.mock("./remote-hosts.js", () => ({
+  COMPUTER_PREFIX: "computer:",
+  remoteHosts: mocks.remote.hosts,
+  readPairingLink: mocks.readLink,
+  computerTarget: (host: { id: string; name: string; online?: boolean }) => ({ key: "computer:" + host.id, kind: "remote", name: host.name, hostId: host.id, online: host.online }),
+}));
 vi.mock("@oxbit/host-ios", () => ({
   SESSION_SCOPE: "session",
   discovery: { watch: vi.fn() },
@@ -32,15 +49,18 @@ function workspace(recent: RecentWorkspace, runtime?: { connected: boolean; reco
 function setup(recents: RecentWorkspace[], open: RecentWorkspace | OpenWorkspace) {
   const connector = new IosRuntimeConnector();
   const startSsh = vi.fn();
-  connector.host = { open: vi.fn(), close: vi.fn(), forget: vi.fn(), startSsh, manageSsh: vi.fn() };
+  const host = { open: vi.fn(), close: vi.fn(), forget: vi.fn(), startSsh, manageSsh: vi.fn(), showRemote: vi.fn(), confirmPairing: vi.fn(), forgetRemote: vi.fn() };
+  connector.host = host;
   connector.setRecents(recents);
   connector.attach("session" in open ? open : workspace(open));
-  return { connector, startSsh };
+  return { connector, startSsh, host };
 }
 
 beforeEach(() => {
   mocks.resume.mockReset();
   mocks.hosts.mockReset();
+  mocks.remote.hosts.get.mockReset();
+  mocks.remote.list = [];
 });
 
 describe("IosRuntimeConnector", () => {
@@ -91,5 +111,77 @@ describe("IosRuntimeConnector", () => {
       { id: "host-1", label: "Build box", detail: "dev@build.example.test", lastPath: "/home/dev/project" },
       { id: "host-2", label: "Spare", detail: "dev@spare.example.test:2222", lastPath: "/home/dev/spare" },
     ]);
+  });
+});
+
+const folder: RecentWorkspace = { id: "remote:abc", kind: "remote", name: "Studio Mac: app", hostId: "host-1", remotePath: "/Users/dev/app", lastOpened: 6 };
+
+describe("paired computers", () => {
+  it("lists computers with presence and keeps the array until a host changes", () => {
+    const { connector } = setup([], documents);
+    mocks.remote.list = [{ id: "host-1", name: "Studio Mac", online: false }];
+    mocks.remote.version++;
+    const first = connector.computers();
+    expect(first).toEqual([{ key: "computer:host-1", kind: "remote", name: "Studio Mac", hostId: "host-1", online: false }]);
+    expect(connector.computers()).toBe(first);
+    const listener = vi.fn();
+    const off = connector.subscribe(listener);
+    mocks.remote.version++;
+    for (const notify of mocks.remote.listeners) notify();
+    expect(listener).toHaveBeenCalled();
+    expect(connector.computers()).not.toBe(first);
+    off();
+  });
+
+  it("shows a computer's screen, opens its saved folders, and forgets either kind", async () => {
+    const { connector, host } = setup([folder, laptop], documents);
+    await connector.connect(connector.computers()[0] ?? { key: "computer:host-1", kind: "remote", name: "Studio Mac", hostId: "host-1" });
+    expect(host.showRemote).toHaveBeenCalledWith("host-1");
+    const saved = await connector.recents();
+    expect(saved[0]).toMatchObject({ key: "remote:abc", kind: "remote", hostId: "host-1", path: "/Users/dev/app" });
+    await connector.connect(saved[0]!);
+    expect(host.open).toHaveBeenCalledWith({ kind: "remote", hostId: "host-1", path: "/Users/dev/app" });
+    await connector.forget({ key: "computer:host-1", kind: "remote", name: "Studio Mac", hostId: "host-1" });
+    expect(host.forgetRemote).toHaveBeenCalledWith("host-1");
+    await connector.forget(saved[0]!);
+    expect(host.forget).toHaveBeenCalledWith("remote:abc");
+  });
+
+  it("asks before pairing with a pasted link", async () => {
+    const { connector, host } = setup([], documents);
+    const offer = { h: "host-1", n: "Studio Mac" };
+    mocks.readLink.mockResolvedValueOnce(offer).mockRejectedValueOnce(new Error("This pairing link is not valid."));
+    await connector.pairLink("https://oxbit.dev/c#o=abc");
+    expect(host.confirmPairing).toHaveBeenCalledWith(offer);
+    await expect(connector.pairLink("nope")).rejects.toThrow("This pairing link is not valid.");
+  });
+
+  it("reconnects the computer, then the runtime, for the open remote folder", async () => {
+    const order: string[] = [];
+    const runtime = {
+      connected: false,
+      reconnect: vi.fn(async function (this: { connected: boolean }) {
+        order.push("runtime");
+        this.connected = true;
+      }),
+    };
+    mocks.remote.hosts.get.mockReturnValue({ record: { name: "Studio Mac" }, reconnect: vi.fn(async () => { order.push("host"); }) });
+    const { connector } = setup([folder], workspace(folder, runtime));
+    expect(connector.status()).toMatchObject({ kind: "remote", host: "Studio Mac", workspace: "/Users/dev/app", targetKey: "remote:abc" });
+    await connector.connect(connector.quickTarget()!);
+    expect(order).toEqual(["host", "runtime"]);
+    expect(connector.status()).toMatchObject({ state: "connected", progress: undefined });
+  });
+
+  it("passes Bonjour hosts from discovery to the paired computers", async () => {
+    const { discovery } = await import("@oxbit/host-ios");
+    const { connector } = setup([], documents);
+    const listener = vi.fn();
+    connector.discover(listener);
+    const deliver = vi.mocked(discovery.watch).mock.calls.at(-1)![0];
+    const hosts = [{ hostId: "host-1", name: "Studio Mac", host: "10.0.0.5", port: 7000 }];
+    deliver([], false, hosts);
+    expect(mocks.remote.hosts.setDiscovered).toHaveBeenCalledWith(hosts);
+    expect(listener).toHaveBeenCalledWith([], false);
   });
 });

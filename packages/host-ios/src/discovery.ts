@@ -9,33 +9,47 @@ export interface DiscoveredRuntime {
   port: number;
   url: string;
 }
+/** A remote access host advertised over Bonjour as `_oxbit-remote._tcp`; pairing needs a link from it. */
+export interface DiscoveredRemoteHost {
+  hostId: string;
+  name: string;
+  version?: string;
+  host: string;
+  port: number;
+}
 export const DISCOVERY_POLL_MS = 2000;
 
 /** `localNetworkDenied` is true while iOS denies Oxbit Local Network access. */
-interface DiscoveryList { runtimes: DiscoveredRuntime[]; localNetworkDenied?: boolean }
+interface DiscoveryList { runtimes: DiscoveredRuntime[]; hosts?: DiscoveredRemoteHost[]; localNetworkDenied?: boolean }
 const request = (operation: "start" | "list" | "stop") =>
   invoke<DiscoveryList>("plugin:oxbit-files|runtime_discovery", { request: { operation } });
 
-function unique(runtimes: DiscoveredRuntime[]): DiscoveredRuntime[] {
-  const byId = new Map<string, DiscoveredRuntime>();
-  for (const runtime of runtimes) if (!byId.has(runtime.runtimeId)) byId.set(runtime.runtimeId, runtime);
+function unique<T>(items: T[], id: (item: T) => string): T[] {
+  const byId = new Map<string, T>();
+  for (const item of items) if (!byId.has(id(item))) byId.set(id(item), item);
   return [...byId.values()];
 }
 
-/** Native browsing stops two minutes after the last `start` or `list`, so watching polls `list`. */
+/** `host:port` for a WebSocket URL, with brackets around an IPv6 address. */
+export function remoteHostAddress(host: Pick<DiscoveredRemoteHost, "host" | "port">): string {
+  return host.host.includes(":") ? `[${host.host}]:${host.port}` : `${host.host}:${host.port}`;
+}
+
+/** Native browsing stops two minutes after the last `start` or `list`, so watching polls `list`. `hosts` lists `_oxbit-remote._tcp` services apart from runtimes. */
 export const discovery = {
-  watch(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied: boolean) => void): () => void {
+  watch(listener: (runtimes: DiscoveredRuntime[], localNetworkDenied: boolean, hosts: DiscoveredRemoteHost[]) => void): () => void {
     let active = true;
     let last: string | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const deliver = ({ runtimes, localNetworkDenied }: DiscoveryList) => {
+    const deliver = ({ runtimes, hosts, localNetworkDenied }: DiscoveryList) => {
       if (!active) return;
-      const next = unique(Array.isArray(runtimes) ? runtimes : []);
+      const next = unique(Array.isArray(runtimes) ? runtimes : [], (runtime) => runtime.runtimeId);
+      const remote = unique(Array.isArray(hosts) ? hosts : [], (host) => host.hostId);
       const denied = localNetworkDenied === true;
-      const key = JSON.stringify([next, denied]);
+      const key = JSON.stringify([next, denied, remote]);
       if (key === last) return;
       last = key;
-      listener(next, denied);
+      listener(next, denied, remote);
     };
     const poll = () => {
       timer = setTimeout(() => {

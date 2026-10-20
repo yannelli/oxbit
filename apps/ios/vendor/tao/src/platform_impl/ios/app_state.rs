@@ -508,6 +508,7 @@ pub unsafe fn connect_scene(scene: &UIScene, options: &UISceneConnectionOptions)
     AppState::get_mut().did_first_scene_connect = true;
     on_app_ready();
   }
+  emit_launch_urls(options);
 
   if let Some(window_scene) = scene.downcast_ref::<UIWindowScene>() {
     let window = {
@@ -529,6 +530,27 @@ pub unsafe fn connect_scene(scene: &UIScene, options: &UISceneConnectionOptions)
         options: options.retain(),
       }));
     }
+  }
+}
+
+// A cold launch delivers its URL and universal-link activity in the connection options, not through scene:openURLContexts:.
+unsafe fn emit_launch_urls(options: &UISceneConnectionOptions) {
+  let contexts = options.URLContexts();
+  let activities = options.userActivities();
+  let opened = contexts.iter().filter_map(|context| context.URL().absoluteString());
+  let linked = activities.iter().filter_map(|activity| activity.webpageURL().and_then(|url| url.absoluteString()));
+  let urls: Vec<url::Url> = opened
+    .chain(linked)
+    .filter_map(|url| {
+      let url = url.to_string();
+      url
+        .parse()
+        .map_err(|e| log::error!("failed to parse launch URL {url}: {e}"))
+        .ok()
+    })
+    .collect();
+  if !urls.is_empty() {
+    handle_nonuser_event(EventWrapper::StaticEvent(Event::Opened { urls }));
   }
 }
 

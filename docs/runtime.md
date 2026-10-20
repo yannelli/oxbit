@@ -1,7 +1,7 @@
 # Runtime, trust and recovery
 
 Created: 2026-09-06
-Last updated: 2026-10-10
+Last updated: 2026-10-19
 
 The file explorer loads the workspace root and the immediate children of expanded folders. Collapsed branches are not traversed, including during refresh; opening or revealing a file expands its ancestors. Listings are cached until a relevant filesystem change, explicit refresh, or collapse. There is no workspace-wide 20,000-entry cutoff. Quick Open searches unopened folders only when a query is entered, cancels superseded searches, and skips `.git` and `node_modules`. Over a runtime connection it calls `search.files`, which runs `rg --files` with `.gitignore` applied in Git repositories; a runtime without `search.files` falls back to the `fs.list` walk, which does not apply `.gitignore`; workspace export enumerates all folders when explicitly requested.
 
@@ -55,6 +55,8 @@ LAN mode advertises `<host name> (<first 8 id characters>)._oxbit._tcp.local` ov
 `--keep-alive <duration>` or `OXBIT_KEEP_ALIVE` stops a CLI runtime after no authenticated WebSocket client has been connected for the duration: `75s`, `15m`, `1h`, `8h`, plain milliseconds, or `forever`. The default is `forever`, which runs until `oxbit --stop`. The detached daemon receives the value as an argument. There is no RPC to change it; clients cannot alter a CLI runtime's keep-alive. The server pings every WebSocket client every 30 seconds and terminates one that did not answer the previous ping. Desktop remote runtimes take their lease from the launch frame; see [Remote workspaces over SSH](remote-ssh.md#installation-and-connection-lifecycle).
 
 The CLI exits with a message naming the found and required versions when Node is older than 24. `node-pty` loads on the first terminal request; when it cannot load, that request fails with `node-pty failed to load: <reason>` and the rest of the runtime keeps serving. A foreground runtime that cannot bind (port in use, permission denied, address unavailable) prints one line and exits 1.
+
+`oxbit remote` runs one host per computer that starts and reuses these per-folder runtimes for paired devices on any network; see [remote access](remote-access.md).
 
 ## Runtime page
 

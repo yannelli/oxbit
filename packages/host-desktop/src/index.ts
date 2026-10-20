@@ -17,6 +17,7 @@ import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
 import { RuntimeClient, RuntimeFileSystem } from "@oxbit/host-runtime";
 import { KEEP_ALIVE_SETTING, keepAliveMs } from "@oxbit/feature-runtime";
 import { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
+import { desktopRemoteAccess } from "./remote-access.js";
 export { DesktopRuntimeConnector, type DesktopRuntimeHost } from "./runtime-connector.js";
 export {
   DesktopNotification,
@@ -66,6 +67,8 @@ export interface ToolStatus {
   authenticated?: boolean;
   guidance: string;
 }
+const remoteAccess = desktopRemoteAccess(invoke, listen);
+
 export const native = {
   snapshot: () => invoke<DesktopSnapshot>("desktop_snapshot"),
   open: (path?: string, newWindow = false, file = false) =>
@@ -319,6 +322,7 @@ export class ProjectSessionManager {
       open: path => native.open(path),
       startSsh: (authority, path) => this.ssh.startSsh?.(authority, path) ?? Promise.resolve(),
       manageSsh: () => this.ssh.manageSsh?.(),
+      remoteAccess,
     });
   }
   private async load(entry: ProjectSession, restart = false) {

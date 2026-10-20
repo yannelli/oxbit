@@ -52,6 +52,26 @@ func runTests() throws {
   try expect(unique.map(\.runtimeId) == ["runtime-4567", "runtime-0123"], "One entry per id, ordered by name")
   try expect(unique[1].host == "192.168.1.10", "IPv4 replaces IPv6 for the same id")
   try expect(DiscoveredRuntime.unique([v4!, v6!])[0].host == "192.168.1.10", "IPv4 is kept over a later IPv6")
+
+  let hostId = "Ab_9-cD_efGhIjKlMnOpQr"
+  try expect(DiscoveredRemoteHost.validId(hostId), "Accepts a 22 character base64url host id")
+  try expect(!DiscoveredRemoteHost.validId(String(hostId.dropLast())), "Rejects 21 characters")
+  try expect(!DiscoveredRemoteHost.validId(hostId + "a"), "Rejects 23 characters")
+  try expect(!DiscoveredRemoteHost.validId("Ab+9/cD_efGhIjKlMnOpQr"), "Rejects base64 padding alphabet")
+  let hostTxt = ["id": hostId, "name": "studio", "version": "", "port": "9300"]
+  let hostV6 = DiscoveredRemoteHost(txt: hostTxt, service: "Oxbit remote", host: "fe80::2%en0", port: 9301)
+  try expect(hostV6?.host == "fe80::2" && hostV6?.port == 9301 && hostV6?.version == nil,
+    "Host drops the scope, the resolved port wins, and an empty version is nil")
+  try expect(DiscoveredRemoteHost(txt: ["id": hostId], service: "Oxbit remote", host: "10.0.0.4", port: nil) == nil,
+    "Host without a resolved or TXT port is dropped")
+  try expect(DiscoveredRemoteHost(txt: ["id": hostId], service: "Oxbit remote", host: "10.0.0.4", port: 1)?.name
+    == "Oxbit remote", "Host name falls back to the service name")
+  try expect(DiscoveredRemoteHost(txt: txt, service: "s", host: "10.0.0.4", port: 1) == nil,
+    "Runtime ids are not host ids")
+  let hostV4 = DiscoveredRemoteHost(txt: hostTxt, service: "Oxbit remote", host: "192.168.1.20", port: nil)!
+  let hosts = DiscoveredRemoteHost.unique([hostV4, hostV6!])
+  try expect(hosts.count == 1 && hosts[0].host == "192.168.1.20" && hosts[0].port == 9300,
+    "One host per id, IPv4 kept over IPv6")
 }
 
 do {

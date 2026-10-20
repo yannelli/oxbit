@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RuntimeConnector, RuntimeStatus, RuntimeTarget } from "@oxbit/workbench";
 import { keepAliveMs, keepAliveOptions } from "./configuration.js";
-import { RuntimeStatusStore, clientStatus, formatUptime, oneTap } from "./store.js";
+import { RuntimeStatusStore, clientStatus, formatLastSeen, formatUptime, oneTap, presenceLabel } from "./store.js";
 
 const target: RuntimeTarget = { key: "url:abc12345", kind: "url", name: "studio", url: "http://192.168.1.5:50123", runtimeId: "abc12345" };
 
@@ -76,5 +76,24 @@ describe("status store", () => {
     expect(formatUptime(1, 30_000)).toBe("<1m");
     expect(formatUptime(1, 1 + 125 * 60_000)).toBe("2h 5m");
     expect(formatUptime(1, 1 + 26 * 3_600_000)).toBe("1d 2h");
+  });
+});
+
+describe("paired computer presence", () => {
+  const now = Date.UTC(2026, 9, 19, 12);
+  it("formats the last-seen time relative to now", () => {
+    expect(formatLastSeen(now - 20_000, now)).toBe("just now");
+    expect(formatLastSeen(now - 5 * 60_000, now)).toBe("5 min ago");
+    expect(formatLastSeen(now - 3 * 3_600_000, now)).toBe("3 h ago");
+    expect(formatLastSeen(now - 26 * 3_600_000, now)).toBe("1 day ago");
+    expect(formatLastSeen(now - 3 * 86_400_000, now)).toBe("3 days ago");
+    expect(formatLastSeen(now - 30 * 86_400_000, now)).toBe(new Date(now - 30 * 86_400_000).toLocaleDateString());
+  });
+  it("labels online, offline, and unknown computers", () => {
+    expect(presenceLabel({ online: true }, now)).toBe("Online");
+    expect(presenceLabel({ online: false, lastSeen: now - 5 * 60_000 }, now)).toBe("Offline · last seen 5 min ago");
+    expect(presenceLabel({ online: false }, now)).toBe("Offline");
+    expect(presenceLabel({ detail: "Studio Mac no longer accepts this device." }, now)).toBe("Studio Mac no longer accepts this device.");
+    expect(presenceLabel({}, now)).toBe("Connecting…");
   });
 });

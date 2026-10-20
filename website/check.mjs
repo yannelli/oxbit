@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const publicDir = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const origin = 'https://oxbit.dev';
+const noindexRoutes = new Set(['/404.html', '/c/']);
 const requiredRoutes = ['/', '/features/', '/platforms/', '/get-started/', '/docs/', '/changelog/', '/faq/', '/about/', '/support/', '/security/', '/privacy/'];
 const primaryRoutes = ['/get-started/', '/features/', '/platforms/', '/docs/', '/changelog/'];
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
@@ -79,7 +80,7 @@ const pages = htmlFiles(publicDir).map(filename => {
   const relative = path.relative(publicDir, filename).split(path.sep).join('/');
   const route = relative === 'index.html' ? '/' : relative.endsWith('/index.html') ? `/${relative.slice(0, -10)}` : `/${relative}`;
   const parsed = parseHtml(readFileSync(filename, 'utf8'));
-  return { filename, route, ...parsed, indexable: route !== '/404.html' };
+  return { filename, route, ...parsed, indexable: !noindexRoutes.has(route) };
 });
 const byFilename = new Map(pages.map(page => [page.filename, page]));
 
@@ -153,7 +154,7 @@ test('required pages exist and have complete, unique search metadata', () => {
       const robots = page.nodes.find(node => node.tag === 'meta' && node.attrs.name === 'robots');
       assert.ok(!robots || !/\b(noindex|none)\b/i.test(robots.attrs.content), `Indexable page blocks indexing: ${page.route}`);
     } else {
-      assert.match(metadata(page, 'robots'), /\bnoindex\b/i, '404 must be noindex');
+      assert.match(metadata(page, 'robots'), /\bnoindex\b/i, `${page.route} must be noindex`);
     }
   }
 });

@@ -1,5 +1,7 @@
 import { Icon, OxbitMark } from "@oxbit/ui";
 import type { RecentWorkspace } from "@oxbit/host-ios";
+import type { RuntimeTarget } from "@oxbit/workbench";
+import { presenceLabel } from "@oxbit/feature-runtime";
 import { DOCUMENTS_ID } from "./workspaces.js";
 
 export function StartScreen({
@@ -18,6 +20,8 @@ export function StartScreen({
   onSsh,
   onSshRuntime,
   onSshSettings,
+  computers = [],
+  onRemoteHost,
 }: {
   recents: RecentWorkspace[];
   busy?: string;
@@ -34,9 +38,12 @@ export function StartScreen({
   onSsh: (recent?: RecentWorkspace) => void;
   onSshRuntime: (recent?: RecentWorkspace) => void;
   onSshSettings: () => void;
+  /** Paired computers from `oxbit remote pair`. */
+  computers?: RuntimeTarget[];
+  onRemoteHost?: (hostId: string) => void;
 }) {
   const folders = recents.filter((recent) => recent.kind === "bookmark" || (recent.kind === "documents" && recent.directory));
-  const runtimes = recents.filter(recent => recent.kind === "runtime");
+  const runtimes = recents.filter(recent => recent.kind === "runtime" || recent.kind === "remote");
   const servers = recents.filter(recent => recent.kind === "ssh" || recent.kind === "sshRuntime");
   return (
     <div className="ios-start" role="dialog" aria-label="Workspaces">
@@ -90,9 +97,14 @@ export function StartScreen({
       </section>
       <section aria-label="Remote workspaces">
         <h2>On your computer</h2>
+        {computers.map(computer => <button key={computer.key} className="ios-workspace" disabled={!!busy || !onRemoteHost}
+          onClick={() => computer.hostId && onRemoteHost?.(computer.hostId)}>
+          <Icon name={computer.online ? "cloudCheck" : computer.online === false ? "cloudOff" : "cloud"} />
+          <span>{computer.name}<small>{presenceLabel(computer)}</small></span>
+        </button>)}
         {runtimes.map(recent => <div className="ios-workspace-row" key={recent.id}>
           <button className="ios-workspace" disabled={!!busy} onClick={() => onOpenRecent(recent)} aria-current={current === recent.id ? "true" : undefined}>
-            <Icon name="cloud" /><span>{recent.name}<small>{recent.url}</small></span>
+            <Icon name="cloud" /><span>{recent.name}<small>{recent.url ?? recent.remotePath}</small></span>
           </button>
           <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="x" size={14} /></button>
         </div>)}

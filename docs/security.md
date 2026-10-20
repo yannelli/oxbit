@@ -16,6 +16,10 @@ Runtime operation IDs retain completion/failure/interrupted status. An uncertain
 
 Revoking a grant closes its connections and terminates its owned processes. Revoking workspace trust terminates workspace tools. A runtime owner remains responsible for its operating-system account and credentials. Runtime Git uses existing credential helpers and environment configuration; secrets are not sent in browser bundles.
 
+## Remote access
+
+`oxbit remote` connects paired devices to the computer through the `oxbit-relay` Worker or the local network ([remote access](remote-access.md)). Devices and the host run a Noise handshake end to end; the relay forwards ciphertext and sees addresses, timing and sizes. The host admits only device keys in its device list. A pairing link carries a one-time key that the host accepts once within 2 minutes; anyone holding an unused link in that window can pair. The relay admits a host only after an Ed25519 signature over a fresh challenge. Folder browsing stays inside the home folder and hides credential folders. A device that opens a trusted folder can run terminals with the computer account's privileges, as with any runtime owner session. `oxbit remote revoke` closes a device's sessions; `oxbit remote reset` replaces the host keys and removes every device.
+
 ## Dependency audit
 
 Created: 2026-10-09. Last updated: 2026-10-09.

@@ -15,15 +15,19 @@ type Pending = {
   cleanup: () => void;
   method: string;
 };
+/** The WebSocket members the client uses; a remote access tunnel stream supplies the same shape. */
+export type RuntimeSocket = Pick<WebSocket, "readyState" | "bufferedAmount" | "send" | "close" | "onopen" | "onmessage" | "onerror" | "onclose">;
 export interface RuntimeClientOptions {
   token?: string;
+  /** Opens each connection in place of a WebSocket to `${url}/ws`. */
+  socket?: () => RuntimeSocket;
   /** Desktop credentials never touch WebView storage. Browser pairing keeps its default. */
   persistToken?: boolean;
   /** Reads the token saved for this runtime id before the URL-keyed one. */
   runtimeId?: string;
 }
 export class RuntimeClient implements RpcClient {
-  private socket?: WebSocket;
+  private socket?: RuntimeSocket;
   private token?: string;
   private pending = new Map<string, Pending>();
   private listeners = new Map<string, Set<(value: any) => void>>();
@@ -74,6 +78,10 @@ export class RuntimeClient implements RpcClient {
       storage.removeItem(TOKEN_KEY + this.url);
     } else storage.setItem(TOKEN_KEY + this.url, this.token);
   }
+  /** Sets the token the next `auth.authenticate` sends, such as one a remote host issues with each stream. */
+  useToken(token: string) {
+    this.rememberToken(token);
+  }
   async pair(code: string) {
     if (code.startsWith("grant:")) {
       this.rememberToken(code.slice(6));
@@ -101,7 +109,7 @@ export class RuntimeClient implements RpcClient {
     clearTimeout(this.retry);
     this.emit("connection.change", { state: "connecting" });
     this.opening = new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(this.url.replace(/^http/, "ws") + "/ws");
+      const ws = this.options.socket?.() ?? new WebSocket(this.url.replace(/^http/, "ws") + "/ws");
       this.socket = ws;
       let authenticated = false;
       const timer = setTimeout(() => {
@@ -494,3 +502,6 @@ export class RuntimeFileSystem implements FileSystem {
     return { dispose: () => { if (disposed) return; disposed = true; off(); reconnect(); this.watcherCount--; if (!this.watcherCount && this.client.connected) void this.client.request("fs.unwatch").catch(() => {}); } };
   }
 }
+export * from "./remote.js";
+export * from "./remote-dial.js";
+export * from "./remote-records.js";

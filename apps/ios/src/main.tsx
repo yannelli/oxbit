@@ -17,6 +17,9 @@ import { SshSettings } from "./ssh-settings.js";
 import { SshConnect, type SshTarget } from "./ssh-connect.js";
 import { SshTransfer, type TransferRequest } from "./ssh-transfer.js";
 import { SshGitPrompt } from "./ssh-git-prompt.js";
+import { RemoteHostSheet, RemotePairing } from "./remote-host.js";
+import { readPairingLink, remoteHosts, watchOpenedLinks } from "./remote-hosts.js";
+import type { Offer } from "@oxbit/sdk/tunnel";
 import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
@@ -86,6 +89,9 @@ function App() {
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [restoring, setRestoring] = useState(true);
+  const [pairing, setPairing] = useState<Offer>();
+  const [remoteHost, setRemoteHost] = useState<string>();
+  const computers = useSyncExternalStore(runtimeConnector.subscribe, runtimeConnector.computers);
   const current = useRef<OpenWorkspace>(undefined);
   const opening = useRef(false);
   current.current = workspace;
@@ -148,13 +154,21 @@ function App() {
       // The new runtime cannot take the folder lock while the previous one holds it.
       await close();
     }
+    if (request.kind === "remote" && active?.recent.kind === "remote" && active.recent.hostId === request.hostId && active.recent.remotePath === request.path) {
+      flushSync(() => {
+        setSheet(false);
+        setRemoteHost(undefined);
+        setRuntimePage(false);
+      });
+      return active.session.runtime?.connected ? undefined : runtimeConnector.restart().then(() => undefined, describe);
+    }
     if (request.kind === "documents" && current.current?.recent.kind === "documents" &&
       request.directory === current.current.recent.directory) {
       setSheet(false);
       return;
     }
     if (request.kind === "recent" && request.recent.id === current.current?.recent.id &&
-      (request.recent.kind !== "runtime" || current.current.session.runtime?.connected)) {
+      ((request.recent.kind !== "runtime" && request.recent.kind !== "remote") || current.current.session.runtime?.connected)) {
       setSheet(false);
       return;
     }
@@ -175,6 +189,7 @@ function App() {
         setWorkspaceKey(key => key + 1);
         setSheet(false);
         setRuntimePage(false);
+        setRemoteHost(undefined);
       });
       runtimeConnector.attach(next);
       if (previous) await closeWorkspace(previous);
@@ -182,7 +197,8 @@ function App() {
     } catch (e) {
       const message = describe(e);
       if (!/cancelled/i.test(message)) setError(message);
-      if (request.kind === "runtime" || request.kind === "sshRuntime" || (request.kind === "recent" && request.recent.kind === "runtime"))
+      if (request.kind === "runtime" || request.kind === "sshRuntime" || request.kind === "remote" ||
+        (request.kind === "recent" && (request.recent.kind === "runtime" || request.recent.kind === "remote")))
         runtimeConnector.store.fail(message);
       return message;
     } finally {
@@ -191,6 +207,17 @@ function App() {
     }
   }, [remoteEvent, close]);
 
+  /** Closes the computer's open folder, then drops its recents and its record. */
+  const forgetRemote = useCallback(async (hostId: string) => {
+    const active = current.current?.recent;
+    if (active?.kind === "remote" && active.hostId === hostId) await close();
+    for (const recent of await loadRecents())
+      if (recent.kind === "remote" && recent.hostId === hostId) await forgetRecent(recent.id);
+    await remoteHosts.forget(hostId);
+    setRecents(await loadRecents());
+    setRemoteHost(undefined);
+  }, [close]);
+
   useEffect(() => { runtimeConnector.setRecents(recents); }, [recents]);
   useEffect(() => {
     runtimeConnector.host = {
@@ -198,12 +225,23 @@ function App() {
       forget: id => forgetRecent(id).then(setRecents),
       startSsh: (hostId, path) => setSshConnect({ preset: { hostId, path }, mode: "runtime" }),
       manageSsh: () => setSshSettings(true),
+      showRemote: setRemoteHost,
+      confirmPairing: setPairing,
+      forgetRemote,
     };
-  }, [open, close]);
+  }, [open, close, forgetRemote]);
+  useEffect(() => watchOpenedLinks(link => void readPairingLink(link).then(offer => {
+    setRemoteHost(undefined);
+    setPairing(offer);
+  }, failure => {
+    setError(describe(failure));
+    setSheet(true);
+  })), []);
   useEffect(() => {
     void (async () => {
       try {
         await runtimeConnector.loadSettings();
+        await remoteHosts.load().catch(() => undefined);
         setRecents(await loadRecents());
         const last = await lastWorkspace();
         if (last?.kind === "ssh" || last?.kind === "sshRuntime") setSshConnect(sshTarget(last, last.kind === "sshRuntime" ? "runtime" : "files"));
@@ -222,6 +260,7 @@ function App() {
       if (document.visibilityState === "hidden") void current.current?.session.persist();
       else {
         resume();
+        remoteHosts.reconnectAll();
         const runtime = current.current?.session.runtime;
         if (runtime && !current.current?.remote && !runtime.connected && runtimeConnector.autoReconnect()) runtime.reconnect();
       }
@@ -306,6 +345,8 @@ function App() {
       onSsh={recent => setSshConnect(sshTarget(recent))}
       onSshRuntime={recent => setSshConnect(sshTarget(recent, "runtime"))}
       onSshSettings={() => setSshSettings(true)}
+      computers={computers}
+      onRemoteHost={setRemoteHost}
     />
   );
   return (
@@ -325,6 +366,12 @@ function App() {
         onOpen={target => open({ kind: sshConnect.mode === "runtime" ? "sshRuntime" : "ssh", ...target })}
         onManage={() => { setSshConnect(undefined); setSshSettings(true); }} onClose={() => setSshConnect(undefined)} />}
       {sshSettings && <SshSettings onClose={() => setSshSettings(false)} />}
+      {pairing && <RemotePairing offer={pairing} onClose={() => setPairing(undefined)} onPaired={hostId => {
+        setPairing(undefined);
+        setRemoteHost(hostId);
+      }} />}
+      {remoteHost && <RemoteHostSheet key={remoteHost} hostId={remoteHost} onOpen={path => open({ kind: "remote", hostId: remoteHost, path })}
+        onForget={() => forgetRemote(remoteHost)} onClose={() => setRemoteHost(undefined)} />}
       {transfer && <SshTransfer request={transfer} onDone={() => { if (transfer.kind === "upload") void workspace?.session.workbench.refreshFiles(); }}
         onClose={() => setTransfer(undefined)} />}
       {gitPrompt && <SshGitPrompt rootId={gitPrompt.rootId} onDone={finishGitPrompt}

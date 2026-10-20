@@ -41,6 +41,9 @@
       "path": "apps/push-relay"
     },
     {
+      "path": "apps/relay"
+    },
+    {
       "path": "packages/features/editor"
     },
     {

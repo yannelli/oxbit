@@ -148,6 +148,10 @@ export interface CommitSigningState {
   enabled: boolean;
   key?: CommitSigningKey;
 }
+/** Keychain items the web view owns, such as the remote access device key; names match `^[a-z0-9][a-z0-9.-]{0,63}$`. */
+export type DeviceSecretRequest =
+  | { operation: "get" | "delete"; name: string }
+  | { operation: "set"; name: string; value: string };
 export type CommitSigningRequest =
   | { operation: "get" | "remove" }
   | { operation: "generate"; name: string; email: string }
@@ -319,6 +323,11 @@ export const native = {
   iconPacksMutate: (operation: string, id: string, pack?: unknown, enabled?: boolean) =>
     call<void>("ios_icon_packs_mutate", { operation, id, pack, enabled }),
   external: (url: string) => call<void>("ios_open_external", { url }),
+  deviceSecret: (request: DeviceSecretRequest) => call<{ value?: string | null }>("plugin:oxbit-files|device_secret", request),
+  /** URLs the system opened the app with since the last call, such as `oxbit://c#o=…` pairing links. */
+  openedUrls: () => call<string[]>("ios_opened_urls"),
+  /** Runs `listener` when the system opens a URL while the app runs; read the URLs with `openedUrls`. */
+  onOpenedUrl: (listener: () => void) => listen("ios-opened-url", () => listener()),
   pickFolder: () => call<Folder>("plugin:oxbit-files|pick_folder"),
   openFolder: (id: string) => call<Folder>("plugin:oxbit-files|open_folder", { id }),
   closeFolder: (id: string) => call<void>("plugin:oxbit-files|close_folder", { id }),

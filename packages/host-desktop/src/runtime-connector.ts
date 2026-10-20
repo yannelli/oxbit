@@ -1,6 +1,6 @@
 import { RUNTIME_OUTPUT_SEPARATOR, splitRuntimeError } from "@oxbit/protocol";
 import { RuntimeStatusStore, clientStatus } from "@oxbit/feature-runtime";
-import type { RuntimeConnector, RuntimeTarget, SshHostSummary } from "@oxbit/workbench";
+import type { RemoteAccess, RuntimeConnector, RuntimeTarget, SshHostSummary } from "@oxbit/workbench";
 import type { Session } from "@oxbit/app-workbench";
 
 export interface DesktopRuntimeHost {
@@ -10,6 +10,7 @@ export interface DesktopRuntimeHost {
   /** Opens `ssh://<authority><path>` as a project; authority is `[user@]host[:port]`. */
   startSsh?(authority: string, path: string): Promise<void>;
   manageSsh?(): void;
+  remoteAccess?: RemoteAccess;
 }
 
 const remoteParts = (uri: string) => {
@@ -95,5 +96,8 @@ export class DesktopRuntimeConnector implements RuntimeConnector {
   }
   get manageSsh() {
     return this.host.manageSsh;
+  }
+  get remoteAccess() {
+    return this.host.remoteAccess;
   }
 }

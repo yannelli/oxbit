@@ -17,6 +17,8 @@ export interface Advertisement {
   name: string;
   version: string;
   port: number;
+  /** DNS-SD service type; defaults to `_oxbit._tcp`. */
+  service?: string;
   /** Defaults to non-internal addresses from os.networkInterfaces(), read at each announce/answer. */
   addresses?: () => { v4: string[]; v6: string[] };
 }

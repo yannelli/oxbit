@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   storageGet: vi.fn(), storageSet: vi.fn(), credentials: vi.fn(),
   remember: vi.fn(), recents: vi.fn(), forget: vi.fn(), connect: vi.fn(), scope: vi.fn(),
   createLanguage: vi.fn(), registerLanguage: vi.fn(), activateLanguage: vi.fn(), disableLanguage: vi.fn(), persistenceGet: vi.fn(),
-  sshConnect: vi.fn(),
+  sshConnect: vi.fn(), hostsLoad: vi.fn(), hostsGet: vi.fn(),
 }));
 vi.mock("@oxbit/app-workbench", () => ({
   createWorkbenchSession: mocks.createSession,
@@ -36,6 +36,7 @@ vi.mock("@oxbit/host-ios", () => ({
   },
 }));
 vi.mock("./runtime.js", () => ({ connectRuntime: mocks.connect, runtimeScope: mocks.scope }));
+vi.mock("./remote-hosts.js", () => ({ remoteHosts: { load: mocks.hostsLoad, get: mocks.hostsGet } }));
 import { closeWorkspace, forgetRecent, openWorkspace } from "./workspaces.js";
 
 function sessionFor(filesystem: unknown, dispose = vi.fn().mockResolvedValue(undefined)) {
@@ -163,6 +164,38 @@ describe("native Git workspaces", () => {
     expect(workspace.recent).toMatchObject({ id: "ssh:remote", kind: "ssh", name: "Build box: project", hostId: "host-1", remotePath: "/srv/project" });
     await closeWorkspace(workspace);
     expect(mocks.disposeFilesystem).toHaveBeenCalledOnce();
+  });
+  it("opens a paired computer's folder through its runtime client and remembers it", async () => {
+    const runtime = { url: "oxbit-remote://host-1", session: { workspaceName: "app" }, dispose: vi.fn() };
+    const connectRuntime = vi.fn().mockResolvedValue(runtime);
+    mocks.hostsLoad.mockResolvedValue(undefined);
+    mocks.hostsGet.mockReturnValue({ record: { name: "Studio Mac" }, connectRuntime });
+    mocks.scope.mockResolvedValue("ios:abc");
+    const workspace = await openWorkspace({ kind: "remote", hostId: "host-1", path: "/Users/dev/app" });
+    expect(mocks.hostsLoad).toHaveBeenCalled();
+    expect(connectRuntime).toHaveBeenCalledWith("/Users/dev/app");
+    expect(mocks.createSession.mock.calls[0]![0]).toMatchObject({ runtime, filesystem: { runtime, id: "ios:abc" } });
+    const recent = { id: "remote:abc", kind: "remote", name: "Studio Mac: app", hostId: "host-1", remotePath: "/Users/dev/app" };
+    expect(workspace.recent).toMatchObject(recent);
+    expect(mocks.remember).toHaveBeenCalledWith(expect.objectContaining(recent));
+    expect(mocks.storageSet).toHaveBeenCalledWith("session", "last-workspace", "remote:abc");
+
+    await openWorkspace({ kind: "recent", recent: workspace.recent });
+    expect(connectRuntime).toHaveBeenLastCalledWith("/Users/dev/app");
+  });
+  it("disposes the remote runtime client when the workbench cannot start", async () => {
+    const runtime = { url: "oxbit-remote://host-1", session: {}, dispose: vi.fn() };
+    mocks.hostsGet.mockReturnValue({ record: { name: "Studio Mac" }, connectRuntime: vi.fn().mockResolvedValue(runtime) });
+    mocks.scope.mockResolvedValue("ios:abc");
+    mocks.createSession.mockRejectedValue(new Error("Cannot restore workspace"));
+    await expect(openWorkspace({ kind: "remote", hostId: "host-1", path: "/Users/dev/app" })).rejects.toThrow("Cannot restore workspace");
+    expect(runtime.dispose).toHaveBeenCalledOnce();
+  });
+  it("explains a remote folder whose computer is no longer paired", async () => {
+    mocks.hostsGet.mockReturnValue(undefined);
+    await expect(openWorkspace({ kind: "recent", recent: { id: "remote:abc", kind: "remote", name: "Mac: app", hostId: "gone", remotePath: "/x", lastOpened: 1 } }))
+      .rejects.toThrow("This computer is no longer paired.");
+    expect(mocks.createSession).not.toHaveBeenCalled();
   });
   it("closes the SFTP root when the workbench cannot start", async () => {
     mocks.sshConnect.mockResolvedValue({ id: "ios:remote", name: "project", root: "/srv/project", dispose: mocks.disposeFilesystem });

@@ -13,3 +13,9 @@
 /install.sh
   Content-Type: text/plain; charset=utf-8
   Cache-Control: no-cache
+
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+
+/c/*
+  Cache-Control: no-store
