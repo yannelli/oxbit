@@ -218,7 +218,7 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
                     let link_app = app_new.clone();
                     #[cfg(target_os = "macos")]
                     configure_text_input(&features.opener().target_configuration);
-                    let mut builder = WebviewWindowBuilder::new(
+                    let builder = WebviewWindowBuilder::new(
                         &app_new,
                         &panel_label,
                         WebviewUrl::External("about:blank".parse().unwrap()),
@@ -242,12 +242,10 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
                         tauri::webview::NewWindowResponse::Deny
                     });
                     #[cfg(target_os = "macos")]
-                    {
-                        builder = builder
-                            .title_bar_style(tauri::TitleBarStyle::Overlay)
-                            .hidden_title(true)
-                            .traffic_light_position(tauri::LogicalPosition::new(12.0, 22.0));
-                    }
+                    let builder = builder
+                        .title_bar_style(tauri::TitleBarStyle::Overlay)
+                        .hidden_title(true)
+                        .traffic_light_position(tauri::LogicalPosition::new(12.0, 22.0));
                     let panel = match builder.build() {
                         Ok(panel) => panel,
                         Err(error) => {

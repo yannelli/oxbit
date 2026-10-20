@@ -72,6 +72,7 @@ function installPanelTitlebar(child: Window, id: string) {
     html.dataset.windowFullscreen = String(await native.panelTitlebar(id, "fullscreen"));
   };
   child.addEventListener("resize", () => { void syncFullscreen().catch(console.error); });
+  void syncFullscreen().catch(console.error);
   child.document.addEventListener("mousedown", (event) => {
     // Child-document nodes come from another realm, so `instanceof Element` is false.
     const target = event.target as Element | null;
