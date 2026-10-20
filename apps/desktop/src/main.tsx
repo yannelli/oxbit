@@ -31,7 +31,8 @@ if (import.meta.env.VITE_DESKTOP_TEST === "1")
   await import("@wdio/tauri-plugin");
 const manager = new ProjectSessionManager();
 const windowEvents = { target: getCurrentWebviewWindow().label };
-if (/Mac/.test(navigator.platform)) {
+const macTitlebar = /Mac/.test(navigator.platform);
+if (macTitlebar) {
   const nativeWindow = getCurrentWebviewWindow();
   document.documentElement.dataset.nativeTitlebar = "macos";
   const syncFullscreen = async () => {
@@ -63,6 +64,25 @@ Object.defineProperty(navigator, "clipboard", {
     readText: () => native.clipboard(),
   },
 });
+/** Mirrors the main window's overlay titlebar. Panel documents have no IPC, so the owner drives them. */
+function installPanelTitlebar(child: Window, id: string) {
+  const html = child.document.documentElement;
+  html.dataset.nativeTitlebar = "macos";
+  const syncFullscreen = async () => {
+    html.dataset.windowFullscreen = String(await native.panelTitlebar(id, "fullscreen"));
+  };
+  child.addEventListener("resize", () => { void syncFullscreen().catch(console.error); });
+  void syncFullscreen().catch(console.error);
+  child.document.addEventListener("mousedown", (event) => {
+    // Child-document nodes come from another realm, so `instanceof Element` is false.
+    const target = event.target as Element | null;
+    if (event.button !== 0 || !target?.closest?.(".floating-title") || target.closest(
+      "button, a, input, select, textarea, [role=menu], [role=menuitem]",
+    )) return;
+    event.preventDefault();
+    void native.panelTitlebar(id, event.detail === 2 ? "zoom" : "drag").catch(console.error);
+  });
+}
 // Keep related panel windows in the native webview, sharing their opener's session.
 const openPanelWindow = window.open.bind(window);
 configurePanelWindows({
@@ -77,6 +97,7 @@ configurePanelWindows({
       const root = child.document.createElement("div");
       root.id = "panel-root";
       child.document.body.append(root);
+      if (macTitlebar) installPanelTitlebar(child, name);
     }
     return child;
   },

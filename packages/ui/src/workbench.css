@@ -521,7 +521,10 @@ body[data-oxbit-panel-shell]{margin:0;height:100vh;overflow:hidden}
 body[data-oxbit-panel-shell] #panel-root{height:100%}
 .floating-workbench{height:100%;width:100%;display:flex;flex-direction:column;overflow:hidden}
 .floating-workbench>.dock-group,.floating-workbench>.dock-split{flex:1;min-height:0}
-.floating-title{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:1px solid var(--bd);font-size:var(--font-label-font-size)}
+.floating-title{justify-content:space-between;gap:8px;padding:0 8px}
+.floating-title-text{display:flex;align-items:baseline;gap:8px;min-width:0}
+.floating-title .title-actions>.icon-button{width:26px;height:26px;min-width:26px;min-height:26px}
+.floating-title-text>strong{font-weight:clamp(100,calc(var(--font-label-font-weight) + 200),900)}
 .panel-restore-notice{position:fixed;bottom:32px;right:16px;display:flex;gap:6px;z-index:80;padding:6px;background:var(--bg-surface);border:1px solid var(--bd);border-radius:6px}
 @media(min-width:1100px){.dock-workbench .panel-dock.sidebar{max-width:45vw}.dock-workbench .panel-dock.bottom-panel{max-height:80vh}.dock-workbench .panel-dock.bottom-panel.maximized{max-height:none}}
 @media(max-width:1099px){.dock-workbench .main-workbench{min-width:0}.dock-workbench .panel-dock.sidebar{position:absolute;top:0;bottom:0;z-index:40;height:auto}.dock-workbench .dock-left{left:48px}.dock-workbench .dock-right{left:auto;right:0}.panel-dock .dock-split{overflow:auto}.dock-group .panel-tabs>button{min-height:40px}}
@@ -604,7 +607,7 @@ body[data-oxbit-panel-shell] #panel-root{height:100%}
     & .activity-bar{border:0;padding:calc(var(--workbench-tab-inset) + 1px) 0}
     & .activity-bar>button{height:var(--tab)}
     & :is(.titlebar,.statusbar){border:0}
-    &.floating-workbench{padding:var(--workbench-gap);gap:var(--workbench-gap)}
+    &.floating-workbench{padding:0 var(--workbench-gap) var(--workbench-gap);gap:var(--workbench-gap)}
   }
   @media(min-width:600px) and (max-width:1099px){
     & .panel-dock.sidebar{top:var(--workbench-gap);bottom:var(--workbench-gap)}

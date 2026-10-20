@@ -70,12 +70,12 @@ mod preview_tests {
     }
 }
 
-#[tauri::command]
-fn desktop_close_panel(
-    app: AppHandle,
-    window: tauri::WebviewWindow,
-    id: String,
-) -> Result<(), String> {
+/// Floating panel windows owned by the calling project window.
+fn owned_panels(
+    app: &AppHandle,
+    window: &tauri::WebviewWindow,
+    id: &str,
+) -> Result<Vec<tauri::WebviewWindow>, String> {
     if !app
         .state::<Desktop>()
         .model
@@ -90,12 +90,46 @@ fn desktop_close_panel(
         return Err("Invalid panel owner or window identifier".into());
     }
     let prefix = format!("{}-{id}-", window.label());
-    for (label, child) in app.webview_windows() {
-        if label.starts_with(&prefix) {
-            child.destroy().map_err(|error| error.to_string())?;
-        }
+    Ok(app
+        .webview_windows()
+        .into_iter()
+        .filter(|(label, _)| label.starts_with(&prefix))
+        .map(|(_, child)| child)
+        .collect())
+}
+
+#[tauri::command]
+fn desktop_close_panel(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    id: String,
+) -> Result<(), String> {
+    for child in owned_panels(&app, &window, &id)? {
+        child.destroy().map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+/// Panel documents have no native capabilities, so the owner drives their titlebar.
+#[tauri::command]
+fn desktop_panel_titlebar(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    id: String,
+    action: String,
+) -> Result<bool, String> {
+    let mut fullscreen = false;
+    for child in owned_panels(&app, &window, &id)? {
+        match action.as_str() {
+            "drag" => child.start_dragging(),
+            "zoom" if child.is_maximized().unwrap_or(false) => child.unmaximize(),
+            "zoom" => child.maximize(),
+            "fullscreen" => child.is_fullscreen().map(|value| fullscreen |= value),
+            _ => return Err("Invalid panel titlebar action".into()),
+        }
+        .map_err(|error| error.to_string())?;
+    }
+    Ok(fullscreen)
 }
 
 #[cfg(target_os = "macos")]
@@ -207,6 +241,11 @@ fn create_window(app: &AppHandle, label: &str) -> Result<(), String> {
                         let _ = commands::external(&nav_app, &target);
                         tauri::webview::NewWindowResponse::Deny
                     });
+                    #[cfg(target_os = "macos")]
+                    let builder = builder
+                        .title_bar_style(tauri::TitleBarStyle::Overlay)
+                        .hidden_title(true)
+                        .traffic_light_position(tauri::LogicalPosition::new(12.0, 22.0));
                     let panel = match builder.build() {
                         Ok(panel) => panel,
                         Err(error) => {
@@ -512,6 +551,7 @@ fn main() {
         .register_uri_scheme_protocol("oxbit-preview", preview_shell)
         .invoke_handler(tauri::generate_handler![
             desktop_close_panel,
+            desktop_panel_titlebar,
             #[cfg(feature = "native-test")]
             commands::desktop_test_crash,
             commands::desktop_snapshot,

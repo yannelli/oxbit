@@ -209,26 +209,23 @@ function PanelProviderContents({
 function FloatingSurface({ id, root }: { id: string; root: PanelNode }) {
   const { workbench } = usePanels();
   const ref = useRef<HTMLDivElement>(null);
+  const panels = panelGroups(root)
+    .map(
+      (g) =>
+        workbench.kernel.contributions.list().find((c) => c.id === g.active)
+          ?.title ?? g.active,
+    )
+    .join(", ");
   useEffect(() => {
     const doc = ref.current?.ownerDocument;
-    if (doc)
-      doc.title =
-        workbench.state.projectName +
-        " — " +
-        panelGroups(root)
-          .map(
-            (g) =>
-              workbench.kernel.contributions
-                .list()
-                .find((c) => c.id === g.active)?.title ?? g.active,
-          )
-          .join(", ");
-  }, [workbench, root]);
+    if (doc) doc.title = workbench.state.projectName + " — " + panels;
+  }, [workbench, panels]);
   return (
     <div
       ref={ref}
       className="workbench floating-workbench"
       data-theme={themeMode(workbench.kernel)}
+      data-theme-pack={currentTheme(workbench.kernel).packId}
       data-theme-id={currentTheme(workbench.kernel).id}
       data-mode="desktop"
       data-density={
@@ -241,15 +238,19 @@ function FloatingSurface({ id, root }: { id: string; root: PanelNode }) {
       style={themeVariables(workbench.kernel)}
       data-tooltip-root=""
     >
-      <div className="floating-title">
-        <span>{workbench.state.projectName}</span>
-        <button
-          className="button"
-          onClick={() => workbench.panelWindows.returnWindow(id)}
-        >
-          {tr("Dock Back")}
-        </button>
-      </div>
+      <header className="titlebar floating-title">
+        <span className="floating-title-text truncate">
+          <strong>{panels}</strong>
+          <span className="muted">{workbench.state.projectName}</span>
+        </span>
+        <div className="title-actions">
+          <IconButton
+            icon="layoutPanel"
+            label={tr("Dock Back")}
+            onClick={() => workbench.panelWindows.returnWindow(id)}
+          />
+        </div>
+      </header>
       <PanelTree node={root} container={id} />
       <TooltipLayer rootRef={ref} />
     </div>
