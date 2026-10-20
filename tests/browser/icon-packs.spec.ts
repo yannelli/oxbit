@@ -36,9 +36,10 @@ test('imports real file and product packs independently, persists offline, survi
   await context.setOffline(false);
   const other = await context.newPage(); await ready(other); await manager(other);
   await manager(page);
+  const minimalIcon = await page.locator('[role="tree"] img.themed-icon').first().getAttribute('src');
   await page.getByRole('button', { name: 'Disable VS Code Minimal Icons', exact: true }).click();
   await expect(other.getByRole('button', { name: 'Enable VS Code Minimal Icons', exact: true })).toBeVisible();
-  await expect(page.locator('[role="tree"] img.themed-icon')).toHaveCount(0);
+  await expect(page.locator('[role="tree"] img.themed-icon').first()).not.toHaveAttribute('src', minimalIcon!);
   expect((await state(page)).file).toBe(fileId);
   await page.getByRole('button', { name: 'Enable VS Code Minimal Icons', exact: true }).click();
   await expect(page.locator('[role="tree"] img.themed-icon').first()).toBeVisible();

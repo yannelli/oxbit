@@ -20,6 +20,7 @@ export { binxThemes } from "./bundled.js";
 export { creativeThemes } from "./bundled.js";
 export { vividThemes } from "./bundled.js";
 export { rainbowIconPack };
+export { nativeIconPack } from "./native/index.js";
 export { vscodeThemes, vscodeHighContrastThemes } from "./bundled.js";
 export {
   createVSCodeFeature,
