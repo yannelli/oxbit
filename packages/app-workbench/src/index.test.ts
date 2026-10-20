@@ -31,6 +31,7 @@ vi.doMock("@oxbit/feature-themes", () => ({
   createClassicOS98Feature: () => feature("classic"),
   classicOS98IconPack: { id: "classic", revision: "1", enabled: true },
   rainbowIconPack: { id: "rainbow", revision: "1", enabled: true },
+  nativeIconPack: undefined,
   keepClassicOS98ForSavedTheme: async () => {},
 }));
 vi.doMock("@oxbit/bundle-inspector", () => ({ default: feature("inspector") }));

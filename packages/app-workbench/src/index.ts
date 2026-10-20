@@ -23,6 +23,7 @@ import {
   createClassicOS98Feature,
   classicOS98IconPack,
   keepClassicOS98ForSavedTheme,
+  nativeIconPack,
   rainbowIconPack,
 } from "@oxbit/feature-themes";
 import { createFeature as keymapsFeature } from "@oxbit/feature-keymaps";
@@ -164,7 +165,7 @@ export async function createWorkbenchSession({
   kernel.context.set("trusted", !!runtime?.session?.trusted);
   kernel.context.set("editor", false);
   const packStore = iconPackStore ?? new BrowserPackStore();
-  const iconThemes = new IconThemeService(kernel, packStore, message => workbench.notify(message, "warning", { source: "Icon Packs", actions: [{ title: "Manage Icon Packs", command: "iconPacks.manage" }] }));
+  const iconThemes = new IconThemeService(kernel, packStore, message => workbench.notify(message, "warning", { source: "Icon Packs", actions: [{ title: "Manage Icon Packs", command: "iconPacks.manage" }] }), nativeIconPack);
   kernel.services.register("iconThemes", iconThemes);
   try {
     await seedIconPack(packStore);

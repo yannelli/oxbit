@@ -10,6 +10,9 @@ const allowPnpm = new Set([
   "examples/icon-packs/upstream.json",
   "packages/features/themes/src/classicos98.test.ts",
   "packages/features/themes/src/classicos98/associations.ts",
+  "packages/features/themes/src/native/families.ts",
+  "packages/features/themes/src/native/filenames.ts",
+  "packages/features/themes/src/native/folders.ts",
   "packages/features/themes/src/rainbow/associations.ts",
   "tests/package-manager.test.ts",
 ]);
