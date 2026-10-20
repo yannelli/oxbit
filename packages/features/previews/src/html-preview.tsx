@@ -3,11 +3,11 @@ import type { FeatureOptions } from "@oxbit/sdk";
 import { Dialog, IconButton, translate as tr } from "@oxbit/ui";
 import { isHtmlPath, prepareHtmlPreview } from "./html.js";
 import { resolvePreviewLink, type PreviewResourceTrust } from "./policy.js";
-import { PreviewResourceControl } from "./resource-trust.js";
+import { PreviewResourceControl, PreviewScriptControl } from "./resource-trust.js";
 
 let serial = 0;
-/** Preview roots whose JavaScript the user turned on this session. */
-const scriptConsent = new Set<string>();
+/** Preview roots whose JavaScript the user turned on or off this session. */
+const scriptChoices = new Map<string, boolean>();
 
 /** A page served without the app's script policy; desktop and iOS register the oxbit-preview scheme. */
 function previewShellUrl() {
@@ -33,8 +33,9 @@ export function createHtmlPreview(o: FeatureOptions) {
     // A trusted runtime workspace runs scripts; the iOS app and untrusted workspaces ask first.
     const trusted = () => o.kernel.context.get("trusted") === true && o.kernel.context.get("iosApp") !== true;
     const [autoRun, setAutoRun] = useState(trusted);
-    const [consent, setConsent] = useState(() => scriptConsent.has(path));
-    const scripts = autoRun || consent;
+    const [choice, setChoice] = useState(() => scriptChoices.get(path));
+    const scripts = choice ?? autoRun;
+    const chooseScripts = (value: boolean) => { scriptChoices.set(path, value); setChoice(value); };
     useEffect(() => o.kernel.context.subscribe(() => setAutoRun(trusted())), []);
 
     useEffect(() => {
@@ -132,8 +133,8 @@ export function createHtmlPreview(o: FeatureOptions) {
       </div>
       {error && <div className="html-preview-message error-text" role="alert">{error}</div>}
       {optionsOpen && <Dialog title={tr("Preview options")} className="html-preview-options" onClose={() => setOptionsOpen(false)}>
-        <PreviewResourceControl trust={trust} onChange={setTrust} />
-        {preview?.scripts && <p className="muted">{preview.running ? tr("JavaScript is on") : tr("HTML & CSS preview · JavaScript is disabled")}</p>}
+        {preview?.scripts && <PreviewScriptControl running={scripts} onChange={chooseScripts} />}
+        <PreviewResourceControl trust={trust} onChange={setTrust} scripts={preview?.scripts ? scripts : false} />
         {!!preview?.warnings.length && <details className="html-preview-warnings">
           <summary>{tr("Some preview resources could not be loaded")}</summary>
           {preview.warnings.map(warning => <p key={warning}>{tr(warning)}</p>)}
@@ -141,7 +142,7 @@ export function createHtmlPreview(o: FeatureOptions) {
       </Dialog>}
       {preview?.scripts && !preview.running && !error && <div className="html-preview-scripts" role="note">
         <span>{tr("This page has JavaScript, which is off. Scripts you run can load content from the internet and send data to it.")}</span>
-        <button type="button" className="button" onClick={() => { scriptConsent.add(path); setConsent(true); }}>{tr("Run JavaScript")}</button>
+        <button type="button" className="button" onClick={() => chooseScripts(true)}>{tr("Run JavaScript")}</button>
       </div>}
       {preview && preview.trust === trust && !error && (preview.running
         ? <iframe ref={frame} key={preview.serial} className="html-preview-frame" title={tr("HTML preview")}
