@@ -1,4 +1,4 @@
-import { ADAPTERS, providerSpec, withOutputLimit } from "@oxbit/agent-core";
+import { ADAPTERS, fimAvailable, fimComplete, providerSpec, withOutputLimit } from "@oxbit/agent-core";
 import {
   AGENT_MODELS_SERVICE,
   OXBIT_AGENT_SETTINGS,
@@ -26,6 +26,8 @@ export interface AiRequest {
   system: string;
   prompt: string;
   maxTokens?: number;
+  /** The code around the cursor for a fill-in-the-middle request; the local provider tries it before the chat prompt. */
+  fim?: { prefix: string; suffix: string };
 }
 /** One-shot model requests for editor features. Registered under AI_SERVICE. */
 export interface AiService {
@@ -71,12 +73,17 @@ export function createAiService(kernel: Kernel, runtime?: RpcClient): AiService 
     if (models) {
       if (provider !== "local" && !await models.keys.has(endpoint))
         throw new Error(`Run Set AI Provider API Key to add a key for ${AI_PROVIDER_NAMES[provider]}`);
+      if (provider === "local" && request.fim && fimAvailable(endpoint, model)) {
+        const text = await fimComplete(models, endpoint, { model, ...request.fim, maxTokens: request.maxTokens }, signal);
+        if (text !== undefined) return text;
+      }
       return local(models, endpoint, model, request, signal);
     }
     if (!runtime?.connected) throw new Error(AI_UNAVAILABLE);
     const effort = setting(AI_SETTINGS.effort);
+    const { fim, ...chat } = request;
     const result = await runtime.request<{ text: string }>("ai.complete", {
-      ...request, model, provider: RUNTIME_PROVIDERS[provider], ...(provider === "openrouter" ? {} : { baseUrl: endpoint.baseUrl }),
+      ...chat, ...(provider === "local" && fim ? { fim } : {}), model, provider: RUNTIME_PROVIDERS[provider], ...(provider === "openrouter" ? {} : { baseUrl: endpoint.baseUrl }),
       ...(effort ? { effort } : {}),
     }, { signal });
     return result.text;

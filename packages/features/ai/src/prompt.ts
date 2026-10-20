@@ -121,12 +121,17 @@ export function unwrap(text: string, tags: string[] = []) {
   return result;
 }
 
-/** The length of the current line's text when the reply starts by repeating it. */
-function repeatedLine(text: string, before: string) {
-  const line = before.slice(before.lastIndexOf("\n") + 1);
-  if (line.trim() && text.startsWith(line)) return line.length;
-  const trimmed = line.trimStart();
-  return trimmed && text.startsWith(trimmed) ? trimmed.length : 0;
+const visible = (text: string) => text.replace(/\s/g, "").length;
+/** Lines this long count as repeated code; shorter ones such as `}` recur legitimately. */
+const REPEAT_CHARS = 6;
+
+/** The length of the longest end of the current line that the reply starts with, such as `// ` before `// note`. */
+function repeatedLineEnd(text: string, line: string) {
+  for (let length = Math.min(line.length, text.length); length > 0; length--) {
+    const end = line.slice(line.length - length);
+    if (visible(end) >= 2 && text.startsWith(end)) return length;
+  }
+  return 0;
 }
 
 /** The longest start of `after` that ends `text`, limited to the rest of the current line. */
@@ -138,12 +143,41 @@ function repeatedSuffix(text: string, after: string) {
   return 0;
 }
 
+/** Drops leading reply lines that repeat the last lines before the cursor's line. */
+function withoutRepeatedPrefix(lines: string[], before: string) {
+  const previous = before.split("\n").slice(0, -1).map((line) => line.trim()).filter(Boolean);
+  for (let count = Math.min(lines.length, previous.length); count > 0; count--) {
+    const head = lines.slice(0, count).map((line) => line.trim());
+    if (visible(head.join("")) >= REPEAT_CHARS && head.every((line, index) => line === previous[previous.length - count + index])) return lines.slice(count);
+  }
+  return lines;
+}
+
+/** Drops trailing reply lines that repeat the lines after the cursor's line; the last one can be cut short. */
+function withoutRepeatedSuffix(lines: string[], after: string) {
+  const newline = after.indexOf("\n");
+  if (newline < 0) return lines;
+  const next = after.slice(newline + 1).split("\n").map((line) => line.trim()).filter(Boolean);
+  for (let start = 1; start < lines.length; start++) {
+    const tail = lines.slice(start).map((line) => line.trim()).filter(Boolean);
+    if (!tail.length || tail.length > next.length || visible(tail.join("")) < REPEAT_CHARS) continue;
+    if (tail.every((line, index) => index === tail.length - 1 ? next[index]!.startsWith(line) : line === next[index])) return lines.slice(0, start);
+  }
+  return lines;
+}
+
 /** The text to show as ghost text, or "" when the reply holds no usable completion. */
 export function cleanCompletion(reply: string, context: Pick<CompletionContext, "prefix" | "suffix">, maxLines = MAX_COMPLETION_LINES) {
   let text = unwrap(reply).replace(/\r\n/g, "\n");
   const marker = text.indexOf(CURSOR);
   if (marker >= 0) text = text.slice(marker + CURSOR.length);
-  text = text.slice(repeatedLine(text, context.prefix));
+  const line = context.prefix.slice(context.prefix.lastIndexOf("\n") + 1);
+  text = text.slice(repeatedLineEnd(text, line));
+  if (!line.trim() || /\s$/.test(line)) text = text.replace(/^(?:[ \t]*\n)+/, "");
+  if (maxLines === 1) text = text.replace(/^\s*\n\s*/, "");
+  let lines = text.split("\n");
+  if (!line.trim()) lines = withoutRepeatedPrefix(lines, context.prefix);
+  text = withoutRepeatedSuffix(lines, context.suffix).join("\n");
   text = text.slice(0, text.length - repeatedSuffix(text, context.suffix));
   text = text.split("\n").slice(0, maxLines).join("\n").replace(/\s+$/, "");
   if (!text.trim() || context.suffix.startsWith(text)) return "";

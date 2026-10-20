@@ -1,11 +1,11 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-19.
+Created: 2026-10-02. Last updated: 2026-10-20.
 
 | Guide | Use when |
 | --- | --- |
 | [Agent ACP](agent-acp.md) | Changing agent providers, the in-app Oxbit Agent for device folders, the agent picker, ACP Registry installs, the composer, badges and notifications, push to a suspended phone through the `oxbit-push` relay, daemon-hosted sessions, attach and queue behavior, workspace MCP tools, permissions, or review; includes ACP and MCP protocol and editor-agent references. |
-| [AI editing](ai-editor.md) | Changing ghost text completions, Edit Selection with AI, the `ai.*` settings (including the inline completion limits, context choices and excluded files), the AI providers (Agent harness, OpenRouter, Custom OpenAI API, local Ollama or llama.cpp), the API key command, model suggestions, or the runtime's `ai.complete`, `ai.key` and `ai.models` methods; CodeMirror, Yjs UndoManager, Ollama, llama.cpp and OpenRouter references. |
+| [AI editing](ai-editor.md) | Changing ghost text completions and their cleanup, fill-in-the-middle requests to local models, Edit Selection with AI, the `ai.*` settings (including the inline completion limits, context choices and excluded files), the AI providers (Agent harness, OpenRouter, Custom OpenAI API, local Ollama or llama.cpp), the API key command, model suggestions, or the runtime's `ai.complete`, `ai.key` and `ai.models` methods; CodeMirror, Yjs UndoManager, Ollama, llama.cpp and OpenRouter references. |
 | [AI inline completion models](ai-inline-models.md) | Updating the suggested inline completion models in `packages/features/ai/src/models.ts`: prices, context, Artificial Analysis and LiveCodeBench scores with sources and dates, and the models.dev and OpenRouter catalog fields. |
 | [Oxbit agent core](agent-core.md) | Changing `@oxbit/agent-core`: the agent loop, the host contract, extension seams (tools, context, commands, hooks, continuations, compaction, snapshots, session store), permission modes, session titles, or the `bash` tool over ACP terminals; ACP terminal, session mode and config option references. |
 | [Oxbit Agent CLI](oxbit-agent.md) | Changing `oxbit-agent` (`apps/agent`, npm `@oxbit/agent`): the TUI, print and ACP modes, providers and Sign in with ChatGPT, settings keys, AGENTS.md and CLAUDE.md instructions, skills, Claude Code and Codex hooks, `/goal`, `/loop`, compaction, MCP servers, snapshots and `/undo`, sessions, and its bundling in the desktop app; ACP, MCP, SIWC, hooks, skills and AGENTS.md references. |
