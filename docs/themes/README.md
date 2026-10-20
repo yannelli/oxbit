@@ -17,6 +17,8 @@ Rainbow's dark/light variants are paired by **Toggle Light/Dark Theme**. The **U
 
 ## Importing and authoring packs
 
+To build a theme in the app instead of writing JSON, turn on the [Theme Editor](theme-editor.md) extension.
+
 Use **Settings → Appearance → Manage Theme Packs**, or the **Import Theme Pack…** command. Choose a JSON file or ZIP, review any messages, then select **Apply**. Imports never change selection. Importing the same pack ID updates it atomically. Export includes local fonts and notices. Packs are stored in the browser/desktop webview profile's `oxbit-theme-packs` IndexedDB database, outside project folders. Tabs and desktop sessions share changes; synchronization between devices is not provided.
 
 Theme IDs have the form `pack.id/local-id`. Names are labels and may be duplicated. Explicit legacy built-in names migrate in their original settings scope. A disabled, removed or invalid pack leaves the requested ID intact and uses the last known mode's built-in fallback. Reinstalling restores it automatically.

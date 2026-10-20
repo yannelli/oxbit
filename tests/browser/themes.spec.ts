@@ -727,3 +727,107 @@ test("an existing ClassicOS 98 theme selection keeps the extension enabled after
     )
     .toEqual({ pack: true, icons: "oxbit.classicos98/files" });
 });
+test("Theme Editor is opt-in and saves, applies and reopens a custom theme", async ({ page }) => {
+  const shots = "/tmp/oxbit-theme-editor";
+  mkdirSync(shots, { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ready(page);
+  const state = () =>
+    page.evaluate(() => {
+      const k = (window as any).__oxbit.kernel;
+      return {
+        extension: k.extensions.list().find((e: any) => e.manifest.id === "oxbit.theme-editor").state,
+        command: k.commands.list().some((c: any) => c.id === "theme.editor.new"),
+      };
+    });
+  expect(await state()).toEqual({ extension: "disabled", command: false });
+  await page.evaluate(() => (window as any).__oxbit.workbench.openSidebar("extensions"));
+  await page
+    .getByRole("button")
+    .filter({ has: page.locator("strong", { hasText: /^Theme Editor$/ }) })
+    .click();
+  await page.getByRole("button", { name: "Enable", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Disable", exact: true })).toBeVisible();
+  expect(await state()).toEqual({ extension: "active", command: true });
+
+  await page.evaluate(() => (window as any).__oxbit.runCommand("theme.editor.edit"));
+  await expect(page.getByRole("heading", { name: "Theme Editor" })).toBeVisible();
+  await expect(page.getByText(/New pack custom\..+-copy/)).toBeVisible();
+  const editorBackground = page.getByLabel("editor.background", { exact: true });
+  const current = await page.evaluate(() =>
+    getComputedStyle(document.querySelector(".workbench")!).getPropertyValue("--bg-editor").trim(),
+  );
+  await expect(editorBackground).toHaveValue(current);
+
+  await page.getByRole("combobox", { name: "Start from", exact: true }).click();
+  await page.getByRole("option", { name: "New dark theme", exact: true }).click();
+  await expect(page.getByText("New pack custom.my-theme")).toBeVisible();
+  await editorBackground.fill("#123456");
+  const preview = page.getByRole("img", { name: /^Preview of/ });
+  await expect(preview.locator(".theme-preview-editor")).toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await editorBackground.fill("#12");
+  await expect(editorBackground).toHaveAttribute("aria-invalid", "true");
+  await expect(preview.locator(".theme-preview-editor")).toHaveCSS("background-color", "rgb(18, 52, 86)");
+  await editorBackground.blur();
+  await page.getByLabel("Filter colors").fill("terminal.red");
+  await expect(page.getByLabel("terminal.red", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("editor.background", { exact: true })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Syntax" }).click();
+  await page.getByLabel("keyword foreground", { exact: true }).fill("#ff66cc");
+  await expect(preview.getByText("export function")).toHaveCSS("color", "rgb(255, 102, 204)");
+  await page.getByRole("tab", { name: "General" }).click();
+  await page.getByLabel("Pack name", { exact: true }).fill("Harbor");
+  await page.getByLabel("Theme name", { exact: true }).fill("Harbor Night");
+  await page.screenshot({ path: `${shots}/editor-desktop.png` });
+
+  await page.getByRole("button", { name: "Save and Apply", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved and applied Harbor Night." })).toBeVisible();
+  expect(await selected(page)).toBe("custom.my-theme/my-theme");
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.querySelector(".workbench")!).getPropertyValue("--bg-editor").trim()),
+    )
+    .toBe("#123456");
+  expect(
+    await page.evaluate(() =>
+      (window as any).__oxbit.kernel.services.get("themePacks").store.list(false).map((entry: any) => entry.pack),
+    ),
+  ).toEqual([
+    {
+      schemaVersion: 1,
+      id: "custom.my-theme",
+      name: "Harbor",
+      version: "1.0.0",
+      themes: [
+        {
+          id: "my-theme",
+          name: "Harbor Night",
+          mode: "dark",
+          colors: { "editor.background": "#123456" },
+          syntax: { keyword: { foreground: "#ff66cc" } },
+        },
+      ],
+    },
+  ]);
+  await page.getByRole("button", { name: "Restore Previous Theme", exact: true }).click();
+  expect(await selected(page)).not.toBe("custom.my-theme/my-theme");
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.querySelector(".workbench")!).getPropertyValue("--bg-editor").trim()),
+    )
+    .toBe(current);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__oxbit?.ready);
+  await manage(page);
+  await page.getByRole("button", { name: "Edit Harbor", exact: true }).click();
+  await expect(page.getByText("Editing Harbor")).toBeVisible();
+  await page.getByRole("heading", { name: "Theme Editor" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("img", { name: "Preview of Harbor Night" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Preview of Harbor Night" }).getByText("export function")).toHaveCSS("color", "rgb(255, 102, 204)");
+  await page.screenshot({ path: `${shots}/editor-phone.png` });
+  await page.getByLabel("editor.background", { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByLabel("editor.background", { exact: true })).toHaveValue("#123456");
+  await page.screenshot({ path: `${shots}/editor-phone-colors.png` });
+});

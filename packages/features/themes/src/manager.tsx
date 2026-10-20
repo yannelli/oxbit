@@ -12,7 +12,7 @@ import { bundledPacks } from "./bundled.js";
 import { profilePacks } from "./profile.js";
 import { readPackFile, exportPack } from "./assets.js";
 import { acquireFonts, scopeFonts } from "./fonts.js";
-function download(entry: InstalledPack) {
+export function download(entry: InstalledPack) {
   const result = exportPack(entry.pack, entry.assets);
   const url = URL.createObjectURL(
     new Blob([new Uint8Array(result.bytes)], {
@@ -39,6 +39,10 @@ export function ManageThemePacks({
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const editor = useSyncExternalStore(
+    kernel.contributions.subscribe,
+    () => kernel.commands.available("theme.editor.new").enabled,
+  );
   const perform = async (action: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -79,6 +83,14 @@ export function ManageThemePacks({
           >
             {busy ? "Importing…" : "Import Theme Pack"}
           </button>
+          {editor && (
+            <button
+              className="button"
+              onClick={() => void kernel.commands.execute("theme.editor.new")}
+            >
+              New Color Theme
+            </button>
+          )}
           <span className="muted">JSON or ZIP · up to 50 MB</span>
           <input
             ref={input}
@@ -194,6 +206,19 @@ export function ManageThemePacks({
                   >
                     {entry.enabled ? "Disable" : "Enable"} {entry.pack.name}
                   </button>
+                  {editor && (
+                    <button
+                      className="button"
+                      onClick={() =>
+                        void kernel.commands.execute("theme.editor.edit", {
+                          packId: entry.pack.id,
+                          themeId: entry.pack.themes[0].id,
+                        })
+                      }
+                    >
+                      Edit {entry.pack.name}
+                    </button>
+                  )}
                   <button
                     className="button"
                     disabled={busy}
