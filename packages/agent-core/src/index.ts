@@ -14,6 +14,7 @@ export { ADAPTERS, withOutputLimit } from "./turn.js";
 export { OXBIT_SUBAGENT_TOOL } from "@oxbit/sdk";
 export { SUBAGENT_PROMPT, taskTool, type SubagentOptions } from "./subagent.js";
 export { cleanTitle } from "./title.js";
+export { fimAvailable, fimComplete, type FimRequest } from "./fim.js";
 export * from "./hooks.js";
 export * from "./goal.js";
 export * from "./loop.js";

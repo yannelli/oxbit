@@ -35,6 +35,28 @@ describe("cleanCompletion", () => {
     expect(cleanCompletion(");", context)).toBe("");
   });
 
+  it("drops a comment marker the line already ends with", () => {
+    expect(cleanCompletion("// add two numbers", { prefix: "x();\n// ", suffix: "" })).toBe("add two numbers");
+    expect(cleanCompletion("total = 1", { prefix: "let tot", suffix: "" })).toBe("al = 1");
+    expect(cleanCompletion("b + 1", { prefix: "a = b", suffix: "" })).toBe("b + 1");
+  });
+
+  it("drops leading newlines after a comment marker or on a blank line, and keeps them after code", () => {
+    expect(cleanCompletion("\n\nadd two numbers", { prefix: "// ", suffix: "" })).toBe("add two numbers");
+    expect(cleanCompletion("\n  \nconst a = 1;", { prefix: "x();\n", suffix: "" })).toBe("const a = 1;");
+    expect(cleanCompletion("\n  return 1;\n}", { prefix: "function f() {", suffix: "" })).toBe("\n  return 1;\n}");
+    expect(cleanCompletion("\n    (sum, item) => sum + item,\n    0", { prefix: "items.reduce(", suffix: ");" }, 1)).toBe("(sum, item) => sum + item,");
+  });
+
+  it("drops lines that repeat the code before or after the cursor", () => {
+    const before = "function add(a, b) {\n  return a + b;\n}\n";
+    expect(cleanCompletion("}\n\nconst sum = add(1, 2);", { prefix: "function add(a, b) {\n  return a + b;\n}\n", suffix: "" })).toBe("}\n\nconst sum = add(1, 2);");
+    expect(cleanCompletion("return a + b;\n}\nconst sum = add(1, 2);", { prefix: before, suffix: "" })).toBe("const sum = add(1, 2);");
+    const after = "\nfunction multiply(a, b) {\n  return a * b;\n}\n";
+    expect(cleanCompletion("const sum = add(1, 2);\nfunction multiply(a, b) {\n  return a", { prefix: before, suffix: after }, 4)).toBe("const sum = add(1, 2);");
+    expect(cleanCompletion("foo() {\n  return 1;\n}", { prefix: "class A {\n  ", suffix: "\n}\n" })).toBe("foo() {\n  return 1;\n}");
+  });
+
   it("caps long replies at 24 lines", () => {
     const reply = Array.from({ length: 40 }, (_, index) => `line${index}`).join("\n");
     expect(cleanCompletion(reply, { prefix: "", suffix: "" }).split("\n")).toHaveLength(24);

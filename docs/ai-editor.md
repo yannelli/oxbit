@@ -1,6 +1,6 @@
 # AI editing
 
-Created: 2026-10-18. Last updated: 2026-10-19.
+Created: 2026-10-18. Last updated: 2026-10-20.
 
 The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and inline edits to the CodeMirror editor. Both send code from the open file to the provider `ai.provider` names: the Oxbit agent's provider, OpenRouter, a custom OpenAI-compatible API, or a local Ollama or llama.cpp server.
 
@@ -58,7 +58,18 @@ Requests use Chat Completions with a system prompt. Use chat or instruct models;
 
 ## Prompts
 
-For inline completions, `contextWindow` in `src/prompt.ts` takes the lines around the cursor within the line and token limits, and `completionPrompt` sends the path header, open files, and problems that are turned on, then the code with a `<|cursor|>` marker, to a chat model. `cleanCompletion` removes a Markdown fence, an echoed cursor marker, a repeated current line, and characters that already follow the cursor, and keeps at most `ai.inlineCompletions.maxLines` lines. Inline edits send up to 6,000 characters before the selection and 2,000 after, and request at most 8,192 output tokens.
+For inline completions, `contextWindow` in `src/prompt.ts` takes the lines around the cursor within the line and token limits, and `completionPrompt` sends the path header, open files, and problems that are turned on, then the code with a `<|cursor|>` marker, to a chat model. `cleanCompletion` removes a Markdown fence and an echoed cursor marker, then:
+
+- the longest end of the current line the reply starts with, when it holds at least 2 visible characters (`// ` before `// note`, `tot` before `total`);
+- leading blank lines when the line before the cursor is blank or ends in whitespace, and for `maxLines` 1 any leading newline;
+- leading reply lines that repeat the lines above a blank cursor line, and trailing reply lines that repeat the lines below the cursor (the last one can be cut short), when the repeated text has at least 6 visible characters, so a lone `}` stays;
+- characters that already follow the cursor on its line.
+
+It keeps at most `ai.inlineCompletions.maxLines` lines.
+
+### Fill-in-the-middle for local models
+
+Base code models such as `qwen2.5-coder:1.5b-base` have no chat template; a chat request returns prose and fences. With `ai.provider` `local`, ghost text first sends a fill-in-the-middle request: `POST /v1/completions` with the code before the cursor as `prompt` and the code after it as `suffix` (`fimComplete` in `@oxbit/agent-core`, used by the iOS service path and the runtime's `ai.complete` `fim` parameter). Ollama formats it with the model's FIM tokens when the model's template uses `.Suffix`, and answers 400 `does not support insert` for other models. On that answer, or 404, 405 or 501, Oxbit remembers the base URL and model for the session and uses the chat prompt. Inline edits and the other providers use the chat prompt. Checked against Ollama with `qwen2.5-coder:1.5b-base` (FIM) and `qwen3:0.6b` (rejected) on 2026-10-20. Inline edits send up to 6,000 characters before the selection and 2,000 after, and request at most 8,192 output tokens.
 
 `withOutputLimit` in `@oxbit/agent-core` adds the output cap to editor requests: `max_tokens` for Chat Completions and `max_output_tokens` for OpenAI Responses. The Anthropic adapter sets `max_tokens` itself, and the ChatGPT backend rejects `max_output_tokens`. Agent turns do not use it.
 
@@ -71,7 +82,8 @@ For inline completions, `contextWindow` in `src/prompt.ts` takes the lines aroun
 ## Tests
 
 - `packages/features/ai/src/*.test.ts`: prompt cleanup, ghost state, inline edit application, transport and provider selection, and model suggestions.
-- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, named providers, `ai.key` and `ai.models`, with a fake `fetch`.
+- `packages/agent-core/src/fim.test.ts`: the FIM request body and the fallback after a rejection.
+- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, the local FIM request and its chat fallback, named providers, `ai.key` and `ai.models`, with a fake `fetch`.
 - `tests/browser/settings-pages.spec.ts`: provider labels, suggestion details, and choosing a suggested model.
 - `tests/browser/ai-editor.spec.ts`: ghost text accept and dismiss, the inline completion limits, instructions and excluded files, and the inline edit with undo, against a fake `agentModels` service.
 
@@ -81,7 +93,8 @@ For inline completions, `contextWindow` in `src/prompt.ts` takes the lines aroun
 - Yjs `UndoManager` and `stopCapturing`: https://docs.yjs.dev/api/undo-manager
 - Model APIs used by the adapters: [agent-model-apis.md](agent-model-apis.md)
 - Recommended inline completion models and their sources: [ai-inline-models.md](ai-inline-models.md)
-- Ollama OpenAI compatibility: https://docs.ollama.com/api/openai-compatibility
+- Ollama OpenAI compatibility, including `suffix` on `/v1/completions`: https://docs.ollama.com/api/openai-compatibility
+- Qwen2.5-Coder fill-in-the-middle format (`<|fim_prefix|>`, `<|fim_suffix|>`, `<|fim_middle|>`): https://github.com/QwenLM/Qwen2.5-Coder
 - llama.cpp `llama-server` OpenAI-compatible endpoints: https://github.com/ggml-org/llama.cpp/tree/master/tools/server
 - OpenRouter models API: https://openrouter.ai/docs/api-reference/models/get-models
 - Inline completion options in other editors, checked 2026-10-19: Continue `autocompleteOptions` (`maxPromptTokens`, `prefixPercentage`, `maxSuffixPercentage`, `debounceDelay`, `useRecentlyOpened`, `template`), https://docs.continue.dev/reference; Zed `edit_predictions` (`disabled_globs`, per-language `show_edit_predictions`, `max_output_tokens`), https://zed.dev/docs/ai/edit-prediction and https://github.com/zed-industries/zed/blob/main/assets/settings/default.json

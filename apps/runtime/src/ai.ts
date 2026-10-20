@@ -1,4 +1,4 @@
-import { ADAPTERS, apiKeySlot, listModels, modelError, withOutputLimit, type Fetch, type ProviderId } from "@oxbit/agent-core";
+import { ADAPTERS, apiKeySlot, fimAvailable, fimComplete, listModels, modelError, withOutputLimit, type Fetch, type ProviderId } from "@oxbit/agent-core";
 import { FileAuthStore } from "@oxbit/agent/auth";
 import { AgentConfig, agentHome } from "@oxbit/agent/config";
 import { missingKey, normalizeBase, selectProvider } from "@oxbit/agent/providers";
@@ -20,6 +20,13 @@ const text = (params: Record<string, unknown>, key: string, limit: number, optio
   if (typeof value !== "string" || value.length > limit) throw new RpcError("INVALID_PARAMS", `Invalid ${key}`);
   return value;
 };
+
+function fimParams(value: unknown) {
+  if (value === undefined) return undefined;
+  const fim = value as Record<string, unknown>;
+  if (!fim || typeof fim !== "object") throw new RpcError("INVALID_PARAMS", "Invalid fim");
+  return { prefix: text(fim, "prefix", MAX_PROMPT_CHARS)!, suffix: text(fim, "suffix", MAX_PROMPT_CHARS)! };
+}
 
 /** Providers an editor request can name instead of the Oxbit agent's. */
 const EDITOR_PROVIDERS = new Set<ProviderId>(["openrouter", "openai-compatible", "ollama"]);
@@ -47,10 +54,20 @@ export class AiCompletions {
       throw new RpcError("INVALID_PARAMS", "Invalid maxTokens");
     const { provider, baseUrl } = editorProvider(params);
     if (provider && !requested) throw new RpcError("INVALID_PARAMS", "Set AI model for this provider");
+    const fim = fimParams(params.fim);
     const choice = await this.choose(provider, baseUrl);
     const model = requested ?? choice.model;
     if (!model) throw new RpcError("UNAVAILABLE", "Set ai.model, or a model for the Oxbit agent");
     const endpoint = choice.runtime.endpoint();
+    if (fim && provider === "ollama" && fimAvailable(endpoint, model)) {
+      try {
+        const output = await fimComplete(choice.runtime.models(), endpoint, { model, ...fim, maxTokens: maxTokens as number | undefined }, signal);
+        if (output !== undefined) return { text: output, model };
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        throw new RpcError("MODEL_ERROR", modelError(error).message);
+      }
+    }
     const adapter = ADAPTERS[endpoint.api];
     const request = withOutputLimit(endpoint.api, adapter.request({ model, system, turns: [{ role: "user", text: prompt }], tools: [],
       ...(effort ? { effort } : {}), ...(maxTokens ? { maxTokens: maxTokens as number } : {}) }), maxTokens as number | undefined);

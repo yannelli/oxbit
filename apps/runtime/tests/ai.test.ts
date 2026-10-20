@@ -71,6 +71,25 @@ describe("AiCompletions", () => {
     expect(calls[0].headers.get("authorization")).toBeNull();
   });
 
+  it("sends a fill-in-the-middle request to a local server and falls back to chat for a model without FIM", async () => {
+    const home = await agentHome({ provider: "anthropic" }, {});
+    const calls: { url: string; body: any }[] = [];
+    const fetch = async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      calls.push({ url, body });
+      if (url.endsWith("/v1/completions"))
+        return body.model === "base" ? Response.json({ choices: [{ text: "a + b" }] }) : Response.json({ error: { message: "does not support insert" } }, { status: 400 });
+      return new Response(chatText("chat").join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+    };
+    const ai = new AiCompletions({ home, env: {}, fetch });
+    const request = { system: "s", prompt: "p", provider: "ollama", baseUrl: "http://127.0.0.1:11434", fim: { prefix: "return ", suffix: ";" } };
+    expect(await ai.complete({ ...request, model: "base" })).toEqual({ text: "a + b", model: "base" });
+    expect(calls[0]).toMatchObject({ url: "http://127.0.0.1:11434/v1/completions", body: { model: "base", prompt: "return ", suffix: ";" } });
+    expect(await ai.complete({ ...request, model: "chat-only" })).toEqual({ text: "chat", model: "chat-only" });
+    expect(calls.slice(1).map((call) => call.url)).toEqual(["http://127.0.0.1:11434/v1/completions", "http://127.0.0.1:11434/v1/chat/completions"]);
+    await expect(ai.complete({ ...request, model: "base", fim: { prefix: 1 } })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+  });
+
   it("saves the key a custom OpenAI API request uses and lists that server's models", async () => {
     const home = await agentHome({}, {});
     const ai = new AiCompletions({ home, env: {}, fetch: async (url, init) => {

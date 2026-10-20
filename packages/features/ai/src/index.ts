@@ -90,6 +90,7 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
                   system: completionSystem({ maxLines, instructions: kernel.configuration.get<string>(AI_SETTINGS.instructions, language) }),
                   prompt: completionPrompt({ path, language, ...context, includePath: flag(AI_SETTINGS.includePath) !== false, problems, openFiles }),
                   maxTokens: limit(AI_SETTINGS.maxTokens, language),
+                  fim: context,
                 }, signal);
                 reported = undefined;
                 return cleanCompletion(reply, context, maxLines);
