@@ -840,6 +840,8 @@
   "How long a runtime Oxbit started keeps running after the last client disconnects. Terminals and tasks continue while it runs.": "마지막 클라이언트의 연결이 끊긴 후 Oxbit이 시작한 런타임이 계속 실행되는 시간입니다. 실행되는 동안 터미널과 작업은 계속됩니다.",
   "Keep Runtime Alive": "런타임 유지",
   "Reconnect Automatically": "자동으로 다시 연결",
+  "Stay Connected in the Background": "백그라운드에서 연결 유지",
+  "Use approximate location while a runtime, SSH connection or agent turn is open, so iOS keeps terminals and agents connected when you switch apps. The location indicator shows while it runs. Oxbit does not store or send your location.": "런타임, SSH 연결 또는 에이전트 턴이 열려 있는 동안 대략적인 위치를 사용해 앱을 전환해도 iOS가 터미널과 에이전트 연결을 유지하도록 합니다. 실행 중에는 위치 표시기가 나타납니다. Oxbit은 위치를 저장하거나 전송하지 않습니다.",
   "Saved runtimes": "저장된 런타임",
   "Forget {0}": "{0} 삭제",
   "In use": "사용 중",

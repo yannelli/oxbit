@@ -94,6 +94,8 @@ Pairing uses native URLSession, with redirects refused, and stores the token in 
 
 A runtime started over [SSH](ios-ssh.md) receives a keep-alive lease in its launch frame. It keeps running after the SSH connection closes, for example while iOS suspends the app, until no WebSocket client or heartbeat has reached it for the lease. The `runtime.keepAlive` setting chooses the lease in milliseconds; 0 keeps the runtime running until it is stopped, and the default is 75000.
 
+**Stay Connected in the Background** keeps the app running with coarse location while a remote workspace or agent turn is open, so iOS does not suspend the connection. See [iOS background location](ios-background-location.md).
+
 When the app returns, Oxbit checks that the recorded process still runs the Oxbit runtime and that `/api/health` reports the same runtime `id` as at launch. If both hold, it reopens the tunnel to that runtime with the same token, and terminals and tasks continue. The workspace reports "Reconnected to the running runtime." If either check fails, Oxbit stops the old process and launches a new runtime. A reattached runtime has no launch channel, so it receives no heartbeats and cannot forward new task ports until it is relaunched. Closing the workspace stops a reattached runtime by process ID.
 
 ### In-app agent on iOS

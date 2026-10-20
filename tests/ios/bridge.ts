@@ -12,11 +12,12 @@ const AI_CONSENT = ["openai https://api.openai.com", "anthropic https://api.anth
 /** An added token names its login; the token `rejected` fails validation. */
 /** `runtimes` are Bonjour results; `localNetworkDenied` reports iOS blocking them; `stored` seeds app storage as `scope:key`. No runtime answers its URL. */
 /** `notificationTapped` launches the app from a notification tap; `__iosTest.tapNotification()` taps one later. */
+/** `locationDenied` answers `background_location` as iOS does with location access off; `__iosTest.backgroundLocation` lists its `enabled` arguments. */
 /** `notificationPermission` seeds the iOS permission; `__iosTest.liveActivityToken(hex)` reports a Live Activity push token. */
 /** `agentResponses` answers model requests by path; a list answers successive requests and repeats its last entry. `agentKeys` seeds saved keys as `api origin`.
  * `agentChatGPT` records `agent_models_chatgpt` calls; the first poll is `pending`, the next completes the sign-in. */
-export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[], aiConsent = undefined as string[] | undefined } = {}) {
-  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys, aiConsent, defaultConsent }) => {
+export async function installBridge(page: Page, { repository = false, accounts = [] as BridgeAccount[], runtimes = [] as BridgeRuntime[], localNetworkDenied = false, stored = {} as Record<string, unknown>, notificationTapped = false, notificationPermission = "default", agentResponses = {} as Record<string, BridgeAgentResponse | BridgeAgentResponse[]>, agentKeys = [] as string[], aiConsent = undefined as string[] | undefined, locationDenied = false } = {}) {
+  await page.addInitScript(({ repository, accounts: seeded, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys: seededKeys, aiConsent, defaultConsent, locationDenied }) => {
     const author = { name: "Oxbit Test", email: "oxbit@example.test" };
     let accounts = seeded.map(account => ({ ...account }));
     let created = 0;
@@ -79,6 +80,7 @@ export async function installBridge(page: Page, { repository = false, accounts =
     let activityTokenIndex = 0;
     let activityToken: string | undefined;
     const activityUpdates: unknown[] = [];
+    const backgroundLocation: boolean[] = [];
     const liveActivityToken = (token: string) => {
       activityToken = token;
       if (activityTokenChannel) callbacks.get(activityTokenChannel.id)?.({ index: activityTokenIndex++, message: { token } });
@@ -180,6 +182,10 @@ export async function installBridge(page: Page, { repository = false, accounts =
         if (command === "plugin:oxbit-files|notification_permission") return { permission: notificationPermission };
         if (command === "plugin:oxbit-files|request_notification_permission") return { permission: notificationPermission = "granted" };
         if (command === "plugin:oxbit-files|register_remote_notifications") return { token: "a1b2c3d4", environment: "development" };
+        if (command === "plugin:oxbit-files|background_location") {
+          backgroundLocation.push(args.enabled);
+          return { active: args.enabled && !locationDenied, authorization: locationDenied ? "denied" : "granted" };
+        }
         if (command === "plugin:oxbit-files|live_activity") { activityUpdates.push(args.update); return { enabled: true }; }
         if (command === "plugin:oxbit-files|watch_live_activity_tokens") {
           activityTokenChannel = args.channel;
@@ -301,9 +307,9 @@ export async function installBridge(page: Page, { repository = false, accounts =
       __TAURI_INTERNALS__: bridge,
       __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener() {} },
       __iosTest: {
-        closed, copied, externals, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates,
+        closed, copied, externals, storage, searches, runtimeRequests, notifications, tapNotification, liveActivityToken, activityUpdates, backgroundLocation,
         agentKeys, agentRequests, agentCancels, agentChatGPT, get opened() { return opened; }, get signing() { return signing; },
       },
     });
-  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys, aiConsent, defaultConsent: AI_CONSENT });
+  }, { repository, accounts, runtimes, localNetworkDenied, stored, notificationTapped, notificationPermission, agentResponses, agentKeys, aiConsent, defaultConsent: AI_CONSENT, locationDenied });
 }

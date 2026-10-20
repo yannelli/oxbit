@@ -1,6 +1,7 @@
 import { Channel, invoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { RpcError, type RuntimeIdentity } from "@oxbit/protocol";
+import type { BackgroundLocationResult } from "./keep-alive.js";
 import type { AgentActivityUpdate, AgentModelApi, ChatGPTDeviceCode, FileEntry, PushEnvironment } from "@oxbit/sdk";
 
 export interface NativeError {
@@ -259,6 +260,9 @@ export const ssh = {
 };
 
 export const native = {
+  /** Starts or stops coarse background location; the first start shows the When In Use prompt. */
+  backgroundLocation: (enabled: boolean) =>
+    call<BackgroundLocationResult>("plugin:oxbit-files|background_location", { enabled }),
   agentActivity: (update: AgentActivityUpdate | null) =>
     call<{ enabled: boolean }>("plugin:oxbit-files|live_activity", { update }),
   /** Runs `listener` with each Live Activity push token in hex; a new listener receives the latest token first. */
