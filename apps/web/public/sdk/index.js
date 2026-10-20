@@ -80,6 +80,85 @@ function languageIdForPath(file, options) {
   return languages.find((item) => item.id === id)?.settingsAliases?.[0] ?? id;
 }
 
+// packages/sdk/src/fences.ts
+var FENCE_ALIASES = { shell: "shellscript", console: "shellscript", docker: "dockerfile", jsonc: "jsonc", json5: "jsonc", yml: "yaml", py: "python", md: "markdown" };
+var MARKDOWN_HOSTS = /* @__PURE__ */ new Set(["markdown", "mdx"]);
+var COMMENT_MARKER = /\/\/|#|--|\*|;/;
+var OPENING = /^([ \t]*(?:(?:\/\/[/!]?|#|--|;+|\*|>)[ \t]*)*)(`{3,}|~{3,})[ \t]*\{?\.?([\w+#.-]*)[^`]*$/;
+function fenceLanguage(info, definitions = []) {
+  const name = info.trim().split(/[\s{},]/).find(Boolean)?.replace(/^\./, "").toLowerCase();
+  if (!name) return void 0;
+  const id = FENCE_ALIASES[name] ?? name;
+  return [...definitions, ...languages].find((item) => item.id !== "plaintext" && (item.id === id || item.extensions.some((extension) => extension.toLowerCase() === id) || item.settingsAliases?.includes(id) || item.title?.toLowerCase() === id));
+}
+function findFences(text, hostLanguage, definitions = []) {
+  const markdown = MARKDOWN_HOSTS.has(hostLanguage), fences = [];
+  const lines = [];
+  for (let from = 0; from <= text.length; ) {
+    const end = text.indexOf("\n", from), to = end < 0 ? text.length : end;
+    lines.push({ from, to: text[to - 1] === "\r" ? to - 1 : to, text: text.slice(from, text[to - 1] === "\r" ? to - 1 : to) });
+    if (end < 0) break;
+    from = end + 1;
+  }
+  for (let row = 0; row < lines.length; row++) {
+    const opening = OPENING.exec(lines[row].text);
+    if (!opening) continue;
+    const [, prefix, marker, info] = opening;
+    if (markdown ? /[^ \t>]/.test(prefix) || /^ {4}/.test(prefix) : !COMMENT_MARKER.test(prefix)) continue;
+    const language = fenceLanguage(info, definitions);
+    const closing = new RegExp(`^[ \\t]*${marker[0] === "`" ? "`" : "~"}{${marker.length},}[ \\t]*$`);
+    const content = [];
+    let close = row + 1;
+    for (; close < lines.length; close++) {
+      const line = lines[close], stripped = stripPrefix(line.text, prefix, markdown);
+      if (stripped === void 0) break;
+      if (closing.test(line.text.slice(stripped))) break;
+      content.push({ from: line.from + stripped, to: line.to });
+    }
+    const closed = close < lines.length && closing.test(lines[close].text.slice(stripPrefix(lines[close].text, prefix, markdown) ?? 0));
+    if (language) fences.push({ index: fences.length, info, language, from: lines[row].from, to: closed ? lines[close].to : (lines[close - 1] ?? lines[row]).to, lines: content });
+    row = closed ? close : close - 1;
+  }
+  return fences;
+}
+function stripPrefix(line, prefix, markdown) {
+  if (markdown && !prefix.includes(">")) {
+    let length = 0;
+    while (length < prefix.length && line[length] === " ") length++;
+    return length;
+  }
+  if (line.startsWith(prefix)) return prefix.length;
+  const trimmed = prefix.trimEnd();
+  if (line.trimEnd() === trimmed) return line.length;
+  return void 0;
+}
+function fenceText(text, fence) {
+  return fence.lines.map((line) => text.slice(line.from, line.to)).join("\n");
+}
+function toFenceOffset(fence, offset) {
+  let base = 0;
+  for (const line of fence.lines) {
+    if (offset >= line.from && offset <= line.to) return base + offset - line.from;
+    base += line.to - line.from + 1;
+  }
+  return void 0;
+}
+function fromFenceOffset(fence, offset) {
+  let base = 0;
+  for (const line of fence.lines) {
+    if (offset <= base + line.to - line.from) return line.from + Math.max(0, offset - base);
+    base += line.to - line.from + 1;
+  }
+  return fence.lines.at(-1)?.to ?? fence.from;
+}
+var FENCE_PATH = /\.fence-(\d+)\.[^./]+$/;
+function fencePath(hostPath, fence) {
+  return `${hostPath}.fence-${fence.index}.${fence.language.extensions[0] ?? "txt"}`;
+}
+function fenceHostPath(path) {
+  return FENCE_PATH.test(path) ? path.replace(FENCE_PATH, "") : void 0;
+}
+
 // packages/sdk/src/language-servers.ts
 function validateJson(value, seen = /* @__PURE__ */ new Set(), depth = 0) {
   if (depth > 64) throw new Error("JSON nesting exceeds 64 levels");
@@ -936,6 +1015,24 @@ var settings_schema_default = {
       type: "boolean",
       default: false
     },
+    "editor.embeddedCode.highlighting": {
+      title: "Highlight Code Fences",
+      description: "Highlight fenced code in Markdown and in comments with the fence's language.",
+      type: "boolean",
+      default: true
+    },
+    "editor.embeddedCode.languageServers": {
+      title: "Language Servers in Code Fences",
+      description: "Send fenced code in Markdown and in comments to the language server for its language, for completion, hover, signature help, semantic highlighting and inlay hints.",
+      type: "boolean",
+      default: true
+    },
+    "editor.embeddedCode.diagnostics": {
+      title: "Problems in Code Fences",
+      description: "Show language server problems for fenced code. Snippets that use undeclared names or missing packages report errors.",
+      type: "boolean",
+      default: true
+    },
     "workbench.locale": {
       title: "Display Language",
       type: "string",
@@ -1374,6 +1471,15 @@ var settings_schema_default = {
         "editor.largeFileIntelligence": {
           $ref: "#/properties/editor.largeFileIntelligence"
         },
+        "editor.embeddedCode.highlighting": {
+          $ref: "#/properties/editor.embeddedCode.highlighting"
+        },
+        "editor.embeddedCode.languageServers": {
+          $ref: "#/properties/editor.embeddedCode.languageServers"
+        },
+        "editor.embeddedCode.diagnostics": {
+          $ref: "#/properties/editor.embeddedCode.diagnostics"
+        },
         "workbench.locale": {
           $ref: "#/properties/workbench.locale"
         },
@@ -1781,7 +1887,13 @@ export {
   acpPreset,
   canonicalLanguageId,
   effectiveCapabilities,
+  fenceHostPath,
+  fenceLanguage,
+  fencePath,
+  fenceText,
   fileTypesToSelectors,
+  findFences,
+  fromFenceOffset,
   incrementalChange,
   languageForKernel,
   languageIdForPath,
@@ -1806,6 +1918,7 @@ export {
   taskPhases,
   textOffset,
   textPosition,
+  toFenceOffset,
   validateFileAssociations,
   validateFileTypes,
   validateJson,

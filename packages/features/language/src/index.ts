@@ -1,9 +1,9 @@
 import { ExternalSource, Hierarchy, WorkspaceSymbols, navigationTargets, type NavigationTarget } from "./navigation.js";
-import { LanguageOverlays, semanticTypes, semanticModifiers } from "./overlays.js";
+import { FenceOverlays, HintWidget, LanguageOverlays, semanticRanges, semanticTypes, semanticModifiers, type OverlayHost } from "./overlays.js";
 import { completionItems, completionTransactions } from "./completion.js";
 import { documentationPopups, showDocumentation, showSignature } from "./popups.js";
 import { logLinkExtensions } from "./log-links.js";
-import { languages, languageForKernel, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
+import { languages, languageForKernel, findFences, fencePath, fenceText, fromFenceOffset, toFenceOffset, type CodeFence, type LanguageDefinition, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
 import { LocalLanguageTransport } from "./local.js";
 import { managedServerName } from "./managed-extensions.js";
 import { translate as tr } from "@oxbit/ui";
@@ -11,11 +11,12 @@ import React, { useState, useEffect } from "react";
 import {
   autocompletion,
   type CompletionContext,
+  type CompletionResult,
   pickedCompletion,
 } from "@codemirror/autocomplete";
-import { hoverTooltip, EditorView, ViewPlugin } from "@codemirror/view";
+import { hoverTooltip, Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import { setDiagnostics, type Diagnostic } from "@codemirror/lint";
-import { type Extension as CMExtension } from "@codemirror/state";
+import { EditorState, type Extension as CMExtension, type Range } from "@codemirror/state";
 import type {
   Extension,
   FeatureOptions,
@@ -29,6 +30,7 @@ import type {
 import { LanguageProviders, documentLanguage } from "./providers.js";
 import type { DocumentHandle } from "@oxbit/documents";
 import { hoverDOM } from "./hover.js";
+import { fenceResultToHost, fenceToHost, type FenceDocument } from "./embedded.js";
 import { LanguageStatus } from "./status.js";
 import { documentSymbols } from "./symbols.js";
 import { ProjectIntelligenceView } from "./project.js";
@@ -41,6 +43,7 @@ const capabilitiesByMethod = lspCapabilityKeys;
 const supportedPath = (path: string) =>
   /\.(?:[cm]?tsx?|[cm]?jsx?|json)$/.test(path);
 const fileDisabledMessage = "Language server is off for this file.";
+const FENCE_HOST_LIMIT = 1024 * 1024;
 const abortError = () =>
   new DOMException("Language request cancelled", "AbortError");
 export const offset = textOffset;
@@ -229,6 +232,11 @@ export class LanguageService {
   private navigationOrigin?: { service: LanguageService; target: NavigationTarget };
   private overlayProviderFingerprint = "";
   private extensionCache = new Map<string, CMExtension[]>();
+  private fenceDocuments = new Map<string, FenceDocument>();
+  private fenceHosts = new Map<string, Set<EditorView>>();
+  private fenceExtensionCache = new Map<string, CMExtension[]>();
+  private startingFences = false;
+  private fenceOverlays = new Map<string, FenceOverlays>();
   private overlays = new Map<string, LanguageOverlays>();
   private managedServices = new Map<string, LanguageService>();
   private disabledPaths = new Set<string>();
@@ -286,6 +294,7 @@ export class LanguageService {
     this.bindNotifications();
     this.subscriptions.push(o.kernel.configuration.subscribe(() => {
       for (const overlay of this.overlays.values()) overlay.refresh(true);
+      if (!this.providerContext) for (const host of this.fenceHosts.keys()) this.updateFences(host);
       if (this.state === "ready" && !(this.transport instanceof RuntimeLanguageTransport)) this.transport.notify("workspace/didChangeConfiguration", { settings: null });
     }));
     this.subscriptions.push(
@@ -305,12 +314,13 @@ export class LanguageService {
           void this.syncDocument(doc.path).catch((error) =>
             o.workbench.notify(String(error), "error"),
           );
+        if (doc && !this.providerContext && this.fenceHosts.has(doc.path)) this.updateFences(doc.path);
       }).dispose,
     );
     this.subscriptions.push(
       o.kernel.events.on("document.close", () => {
         for (const path of this.synced.keys())
-          if (!o.documents.get(path)) {
+          if (!this.documentOpen(path)) {
             if (!this.shared(path) && (this.transport instanceof RuntimeLanguageTransport || synchronization(this.effective(path)).openClose))
               this.transport.notify("textDocument/didClose", {
                 textDocument: { uri: this.uri(path) },
@@ -374,7 +384,7 @@ export class LanguageService {
         this.providersChanged();
       }));
       this.subscriptions.push(o.kernel.events.on("document.close", () => {
-        for (const [key, service] of this.managedServices) if (!o.documents.get(service.providerContext!.path!)) { service.dispose(); this.managedServices.delete(key); }
+        for (const [key, service] of this.managedServices) if (!this.documentOpen(service.providerContext!.path!)) { service.dispose(); this.managedServices.delete(key); }
         for (const path of this.disabledPaths) if (!o.documents.get(path)) this.disabledPaths.delete(path);
         this.providersChanged();
       }).dispose);
@@ -487,7 +497,7 @@ export class LanguageService {
     else await service[action]();
   }
   fileEnabled(path: string) {
-    return !(this.providerContext?.owner ?? this).disabledPaths.has(path);
+    return !(this.providerContext?.owner ?? this).disabledPaths.has(this.fenceDocument(path)?.host ?? path);
   }
   setFileEnabled(path: string, enabled: boolean): void {
     if (this.providerContext) return this.providerContext.owner.setFileEnabled(path, enabled);
@@ -501,12 +511,14 @@ export class LanguageService {
         if (service.transport instanceof RuntimeLanguageTransport) void service.refreshStatus();
         else void (service.state === "ready" ? service.syncDocument(path) : service.start()).catch(() => {});
       }
+      this.updateFences(path);
       return;
     }
     const services = this.servicesForPath(path);
     this.disabledPaths.add(path);
     for (const [key, service] of this.managedServices) if (service.providerContext!.path === path) { this.managedServices.delete(key); service.dispose(); }
     for (const service of new Set([this, ...services])) if (!service.providerContext?.path) service.detachDocument(path);
+    this.updateFences(path);
     this.providersChanged();
   }
   private detachDocument(path: string) {
@@ -642,6 +654,7 @@ export class LanguageService {
   private providersChanged() {
     if (this.disposed) return;
     this.updateContext();
+    if (!this.providerContext) for (const path of this.fenceDocuments.keys()) this.startFenceServices(path);
     const current = this.diagnostics;
     for (const path of new Set([
       ...this.publishedDiagnostics.keys(),
@@ -705,6 +718,15 @@ export class LanguageService {
         }));
       result.set(path, [...(result.get(path) ?? []), ...diagnostics]);
     }
+    if (!this.providerContext)
+      for (const [path, items] of result) {
+        const entry = this.fenceDocuments.get(path);
+        if (!entry) continue;
+        result.delete(path);
+        if (this.o.kernel.configuration.get<boolean>("editor.embeddedCode.diagnostics", documentLanguage(this.o, entry.host)) === false) continue;
+        const mapped = items.flatMap(item => { try { return [fenceResultToHost(item, entry, this.uri(path), this.uri(entry.host))]; } catch { return []; } });
+        result.set(entry.host, [...(result.get(entry.host) ?? []), ...mapped]);
+      }
     return result;
   }
   private accepts(path: string) {
@@ -868,6 +890,7 @@ export class LanguageService {
         for (const overlay of this.overlays.values()) overlay.refresh(true);
         for (const doc of this.o.documents.documents.values() as Iterable<DocumentHandle>)
           await this.syncDocument(doc.path);
+        for (const path of [...(this.providerContext?.owner ?? this).fenceDocuments.keys()]) await this.syncDocument(path);
         this.updateContext();
       } catch (error) {
         if (generation === this.generation && !this.disposed) {
@@ -955,7 +978,7 @@ export class LanguageService {
     const pending = this.syncQueue
       .catch(() => {})
       .then(async () => {
-        const doc: DocumentHandle | undefined = this.o.documents.get(path);
+        const doc = this.fenceDocument(path) ?? this.o.documents.get(path);
         if (
           !doc ||
           this.disposed ||
@@ -1003,6 +1026,8 @@ export class LanguageService {
         }
         this.syncedText.set(path, doc.text.toString());
         if (generation === this.generation) this.synced.set(path, version);
+        const fence = this.fenceDocument(path);
+        if (fence) (this.providerContext?.owner ?? this).fenceOverlays.get(fence.host)?.schedule();
       });
     this.syncQueue = pending;
     return pending;
@@ -1010,6 +1035,7 @@ export class LanguageService {
   private async synchronize() {
     for (const doc of this.o.documents.documents.values() as Iterable<DocumentHandle>)
       await this.syncDocument(doc.path);
+    for (const path of [...(this.providerContext?.owner ?? this).fenceDocuments.keys()]) await this.syncDocument(path);
     await this.o.kernel.services
       .optional<{ flush(): Promise<void> }>("collaboration")
       ?.flush();
@@ -1108,7 +1134,7 @@ export class LanguageService {
     if (!this.fileEnabled(path)) throw new Error(fileDisabledMessage);
     if (route) { const selected = this.eligible(path, method)[0]; if (selected && selected !== this) return selected.at(method, path, index, extra, signal, false); }
     await this.start();
-    const doc: DocumentHandle = await this.o.documents.open(path);
+    const doc = this.fenceDocument(path) ?? await this.o.documents.open(path);
     const version = doc.version;
     const result = await this.request(
       method,
@@ -1119,7 +1145,7 @@ export class LanguageService {
       },
       signal,
     );
-    if (doc.version !== version)
+    if ((this.fenceDocument(path) ?? doc).version !== version)
       throw new Error("Document changed before the language response arrived");
     return result;
   }
@@ -1138,13 +1164,13 @@ export class LanguageService {
     }
     if (this.disposed || !this.fileEnabled(path)) return;
     this.lspDiagnostics.set(path, params.diagnostics ?? []);
-    this.refreshDiagnostics(path);
+    this.refreshDiagnostics(this.fenceDocument(path)?.host ?? path);
     if (this.providerContext) this.providerContext.owner.providersChanged();
     else this.providersChanged();
     this.changed();
   }
   private refreshDiagnostics(path: string) {
-    for (const view of this.views.get(path) ?? []) {
+    for (const view of new Set([...(this.views.get(path) ?? []), ...((this.providerContext?.owner ?? this).fenceHosts.get(path) ?? [])])) {
       const text = view.state.doc.toString();
       const values: Diagnostic[] = [];
       for (const d of (this.providerContext?.owner ?? this).diagnostics.get(path) ?? []) {
@@ -1178,7 +1204,8 @@ export class LanguageService {
         providers?.matching("completion", path).length ||
         providers?.matching("diagnostics", path).length || providers?.matching("semanticTokens", path).length || providers?.matching("inlayHints", path).length || providers?.matching("navigation", path).length,
       );
-    if (!this.canUseLsp(path) && !hasProviders) return [];
+    const owner = this.providerContext?.owner ?? this;
+    if (!this.canUseLsp(path) && !hasProviders) return this.fileEnabled(path) ? owner.fenceOnlyExtensions(path) : [];
     const extensions: CMExtension[] = [
       documentationPopups,
       this.overlay(path).extension(),
@@ -1186,8 +1213,9 @@ export class LanguageService {
       autocompletion({
         interactionDelay: 0,
         override: [
+          owner.fenceCompletion(path),
           async (context: CompletionContext) => {
-            if (!providers?.matching("completion", path).length) return null;
+            if (!providers?.matching("completion", path).length || owner.fenceAt(path, context.pos)) return null;
             const word = context.matchBefore(/[\w$]*/);
             if (
               !context.explicit &&
@@ -1243,7 +1271,7 @@ export class LanguageService {
           },
           async (context: CompletionContext) => {
             try {
-              if (!this.canUseLsp(path)) return null;
+              if (!this.canUseLsp(path) || owner.fenceAt(path, context.pos)) return null;
               try { await this.start(); } catch (error) { if (!this.eligible(path, "textDocument/completion").length) throw error; }
               const sources = this.eligible(path, "textDocument/completion");
               if (!sources.length) return null;
@@ -1318,7 +1346,7 @@ export class LanguageService {
       }),
       hoverTooltip(async (view, pos) => {
         try {
-          if (!this.canUseLsp(path)) return null;
+          if (!this.canUseLsp(path) || owner.fenceAt(path, pos)) return null;
           await this.start();
           if (!this.eligible(path, "textDocument/hover").length) return null;
           const result = await this.at("textDocument/hover", path, pos);
@@ -1357,6 +1385,7 @@ export class LanguageService {
       EditorView.domEventHandlers({
         keyup: (event, view) => {
           if (
+            !owner.fenceAt(path, view.state.selection.main.head) &&
             [...(this.effective(path).signatureHelpProvider?.triggerCharacters ?? []), ...(this.effective(path).signatureHelpProvider?.retriggerCharacters ?? [])].includes(event.key) &&
             this.effective(path).signatureHelpProvider
           )
@@ -1364,6 +1393,7 @@ export class LanguageService {
           return false;
         },
       }),
+      ...owner.fenceExtensions(path),
     ];
     this.extensionCache.set(path, extensions);
     return extensions;
@@ -1417,6 +1447,183 @@ export class LanguageService {
     signal?.throwIfAborted();
     if (values.length && values.every(value => value.status === "rejected")) throw (values[0] as PromiseRejectedResult).reason;
     return values.flatMap(value => value.status === "fulfilled" ? value.value : []).filter(({ target }) => { const id = JSON.stringify([target.uri, target.range]); if (targets.has(id)) return false; targets.add(id); return true; });
+  }
+  private fenceDocument(path: string) {
+    return (this.providerContext?.owner ?? this).fenceDocuments.get(path);
+  }
+  private documentOpen(path: string) {
+    return Boolean(this.o.documents.get(path) || this.fenceDocument(path));
+  }
+  fenceAt(host: string, index: number): { entry: FenceDocument; offset: number } | undefined {
+    for (const entry of (this.providerContext?.owner ?? this).fenceDocuments.values()) {
+      if (entry.host !== host) continue;
+      const offset = toFenceOffset(entry.fence, index);
+      if (offset !== undefined) return { entry, offset };
+    }
+    return undefined;
+  }
+  /** Opens, updates and closes the fence documents of a host shown in an editor. */
+  private updateFences(host: string): void {
+    if (this.providerContext) return this.providerContext.owner.updateFences(host);
+    const document = this.o.documents.get(host), text = document?.text.toString() ?? "", language = documentLanguage(this.o, host);
+    const wanted = new Map<string, CodeFence>();
+    if (document && this.fenceHosts.get(host)?.size && this.fileEnabled(host) && text.length <= FENCE_HOST_LIMIT && (text.includes("```") || text.includes("~~~")) && this.o.kernel.configuration.get<boolean>("editor.embeddedCode.languageServers", language) !== false) {
+      const definitions = this.o.kernel.contributions.list("language").map(item => item.data as LanguageDefinition);
+      for (const fence of findFences(text, language, definitions)) if (fence.language.id !== "markdown" && fence.language.id !== "mdx") wanted.set(fencePath(host, fence), fence);
+    }
+    let changed = false;
+    for (const [path, entry] of this.fenceDocuments) if (entry.host === host && !wanted.has(path)) { this.closeFence(path); changed = true; }
+    for (const [path, fence] of wanted) {
+      const previous = this.fenceDocuments.get(path), code = fenceText(text, fence), same = previous?.text === code;
+      this.fenceDocuments.set(path, { path, host, fence, text: code, hostText: text, version: (previous?.version ?? 0) + (same ? 0 : 1) });
+      changed = true;
+      if (same) continue;
+      for (const service of this.servicesForPath(path)) if (service.state === "ready") void service.syncDocument(path).catch(() => {});
+      this.startFenceServices(path);
+    }
+    // Editor views reject dispatches while they apply the change that triggered this update.
+    if (changed) queueMicrotask(() => { if (!this.disposed) this.refreshDiagnostics(host); });
+    if (!wanted.size) this.fenceOverlays.get(host)?.schedule();
+  }
+  /** Starts runtime servers for a fence, including managed services recreated after a settings change. */
+  private startFenceServices(path: string) {
+    // start() notifies listeners before it records the pending start, and those listeners call back here.
+    if (this.startingFences) return;
+    this.startingFences = true;
+    try {
+      for (const service of this.servicesForPath(path))
+        if (service.transport instanceof RuntimeLanguageTransport && service.state !== "ready" && !service.starting && !service.paused && service.canUseLsp(path)) void service.start().catch(() => {});
+    } finally { this.startingFences = false; }
+  }
+  private closeFence(path: string) {
+    for (const service of new Set([this, ...this.servicesForPath(path)])) service.detachDocument(path);
+    this.fenceDocuments.delete(path);
+    for (const [key, service] of this.managedServices) if (service.providerContext!.path === path) { this.managedServices.delete(key); service.dispose(); }
+  }
+  private async fenceRequest(host: string, index: number, method: string, extra: Record<string, unknown> = {}, signal?: AbortSignal) {
+    const target = this.fenceAt(host, index);
+    const service = target && this.eligible(target.entry.path, method)[0];
+    if (!target || !service) return undefined;
+    const result = await service.at(method, target.entry.path, target.offset, extra, signal, false);
+    return fenceResultToHost(result, target.entry, service.uri(target.entry.path), service.uri(host));
+  }
+  private fenceCompletion(host: string) {
+    return async (context: CompletionContext): Promise<CompletionResult | null> => {
+      const target = this.fenceAt(host, context.pos);
+      const sources = target ? this.eligible(target.entry.path, "textDocument/completion") : [];
+      if (!target || !sources.length) return null;
+      const path = target.entry.path, word = context.matchBefore(/[\w$]*/);
+      const character = context.state.sliceDoc(Math.max(0, context.pos - 1), context.pos);
+      const triggered = sources.some(source => (source.effective(path).completionProvider?.triggerCharacters ?? ["."]).includes(character));
+      if (!context.explicit && !word?.text && !triggered) return null;
+      const controller = new AbortController();
+      context.addEventListener("abort", () => controller.abort(), { onDocChange: true });
+      const responses = await Promise.allSettled(sources.map(async source => ({ source, result: await source.at("textDocument/completion", path, target.offset, { context: { triggerKind: triggered ? 2 : 1, ...(triggered ? { triggerCharacter: character } : {}) } }, controller.signal, false) })));
+      const snapshot = context.state.doc.toString();
+      const options = responses.flatMap(response => response.status === "fulfilled" ? completionItems(response.value.result).map((original, index) => {
+        const { source } = response.value, item = fenceResultToHost(original, target.entry, source.uri(path), source.uri(host));
+        return {
+          label: item.filterText ?? item.label, displayLabel: item.label, sortText: item.sortText ?? String(index).padStart(8, "0"), detail: item.detail,
+          boost: item.preselect ? 99 : 0, type: item.kind === 3 ? "function" : item.kind === 6 ? "variable" : "property",
+          info: () => {
+            const dom = hoverDOM(item.documentation ?? "");
+            if (source.effective(path).completionProvider?.resolveProvider)
+              void source.request("completionItem/resolve", original, controller.signal).then(resolved => { if (resolved) dom.replaceChildren(...Array.from(hoverDOM(resolved.documentation ?? resolved.detail ?? "").childNodes)); }).catch(() => {});
+            return dom;
+          },
+          apply: (view: EditorView, completion: any, from: number, to: number) => {
+            if (view.state.doc.toString() === snapshot) view.dispatch(completionTransactions(view.state, item, completion, from, to));
+          },
+        };
+      }) : []);
+      return options.length ? { from: word?.from ?? context.pos, options } : null;
+    };
+  }
+  private fenceExtensions(host: string): CMExtension[] {
+    if (this.providerContext) return this.providerContext.owner.fenceExtensions(host);
+    let cached = this.fenceExtensionCache.get(host);
+    if (cached) return cached;
+    cached = [
+      ViewPlugin.define(view => {
+        const views = this.fenceHosts.get(host) ?? new Set<EditorView>();
+        views.add(view); this.fenceHosts.set(host, views); this.updateFences(host);
+        return { destroy: () => { views.delete(view); if (!views.size) { this.fenceHosts.delete(host); this.updateFences(host); } } };
+      }),
+      hoverTooltip(async (_view, pos) => {
+        try {
+          const result = await this.fenceRequest(host, pos, "textDocument/hover");
+          return result?.contents ? { pos, above: true, create: () => ({ dom: hoverDOM(result.contents) }) } : null;
+        } catch { return null; }
+      }),
+      this.fenceOverlay(host).extension(),
+      EditorView.domEventHandlers({
+        keyup: (event, view) => {
+          const head = view.state.selection.main.head, target = this.fenceAt(host, head);
+          const provider = target && this.eligible(target.entry.path, "textDocument/signatureHelp")[0]?.effective(target.entry.path).signatureHelpProvider;
+          if (provider && [...(provider.triggerCharacters ?? []), ...(provider.retriggerCharacters ?? [])].includes(event.key))
+            void this.fenceRequest(host, head, "textDocument/signatureHelp", { context: { triggerKind: 2, triggerCharacter: event.key, isRetrigger: false } }).then(result => { if (result) showSignature(view, head, result); }).catch(() => {});
+          return false;
+        },
+      }),
+    ];
+    this.fenceExtensionCache.set(host, cached);
+    return cached;
+  }
+  private fenceOverlay(host: string) {
+    let overlay = this.fenceOverlays.get(host);
+    if (!overlay) {
+      overlay = new FenceOverlays(signal => this.fenceDecorations(host, signal));
+      this.fenceOverlays.set(host, overlay);
+    }
+    return overlay;
+  }
+  private async fenceDecorations(host: string, signal: AbortSignal): Promise<Range<Decoration>[] | undefined> {
+    const hostText = this.o.documents.get(host)?.text.toString(), ranges: Range<Decoration>[] = [];
+    const hintHost: OverlayHost = {
+      capabilities: () => ({}), ready: () => true, uri: () => this.uri(host), enabled: () => true,
+      request: () => Promise.reject(new Error("Fence inlay hints do not resolve")),
+      open: async (uri, pos) => { await this.navigate({ uri, range: { start: pos, end: pos } }); },
+      applyHints: async (hint, text) => {
+        const document = this.o.documents.get(host);
+        if (!document || document.text.toString() !== text) throw new Error("Inlay hint is obsolete");
+        if (hint.textEdits?.length) await this.o.documents.applyEdits([{ path: host, expectedVersion: document.version, expectedRevision: document.savedRevision, changes: hint.textEdits.map((edit: any) => ({ from: offset(text, edit.range.start), to: offset(text, edit.range.end), insert: edit.newText })) }]);
+      },
+    };
+    for (const entry of [...this.fenceDocuments.values()].filter(item => item.host === host)) {
+      if (entry.hostText !== hostText) return undefined;
+      const enabled = (setting: string) => this.o.kernel.configuration.get<boolean>(setting, entry.fence.language.id) !== false;
+      const range = { start: { line: 0, character: 0 }, end: textPosition(entry.text, entry.text.length) };
+      const semantic = this.eligible(entry.path, "textDocument/semanticTokens")[0], provider = semantic?.effective(entry.path).semanticTokensProvider;
+      if (semantic && provider && enabled("editor.semanticHighlighting")) {
+        const response = await semantic.request(provider.full ? "textDocument/semanticTokens/full" : "textDocument/semanticTokens/range", { textDocument: { uri: semantic.uri(entry.path) }, ...(provider.full ? {} : { range }) }, signal).catch(() => undefined);
+        try { for (const token of semanticRanges(entry.text, response?.data ?? [], provider.legend)) ranges.push(token.value.range(fromFenceOffset(entry.fence, token.from), fromFenceOffset(entry.fence, token.to))); } catch { /* Ignore an invalid token stream. */ }
+      }
+      const hints = this.eligible(entry.path, "textDocument/inlayHint")[0];
+      if (hints && (enabled("editor.inlayHints.types") || enabled("editor.inlayHints.parameters"))) {
+        const values = await hints.request("textDocument/inlayHint", { textDocument: { uri: hints.uri(entry.path) }, range }, signal).catch(() => []);
+        for (const original of values ?? []) {
+          if (original.kind === 1 && !enabled("editor.inlayHints.types") || original.kind === 2 && !enabled("editor.inlayHints.parameters")) continue;
+          try {
+            const hint = { ...fenceResultToHost(original, entry, hints.uri(entry.path), hints.uri(host)), position: fenceToHost(entry, original.position) };
+            ranges.push(Decoration.widget({ widget: new HintWidget(hint, hintHost, entry.hostText), side: 1 }).range(textOffset(entry.hostText, hint.position)));
+          } catch { /* Ignore malformed hints. */ }
+        }
+      }
+      if (signal.aborted) return undefined;
+    }
+    return ranges;
+  }
+  /** Fence features for a host with no language server, added as language data so the host keeps its own completions. */
+  private fenceOnlyExtensions(host: string): CMExtension[] {
+    if (this.providerContext) return this.providerContext.owner.fenceOnlyExtensions(host);
+    const key = `${host}\0only`;
+    let cached = this.fenceExtensionCache.get(key);
+    if (!cached) {
+      const source = this.fenceCompletion(host);
+      cached = [documentationPopups, EditorState.languageData.of((_state, pos) => this.fenceAt(host, pos) ? [{ autocomplete: source }] : []), ...this.fenceExtensions(host)];
+      this.fenceExtensionCache.set(key, cached);
+    }
+    return cached;
   }
   private overlay(path: string) {
     let overlay = this.overlays.get(path);

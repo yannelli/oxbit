@@ -468,8 +468,9 @@ test("German JSON settings use compact full-width editors and translated text", 
   await expect(associations).toHaveAttribute("rows", "8");
   await expect(associations).toHaveAttribute("aria-invalid", "false");
   await search.fill("languageServers");
-  await expect(page.locator(".setting-title")).toHaveText("Sprachserver");
-  await expect(page.locator(".setting-row p").first()).toContainText("Lizenzschlüssel");
+  const languageServers = page.locator(".setting-row", { has: page.locator(".setting-title", { hasText: /^Sprachserver$/ }) });
+  await expect(languageServers).toHaveCount(1);
+  await expect(languageServers.locator("p").first()).toContainText("Lizenzschlüssel");
   await page.screenshot({ path: info.outputPath("settings-german.png"), animations: "disabled" });
   await search.fill("");
   await page.getByRole("navigation", { name: "Einstellungskategorien" }).getByRole("button", { name: "Darstellung", exact: true }).click();
