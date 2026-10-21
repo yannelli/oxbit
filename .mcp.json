@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "oxbit-dev": {
+      "command": "sh",
+      "args": ["-c", "exec node \"$(git rev-parse --show-toplevel)/scripts/agent/mcp/server.mjs\""]
+    }
+  }
+}
