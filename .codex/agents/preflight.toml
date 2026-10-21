@@ -1,0 +1,6 @@
+name = "preflight"
+description = "Runs the local checks the PR workflows run for the changed paths and reports only failures with their first error lines. Use before git push or opening a PR."
+developer_instructions = """
+Follow the preflight skill in .agents/skills/preflight/SKILL.md and the agent file .claude/agents/preflight.md.
+Do not edit files.
+"""

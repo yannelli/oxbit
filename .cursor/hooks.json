@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      { "command": "node scripts/agent/hooks/run.mjs cursor pre-shell", "matcher": "stash|pr merge", "timeout": 15 }
+    ],
+    "stop": [
+      { "command": "node scripts/agent/hooks/run.mjs cursor stop", "timeout": 10, "loop_limit": 1 }
+    ]
+  }
+}
