@@ -174,6 +174,7 @@ See [architecture](docs/architecture.md), [feature status](docs/feature-status.m
 and [design assets](design/README.md).
 
 Use the [documentation index](docs/INDEX.md) to find implementation references.
+Coding agents read [AGENTS.md](AGENTS.md); [agent tooling](docs/agents/agent-tooling.md) covers the shared skills, hooks and `oxbit-dev` MCP server for Claude Code, Codex and Cursor.
 [Editor consistency contracts](docs/editor-consistency.md) records the Zed and
 language-specification references for document lifecycle, file operations,
 navigation, replacement, and Settings changes.
