@@ -1,6 +1,6 @@
 # Documentation index
 
-Created: 2026-10-02. Last updated: 2026-10-20.
+Created: 2026-10-02. Last updated: 2026-10-21.
 
 | Guide | Use when |
 | --- | --- |
@@ -9,6 +9,7 @@ Created: 2026-10-02. Last updated: 2026-10-20.
 | [AI inline completion models](ai-inline-models.md) | Updating the suggested inline completion models in `packages/features/ai/src/models.ts`: prices, context, Artificial Analysis and LiveCodeBench scores with sources and dates, and the models.dev and OpenRouter catalog fields. |
 | [Oxbit agent core](agent-core.md) | Changing `@oxbit/agent-core`: the agent loop, the host contract, extension seams (tools, context, commands, hooks, continuations, compaction, snapshots, session store), permission modes, session titles, or the `bash` tool over ACP terminals; ACP terminal, session mode and config option references. |
 | [Oxbit Agent CLI](oxbit-agent.md) | Changing `oxbit-agent` (`apps/agent`, npm `@oxbit/agent`): the TUI, print and ACP modes, providers and Sign in with ChatGPT, settings keys, AGENTS.md and CLAUDE.md instructions, skills, Claude Code and Codex hooks, `/goal`, `/loop`, compaction, MCP servers, snapshots and `/undo`, sessions, and its bundling in the desktop app; ACP, MCP, SIWC, hooks, skills and AGENTS.md references. |
+| [Memory hook for agents](agents/memory-hook.md) | Enabling or changing the optional memory hook in `tools/agent-memory/` for Claude Code, Codex and Cursor: sources, lexical ranking, session dedupe and resurfacing, the resource-checked embedding path, measured latency, and the 2025 and 2026 retrieval research with links. |
 | [Model APIs for the built-in Oxbit agent](agent-model-apis.md) | Changing the in-app Oxbit agent's OpenAI Responses, Chat Completions, Anthropic Messages, or ChatGPT plan (Codex Responses) adapters, the SSE parser, model lists, per-model reasoning levels and their request fields, reasoning replay, or its ACP updates; official API, OpenRouter, DeepSeek, openai/codex, and ACP references. |
 | [Agent panel research (2026)](agents-ux-research.md) | Comparing the agent panel with Zed, JetBrains, VS Code, Cursor and mobile agent clients; the ACP Registry schema and listed agents; which shared patterns Oxbit adopted or deferred. |
 | [Code fences](code-fences.md) | Changing highlighting or language server features for fenced code in Markdown and comments, the fence documents sent to language servers, or the `editor.embeddedCode.*` settings; CodeMirror, CommonMark, LSP and JetBrains references. |

@@ -24,7 +24,7 @@
     "build": "tsc -b && bun run --filter @oxbit/runtime build && bun run --filter @oxbit/agent build && bun run build:example && bun run --filter @oxbit/web build",
     "build:all": "bun run build && bun run desktop:build && bun run ios:build",
     "typecheck": "tsc -b",
-    "lint": "eslint apps packages examples tests scripts --no-warn-ignored",
+    "lint": "eslint apps packages examples tests scripts tools --no-warn-ignored",
     "test": "vitest run",
     "test:browser": "playwright test",
     "start": "bun run --cwd apps/runtime start",
