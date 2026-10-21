@@ -17,7 +17,7 @@ node tools/agent-memory/bin/bench.mjs 100 --embed       # per-call latency
 
 | Tool | File the enable script writes | Committed |
 | --- | --- | --- |
-| Claude Code | `<repo>/.claude/settings.local.json` | no, `.claude/` is in `.gitignore` |
+| Claude Code | `<repo>/.claude/settings.local.json` | no, `.claude/settings.local.json` is in `.gitignore` |
 | Codex | `~/.codex/hooks.json`, with `--project <repo>` on the command | no, user scope |
 | Cursor | `~/.cursor/hooks.json` (`version: 1`), with `--project <repo>` | no, user scope |
 

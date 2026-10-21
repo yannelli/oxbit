@@ -53,5 +53,6 @@ apps/ios/src-tauri/gen/apple/assets/
 .opencode/
 .playwright-mcp/
 .claude/
+.claude/settings.local.json
 .codex/
 .paseo/
