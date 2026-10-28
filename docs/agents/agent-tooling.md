@@ -101,6 +101,10 @@ Checks run on 2026-10-21 and, with Codex 0.165.0 and Cursor Agent CLI 2026.10.22
 | Cursor | `cursor-agent -p --mode ask` asking for the heredoc rule and the project skills | Quoted the `/bin/cat` line from `AGENTS.md`, listed the six skills once each |
 | Cursor | `cursor-agent -p --force` calling `doctor` | Returned the session field |
 | Cursor | `cursor-agent -p --force` asked to run `git stash pop` | Hook denied it with the stash message |
+| All three | In a plain clone with `gh pr merge` replaced by a PATH shim, each tool asked to merge a PR with 3 failing checks | Each hook denied it and listed the failing checks; the shim never ran |
+| Claude Code, Codex | `claude -p` and `codex exec` in a clone with an untracked file and an unpushed commit | Stop hook blocked once with the unpushed-work message, and the agent printed it; the next stop passed |
+| Cursor | Same clone, interactive `cursor-agent` | Stop hook returned `followup_message` with the same message, and the agent printed it |
+| Cursor | Same clone, `cursor-agent -p` | Stop hook did not run |
 
 ## Features a tool lacks
 
@@ -112,6 +116,7 @@ Checks run on 2026-10-21 and, with Codex 0.165.0 and Cursor Agent CLI 2026.10.22
 - Codex agent definitions are TOML, so the Markdown files in `.claude/agents/` do not load there ([subagents][cx-agents-doc]).
 - Codex ignores project `.codex/` config, hooks and MCP in an untrusted project ([config reference][cx-ref]).
 - Cursor ignores plain `.md` files in `.cursor/rules` ([rules][cu-rules]).
+- `cursor-agent -p` 2026.10.22 runs `beforeShellExecution` hooks and skips `stop` hooks (seen on 2026-10-27), so the unpushed-work warning reaches interactive Cursor sessions only.
 - Cursor keeps MCP approvals per path outside the repo, so each new worktree needs `agent mcp enable` ([CLI MCP][cu-cli-mcp]).
 - The Cursor Agent CLI stores credentials in the macOS keychain by default ([authentication][cu-auth], [CLI changelog][cu-cli-log]). With an expired CLI token, `agent status` still reports a login and `agent -p` returns "Authentication required"; `agent login` or `CURSOR_API_KEY` fixes it. The 2026.10.22 bundle also reads `CURSOR_AUTH_TOKEN`, which the docs do not list.
 
