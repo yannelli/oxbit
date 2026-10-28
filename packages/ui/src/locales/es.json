@@ -9,7 +9,7 @@
   "Retry": "Reintentar",
   "Application menu": "Menú de la aplicación",
   "Search files and commands": "Buscar archivos y comandos",
-  "— search files, type > for commands": "— buscar archivos; escribir > para comandos",
+  "Search files, or type > for commands": "Buscar archivos o escribir > para comandos",
   "Runtime connection": "Conexión al runtime",
   "Toggle sidebar": "Mostrar u ocultar la barra lateral",
   "Toggle panel": "Mostrar u ocultar el panel",
@@ -284,6 +284,10 @@
   "Graphite (dark)": "Graphite (oscuro)",
   "Paper (light)": "Paper (claro)",
   "Layout Density": "Densidad del diseño",
+  "Layout Style": "Estilo del diseño",
+  "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.": "Plano coloca los paneles juntos, con divisores finos y botones neutros. Clásico muestra la barra lateral, el editor y los paneles como tarjetas separadas.",
+  "flat": "Plano",
+  "classic": "Clásico",
   "Controls row heights, padding and label sizes across the workbench.": "Controla la altura de las filas, el relleno y el tamaño de las etiquetas en toda la mesa de trabajo.",
   "compact": "compacta",
   "comfortable": "cómoda",
@@ -1255,5 +1259,12 @@
   "Warnings": "Advertencias",
   "Weight": "Grosor",
   "{description}, follows {source}": "{description}, sigue a {source}",
-  "{name} picker": "Selector de color de {name}"
+  "{name} picker": "Selector de color de {name}",
+  "Staged": "Preparados",
+  "Commits": "Commits",
+  "Uncommitted": "Sin confirmar",
+  "Changes shown": "Cambios mostrados",
+  "Create branch…": "Crear rama…",
+  "Manage branches and remotes…": "Administrar ramas y remotos…",
+  "{0} added, {1} removed": "{0} añadidas, {1} eliminadas"
 }

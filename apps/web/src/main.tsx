@@ -27,6 +27,14 @@ import { createWorkbenchSession, type Session } from "@oxbit/app-workbench";
 import { WebRuntimeConnector, describeFailure } from "./runtime-connector";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
+import "@oxbit/ui/flat.css";
+document.documentElement.dataset.style ??= (() => {
+  try {
+    return localStorage.getItem("oxbit.layoutStyle") === "classic" ? "classic" : "flat";
+  } catch {
+    return "flat";
+  }
+})();
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);
 const persistence = new IndexedDBPersistence();

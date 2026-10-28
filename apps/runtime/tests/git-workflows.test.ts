@@ -92,6 +92,44 @@ describe("expanded source control", () => {
       code: "PATH_DENIED",
     });
   });
+  it("reports staged, unstaged and untracked line counts, skipping binary files", async () => {
+    const { root, git, act, write } = await setup();
+    await write("staged.txt", "one\ntwo\n");
+    await write("binary.bin", "a\0b");
+    await write("plain.txt", "x\ny\n");
+    await act("stageAll");
+    await act("commit", { message: "Add files" });
+    await write("file.txt", "first\nsecond\nthird\n");
+    await write("staged.txt", "one\n");
+    await act("stage", { path: "staged.txt" });
+    await write("binary.bin", "c\0d\0e");
+    await write("new.txt", "a\nb\nc");
+    await write("plain.txt", "x\nz\nw\n");
+    await command(root, ["mv", "file.txt", "moved.txt"]);
+    await write("moved.txt", "first\nsecond\nthird\n");
+    const changes = (await git.status()).changes;
+    const find = (name: string) => changes.find((c) => c.path === name);
+    expect(find("staged.txt")).toMatchObject({
+      staged: { added: 0, removed: 1 },
+    });
+    expect(find("staged.txt")?.unstaged).toBeUndefined();
+    expect(find("moved.txt")).toMatchObject({
+      originalPath: "file.txt",
+      staged: { added: 0, removed: 0 },
+      unstaged: { added: 2, removed: 0 },
+    });
+    expect(find("plain.txt")).toMatchObject({
+      index: " ",
+      unstaged: { added: 2, removed: 1 },
+    });
+    expect(find("plain.txt")?.staged).toBeUndefined();
+    expect(find("new.txt")).toMatchObject({
+      unstaged: { added: 3, removed: 0 },
+    });
+    expect(find("binary.bin")).toMatchObject({ working: "M" });
+    expect(find("binary.bin")?.unstaged).toBeUndefined();
+    expect(find("binary.bin")?.staged).toBeUndefined();
+  });
   it("creates, renames, switches and safely deletes branches, preserving unmerged work", async () => {
     const { git, act, write } = await setup();
     await act("branchCreate", { name: "feature/work" });

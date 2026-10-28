@@ -1,0 +1,101 @@
+/* Flat layout style (workbench.style = flat): desktop and tablet shell. */
+/* Flat desktop and tablet shell: panes touch and share 1px hairlines. Bars use --bg-app, side panels --bg-surface, the editor --bg-editor. */
+:root .workbench{--fs:calc(var(--font-body-font-size) + var(--ui) - 12px);--fs-sm:calc(var(--fs) - 1px)}
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]){
+  --workbench-gap:0px;--radius-panel:0px;--radius-tab:6px;--activity-bar-width:40px;
+  & .workspace-body{gap:0;padding:0}
+  & :is(.main-workbench,.workspace-column,.workspace-row){gap:0}
+  & .titlebar{height:calc(40px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 8px 0;background:var(--bg-app);border:0;border-bottom:1px solid var(--bd)}
+  & .menu-parent>button{height:28px;padding:0 8px;color:var(--fg-2);font-size:var(--fs);border-radius:6px}
+  & .menu-parent>button:hover{color:var(--fg)}
+  & .workspace-title{font-size:var(--fs);font-weight:600;border-left:0;margin-left:4px}
+  & .title-search{height:28px;border-radius:6px;font-size:var(--fs-sm);background:var(--bg-input)}
+  & .title-actions .icon-button{width:28px;height:28px;color:var(--fg-3)}
+  & .title-actions svg{width:16px;height:16px}
+  & .notification-center{top:44px}
+  & .title-actions .icon-button:hover{color:var(--fg)}
+  & .connection-button{font-size:var(--fs-sm);color:var(--fg-3)}
+  & .activity-bar{width:var(--activity-bar-width);background:var(--bg-app);border:0;border-right:1px solid var(--bd);padding:6px 0;gap:4px}
+  & .activity-bar>button{width:32px;height:32px;border-radius:6px;color:var(--fg-2)}
+  & .activity-bar>button svg{width:18px;height:18px}
+  & .activity-bar>button:hover{color:var(--fg);background:var(--bg-hover)}
+  & .activity-bar>button.active{color:var(--fg);background:var(--bg-selected)}
+  & :is(.editor-group,.dock-group){border:0;border-radius:0}
+  & :is(.panel-dock.sidebar,.panel-dock.bottom-panel):not(.dock-drop-rail){border-radius:0;border:0}
+  & .panel-dock.dock-left:not(.dock-drop-rail){border-right:1px solid var(--bd)}
+  & .panel-dock.dock-right:not(.dock-drop-rail){border-left:1px solid var(--bd)}
+  & .panel-dock.dock-bottom:not(.dock-drop-rail){border-top:1px solid var(--bd)}
+  & .panel-dock.sidebar .dock-group{background:var(--bg-surface)}
+  & .panel-dock.bottom-panel .dock-group{background:var(--bg-surface)}
+  & .editor-group+.editor-group,& .editor-groups>.group-sash+.editor-group{border-left:1px solid var(--bd)}
+
+  /* Headers: 36px rows without pills. */
+  & :is(.tabbar,.dock-group .panel-header){height:var(--tab);min-height:var(--tab);padding:0;gap:0;font-size:var(--fs);border-bottom:0}
+  & .tabbar{background:var(--bg-surface);box-shadow:inset 0 -1px 0 var(--bd)}
+  & .editor-tab{height:100%;border:0;border-radius:0;color:var(--fg-3);background:transparent}
+  & .editor-tab>button[role=tab]{padding:0 6px 0 14px;gap:8px}
+  & .editor-tab:hover{background:var(--bg-hover);color:var(--fg-2)}
+  & :is(.editor-tab.active,.active-group .editor-tab.active){background:var(--bg-editor);color:var(--fg);box-shadow:inset 1px 0 0 var(--bd),inset -1px 0 0 var(--bd)}
+  & .editor-tab.active:first-child{box-shadow:inset -1px 0 0 var(--bd)}
+  & .editor-tab:not(.active):not(:hover):not(:focus-within) .tab-close:not(:has(.dirty-dot)){opacity:0}
+  & .tab-close{width:20px;height:20px;margin-right:6px;border-radius:4px}
+  & .group-actions{height:100%;padding:0 4px;background:var(--bg-surface);box-shadow:inset 0 -1px 0 var(--bd)}
+  & .group-actions::before{background:linear-gradient(to left,var(--bg-surface),transparent)}
+  & :is(.group-actions,.panel-actions) .icon-button{width:28px;height:28px;color:var(--fg-3)}
+  & :is(.group-actions,.panel-actions) .icon-button:hover{color:var(--fg)}
+  & .breadcrumbs{height:28px;padding:0 14px;background:var(--bg-editor);border-bottom:0;font-size:var(--fs-sm)}
+
+  /* Sidebar header: plain title; secondary actions on hover. */
+  & .panel-dock.sidebar .panel-header{padding:0 6px 0 14px;background:var(--bg-surface)}
+  & .panel-dock.sidebar .panel-tabs>button>.panel-tab-icon{display:none}
+  & .panel-dock.sidebar .panel-tabs>button.selected:has(>.panel-tab-icon){padding:0;background:transparent;color:var(--fg);font-weight:600;cursor:default}
+  & .panel-switcher-trigger{min-height:32px;padding:0;font-size:var(--fs);font-weight:600}
+  & .panel-dock.sidebar .panel-header:not(:hover,:focus-within) .panel-actions>*{opacity:0}
+  @media(pointer:coarse){& .panel-dock.sidebar .panel-header .panel-actions>*{opacity:1}}
+
+  /* Bottom panel: text tabs with a rounded selection. */
+  & .panel-dock.bottom-panel .panel-header{padding:0 6px 0 8px;background:var(--bg-surface)}
+  & .dock-group .panel-tabs{height:100%;gap:2px}
+  & .dock-group .panel-tabs>button{height:28px;padding:0 10px;border-radius:6px;color:var(--fg-3);font-size:var(--fs)}
+  & .dock-group .panel-tabs>button:hover{color:var(--fg);background:var(--bg-hover)}
+  & .dock-group .panel-tabs>button.selected{background:var(--bg-selected);color:var(--fg)}
+
+  /* Sections and lists. */
+  & .section-label{height:28px;min-height:28px;padding:0 8px 0 10px;gap:4px;font-size:var(--fs-sm);font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3);border-top:0}
+  & .section-label:hover{color:var(--fg-2);background:transparent}
+  & .section-label.workspace-root{color:var(--fg-2);font-weight:600}
+  & .tree-chevron{width:16px;height:16px}
+  & .tree-chevron svg{width:14px;height:14px}
+  & .tree-row{height:28px;min-height:28px;font-size:var(--fs);color:var(--fg-2);margin:0 6px;border-radius:6px}
+  & .tree-row:hover{background:var(--bg-hover);color:var(--fg)}
+  & .tree-row.selected{background:var(--bg-selected);color:var(--fg)}
+  & .file-row-button>.push{font-size:var(--fs-sm)}
+
+  & .panel-dock.sidebar .scm-panel{--scm-bg:var(--bg-surface)}
+  & .panel-dock.bottom-panel .scm-panel{--scm-bg:var(--bg-surface)}
+
+  /* Status bar. */
+  & .statusbar{height:24px;padding:0 10px;gap:14px;background:var(--bg-app);border:0;border-top:1px solid var(--bd);color:var(--fg-3);font-size:var(--fs-sm)}
+  & .statusbar>button:hover{color:var(--fg);background:transparent}
+  & .statusbar>button{color:var(--fg-3)}
+  & .statusbar svg{width:14px;height:14px;flex:none}
+
+  /* Sashes are invisible until hovered. */
+  & :is(.group-sash,.dock-sash){background:transparent}
+  & .group-sash{flex-basis:0;position:relative;z-index:5;margin:0 -2px;padding:0 2px}
+  & .dock-split>.dock-sash.horizontal{height:4px;margin:-2px 0;z-index:5}
+  & .dock-split>.dock-sash.vertical{width:4px;margin:0 -2px;z-index:5}
+}
+@media(min-width:600px) and (max-width:1099px){
+  :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]) .panel-dock.sidebar{top:0;bottom:0}
+  :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]) .dock-left{left:var(--activity-bar-width)}
+  :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]) .dock-right{right:0}
+}
+
+/* Buttons stay neutral; color marks status and diffs. */
+:root[data-style="flat"] .button{background:var(--bg-raised);border-color:var(--bd);color:var(--fg)}
+:root[data-style="flat"] .button:hover:not(:disabled){background:var(--bg-hover)}
+:root[data-style="flat"] .button.primary,:root[data-style="flat"] .button.primary:hover{background:var(--fg);border-color:var(--fg);color:var(--bg-editor)}
+:root[data-style="flat"] .button.primary:hover:not(:disabled){opacity:.88}
+:root[data-style="flat"] .text-button{color:var(--fg-2)}
+:root[data-style="flat"] .text-button:hover{color:var(--fg);background:transparent;text-decoration:underline;text-underline-offset:2px}

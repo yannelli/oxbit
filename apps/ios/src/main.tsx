@@ -20,9 +20,18 @@ import { SshGitPrompt } from "./ssh-git-prompt.js";
 import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
+import "@oxbit/ui/flat.css";
 import "./ios.css";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
+// The start screen opens before any workbench sets the layout style; Flat is the default.
+document.documentElement.dataset.style ??= (() => {
+  try {
+    return localStorage.getItem("oxbit.layoutStyle") === "classic" ? "classic" : "flat";
+  } catch {
+    return "flat";
+  }
+})();
 installTextInputPolicy(document);
 installSpeechRecognition();
 installNotifications();

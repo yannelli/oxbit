@@ -87,6 +87,8 @@ const viewIcons: Record<string, string> = {
   scm: "git",
   extensions: "ext",
 };
+/** Start screens outside the workbench read this before the first render. */
+export const LAYOUT_STYLE_KEY = "oxbit.layoutStyle";
 const phoneViewLabels: Record<string, string> = {
   explorer: "Files",
   search: "Search view",
@@ -469,6 +471,15 @@ export function Workbench({
       ? (configuredAlignment as PanelAlignment)
       : "center";
   const theme = themeMode(kernel);
+  const layoutStyle = kernel.configuration.get<string>("workbench.style") === "classic" ? "classic" : "flat";
+  useEffect(() => {
+    document.documentElement.dataset.style = layoutStyle;
+    try {
+      localStorage.setItem(LAYOUT_STYLE_KEY, layoutStyle);
+    } catch {
+      // Storage can be unavailable in private browsing; the attribute still applies.
+    }
+  }, [layoutStyle]);
   const locale = String(
     kernel.configuration.get("workbench.locale") ?? "en",
   );
@@ -528,6 +539,7 @@ export function Workbench({
         data-density={
           kernel.configuration.get("workbench.density") || "compact"
         }
+        data-style={layoutStyle}
         data-mode={mode}
         data-panel-alignment={alignment}
         data-rm={
@@ -614,7 +626,7 @@ export function Workbench({
             >
               <Icon name="search" size={14} />
               <span>
-                {s.projectName} {tr("— search files, type > for commands")}
+                {tr("Search files, or type > for commands")}
               </span>
               <kbd>{boundShortcut(workbench, "workbench.quickOpen")}</kbd>
             </button>

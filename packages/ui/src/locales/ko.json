@@ -9,7 +9,7 @@
   "Retry": "다시 시도",
   "Application menu": "애플리케이션 메뉴",
   "Search files and commands": "파일 및 명령 검색",
-  "— search files, type > for commands": "— 파일 검색, 명령은 > 입력",
+  "Search files, or type > for commands": "파일 검색 또는 명령은 > 입력",
   "Runtime connection": "런타임 연결",
   "Toggle sidebar": "사이드바 전환",
   "Toggle panel": "패널 전환",
@@ -284,6 +284,10 @@
   "Graphite (dark)": "Graphite (어두움)",
   "Paper (light)": "Paper (밝음)",
   "Layout Density": "레이아웃 밀도",
+  "Layout Style": "레이아웃 스타일",
+  "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.": "플랫은 창을 간격 없이 붙이고 얇은 구분선과 중립적인 버튼을 사용합니다. 클래식은 사이드바, 편집기, 패널을 별도의 카드로 표시합니다.",
+  "flat": "플랫",
+  "classic": "클래식",
   "Controls row heights, padding and label sizes across the workbench.": "워크벤치 전체의 행 높이, 여백 및 레이블 크기를 제어합니다.",
   "compact": "좁게",
   "comfortable": "넓게",
@@ -1255,5 +1259,12 @@
   "Warnings": "경고",
   "Weight": "굵기",
   "{description}, follows {source}": "{description}, {source}을(를) 따름",
-  "{name} picker": "{name} 색 선택기"
+  "{name} picker": "{name} 색 선택기",
+  "Staged": "스테이징됨",
+  "Commits": "커밋",
+  "Uncommitted": "커밋되지 않음",
+  "Changes shown": "표시할 변경 사항",
+  "Create branch…": "브랜치 만들기…",
+  "Manage branches and remotes…": "브랜치 및 원격 관리…",
+  "{0} added, {1} removed": "{0}줄 추가, {1}줄 삭제"
 }

@@ -578,6 +578,16 @@ var settings_schema_default = {
         "comfortable"
       ]
     },
+    "workbench.style": {
+      title: "Layout Style",
+      description: "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.",
+      type: "string",
+      default: "flat",
+      enum: [
+        "flat",
+        "classic"
+      ]
+    },
     "workbench.sidebarLocation": {
       title: "Sidebar Location",
       description: "Where the primary sidebar is docked.",
@@ -1335,6 +1345,9 @@ var settings_schema_default = {
         },
         "workbench.density": {
           $ref: "#/properties/workbench.density"
+        },
+        "workbench.style": {
+          $ref: "#/properties/workbench.style"
         },
         "workbench.sidebarLocation": {
           $ref: "#/properties/workbench.sidebarLocation"

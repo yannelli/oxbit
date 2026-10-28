@@ -9,7 +9,7 @@
   "Retry": "重试",
   "Application menu": "应用程序菜单",
   "Search files and commands": "搜索文件和命令",
-  "— search files, type > for commands": "— 搜索文件，输入 > 查找命令",
+  "Search files, or type > for commands": "搜索文件，或输入 > 查找命令",
   "Runtime connection": "运行时连接",
   "Toggle sidebar": "切换侧边栏",
   "Toggle panel": "切换面板",
@@ -284,6 +284,10 @@
   "Graphite (dark)": "Graphite（深色）",
   "Paper (light)": "Paper（浅色）",
   "Layout Density": "布局密度",
+  "Layout Style": "布局样式",
+  "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.": "扁平样式让窗格紧密相连，使用细分隔线和中性按钮。经典样式将侧边栏、编辑器和面板显示为独立卡片。",
+  "flat": "扁平",
+  "classic": "经典",
   "Controls row heights, padding and label sizes across the workbench.": "控制整个工作台的行高、内边距和标签大小。",
   "compact": "紧凑",
   "comfortable": "舒适",
@@ -1255,5 +1259,12 @@
   "Warnings": "警告",
   "Weight": "字重",
   "{description}, follows {source}": "{description}，跟随 {source}",
-  "{name} picker": "{name} 颜色选取器"
+  "{name} picker": "{name} 颜色选取器",
+  "Staged": "已暂存",
+  "Commits": "提交",
+  "Uncommitted": "未提交",
+  "Changes shown": "显示的更改",
+  "Create branch…": "创建分支…",
+  "Manage branches and remotes…": "管理分支和远程…",
+  "{0} added, {1} removed": "新增 {0} 行，删除 {1} 行"
 }

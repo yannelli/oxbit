@@ -1,0 +1,197 @@
+/* Flat layout style: Settings, Keyboard Shortcuts, Extensions, theme and icon pack managers, Theme Editor. */
+/* Desktop and tablet: hairline rows on one left edge, --ctl controls with radius 6, tinted selection. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]){
+  & .settings-heading{--settings-control-height:var(--ctl);gap:12px}
+  & :is(.settings-heading,.keyboard-screen)>h1,& .settings-title-row>h1{font-size:calc(var(--fs) + 6px);font-weight:600}
+  & .settings-heading p{margin:0;color:var(--fg-3);font-size:var(--fs)}
+  & .settings-heading>p[role=status]:empty{display:none}
+  & .settings-heading>h1{margin:0}
+  & :is(.settings-heading,.keyboard-screen,.extensions-list,.theme-editor-controls) .search-input{min-height:var(--ctl);border-radius:6px}
+  & :is(.settings-heading,.keyboard-screen,.extensions-list,.theme-editor-controls) .search-input input{padding-block:0}
+  & .settings-heading :is(.button,.select-trigger,.settings-chip){border-radius:6px}
+  & .settings-heading :is(.button,.select-trigger){min-height:var(--ctl);height:var(--ctl);padding-block:0}
+  & :is(.settings-segmented,.settings-chip){border-color:var(--bd);font-size:var(--fs-sm)}
+  & .settings-segmented{border-radius:6px}
+  & .settings-segmented>button{border-radius:4px;font-size:var(--fs-sm)}
+
+  /* Category nav: 28px rows. */
+  & .settings-body>nav{padding:12px 16px 12px 0;gap:2px}
+  & .settings-body>nav button{height:var(--ctl);min-height:var(--ctl);padding:0 8px;border-radius:6px;font-size:var(--fs);color:var(--fg-2)}
+  & .settings-body>nav button:hover{background:var(--bg-hover);color:var(--fg)}
+  & .settings-body>nav button.selected{background:var(--bg-selected);color:var(--fg)}
+  & .settings-body>nav .settings-nav-section{padding-left:20px;font-size:var(--fs-sm);color:var(--fg-3)}
+  & .settings-body>nav .settings-nav-keyboard{margin-top:auto;padding-top:0;border-top:0;border-radius:6px}
+
+  /* Setting rows: text and controls share the list edges; controls center in the row. */
+  & .settings-list{padding:4px 0 40px 24px}
+  & .settings-page-title,& .settings-page-header>h2{font-size:calc(var(--fs) + 3px);font-weight:600}
+  & .settings-page-title{margin:20px 0 4px}
+  & .settings-list>.settings-page-title:first-child{margin-top:12px}
+  & .settings-section-title{margin:20px 0 0;padding:0 0 8px;font-size:var(--fs-sm);font-weight:500;color:var(--fg-3);border-bottom:1px solid var(--bd)}
+  & .setting-row{border-left:0}
+  & .setting-field{padding:12px 0;row-gap:0}
+  & .setting-field+.setting-field{border-top:0;box-shadow:inset 0 1px 0 var(--bd)}
+  & .setting-field>.error-text{margin-top:8px}
+  & .setting-title{min-height:0;font-size:calc(var(--fs) + 1px);color:var(--fg)}
+  & .setting-title>strong{font-weight:500}
+  & .setting-field .setting-text>p{margin-top:2px;font-size:var(--fs);color:var(--fg-3)}
+  & .setting-control>input:not([type=checkbox]),& .setting-chip-add>input{height:var(--ctl);border-radius:6px}
+  & .setting-control :is(.select-trigger,.button),& .setting-control>.button{min-height:var(--ctl);height:var(--ctl);padding-block:0;border-radius:6px}
+  & .setting-control>textarea{border-radius:6px}
+  & .setting-chip-item{border-color:var(--bd)}
+  & .setting-suggestion{border-radius:6px}
+
+  /* Theme and icon pack managers. */
+  & :is(.theme-packs,.icon-packs)>.settings-list{padding:0 28px 40px}
+  & :is(.theme-packs,.icon-packs) .setting-row{padding:16px 0}
+  & :is(.theme-packs,.icon-packs) .setting-row+.setting-row{border-top:1px solid var(--bd)}
+  & :is(.theme-packs,.icon-packs) .setting-row>h2{margin:0;font-size:calc(var(--fs) + 1px);font-weight:500}
+  & :is(.theme-packs,.icon-packs) .setting-row>h2>small{display:block;margin:2px 0 0;color:var(--fg-3);font-size:var(--fs-sm);font-weight:400}
+  & :is(.theme-packs,.icon-packs) .setting-row :is(p,details,code){margin:4px 0 0;font-size:var(--fs);color:var(--fg-3)}
+  & :is(.theme-packs,.icon-packs) .setting-row>code{display:block;color:var(--fg-2)}
+  & :is(.theme-packs,.icon-packs) .setting-row summary{color:var(--fg-2);cursor:pointer}
+  & :is(.theme-packs,.icon-packs) .setting-row>.toolbar{margin-top:10px;gap:6px}
+  & :is(.theme-packs,.icon-packs) :is(.button,.select-trigger){min-height:var(--ctl);height:var(--ctl);padding-block:0;border-radius:6px}
+  & .theme-pack-import{margin:0;gap:8px}
+  & .theme-pack-import>.button{min-height:var(--ctl)}
+  & .theme-pack-import>.muted{font-size:var(--fs-sm)}
+
+  /* Keyboard Shortcuts: table cells share the heading edges. */
+  & .keyboard-screen>h1{margin:0 0 12px}
+  & .keyboard-screen table{margin-top:12px;font-size:var(--fs)}
+  & .keyboard-screen th{height:32px;padding:0 12px 0 0;font-size:var(--fs-sm);font-weight:500;color:var(--fg-3)}
+  & .keyboard-screen td{padding:8px 12px 8px 0;vertical-align:middle}
+  & .keyboard-screen td>small{display:block;color:var(--fg-3);font-size:var(--fs-sm)}
+  & .keyboard-screen :is(th,td):last-child{width:1%;padding-right:0;text-align:right;white-space:nowrap}
+  & .keyboard-screen td>kbd{padding:2px 6px;border-radius:4px;background:var(--bg-raised);color:var(--fg-2);font-size:var(--fs-sm)}
+  & .keyboard-screen .icon-button{display:inline-flex;width:var(--ctl);height:var(--ctl);color:var(--fg-3)}
+  & .keyboard-screen .icon-button:hover{color:var(--fg)}
+
+  /* Extensions sidebar: rows tint on hover like the file tree. */
+  & .extensions-list>.search-input{margin:8px 6px 4px}
+  & .section-label.extension-packs{height:auto;min-height:32px;padding-block:2px}
+  & .extension-pack-actions{gap:4px}
+  & .extension-pack-actions>.button{height:24px;min-height:24px;padding:0 8px;border-radius:6px;font-size:var(--fs-sm)}
+  & .extension-card{width:calc(100% - 12px);margin:0 6px;padding:8px;gap:10px;border:0;border-radius:6px}
+  & .extension-card:hover{background:var(--bg-hover)}
+  & .extension-card strong{font-size:var(--fs);font-weight:500;color:var(--fg)}
+  & .extension-card small{margin:2px 0;color:var(--fg-3);font-size:var(--fs-sm)}
+  & .extension-card .muted{color:var(--fg-3);font-size:calc(var(--fs-sm) - 1px)}
+  & .extension-card>svg{flex:none;margin-top:2px;color:var(--fg-3)}
+  & .extension-icon{width:32px;height:32px;border-radius:6px;background:var(--bg-raised);color:var(--fg-2)}
+  & .extensions-list>.padded{padding:12px 14px;font-size:var(--fs-sm)}
+
+  /* Extension details. */
+  & .extension-hero{gap:16px;margin-bottom:20px}
+  & .extension-hero>.extension-icon{width:64px;height:64px;border-radius:8px}
+  & .extension-hero h1{font-size:calc(var(--fs) + 6px);font-weight:600}
+  & .extension-hero p{margin:4px 0 12px;color:var(--fg-3);font-size:var(--fs)}
+  & .extension-hero .toolbar{gap:6px}
+  & .extension-hero .button{height:var(--ctl);min-height:var(--ctl);padding:0 10px;border-radius:6px}
+  & .extension-details>.padded{padding:16px 0}
+  & .extension-details>.padded h2{margin:0 0 8px;font-size:calc(var(--fs) + 2px);font-weight:600}
+  & .extension-details>.padded p{color:var(--fg-2)}
+
+  /* Text tabs with a rounded selection. */
+  & .view-tabs{gap:2px;padding-bottom:8px}
+  & .view-tabs button{height:var(--ctl);min-height:var(--ctl);padding:0 10px;border:0;border-radius:6px;color:var(--fg-3);font-size:var(--fs)}
+  & .view-tabs button:hover{background:var(--bg-hover);color:var(--fg)}
+  & .view-tabs button.selected{background:var(--bg-selected);color:var(--fg)}
+
+  /* Theme Editor. */
+  & .theme-editor-controls{padding:0 20px 24px 28px}
+  & .theme-editor-controls>.view-tabs{gap:2px;padding-top:8px}
+  & .theme-editor-section h2{margin:20px 0 4px;font-size:var(--fs);font-weight:500}
+  & .theme-editor-field{min-height:var(--ctl);padding:6px 0;border-left:0}
+  & .theme-editor-label>span{font-size:var(--fs);color:var(--fg)}
+  & .theme-editor-label small{color:var(--fg-3);font-size:var(--fs-sm)}
+  & .theme-editor-field.modified .theme-editor-label>span::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+  & .theme-editor-control :is(input:not([type=checkbox]):not([type=color]),select,.select-trigger,.button){min-height:var(--ctl);height:var(--ctl);padding-block:0;border-radius:6px}
+  & .theme-editor-role{border-color:var(--bd)}
+}
+@media(min-width:600px) and (max-width:1099px){
+  :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]) :is(.theme-packs,.icon-packs)>.settings-list{padding-inline:18px}
+}
+
+/* Phone: 16px text, 44px rows and controls, grouped lists with radius 8 and hairline separators. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone]{
+  --pfs:calc(var(--font-body-font-size) + 4px);--pfs-sm:calc(var(--font-body-font-size) + 2px);--pfs-xs:calc(var(--font-body-font-size) + 1px);
+  & .settings-heading p{margin:0;color:var(--fg-3)}
+  & .settings-heading>p[role=status]:empty{display:none}
+  & .settings-heading>h1{margin:0}
+  & .settings-heading :is(.search-input,.button,.select-trigger,.settings-segmented,.settings-chip){border-radius:8px}
+  & :is(.settings-segmented,.settings-chip){border-color:var(--bd)}
+  & .settings-segmented>button{border-radius:6px;font-size:var(--pfs)}
+  & .settings-body{padding:0 12px}
+  & .settings-pages{margin:8px 0;border-radius:8px}
+  & .settings-pages>button{font-size:var(--pfs)}
+  & .settings-page-title{margin:20px 4px 8px;font-size:calc(var(--pfs) + 2px);font-weight:600}
+  & .settings-section-title{margin:20px 4px 8px;padding:0;border:0;font-size:var(--pfs-sm);font-weight:500;color:var(--fg-3)}
+
+  & .settings-list>.setting-row{padding:12px;border:1px solid var(--bd);border-bottom:0;border-radius:0;background:var(--bg-raised)}
+  & .settings-list>.setting-row:not(.setting-row+.setting-row){border-radius:8px 8px 0 0}
+  & .settings-list>.setting-row:not(:has(+.setting-row)){border-bottom:1px solid var(--bd);border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+  & .setting-field{min-height:44px;box-sizing:border-box;row-gap:0}
+  & .setting-field:not(.switch-row,.server-row)>.setting-control{margin-top:10px}
+  & .setting-field>.error-text{margin-top:8px}
+  & .setting-title{min-height:24px;font-size:var(--pfs);color:var(--fg)}
+  & .setting-title>strong{font-weight:500}
+  & .setting-field .setting-text>p{margin-top:2px;font-size:var(--pfs-sm);color:var(--fg-3)}
+  & .setting-control>:is(input:not([type=checkbox]),.custom-select,textarea),& .setting-control :is(.select-trigger,.button),& .setting-chip-add>input{border-radius:8px;font-size:var(--pfs)}
+
+  & :is(.theme-packs,.icon-packs)>.settings-list{padding:8px 12px 30px}
+  & :is(.theme-packs,.icon-packs) .setting-row>h2{margin:0;font-size:var(--pfs);font-weight:500}
+  & :is(.theme-packs,.icon-packs) .setting-row>h2>small{display:block;margin:2px 0 0;color:var(--fg-3);font-size:var(--pfs-sm);font-weight:400}
+  & :is(.theme-packs,.icon-packs) .setting-row :is(p,details,code){margin:4px 0 0;font-size:var(--pfs-sm);color:var(--fg-3);overflow-wrap:anywhere}
+  & :is(.theme-packs,.icon-packs) .setting-row>code{display:block;color:var(--fg-2)}
+  & :is(.theme-packs,.icon-packs) .setting-row summary{min-height:44px;display:flex;align-items:center;gap:6px;color:var(--fg-2)}
+  & :is(.theme-packs,.icon-packs) .setting-row>.toolbar{margin-top:10px;gap:8px}
+  & :is(.theme-packs,.icon-packs) :is(.button,.select-trigger){min-height:44px;border-radius:8px;font-size:var(--pfs)}
+
+  /* Keyboard Shortcuts: each command is a row with its shortcut below the name and the actions on the right. */
+  & .keyboard-screen :is(table,tbody){display:block;font-size:var(--pfs)}
+  & .keyboard-screen thead{display:none}
+  & .keyboard-screen tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;min-height:44px;padding:8px 0;box-shadow:inset 0 -1px 0 var(--bd)}
+  & .keyboard-screen td{display:block;padding:0;border:0}
+  & .keyboard-screen td:nth-child(1){grid-area:1 / 1;overflow-wrap:anywhere}
+  & .keyboard-screen td:nth-child(2){grid-area:2 / 1;margin-top:6px}
+  & .keyboard-screen td:nth-child(3){display:none}
+  & .keyboard-screen td:nth-child(4){grid-area:1 / 2 / 3 / 3;display:flex}
+  & .keyboard-screen td>small{display:block;font-size:var(--pfs-sm);color:var(--fg-3)}
+  & .keyboard-screen td>kbd{display:inline-block;padding:2px 6px;border-radius:4px;background:var(--bg-raised);font-size:var(--pfs-sm)}
+  & .keyboard-screen .icon-button{display:inline-flex;width:44px;height:44px}
+  & .keyboard-screen>.search-input{min-height:44px;border-radius:8px}
+
+  & .extensions-list>.search-input{margin:12px;min-height:44px;border-radius:8px}
+  & .extensions-list .section-label{height:auto;min-height:36px;padding:0 16px;text-transform:none;letter-spacing:0;font-size:var(--pfs-sm);font-weight:500;color:var(--fg-3)}
+  & .extension-pack-actions{gap:8px}
+  & .extension-pack-actions>.button{min-height:44px;border-radius:8px;font-size:var(--pfs)}
+  & .extension-card{width:calc(100% - 24px);margin:0 12px;padding:12px 14px;min-height:64px;border:1px solid var(--bd);border-bottom:0;border-radius:0;background:var(--bg-raised)}
+  & .extension-card:not(.extension-card+.extension-card){border-radius:8px 8px 0 0}
+  & .extension-card:not(:has(+.extension-card)){border-bottom:1px solid var(--bd);border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+  & .extension-card strong{font-size:var(--pfs);font-weight:500;color:var(--fg)}
+  & .extension-card small{color:var(--fg-3);font-size:var(--pfs-sm)}
+  & .extension-card .muted{color:var(--fg-3);font-size:var(--pfs-xs)}
+  & .extension-icon{border-radius:8px;background:var(--bg-hover);color:var(--fg-2)}
+  & .extension-hero .button{min-height:44px;border-radius:8px;font-size:var(--pfs)}
+  & .view-tabs{flex-wrap:wrap;gap:2px;padding-bottom:8px}
+  & .view-tabs button{min-height:44px;padding:0 12px;border:0;border-radius:8px;color:var(--fg-3);font-size:var(--pfs)}
+  & .view-tabs button.selected{background:var(--bg-selected);color:var(--fg)}
+  & .extension-details>.padded{padding:16px 0}
+
+  & .theme-editor-field{min-height:44px;border-left:0;padding-left:0}
+  & .theme-editor-label>span{font-size:var(--pfs)}
+  & .theme-editor-label small{font-size:var(--pfs-sm);color:var(--fg-3)}
+  & .theme-editor-field.modified .theme-editor-label>span::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+  & .theme-editor-control :is(input:not([type=checkbox]):not([type=color]),select,.select-trigger,.button){min-height:44px;border-radius:8px}
+}
+/* Small phones give the grouped list more width so full-width editors stay usable. */
+@media(max-width:360px){
+  :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone] .settings-body{padding-inline:8px}
+}
+/* A select with its companion button shares one line on phone. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone] .setting-control:has(>.custom-select+.button){display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone] .setting-control:has(>.custom-select+.button)>.button{margin:0}
+/* With the keyboard up, the search field and the matching rows need the space. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone][data-keyboard="1"] .settings-list>.settings-page-title{display:none}
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"])[data-mode=phone][data-keyboard="1"] .settings-heading{padding-block:8px}

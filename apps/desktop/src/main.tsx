@@ -20,9 +20,17 @@ import { Dialog, OxbitMark, setLocale, installTextInputPolicy } from "@oxbit/ui"
 import { ProjectMenu } from "./project-menu.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
+import "@oxbit/ui/flat.css";
 import "./desktop.css";
 import { SshDialog, sshWorkspaceUri } from "./ssh-dialog.js";
 import { splitRuntimeError } from "@oxbit/protocol";
+document.documentElement.dataset.style ??= (() => {
+  try {
+    return localStorage.getItem("oxbit.layoutStyle") === "classic" ? "classic" : "flat";
+  } catch {
+    return "flat";
+  }
+})();
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
 installTextInputPolicy(document);

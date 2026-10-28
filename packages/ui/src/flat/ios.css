@@ -1,0 +1,47 @@
+/* Flat layout style (workbench.style = flat): iOS start screen, workspace sheets, Git, SSH and runtime sheets. */
+:root[data-style="flat"] .ios-start{
+  gap:16px;font-size:calc(var(--font-body-font-size) * 1.33333);
+  & .ios-start-header{min-height:44px;gap:10px}
+  & .ios-start-header h1{font-size:calc(var(--font-body-font-size) * 1.66667);font-weight:600}
+  & .ios-start-brand{width:28px;height:28px}
+  & .ios-start-header>.text-button{min-height:44px;padding:0 4px;color:var(--fg);font-size:calc(var(--font-body-font-size) * 1.33333);font-weight:500}
+  & h2{margin:0 0 4px;font-size:calc(var(--font-body-font-size) * 1.16667);font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3);opacity:1}
+  & section{gap:6px}
+  & .muted{font-size:calc(var(--font-body-font-size) * 1.16667);color:var(--fg-3);opacity:1}
+  & .ios-start-error{border-radius:8px;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
+  & .ios-open-folder{min-height:44px;gap:12px;border-radius:6px;font-size:calc(var(--font-body-font-size) * 1.33333)}
+  & .ios-open-folder:not(.primary){justify-content:flex-start;padding:0 12px}
+  & .ios-open-folder>svg{width:20px;height:20px;flex:none}
+  & .ios-open-folder:not(.primary)>svg{color:var(--fg-2)}
+  & .ios-workspace-row{border-radius:8px}
+  & .ios-workspace{min-height:56px;gap:12px;padding:8px 12px;border-radius:8px;background:var(--bg-raised)}
+  & .ios-workspace-row>.ios-workspace{border-radius:0;background:var(--bg-raised)}
+  & .ios-workspace:active,& .ios-workspace-row>.ios-workspace:active{background:var(--bg-selected)}
+  & .ios-workspace[aria-current="true"]{background:var(--bg-selected)}
+  & .ios-workspace>svg{width:20px;height:20px;flex:none;color:var(--fg-2)}
+  & .ios-workspace small{font-size:calc(var(--font-small-font-size) * 1.18182);color:var(--fg-3);opacity:1}
+}
+:root[data-style="flat"] .ios-action-sheet .workspace-options>.button{min-height:44px;justify-content:flex-start;gap:12px;padding:0 12px;border-radius:6px;font-size:calc(var(--font-body-font-size) * 1.33333)}
+:root[data-style="flat"] .ios-action-sheet .workspace-options>.button>svg{width:20px;height:20px;flex:none}
+
+/* Section titles in Git, SSH and runtime sheets use sentence case. */
+:root[data-style="flat"] :is(.git-settings h3,.ssh-settings h3,.ssh-section h3,.ios-runtime-sheet .runtime-card>h2){
+  font-size:calc(var(--font-body-font-size) * 1.16667);font-weight:500;letter-spacing:0;text-transform:none;color:var(--fg-3)
+}
+:root[data-style="flat"] :is(.git-account-list,.git-account-editor,.ssh-folder-list,.ssh-row){border-radius:8px}
+:root[data-style="flat"] .git-account-actions .icon-button{border-radius:6px;color:var(--fg-2)}
+:root[data-style="flat"] .git-account-badge{background:var(--bg-selected);color:var(--fg-2);border-radius:6px}
+:root[data-style="flat"] .ssh-folder:active{background:var(--bg-selected)}
+:root[data-style="flat"] .ios-runtime-sheet{
+  & .runtime-hero-icon{background:var(--bg-raised);color:var(--fg-2)}
+  & .runtime-hero[data-state=connected] .runtime-hero-icon{color:var(--ok)}
+  & .runtime-hero[data-state=failed] .runtime-hero-icon{color:var(--err)}
+  & .runtime-card{border-radius:8px}
+}
+@media(max-width:599px){
+  :root[data-style="flat"] .ios-shell .modal-scrim>.dialog[role=dialog]{
+    border:0;border-top:1px solid var(--bd);border-radius:8px 8px 0 0;box-shadow:none;
+    & .dialog-title{min-height:52px;margin-bottom:8px;padding-top:4px;padding-bottom:4px}
+    & .dialog-title .icon-button>svg{width:20px;height:20px}
+  }
+}

@@ -44,6 +44,8 @@ import {
   Patch,
   type RepositoryUI,
 } from "./views.js";
+const CREATE_BRANCH = "\0create-branch",
+  MANAGE_BRANCHES = "\0manage-branches";
 const emptyStatus = (): Status => ({
   repository: false,
   branch: "",
@@ -143,10 +145,12 @@ export function createFeature(o: FeatureOptions): Extension {
     | { kind: "plan"; plan: PlannedCommit[] }
     | { kind: "pullRequest"; title: string }
     | undefined;
-  const tabs = ["Changes", "History", "Branches", "Stashes"] as const;
-  let tab: (typeof tabs)[number] = "Changes";
-  const selectTab = (next: typeof tab) => {
-    tab = next;
+  type Section = "commits" | "branches" | "stashes";
+  const sections = new Set<Section>();
+  let scope: "all" | "staged" = "all";
+  const showSection = (section: Section) => {
+    sections.add(section);
+    o.workbench.openPanel("scm");
     changed();
   };
   let view: "list" | "tree" | undefined;
@@ -415,9 +419,7 @@ export function createFeature(o: FeatureOptions): Extension {
       pullRequestRemote(status) ??
       (status.remotes.length === 1 ? status.remotes[0]!.name : undefined);
     if (!remote) {
-      tab = "Branches";
-      o.workbench.openPanel("scm");
-      changed();
+      showSection("branches");
       return false;
     }
     return perform("publish", { remote });
@@ -632,7 +634,6 @@ export function createFeature(o: FeatureOptions): Extension {
     await refresh();
     if (!branch) {
       branchOpenRequest++;
-      tab = "Changes";
       o.workbench.openPanel("scm");
       changed();
       return;
@@ -979,6 +980,22 @@ export function createFeature(o: FeatureOptions): Extension {
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
     const [pending, setPending] = useState(false);
     const [filter, setFilter] = useState("");
+    const [filtering, setFiltering] = useState(false);
+    const [stashCount, setStashCount] = useState(0);
+    useEffect(() => {
+      if (!status.repository) {
+        setStashCount(0);
+        return;
+      }
+      const controller = new AbortController();
+      request<GitStash[]>("stashes", {}, controller.signal).then(
+        (list) => {
+          if (!controller.signal.aborted) setStashCount(list.length);
+        },
+        () => {},
+      );
+      return () => controller.abort();
+    }, [revision, status.repository]);
     useEffect(() => {
       const listener = () => render((value) => value + 1);
       listeners.add(listener);
@@ -1010,7 +1027,6 @@ export function createFeature(o: FeatureOptions): Extension {
     const commitAll = !hasStaged && status.changes.length > 0;
     const canCommit =
       (hasStaged || commitAll) &&
-      !!message.trim() &&
       !pending &&
       !committing &&
       !status.changes.some((change) => change.conflict);
@@ -1105,6 +1121,32 @@ export function createFeature(o: FeatureOptions): Extension {
             "U",
           )
         : h("span", { className: "scm-status", "data-status": code }, code);
+    const counts = (change: Change, group: string) =>
+      group === "staged"
+        ? change.staged
+        : group === "unstaged"
+          ? change.unstaged
+          : undefined;
+    const lineStat = (
+      value: { added: number; removed: number } | undefined,
+      className = "scm-stat",
+    ) =>
+      value &&
+      (value.added || value.removed) &&
+      h(
+        "span",
+        {
+          className,
+          "aria-label": tr("{0} added, {1} removed", {
+            "0": value.added,
+            "1": value.removed,
+          }),
+        },
+        value.added ? h("span", { className: "scm-added" }, "+" + value.added) : null,
+        value.removed
+          ? h("span", { className: "scm-removed" }, "−" + value.removed)
+          : null,
+      );
     const overflow = (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
@@ -1122,8 +1164,18 @@ export function createFeature(o: FeatureOptions): Extension {
       const ids = [
         "git.refresh",
         "git.fetch",
+        "git.pull",
+        "git.push",
         "git.clone",
         ...(available("git.account") ? ["git.account"] : []),
+        "-",
+        "git.stashSave",
+        "git.stashSaveTracked",
+        "git.stashes",
+        "-",
+        "git.branchCreate",
+        "git.branches",
+        "git.history",
         view === "list" ? "git.viewTree" : "git.viewList",
         ...(contributed.length ? ["-", ...contributed] : []),
         ...(o.workbench.movePanel
@@ -1144,7 +1196,7 @@ export function createFeature(o: FeatureOptions): Extension {
         {
           key: change.path,
           className: "scm-file",
-          style: { paddingLeft: 8 + depth * 12 },
+          style: { paddingLeft: 24 + depth * 12 },
         },
         h(
           "button",
@@ -1168,21 +1220,11 @@ export function createFeature(o: FeatureOptions): Extension {
           dirty &&
             h("span", { className: "dirty-dot", title: tr("Unsaved changes") }),
         ),
+        lineStat(counts(change, group)),
         statusBadge(isStaged ? change.index : change.working),
         h(
           "div",
           { className: "scm-file-actions" },
-          h(IconButton, {
-            icon: isStaged ? "minus" : "plus",
-            label: (isStaged ? "Unstage " : "Stage ") + change.path,
-            disabled: pending,
-            onClick: () =>
-              run(() =>
-                isStaged
-                  ? request("unstage", { path: change.path }).then(refresh)
-                  : stage(change.path),
-              ),
-          }),
           !isStaged &&
             !change.conflict &&
             h(IconButton, {
@@ -1198,6 +1240,17 @@ export function createFeature(o: FeatureOptions): Extension {
               disabled: pending,
               onClick: () => run(() => stage(change.path, true)),
             }),
+          h(IconButton, {
+            icon: isStaged ? "minus" : "plus",
+            label: (isStaged ? "Unstage " : "Stage ") + change.path,
+            disabled: pending,
+            onClick: () =>
+              run(() =>
+                isStaged
+                  ? request("unstage", { path: change.path }).then(refresh)
+                  : stage(change.path),
+              ),
+          }),
         ),
       );
     };
@@ -1235,10 +1288,10 @@ export function createFeature(o: FeatureOptions): Extension {
                   className: "scm-folder",
                   title: path,
                   "aria-expanded": expanded,
-                  style: { paddingLeft: 8 + depth * 12 },
+                  style: { paddingLeft: 22 + depth * 12 },
                   onClick: () => toggle(key),
                 },
-                h(Icon, { name: expanded ? "chevD" : "chevR", size: 12 }),
+                h(Icon, { name: expanded ? "chevD" : "chevR", size: 14 }),
                 h(Icon, { name: expanded ? "folderOpen" : "folder", size: 14 }),
                 h("span", null, name),
                 h("small", null, children.length),
@@ -1251,11 +1304,82 @@ export function createFeature(o: FeatureOptions): Extension {
           .map((change) => file(change, group, depth)),
       ];
     };
+    const groups = (
+      scope === "staged"
+        ? (["conflicts", "staged"] as const)
+        : (["conflicts", "staged", "unstaged"] as const)
+    ).map((group) => {
+      const all = status.changes.filter(
+        group === "conflicts"
+          ? (change) => change.conflict
+          : group === "staged"
+            ? staged
+            : unstaged,
+      );
+      return {
+        group,
+        all,
+        changes: all.filter((change) =>
+          change.path.toLowerCase().includes(filter.toLowerCase()),
+        ),
+      };
+    });
+    const total = groups.reduce(
+      (sum, { group, all }) => {
+        for (const change of all) {
+          const value = counts(change, group);
+          sum.added += value?.added ?? 0;
+          sum.removed += value?.removed ?? 0;
+        }
+        return sum;
+      },
+      { added: 0, removed: 0 },
+    );
+    const groupTitle = (group: string) =>
+      group === "conflicts"
+        ? tr("Merge changes")
+        : group === "staged"
+          ? tr("Staged")
+          : tr("Changes");
+    const section = (
+      id: Section,
+      title: string,
+      body: () => React.ReactNode,
+      aside?: React.ReactNode,
+    ) => {
+      const open = sections.has(id);
+      return h(
+        "section",
+        {
+          key: id,
+          className: "scm-section",
+          "data-open": open,
+          "aria-label": tr(title),
+        },
+        h(
+          "button",
+          {
+            className: "scm-heading scm-section-toggle",
+            "aria-expanded": open,
+            onClick: () => {
+              if (open) sections.delete(id);
+              else sections.add(id);
+              changed();
+            },
+          },
+          h(Icon, { name: open ? "chevD" : "chevR", size: 14 }),
+          h("span", null, tr(title)),
+          aside,
+        ),
+        open && h("div", { className: "scm-section-body" }, body()),
+      );
+    };
     return h(
       "div",
       {
         ref: root,
         className: "scm-panel",
+        "data-touch": touch || undefined,
         onContextMenu: (event: React.MouseEvent) => {
           event.preventDefault();
           o.workbench.showContextMenu("scm", event.clientX, event.clientY);
@@ -1265,58 +1389,97 @@ export function createFeature(o: FeatureOptions): Extension {
         createPortal(modal, root.current?.closest(".workbench") ?? document.body),
       h(
         "div",
-        { className: "scm-compose" },
-        h(
-          "div",
-          { className: "scm-toolbar" },
-          h(Select, {
-            className: "scm-branch",
-            label: tr("Git branch"),
-            icon: "git",
-            value: status.branch,
-            disabled: pending || !status.branch,
-            openRequest: branchOpenRequest,
-            onOpen: () => {
-              branchOpenRequest = 0;
-              void refresh().catch(() => {});
-            },
-            options: [...new Set([status.branch, ...status.branches])].map(
+        { className: "scm-toolbar" },
+        h(Select, {
+          className: "scm-branch",
+          label: tr("Git branch"),
+          icon: "git",
+          value: status.branch,
+          disabled: pending || !status.branch,
+          openRequest: branchOpenRequest,
+          onOpen: () => {
+            branchOpenRequest = 0;
+            void refresh().catch(() => {});
+          },
+          options: [
+            ...[...new Set([status.branch, ...status.branches])].map(
               (branch) => ({
                 value: branch,
                 label: branch || tr("No repository"),
                 disabled: !status.branches.includes(branch),
               }),
             ),
-            onChange: (branch) => {
-              if (branch !== status.branch) run(() => checkout(branch));
+            { value: CREATE_BRANCH, label: tr("Create branch…") },
+            { value: MANAGE_BRANCHES, label: tr("Manage branches and remotes…") },
+          ],
+          onChange: (branch) => {
+            if (branch === CREATE_BRANCH)
+              run(() => o.kernel.commands.execute("git.branchCreate"));
+            else if (branch === MANAGE_BRANCHES) {
+              sections.add("branches");
+              changed();
+            } else if (branch !== status.branch) run(() => checkout(branch));
+          },
+        }),
+        status.upstream &&
+          h(
+            "span",
+            {
+              className: "scm-tracking",
+              role: "status",
+              title: status.upstream,
+              "aria-label": tr("{0}: {1} ahead, {2} behind", {
+                "0": status.upstream,
+                "1": status.ahead,
+                "2": status.behind,
+              }),
             },
-          }),
-          status.upstream &&
+            status.ahead ? "↑" + status.ahead : "",
+            status.ahead && status.behind ? " " : "",
+            status.behind ? "↓" + status.behind : "",
+          ),
+        h("span", { className: "scm-toolbar-spacer" }),
+        ...syncButtons,
+        status.repository &&
+          h(
+            "div",
+            { className: "scm-commit-split" },
             h(
-              "span",
+              "button",
               {
-                className: "scm-tracking",
-                role: "status",
-                title: status.upstream,
-                "aria-label": tr("{0}: {1} ahead, {2} behind", {
-                  "0": status.upstream,
-                  "1": status.ahead,
-                  "2": status.behind,
-                }),
+                className: "button scm-commit",
+                disabled: !canCommit,
+                "data-tooltip": commitAll
+                  ? tr("Stage all changes and commit")
+                  : `${tr("Commit")} (${displayShortcut("Mod+Enter")})`,
+                onClick: submit,
               },
-              status.ahead ? "↑" + status.ahead : "",
-              status.ahead && status.behind ? " " : "",
-              status.behind ? "↓" + status.behind : "",
+              tr(commitAll ? "Commit All" : "Commit"),
             ),
-          ...syncButtons,
-          h(IconButton, {
-            icon: "more",
-            label: "Source control actions",
-            "aria-haspopup": "menu",
-            onClick: overflow,
-          }),
-        ),
-        !status.branch &&
+            h(
+              "button",
+              {
+                className: "button scm-commit-menu",
+                "aria-label": tr("More commit actions"),
+                "data-tooltip": tr("More commit actions"),
+                "aria-haspopup": "menu",
+                disabled: pending || committing || !!aiTask,
+                onClick: commitMenu,
+              },
+              h(Icon, { name: "chevD", size: 14 }),
+            ),
+          ),
+        h(IconButton, {
+          icon: "more",
+          label: "Source control actions",
+          "aria-haspopup": "menu",
+          onClick: overflow,
+        }),
+      ),
+      !status.branch &&
+        h(
+          "div",
+          { className: "scm-compose" },
           h(
             "button",
             {
@@ -1327,127 +1490,161 @@ export function createFeature(o: FeatureOptions): Extension {
             h(Icon, { name: "plus" }),
             tr("Initialize Repository"),
           ),
-        tab === "Changes" &&
-          status.repository &&
-          h(
-            "div",
-            { className: "scm-message-box" },
-            h("textarea", {
-              className: "scm-message",
-              "aria-label": tr("Commit message"),
-              rows: 3,
-              placeholder: touch
-                ? tr("Message")
-                : tr("Message ({0} to commit)", {
-                    "0": displayShortcut("Mod+Enter"),
-                  }),
-              value: message,
-              onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                setMessage(event.target.value),
-              onKeyDown: (event: React.KeyboardEvent) => {
-                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  submit();
-                }
-              },
-            }),
-            h(IconButton, {
-              icon: aiTask === "message" ? "stop" : "agent",
-              label:
-                aiTask === "message"
-                  ? "Stop generating commit message"
-                  : "Generate commit message",
-              title: aiTask === "message" ? undefined : aiOff,
-              "aria-busy": aiTask === "message",
-              // aria-disabled keeps pointer events so the tooltip explains why AI is off.
-              "aria-disabled": !aiTask && !!aiOff ? true : undefined,
-              disabled:
-                aiTask !== "message" && (!!aiTask || !status.changes.length),
-              onClick: () =>
-                aiTask === "message"
-                  ? aiController?.abort()
-                  : !aiOff && report(generateMessage),
-            }),
-          ),
-        tab === "Changes" &&
-          status.repository &&
-          h(
-            "div",
-            { className: "scm-commit-split" },
+        ),
+      status.repository &&
+        h(
+          "div",
+          { className: "scm-scope" },
+          h(Select, {
+            className: "scm-scope-select",
+            label: tr("Changes shown"),
+            value: scope,
+            options: [
+              { value: "all", label: tr("Uncommitted") },
+              { value: "staged", label: tr("Staged") },
+            ],
+            onChange: (value) => {
+              scope = value === "staged" ? "staged" : "all";
+              changed();
+            },
+          }),
+          lineStat(total, "scm-stat scm-total"),
+          h("span", { className: "scm-toolbar-spacer" }),
+          h(IconButton, {
+            icon: "search",
+            label: "Filter changed files",
+            "aria-pressed": filtering,
+            onClick: () => {
+              if (filtering) setFilter("");
+              setFiltering(!filtering);
+            },
+          }),
+          h(IconButton, {
+            icon: view === "list" ? "folder" : "menu",
+            label: view === "list" ? "Switch to tree view" : "Switch to list view",
+            onClick: () => setView(view === "list" ? "tree" : "list"),
+          }),
+          h(IconButton, {
+            icon: "refresh",
+            label: "Refresh Source Control",
+            disabled: pending,
+            onClick: () => run(refresh),
+          }),
+        ),
+      status.repository &&
+        filtering &&
+        h(
+          "div",
+          { className: "scm-filter-row" },
+          h("input", {
+            className: "scm-filter",
+            "aria-label": tr("Filter changed files"),
+            placeholder: tr("Filter changed files"),
+            autoFocus: true,
+            value: filter,
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+              setFilter(event.target.value),
+            onKeyDown: (event: React.KeyboardEvent) => {
+              if (event.key === "Escape") {
+                setFilter("");
+                setFiltering(false);
+              }
+            },
+          }),
+        ),
+      status.repository &&
+        h(
+          "div",
+          { className: "scm-message-box" },
+          h("textarea", {
+            className: "scm-message",
+            "aria-label": tr("Commit message"),
+            rows: 1,
+            placeholder: tr("Commit message"),
+            value: message,
+            onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setMessage(event.target.value),
+            onKeyDown: (event: React.KeyboardEvent) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault();
+                submit();
+              }
+            },
+          }),
+          h(IconButton, {
+            icon: aiTask === "message" ? "stop" : "agent",
+            label:
+              aiTask === "message"
+                ? "Stop generating commit message"
+                : "Generate commit message",
+            title: aiTask === "message" ? undefined : aiOff,
+            "aria-busy": aiTask === "message",
+            // aria-disabled keeps pointer events so the tooltip explains why AI is off.
+            "aria-disabled": !aiTask && !!aiOff ? true : undefined,
+            disabled:
+              aiTask !== "message" && (!!aiTask || !status.changes.length),
+            onClick: () =>
+              aiTask === "message"
+                ? aiController?.abort()
+                : !aiOff && report(generateMessage),
+          }),
+        ),
+      (aiTask === "plan" ||
+        error ||
+        progress ||
+        operationController ||
+        cloning) &&
+        h(
+          "div",
+          { className: "scm-compose" },
+          aiTask === "plan" &&
             h(
-              "button",
-              {
-                className: "button primary scm-commit",
-                disabled: !canCommit,
-                "data-tooltip": commitAll
-                  ? tr("Stage all changes and commit")
-                  : undefined,
-                onClick: submit,
-              },
-              h(Icon, { name: "check" }),
-              tr(commitAll ? "Commit All" : "Commit"),
-            ),
-            h(
-              "button",
-              {
-                className: "button primary scm-commit-menu",
-                "aria-label": tr("More commit actions"),
-                "data-tooltip": tr("More commit actions"),
-                "aria-haspopup": "menu",
-                disabled: pending || committing || !!aiTask,
-                onClick: commitMenu,
-              },
-              h(Icon, { name: "chevD" }),
-            ),
-          ),
-        aiTask === "plan" &&
-          h(
-            "div",
-            { className: "scm-ai-status", role: "status" },
-            h("span", null, tr("Planning commits with AI…")),
-            h(
-              "button",
-              { className: "button", onClick: () => aiController?.abort() },
-              tr("Cancel"),
-            ),
-          ),
-        error &&
-          h(
-            "p",
-            { className: "scm-feedback error-text", role: "alert" },
-            error,
-          ),
-        progress &&
-          h(
-            "details",
-            { className: "scm-feedback scm-output" },
-            h(
-              "summary",
-              null,
-              tr(
-                operationController || cloning
-                  ? "Git operation running…"
-                  : "Git output",
+              "div",
+              { className: "scm-ai-status", role: "status" },
+              h("span", null, tr("Planning commits with AI…")),
+              h(
+                "button",
+                { className: "button", onClick: () => aiController?.abort() },
+                tr("Cancel"),
               ),
             ),
-            h("pre", null, progress),
-          ),
-        operationController &&
-          h(
-            "button",
-            {
-              className: "button",
-              onClick: () => operationController?.abort(),
-            },
-            tr("Cancel Git operation"),
-          ),
-        cloning &&
-          h(
-            "button",
-            { className: "button", onClick: () => cloneController?.abort() },
-            tr("Cancel Clone"),
-          ),
-      ),
+          error &&
+            h(
+              "p",
+              { className: "scm-feedback error-text", role: "alert" },
+              error,
+            ),
+          progress &&
+            h(
+              "details",
+              { className: "scm-feedback scm-output" },
+              h(
+                "summary",
+                null,
+                tr(
+                  operationController || cloning
+                    ? "Git operation running…"
+                    : "Git output",
+                ),
+              ),
+              h("pre", null, progress),
+            ),
+          operationController &&
+            h(
+              "button",
+              {
+                className: "button",
+                onClick: () => operationController?.abort(),
+              },
+              tr("Cancel Git operation"),
+            ),
+          cloning &&
+            h(
+              "button",
+              { className: "button", onClick: () => cloneController?.abort() },
+              tr("Cancel Clone"),
+            ),
+        ),
       status.operation &&
         h(
           "div",
@@ -1505,173 +1702,88 @@ export function createFeature(o: FeatureOptions): Extension {
       status.repository &&
         h(
           "div",
-          {
-            className: "scm-tabs",
-            role: "tablist",
-            "aria-label": tr("Source control views"),
-            onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
-              if (
-                !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
-              )
-                return;
-              event.preventDefault();
-              const next =
-                event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? tabs.length - 1
-                    : (tabs.indexOf(tab) +
-                        (event.key === "ArrowRight" ? 1 : -1) +
-                        tabs.length) %
-                      tabs.length;
-              selectTab(tabs[next]!);
-              (event.currentTarget.children[next] as HTMLButtonElement).focus();
-            },
-          },
-          ...tabs.map((name) =>
-            h(
-              "button",
-              {
-                key: name,
-                role: "tab",
-                id: "scm-tab-" + name,
-                "aria-controls": "scm-content",
-                "aria-selected": tab === name,
-                tabIndex: tab === name ? 0 : -1,
-                onClick: () => selectTab(name),
-              },
-              tr(name),
-            ),
-          ),
-        ),
-      tab === "Changes" &&
-        status.repository &&
-        h(
-          "div",
-          { className: "scm-filter-row" },
-          h("input", {
-            className: "scm-filter",
-            "aria-label": tr("Filter changed files"),
-            placeholder: tr("Filter changed files"),
-            value: filter,
-            onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
-              setFilter(event.target.value),
-          }),
-          h(IconButton, {
-            icon: view === "list" ? "folder" : "menu",
-            label: view === "list" ? "Switch to tree view" : "Switch to list view",
-            onClick: () => setView(view === "list" ? "tree" : "list"),
-          }),
-        ),
-      status.repository &&
-        h(
-          "div",
-          {
-            className: "scm-content",
-            id: "scm-content",
-            role: "tabpanel",
-            "aria-labelledby": "scm-tab-" + tab,
-          },
-          tab === "History"
-            ? h(History, { api, status, revision })
-            : tab === "Branches"
-              ? h(Branches, { api, status, pending, run })
-              : tab === "Stashes"
-                ? h(Stashes, { api, status, pending, revision, run })
-                : h(
-                    "div",
-                    { className: "scm-changes" },
-                    ...(["conflicts", "staged", "unstaged"] as const).map(
-                      (group) => {
-                        const all = status.changes.filter(
-                          group === "conflicts"
-                            ? (change) => change.conflict
-                            : group === "staged"
-                              ? staged
-                              : unstaged,
-                        );
-                        if (group === "conflicts" && !all.length) return null;
-                        const changes = all.filter((change) =>
-                          change.path
-                            .toLowerCase()
-                            .includes(filter.toLowerCase()),
-                        );
-                        const expanded = !collapsed.has(group);
-                        return h(
-                          "section",
-                          {
-                            key: group,
-                            className: "scm-group",
-                            "aria-label":
-                              group === "conflicts"
-                                ? tr("Merge changes")
-                                : group === "staged"
-                                  ? tr("Staged changes")
-                                  : tr("Changes"),
-                          },
-                          h(
-                            "div",
-                            { className: "scm-group-header" },
-                            h(
-                              "button",
-                              {
-                                className: "scm-group-toggle",
-                                "aria-expanded": expanded,
-                                onClick: () => toggle(group),
-                              },
-                              h(Icon, {
-                                name: expanded ? "chevD" : "chevR",
-                                size: 12,
-                              }),
-                              h(
-                                "span",
-                                null,
-                                group === "conflicts"
-                                  ? tr("Merge changes")
-                                  : group === "staged"
-                                    ? tr("Staged changes")
-                                    : tr("Changes"),
-                              ),
-                              h(
-                                "span",
-                                { className: "scm-count" },
-                                changes.length,
-                              ),
-                            ),
-                            group !== "conflicts" &&
-                              h(IconButton, {
-                                icon: group === "staged" ? "minus" : "plus",
-                                label:
-                                  group === "staged"
-                                    ? "Unstage All Changes"
-                                    : "Stage All Changes",
-                                disabled: !changes.length || pending,
-                                onClick: () =>
-                                  run(() =>
-                                    o.kernel.commands.execute(
-                                      group === "staged"
-                                        ? "git.unstageAll"
-                                        : "git.stageAll",
-                                    ),
-                                  ),
-                              }),
-                          ),
-                          expanded &&
-                            (view === "tree"
-                              ? tree(changes, group)
-                              : changes.map((change) => file(change, group))),
-                        );
-                      },
-                    ),
-                    !status.changes.length &&
-                      !error &&
-                      h(
-                        "div",
-                        { className: "scm-empty" },
-                        h(Icon, { name: "okCircle", size: 24 }),
-                        h("span", null, tr("No changes")),
-                      ),
+          { className: "scm-content", id: "scm-content" },
+          h(
+            "div",
+            { className: "scm-changes" },
+            ...groups.map(({ group, all, changes }) => {
+              if (group === "conflicts" && !all.length) return null;
+              const expanded = !collapsed.has(group);
+              return h(
+                "section",
+                {
+                  key: group,
+                  className: "scm-group",
+                  "aria-label":
+                    group === "conflicts"
+                      ? tr("Merge changes")
+                      : group === "staged"
+                        ? tr("Staged changes")
+                        : tr("Changes"),
+                },
+                h(
+                  "div",
+                  { className: "scm-group-header" },
+                  h(
+                    "button",
+                    {
+                      className: "scm-heading scm-group-toggle",
+                      "aria-expanded": expanded,
+                      onClick: () => toggle(group),
+                    },
+                    h(Icon, {
+                      name: expanded ? "chevD" : "chevR",
+                      size: 14,
+                    }),
+                    h("span", null, groupTitle(group)),
+                    h("span", { className: "scm-count" }, changes.length),
                   ),
+                  group !== "conflicts" &&
+                    h(IconButton, {
+                      icon: group === "staged" ? "minus" : "plus",
+                      label:
+                        group === "staged"
+                          ? "Unstage All Changes"
+                          : "Stage All Changes",
+                      disabled: !changes.length || pending,
+                      onClick: () =>
+                        run(() =>
+                          o.kernel.commands.execute(
+                            group === "staged"
+                              ? "git.unstageAll"
+                              : "git.stageAll",
+                          ),
+                        ),
+                    }),
+                ),
+                expanded &&
+                  (view === "tree"
+                    ? tree(changes, group)
+                    : changes.map((change) => file(change, group))),
+              );
+            }),
+            !status.changes.length &&
+              !error &&
+              h(
+                "div",
+                { className: "scm-empty" },
+                h(Icon, { name: "okCircle", size: 16 }),
+                h("span", null, tr("No changes")),
+              ),
+          ),
+          (stashCount > 0 || sections.has("stashes")) &&
+            section(
+              "stashes",
+              "Stashes",
+              () => h(Stashes, { api, pending, revision, run }),
+              stashCount > 0 && h("span", { className: "scm-count" }, stashCount),
+            ),
+          section("branches", "Branches", () =>
+            h(Branches, { api, status, pending, run }),
+          ),
+          section("commits", "Commits", () =>
+            h(History, { api, status, revision }),
+          ),
         ),
     );
   }
@@ -1749,19 +1861,27 @@ export function createFeature(o: FeatureOptions): Extension {
       );
       command("git.sync", "Sync (Pull and Push)", sync);
       command("git.push", "Push", () =>
-        status.upstream ? perform("push") : showTab("Branches"),
+        status.upstream ? perform("push") : showSection("branches"),
       );
       command("git.fetch", "Fetch", () => perform("fetch"));
       command("git.pull", "Pull (Fast-forward Only)", () => perform("pull"));
-      const showTab = (next: typeof tab) => {
-        selectTab(next);
-        o.workbench.openPanel("scm");
-      };
-      command("git.history", "Show Commit History", () => showTab("History"));
-      command("git.branches", "Manage Branches and Remotes", () =>
-        showTab("Branches"),
+      command("git.history", "Show Commit History", () =>
+        showSection("commits"),
       );
-      command("git.stashes", "Manage Stashes", () => showTab("Stashes"));
+      command("git.branches", "Manage Branches and Remotes", () =>
+        showSection("branches"),
+      );
+      command("git.stashes", "Manage Stashes", () => showSection("stashes"));
+      const stashSave = async (includeUntracked: boolean) => {
+        const message = (await o.workbench.prompt(tr("Stash message")))?.trim();
+        if (!message) return;
+        if (await perform("stashSave", { message, includeUntracked }))
+          showSection("stashes");
+      };
+      command("git.stashSave", "Stash Changes…", () => stashSave(true));
+      command("git.stashSaveTracked", "Stash Tracked Changes…", () =>
+        stashSave(false),
+      );
       command("git.branchCreate", "Create Branch", async () => {
         const name = await o.workbench.prompt(tr("New branch name"));
         if (name) await perform("branchCreate", { name });

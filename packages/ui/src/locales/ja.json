@@ -9,7 +9,7 @@
   "Retry": "再試行",
   "Application menu": "アプリケーション メニュー",
   "Search files and commands": "ファイルとコマンドを検索",
-  "— search files, type > for commands": "— ファイルを検索、> でコマンド",
+  "Search files, or type > for commands": "ファイルを検索、または > でコマンド",
   "Runtime connection": "ランタイム接続",
   "Toggle sidebar": "サイドバーの表示切り替え",
   "Toggle panel": "パネルの表示切り替え",
@@ -284,6 +284,10 @@
   "Graphite (dark)": "Graphite (ダーク)",
   "Paper (light)": "Paper (ライト)",
   "Layout Density": "レイアウトの密度",
+  "Layout Style": "レイアウトのスタイル",
+  "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.": "フラットはペインを隙間なく並べ、細い区切り線と控えめなボタンを使います。クラシックはサイドバー、エディター、パネルを別々のカードとして表示します。",
+  "flat": "フラット",
+  "classic": "クラシック",
   "Controls row heights, padding and label sizes across the workbench.": "ワークベンチ全体の行の高さ、余白、ラベル サイズを制御します。",
   "compact": "コンパクト",
   "comfortable": "ゆとり",
@@ -1255,5 +1259,12 @@
   "Warnings": "警告",
   "Weight": "太さ",
   "{description}, follows {source}": "{description}、{source} に従う",
-  "{name} picker": "{name} のカラー ピッカー"
+  "{name} picker": "{name} のカラー ピッカー",
+  "Staged": "ステージ済み",
+  "Commits": "コミット",
+  "Uncommitted": "未コミット",
+  "Changes shown": "表示する変更",
+  "Create branch…": "ブランチを作成…",
+  "Manage branches and remotes…": "ブランチとリモートを管理…",
+  "{0} added, {1} removed": "{0} 行追加、{1} 行削除"
 }

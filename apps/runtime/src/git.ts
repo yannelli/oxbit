@@ -5,6 +5,7 @@ import type {
   GitStatus,
   GitChange,
   GitCommit,
+  GitLineCounts,
   GitCommitFile,
   GitStash,
   GitDiff,
@@ -107,6 +108,41 @@ const BRANCH_DIFF_FILES = 50;
 const BRANCH_DIFF_TEXT = 200_000;
 const conflicted = (index: string, working: string) =>
   ["DD", "AU", "UD", "UA", "DU", "AA", "UU"].includes(index + working);
+const UNTRACKED_COUNT_FILES = 50;
+const UNTRACKED_COUNT_BYTES = 1_000_000;
+const BINARY_PROBE_BYTES = 8192;
+/** Parses `git diff --numstat -z`; binary files (`-`) are left out. */
+function numstat(output: string) {
+  const counts = new Map<string, GitLineCounts>();
+  const records = output.split("\0");
+  for (let i = 0; i < records.length; i++) {
+    const match = /^(-|\d+)\t(-|\d+)\t(.*)$/s.exec(records[i]!);
+    if (!match) continue;
+    let file = match[3]!;
+    if (!file) {
+      i += 2;
+      file = records[i] ?? "";
+    }
+    if (file && match[1] !== "-" && match[2] !== "-")
+      counts.set(file, { added: Number(match[1]), removed: Number(match[2]) });
+  }
+  return counts;
+}
+async function textLines(file: string) {
+  const handle = await fs.open(file, "r");
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > UNTRACKED_COUNT_BYTES) return undefined;
+    const data = await handle.readFile();
+    if (data.subarray(0, BINARY_PROBE_BYTES).includes(0)) return undefined;
+    let lines = 0;
+    for (const byte of data) if (byte === 10) lines++;
+    if (data.length && data[data.length - 1] !== 10) lines++;
+    return lines;
+  } finally {
+    await handle.close();
+  }
+}
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export class Git {
@@ -246,11 +282,14 @@ export class Git {
         behind: 0,
       };
     }
-    const [raw, branch, refs, remotes, head] = await Promise.all([
+    const [raw, unstagedDiff, stagedDiff, top, branch, refs, remotes, head] = await Promise.all([
       this.run(
         ["status", "--porcelain=v1", "--untracked-files=all", "-z"],
         signal,
       ),
+      this.optional(["diff", "--numstat", "-z"], signal),
+      this.optional(["diff", "--cached", "--numstat", "-z"], signal),
+      this.run(["rev-parse", "--show-toplevel"], signal),
       this.optional(["symbolic-ref", "--short", "HEAD"], signal),
       this.run(
         [
@@ -278,6 +317,27 @@ export class Git {
       if (/[RC]/.test(change.index + change.working))
         change.originalPath = records[++i];
       changes.push(change);
+    }
+    const stagedCounts = numstat(stagedDiff.exitCode ? "" : stagedDiff.stdout);
+    const unstagedCounts = numstat(
+      unstagedDiff.exitCode ? "" : unstagedDiff.stdout,
+    );
+    const root = top.stdout.trim();
+    let untrackedCounted = 0;
+    for (const change of changes) {
+      if (change.index === "?") {
+        if (untrackedCounted++ >= UNTRACKED_COUNT_FILES) continue;
+        const added = await textLines(path.join(root, change.path)).catch(
+          () => undefined,
+        );
+        if (added !== undefined) change.unstaged = { added, removed: 0 };
+        continue;
+      }
+      const staged = change.index !== " " && stagedCounts.get(change.path);
+      const unstaged =
+        change.working !== " " && unstagedCounts.get(change.path);
+      if (staged) change.staged = staged;
+      if (unstaged) change.unstaged = unstaged;
     }
     const branches = refs.stdout
       .trim()

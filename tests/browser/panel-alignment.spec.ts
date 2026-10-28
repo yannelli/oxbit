@@ -65,7 +65,7 @@ test("the bottom panel spans under the sidebars it is aligned to", async ({ page
         gapAbove: l.bottom!.top - l.editor!.bottom,
         gapBelow: l.status!.top - l.bottom!.bottom,
       };
-    }, { message: alignment }).toEqual({ offset: [0, 0], gapAbove: 4, gapBelow: 4 });
+    }, { message: alignment }).toEqual({ offset: [0, 0], gapAbove: 0, gapBelow: 0 });
     await expect(page.locator(".dock-bottom [role=tabpanel] .panel-instance")).toHaveCount(1);
   }
 
@@ -73,7 +73,7 @@ test("the bottom panel spans under the sidebars it is aligned to", async ({ page
   await expect.poll(async () => {
     const l = await layout(page);
     return { left: l.left, right: l.right, top: l.bottom!.top - l.title!.bottom };
-  }).toEqual({ left: undefined, right: undefined, top: 4 });
+  }).toEqual({ left: undefined, right: undefined, top: 0 });
   await page.evaluate(() => (window as any).__oxbit.workbench.set({ maxPanel: false }));
   await expect(page.locator(".dock-left")).toBeVisible();
 
