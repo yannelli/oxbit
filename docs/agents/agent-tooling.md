@@ -1,6 +1,6 @@
 # How Claude Code, Codex and Cursor load project agent config
 
-Created: 2026-10-21. Last updated: 2026-10-21.
+Created: 2026-10-21. Last updated: 2026-10-27.
 
 This page records how each tool finds project instructions, skills, agent definitions, hooks and MCP servers, and how to check each from a shell. Versions: Claude Code 2.1.296, Codex CLI 0.163.0, Cursor Agent CLI 2026.09.26-dd393fe (binary `agent`, also linked as `cursor-agent`) and the Cursor IDE. Docs were read on 2026-10-21; the Codex 0.163.0 notes list no loader change ([release][cx-release]).
 
@@ -82,10 +82,10 @@ The MCP and Codex hook commands find the repo root with `git rev-parse --show-to
 One-time steps per worktree path:
 
 - Claude Code asks once to approve `oxbit-dev` in an interactive session; `claude -p` loads it without asking ([MCP][cc-mcp]).
-- Codex runs each project hook only after `/hooks` review and trust ([hooks][cx-hooks]). A `codex exec` run of `git stash` on 2026-10-21 was not blocked before that review.
+- Codex runs each project hook only after `/hooks` review and trust ([hooks][cx-hooks]). In a git worktree, Codex 0.165.0 lists the main checkout's project hooks and skips the worktree's own (seen on 2026-10-27), so trust them once from the main checkout after this layout reaches `main`. The hook commands resolve `git rev-parse --show-toplevel` in the session, so each worktree runs its own scripts.
 - Cursor needs `agent mcp enable oxbit-dev` ([CLI MCP][cu-cli-mcp]). A Cursor permission hook has to answer, and `allow` proceeds without Cursor's own approval, so `.cursor/hooks.json` matches only `stash|pr merge` and a pass answers `ask` ([hooks][cu-hooks]).
 
-Checks run in this worktree on 2026-10-21:
+Checks run on 2026-10-21 and, with Codex 0.165.0 and Cursor Agent CLI 2026.10.22-27dcf5f, on 2026-10-27:
 
 | Tool | Command | Result |
 | --- | --- | --- |
@@ -95,7 +95,12 @@ Checks run in this worktree on 2026-10-21:
 | Codex | `codex mcp list` | `oxbit-dev` enabled |
 | Codex | `codex debug prompt-input` | `AGENTS.md` text and the six skills from the worktree `.agents/skills` |
 | Cursor | `AGENT_CLI_CREDENTIAL_STORE=file cursor-agent mcp list-tools oxbit-dev` | 8 tools |
-| Cursor | `cursor-agent -p` from a Terminal `.command` | "Authentication required. Please run 'agent login' first" |
+| Claude Code | `claude -p` asked to run `git stash pop` | Project hook denied it with the stash message |
+| Codex | `/hooks` in this worktree | No project hooks listed (main checkout has no `.codex/config.toml` yet) |
+| Codex | `/hooks` trust in a plain clone of the branch, then `codex exec` asked to run `git stash pop` | "Command blocked by PreToolUse hook" with the stash message |
+| Cursor | `cursor-agent -p --mode ask` asking for the heredoc rule and the project skills | Quoted the `/bin/cat` line from `AGENTS.md`, listed the six skills once each |
+| Cursor | `cursor-agent -p --force` calling `doctor` | Returned the session field |
+| Cursor | `cursor-agent -p --force` asked to run `git stash pop` | Hook denied it with the stash message |
 
 ## Features a tool lacks
 
@@ -108,15 +113,13 @@ Checks run in this worktree on 2026-10-21:
 - Codex ignores project `.codex/` config, hooks and MCP in an untrusted project ([config reference][cx-ref]).
 - Cursor ignores plain `.md` files in `.cursor/rules` ([rules][cu-rules]).
 - Cursor keeps MCP approvals per path outside the repo, so each new worktree needs `agent mcp enable` ([CLI MCP][cu-cli-mcp]).
-- The Cursor Agent CLI stores credentials in the macOS keychain by default ([authentication][cu-auth], [CLI changelog][cu-cli-log]).
+- The Cursor Agent CLI stores credentials in the macOS keychain by default ([authentication][cu-auth], [CLI changelog][cu-cli-log]). With an expired CLI token, `agent status` still reports a login and `agent -p` returns "Authentication required"; `agent login` or `CURSOR_API_KEY` fixes it. The 2026.10.22 bundle also reads `CURSOR_AUTH_TOKEN`, which the docs do not list.
 
 ## Unconfirmed
 
 - Cursor IDE reading `CLAUDE.md`: "CLAUDE" is absent from [rules][cu-rules]; only the [CLI page][cu-cli-using] names it.
 - Legacy `.cursorrules`: absent from [rules][cu-rules]; only forum and third-party pages mention it.
 - `.cursor/commands/*.md` path: [skills][cu-skills] describes only the migration of commands to skills.
-- Cursor with both `.agents/skills` and a `.claude/skills` symlink to it: duplicate handling is not in [skills][cu-skills], and `agent -p` needs a login this shell lacks.
-- Cursor loading rules, skills and `AGENTS.md` from a shell run: `agent -p` returned "Authentication required" from both the agent shell and a Terminal `.command`; it needs `agent login` in a browser or `CURSOR_API_KEY` ([authentication][cu-auth]).
 - Claude Code applying a main checkout's trust to its git worktrees: not stated on [memory][cc-memory], [MCP][cc-mcp] or [settings][cc-settings]; the probe did not edit `.claude.json`.
 - Codex `.codex/skills`: absent from [skills][cx-skills]; only a third-party page calls it an older location.
 
