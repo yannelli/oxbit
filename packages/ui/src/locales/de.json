@@ -449,6 +449,7 @@
   "Move {0}": "{0} verschieben",
   "Commit {0}": "Commit {0}",
   "Leave uncommitted": "Nicht committen",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "{0} teilweise vorgemerkte Dateien bleiben außerhalb dieser Commits. Danach werden sie vollständig vorgemerkt.",
   "Committing {0} of {1}…": "Commit {0} von {1} …",
   "Create Draft Pull Request": "Pull-Request-Entwurf erstellen",
   "Draft pull request created": "Pull-Request-Entwurf erstellt",

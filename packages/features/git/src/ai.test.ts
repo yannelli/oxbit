@@ -45,16 +45,16 @@ describe("prompt builders", () => {
 });
 
 describe("commit plan parser", () => {
-  const paths = ["a.ts", "b.ts", "c.ts", "d.ts"];
+  const paths = [{ path: "a.ts" }, { path: "b.ts", originalPath: "old-b.ts" }, { path: "c.ts" }, { path: "d.ts" }];
   it("strips fences, drops unknown and repeated paths and collects leftovers", () => {
     const plan = parseCommitPlan(
       'Here you go:\n```json\n[{"message":"Add a","files":["./a.ts","x.ts"]},{"message":"Empty","files":["zzz"]},{"message":"Add b","files":["b.ts","a.ts"]}]\n```',
       paths,
     );
     expect(plan).toEqual([
-      { message: "Add a", files: ["a.ts"] },
-      { message: "Add b", files: ["b.ts"] },
-      { message: "Update remaining files", files: ["c.ts", "d.ts"] },
+      { message: "Add a", files: [{ path: "a.ts" }] },
+      { message: "Add b", files: [{ path: "b.ts", originalPath: "old-b.ts" }] },
+      { message: "Update remaining files", files: [{ path: "c.ts" }, { path: "d.ts" }] },
     ]);
   });
   it("rejects responses without a JSON list", () => {
@@ -62,8 +62,8 @@ describe("commit plan parser", () => {
     expect(() => parseCommitPlan("[not json]", paths)).toThrow("invalid JSON");
   });
   it("fills a missing message from the first file", () => {
-    expect(parseCommitPlan('[{"files":["c.ts"]}]', ["c.ts"])).toEqual([
-      { message: "Update c.ts", files: ["c.ts"] },
+    expect(parseCommitPlan('[{"files":["c.ts"]}]', [{ path: "c.ts" }])).toEqual([
+      { message: "Update c.ts", files: [{ path: "c.ts" }] },
     ]);
   });
 });

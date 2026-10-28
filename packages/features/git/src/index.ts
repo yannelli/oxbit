@@ -34,6 +34,7 @@ import {
   type PlannedCommit,
 } from "./ai.js";
 import { CommitPlanDialog } from "./commit-plan.js";
+import { CommitPlanError, partiallyStaged, runCommitPlan } from "./plan-runner.js";
 import { PullRequestDialog } from "./pull-request.js";
 import {
   History,
@@ -537,28 +538,31 @@ export function createFeature(o: FeatureOptions): Extension {
       if (signal.aborted) return;
       dialog = {
         kind: "plan",
-        plan: parseCommitPlan(text, status.changes.map((change) => change.path)),
+        plan: parseCommitPlan(text, status.changes),
       };
       o.workbench.openPanel("scm");
     });
   const runPlan = async (plan: PlannedCommit[], step: (index: number) => void) => {
     if (!(await saveBuffers(undefined, true))) throw new Error(tr("Commit cancelled"));
     try {
-      for (const [index, entry] of plan.entries()) {
-        step(index);
-        try {
-          await request("unstageAll");
-          for (const path of entry.files) await request("stage", { path });
-          await request("commit", { message: entry.message });
-        } catch (failure) {
-          throw new Error(
-            tr("Commit {0} of {1} failed: {2}", {
-              "0": index + 1,
-              "1": plan.length,
-              "2": messageOf(failure),
-            }),
-          );
-        }
+      await refresh();
+      try {
+        await runCommitPlan({
+          request,
+          changes: status.changes,
+          plan,
+          preserveIndex: runtimeHost(),
+          step,
+        });
+      } catch (failure) {
+        if (!(failure instanceof CommitPlanError)) throw failure;
+        throw new Error(
+          tr("Commit {0} of {1} failed: {2}", {
+            "0": failure.index + 1,
+            "1": plan.length,
+            "2": failure.message,
+          }),
+        );
       }
       commitMessage = "";
       o.workbench.notify(tr("{0} commits created", { "0": plan.length }));
@@ -583,18 +587,9 @@ export function createFeature(o: FeatureOptions): Extension {
     if (!ai) throw new Error(tr(AI_MISSING));
     const diff = await request<GitBranchDiff>("branchDiff", {}, signal);
     if (!("base" in diff)) throw new Error("Open a Git repository first");
-    const known = new Set(
-      (
-        await request<GitLog>("log", { ref: diff.base, limit: 100 }, signal).catch(
-          () => ({ commits: [] }) as Pick<GitLog, "commits">,
-        )
-      ).commits.map((commit) => commit.id),
+    const commits = (await request<GitLog>("log", { base: diff.base, limit: 50 }, signal)).commits.map(
+      (commit) => (commit.body ? `${commit.subject}\n  ${commit.body.replace(/\n/g, "\n  ")}` : commit.subject),
     );
-    const commits: string[] = [];
-    for (const commit of (await request<GitLog>("log", { limit: 50 }, signal)).commits) {
-      if (known.has(commit.id)) break;
-      commits.push(commit.body ? `${commit.subject}\n  ${commit.body.replace(/\n/g, "\n  ")}` : commit.subject);
-    }
     const files = diff.files.map((file) => ({
       path: file.path,
       status: "M",
@@ -1050,6 +1045,7 @@ export function createFeature(o: FeatureOptions): Extension {
         ? [
             h(IconButton, {
               key: "publish",
+              className: "icon-button scm-sync",
               icon: "cloud",
               label: "Publish branch",
               disabled: pending || !status.head,
@@ -1060,6 +1056,7 @@ export function createFeature(o: FeatureOptions): Extension {
           ? [
               h(IconButton, {
                 key: "sync",
+                className: "icon-button scm-sync",
                 icon: "sync",
                 label: "Sync",
                 title: tr("Pull {0} and push {1} commits", {
@@ -1073,6 +1070,7 @@ export function createFeature(o: FeatureOptions): Extension {
           : [
               h(IconButton, {
                 key: "pull",
+                className: "icon-button scm-sync",
                 icon: "arrowDown",
                 label: "Pull",
                 disabled: pending,
@@ -1080,6 +1078,7 @@ export function createFeature(o: FeatureOptions): Extension {
               }),
               h(IconButton, {
                 key: "push",
+                className: "icon-button scm-sync",
                 icon: "arrowUp",
                 label: "Push",
                 disabled: pending || !status.head,
@@ -1091,6 +1090,9 @@ export function createFeature(o: FeatureOptions): Extension {
         ? h(CommitPlanDialog, {
             plan: dialog.plan,
             run: runPlan,
+            partial: runtimeHost()
+              ? []
+              : status.changes.filter(partiallyStaged).map((change) => change.path),
             onClose: () => {
               dialog = undefined;
               changed();
@@ -1165,7 +1167,8 @@ export function createFeature(o: FeatureOptions): Extension {
         "git.refresh",
         "git.fetch",
         "git.pull",
-        "git.push",
+        status.upstream || !status.repository ? "git.push" : "git.publish",
+        ...(status.ahead && status.behind && runtimeHost() ? ["git.sync"] : []),
         "git.clone",
         ...(available("git.account") ? ["git.account"] : []),
         "-",
@@ -1454,7 +1457,8 @@ export function createFeature(o: FeatureOptions): Extension {
                   : `${tr("Commit")} (${displayShortcut("Mod+Enter")})`,
                 onClick: submit,
               },
-              tr(commitAll ? "Commit All" : "Commit"),
+              h(Icon, { name: "check", size: 14 }),
+              h("span", { className: "scm-commit-label" }, tr(commitAll ? "Commit All" : "Commit")),
             ),
             h(
               "button",

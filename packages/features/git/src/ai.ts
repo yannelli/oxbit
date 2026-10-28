@@ -158,18 +158,28 @@ function extractJson(text: string, open: string, close: string): unknown {
   }
 }
 
+/** A file in a planned commit; `originalPath` is the source of a staged rename. */
+export interface PlannedFile {
+  path: string;
+  originalPath?: string;
+}
+
 export interface PlannedCommit {
   message: string;
-  files: string[];
+  files: PlannedFile[];
 }
 
 /** Keeps known paths once each, moves unassigned paths to a final commit and drops empty commits. */
-export function parseCommitPlan(text: string, paths: string[]): PlannedCommit[] {
+export function parseCommitPlan(text: string, changes: PlannedFile[]): PlannedCommit[] {
   const data = extractJson(text, "[", "]");
   if (!Array.isArray(data)) throw new Error("The AI response was not a list of commits");
-  const known = new Set(paths),
+  const known = new Map(changes.map((change) => [change.path, change])),
     used = new Set<string>(),
     plan: PlannedCommit[] = [];
+  const file = (path: string): PlannedFile => {
+    const originalPath = known.get(path)?.originalPath;
+    return originalPath ? { path, originalPath } : { path };
+  };
   for (const item of data as unknown[]) {
     if (!item || typeof item !== "object") continue;
     const { message, files } = item as { message?: unknown; files?: unknown };
@@ -181,11 +191,11 @@ export function parseCommitPlan(text: string, paths: string[]): PlannedCommit[] 
     if (assigned.length)
       plan.push({
         message: typeof message === "string" && message.trim() ? cleanCommitMessage(message) : `Update ${assigned[0]}`,
-        files: assigned,
+        files: assigned.map(file),
       });
   }
-  const rest = paths.filter((path) => !used.has(path));
-  if (rest.length) plan.push({ message: "Update remaining files", files: rest });
+  const rest = [...known.keys()].filter((path) => !used.has(path));
+  if (rest.length) plan.push({ message: "Update remaining files", files: rest.map(file) });
   return plan;
 }
 

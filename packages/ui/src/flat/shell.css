@@ -1,6 +1,5 @@
 /* Flat layout style (workbench.style = flat): desktop and tablet shell. */
 /* Flat desktop and tablet shell: panes touch and share 1px hairlines. Bars use --bg-app, side panels --bg-surface, the editor --bg-editor. */
-:root .workbench{--fs:calc(var(--font-body-font-size) + var(--ui) - 12px);--fs-sm:calc(var(--fs) - 1px)}
 :root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]){
   --workbench-gap:0px;--radius-panel:0px;--radius-tab:6px;--activity-bar-width:40px;
   & .workspace-body{gap:0;padding:0}

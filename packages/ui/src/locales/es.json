@@ -453,6 +453,7 @@
   "Move {0}": "Mover {0}",
   "Commit {0}": "Commit {0}",
   "Leave uncommitted": "Dejar sin commit",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "{0} archivos preparados parcialmente quedan fuera de estos commits. Después se prepararán por completo.",
   "Committing {0} of {1}…": "Haciendo commit {0} de {1}…",
   "Create Draft Pull Request": "Crear un borrador de pull request",
   "Draft pull request created": "Borrador de pull request creado",

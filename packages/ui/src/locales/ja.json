@@ -453,6 +453,7 @@
   "Move {0}": "{0} を移動",
   "Commit {0}": "コミット {0}",
   "Leave uncommitted": "コミットしない",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "一部だけステージされた {0} 個のファイルはこれらのコミットに含まれません。その後、ファイル全体がステージされます。",
   "Committing {0} of {1}…": "コミット {0}/{1} を作成しています…",
   "Create Draft Pull Request": "ドラフト プル リクエストを作成",
   "Draft pull request created": "ドラフト プル リクエストを作成しました",

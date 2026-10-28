@@ -451,6 +451,7 @@
   "Move {0}": "Move {0}",
   "Commit {0}": "Commit {0}",
   "Leave uncommitted": "Leave uncommitted",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "{0} partially staged files stay out of these commits. They will be fully staged afterward.",
   "Committing {0} of {1}…": "Committing {0} of {1}…",
   "Create Draft Pull Request": "Create Draft Pull Request",
   "Draft pull request created": "Draft pull request created",

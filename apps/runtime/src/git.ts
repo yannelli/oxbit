@@ -128,8 +128,14 @@ function numstat(output: string) {
   }
   return counts;
 }
+/** Counts lines of a regular file; symbolic links, FIFOs and other special files are skipped before any open. */
 async function textLines(file: string) {
-  const handle = await fs.open(file, "r");
+  const entry = await fs.lstat(file);
+  if (!entry.isFile() || entry.size > UNTRACKED_COUNT_BYTES) return undefined;
+  const handle = await fs.open(
+    file,
+    fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK,
+  );
   try {
     const stat = await handle.stat();
     if (!stat.isFile() || stat.size > UNTRACKED_COUNT_BYTES) return undefined;
@@ -327,9 +333,11 @@ export class Git {
     for (const change of changes) {
       if (change.index === "?") {
         if (untrackedCounted++ >= UNTRACKED_COUNT_FILES) continue;
-        const added = await textLines(path.join(root, change.path)).catch(
-          () => undefined,
-        );
+        const full = path.join(root, change.path);
+        const added = await this.files
+          .resolve(path.relative(this.files.root, full).split(path.sep).join("/"))
+          .then(() => textLines(full))
+          .catch(() => undefined);
         if (added !== undefined) change.unstaged = { added, removed: 0 };
         continue;
       }
@@ -536,6 +544,8 @@ export class Git {
       ? await this.commitId(params.ref, signal)
       : await this.head(signal);
     if (!head) return { commits: [], hasMore: false };
+    const base =
+      params.base === undefined ? undefined : await this.commitId(params.base, signal);
     if (params.path !== undefined) {
       if (typeof params.path !== "string")
         throw new RpcError("INVALID_PARAMS", "Invalid path");
@@ -561,7 +571,7 @@ export class Git {
               `--grep=${params.search}`,
             ]
           : []),
-        head,
+        base ? `${base}..${head}` : head,
         "--",
         ...(params.path ? [String(params.path)] : []),
       ],
@@ -930,6 +940,21 @@ export class Git {
         return {
           commit: (await this.run(["rev-parse", "HEAD"], signal)).stdout.trim(),
         };
+      }
+      case "indexSnapshot":
+        return { tree: (await this.run(["write-tree"], signal)).stdout.trim() };
+      case "indexRestore": {
+        const tree = params.tree;
+        if (typeof tree !== "string" || !/^[0-9a-f]{40,64}$/.test(tree))
+          throw new RpcError("INVALID_PARAMS", "Invalid index snapshot");
+        await this.run(["rev-parse", "--verify", "--end-of-options", `${tree}^{tree}`], signal);
+        const paths = params.paths;
+        if (!Array.isArray(paths) || paths.some((entry) => typeof entry !== "string" || !entry))
+          throw new RpcError("INVALID_PARAMS", "Invalid paths");
+        if (!paths.length) break;
+        for (const entry of paths) await this.files.resolve(entry, true);
+        await this.run(["reset", "-q", tree, "--", ...paths], signal);
+        break;
       }
       case "createPullRequest": {
         const title = typeof params.title === "string" ? params.title.trim() : "";

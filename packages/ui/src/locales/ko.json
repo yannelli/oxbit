@@ -453,6 +453,7 @@
   "Move {0}": "{0} 이동",
   "Commit {0}": "커밋 {0}",
   "Leave uncommitted": "커밋하지 않음",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "일부만 스테이징된 파일 {0}개는 이 커밋에서 제외됩니다. 이후 파일 전체가 스테이징됩니다.",
   "Committing {0} of {1}…": "커밋 {0}/{1} 만드는 중…",
   "Create Draft Pull Request": "초안 풀 리퀘스트 만들기",
   "Draft pull request created": "초안 풀 리퀘스트를 만들었습니다",

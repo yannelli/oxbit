@@ -161,6 +161,8 @@ export const operationMethods = [
   "git.pull",
   "git.amend",
   "git.createPullRequest",
+  "git.indexSnapshot",
+  "git.indexRestore",
   "fs.write",
   "fs.rename",
   "fs.delete",

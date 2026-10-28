@@ -100,10 +100,13 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .terminal-pane-toolbar:has(input)>.terminal-pane-name,.terminal-pane-toolbar:has(input)>.terminal-state{display:none}
 .terminal-pane-toolbar:has(input)>input{flex:1;max-width:none;min-width:40px}
 
+/* Panel text sizes shared by both layout styles; they follow the density and mode --ui step. */
+:root .workbench{--fs:calc(var(--font-body-font-size) + var(--ui) - 12px);--fs-sm:calc(var(--fs) - 1px)}
 .scm-panel{--scm-icon:28px;--scm-control:28px;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;font-size:var(--fs,var(--font-body-font-size))}
-.scm-toolbar{display:flex;align-items:center;gap:2px;min-width:0;flex:none;min-height:40px;padding:0 6px}
+.scm-toolbar{display:flex;align-items:center;gap:2px;min-width:0;flex:none;min-height:40px;padding:0 6px;container:scm-toolbar/inline-size}
 .scm-toolbar-spacer{flex:1;min-width:4px}
-.scm-panel .scm-branch{flex:0 1 auto;width:auto;min-width:0;max-width:65%}
+/* The branch keeps its icon and about 6 characters; the commit label gives way first. */
+.scm-panel .scm-branch{flex:0 1000 auto;width:auto;min-width:min(calc(6ch + 52px),100%);max-width:65%}
 .scm-panel :is(.scm-branch,.scm-scope-select) .select-trigger{border:0;background:transparent;min-height:var(--scm-control);padding:0 6px;gap:6px;border-radius:6px}
 .scm-panel .scm-branch .select-trigger{color:var(--fg);font-weight:600}
 .scm-panel :is(.scm-branch,.scm-scope-select) .select-trigger:hover:not(:disabled){background:var(--bg-hover)}
@@ -114,8 +117,12 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .scm-scope>.icon-button[aria-pressed=true]{color:var(--fg);background:var(--bg-selected)}
 .scm-tracking{flex:none;padding:0 4px;color:var(--fg-3);font-size:var(--fs-sm,var(--font-small-font-size));line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
 .scm-tracking:empty{display:none}
-.scm-commit-split{display:flex;flex:none;min-width:0;margin-left:2px}
-.scm-panel .scm-commit{min-height:var(--scm-control);padding:0 10px;font-size:inherit;font-weight:500;border-start-end-radius:0;border-end-end-radius:0}
+.scm-commit-split{display:flex;flex:0 1 auto;min-width:0;margin-left:2px}
+.scm-panel .scm-commit{position:relative;min-width:0;min-height:var(--scm-control);padding:0 10px;font-size:inherit;font-weight:500;border-start-end-radius:0;border-end-end-radius:0}
+.scm-commit>svg{display:none;flex:none}
+.scm-commit-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@container scm-toolbar (max-width:340px){.scm-toolbar>.scm-sync{display:none}}
+@container scm-toolbar (max-width:220px){.scm-panel .scm-commit{padding:0;width:var(--scm-control);justify-content:center}.scm-commit>svg{display:block}.scm-commit-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}
 .scm-panel .scm-commit-menu{width:24px;min-height:var(--scm-control);padding:0;margin-left:-1px;color:var(--fg-2);border-start-start-radius:0;border-end-start-radius:0}
 .scm-commit-split:has(>.scm-commit:disabled)>.scm-commit-menu:not(:hover):not([aria-expanded=true]){opacity:.45}
 .scm-scope{display:flex;align-items:center;gap:2px;flex:none;min-width:0;min-height:32px;padding:0 6px}
@@ -188,14 +195,18 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
   .terminal-actions>.button.terminal-new,.terminal-actions>.icon-button{width:36px;height:36px;padding:0;justify-content:center}
   .terminal-panes:has(.terminal-session+.terminal-session){flex-direction:column}
   .terminal-session+.terminal-session{border-left:0;border-top:1px solid var(--bd)}
-  .scm-panel{--scm-icon:36px;--scm-control:40px}
+  .scm-panel{--scm-icon:44px;--scm-control:44px}
   .scm-toolbar{min-height:52px}
-  .scm-file{height:40px}
-  .scm-folder,.scm-group-header,.scm-heading{height:36px}
+  .scm-file{height:44px}
+  .scm-folder,.scm-group-header,.scm-heading{height:44px}
   .scm-section-toggle{height:44px}
-  .scm-panel .scm-message{height:40px;min-height:40px;line-height:26px}
-  .scm-message-box>.icon-button{width:32px;height:32px;min-width:32px;min-height:32px}
-  .scm-file-actions>.icon-button{width:36px;height:36px;min-width:36px;min-height:36px}
+  .scm-panel .scm-message{height:44px;min-height:44px;padding-right:48px;line-height:30px}
+  :is(.scm-scope,.scm-group-header,.scm-message-box,.scm-file-actions)>.icon-button{width:44px;height:44px;min-width:44px;min-height:44px}
+  .scm-message-box>.icon-button{top:0;right:0}
+  .scm-panel .scm-commit-menu{width:44px}
+  .scm-file-actions{right:0}
+  @container scm-toolbar (max-width:400px){.scm-toolbar>.scm-sync{display:none}}
+  @container scm-toolbar (max-width:330px){.scm-panel .scm-commit{padding:0;width:var(--scm-control);justify-content:center}.scm-commit>svg{display:block}.scm-commit-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}
 }
 
 /* Explorer rows are clickable even when rendered as ARIA tree items. */

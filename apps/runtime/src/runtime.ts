@@ -974,6 +974,8 @@ export async function createRuntime(options: RuntimeOptions) {
       case "git.pull":
       case "git.amend":
       case "git.createPullRequest":
+      case "git.indexSnapshot":
+      case "git.indexRestore":
         return git.action(method.slice(4), params, signal, (data) =>
           event(connection, "git.progress", { id: requestId, data }),
         );

@@ -453,6 +453,7 @@
   "Move {0}": "移动 {0}",
   "Commit {0}": "提交 {0}",
   "Leave uncommitted": "不提交",
+  "{0} partially staged files stay out of these commits. They will be fully staged afterward.": "{0} 个部分暂存的文件不包含在这些提交中。之后会完整暂存这些文件。",
   "Committing {0} of {1}…": "正在创建第 {0}/{1} 个提交…",
   "Create Draft Pull Request": "创建草稿拉取请求",
   "Draft pull request created": "已创建草稿拉取请求",
