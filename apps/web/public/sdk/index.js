@@ -263,42 +263,42 @@ var settings_schema_default = {
       default: true
     },
     "agentACP.oxbit-cli.command": {
-      title: "Oxbit Agent CLI executable",
+      title: "Oxbit Agent executable",
       type: "string",
       default: "oxbit-agent"
     },
     "agentACP.oxbit-cli.args": {
-      title: "Oxbit Agent CLI arguments (JSON array)",
+      title: "Oxbit Agent arguments (JSON array)",
       type: "string",
       default: '["acp"]'
     },
     "agentACP.codex.command": {
-      title: "Codex ACP executable",
+      title: "Codex executable",
       type: "string",
       default: "npx"
     },
     "agentACP.codex.args": {
-      title: "Codex ACP arguments (JSON array)",
+      title: "Codex arguments (JSON array)",
       type: "string",
       default: '["-y","@agentclientprotocol/codex-acp@2.2.2"]'
     },
     "agentACP.claude.command": {
-      title: "Claude Agent executable",
+      title: "Claude executable",
       type: "string",
       default: "npx"
     },
     "agentACP.claude.args": {
-      title: "Claude Agent arguments (JSON array)",
+      title: "Claude arguments (JSON array)",
       type: "string",
       default: '["-y","@agentclientprotocol/claude-agent-acp@0.89.1"]'
     },
     "agentACP.gemini.command": {
-      title: "Gemini CLI executable",
+      title: "Gemini executable",
       type: "string",
       default: "npx"
     },
     "agentACP.gemini.args": {
-      title: "Gemini CLI arguments (JSON array)",
+      title: "Gemini arguments (JSON array)",
       type: "string",
       default: '["-y","@google/gemini-cli@0.63.0","--acp"]'
     },
@@ -313,22 +313,22 @@ var settings_schema_default = {
       default: '["-y","@github/copilot@1.0.95","--acp"]'
     },
     "agentACP.cursor.command": {
-      title: "Cursor ACP executable",
+      title: "Cursor executable",
       type: "string",
       default: "agent"
     },
     "agentACP.cursor.args": {
-      title: "Cursor ACP arguments (JSON array)",
+      title: "Cursor arguments (JSON array)",
       type: "string",
       default: '["acp"]'
     },
     "agentACP.amp.command": {
-      title: "Amp Agent ACP executable",
+      title: "Amp executable",
       type: "string",
       default: "npx"
     },
     "agentACP.amp.args": {
-      title: "Amp Agent ACP arguments (JSON array)",
+      title: "Amp arguments (JSON array)",
       type: "string",
       default: '["-y","amp-acp@0.10.0"]'
     },
@@ -491,7 +491,7 @@ var settings_schema_default = {
     },
     "ai.provider": {
       title: "AI provider",
-      description: "Where inline completions and inline edits are sent. agent uses the Oxbit agent's provider and key. openrouter sends to OpenRouter. openai-compatible sends to the Chat Completions API at AI base URL. local sends to Ollama or a llama.cpp server at AI base URL without a key. Run Set AI Provider API Key to save a key for openrouter or openai-compatible.",
+      description: "Where inline completions and inline edits are sent. Oxbit Agent uses the Oxbit agent's provider and key. OpenRouter sends to OpenRouter. OpenAI-compatible sends to the Chat Completions API at AI base URL. Local sends to Ollama or a llama.cpp server at AI base URL without a key. Use Set API Key\u2026 to save a key for OpenRouter or OpenAI-compatible.",
       type: "string",
       default: "agent",
       enum: [
@@ -503,13 +503,13 @@ var settings_schema_default = {
     },
     "ai.baseUrl": {
       title: "AI base URL",
-      description: "Origin and path prefix for the openai-compatible and local providers, for example https://api.example.com, http://127.0.0.1:11434 for Ollama, or http://127.0.0.1:8080 for llama.cpp. Empty uses Ollama on this device for local. On iPhone, use the computer's LAN address, such as http://192.168.1.20:11434.",
+      description: "Origin and path prefix for the OpenAI-compatible and Local providers, for example https://api.example.com, http://127.0.0.1:11434 for Ollama, or http://127.0.0.1:8080 for llama.cpp. Empty uses Ollama on this device for Local. On iPhone, use the computer's LAN address, such as http://192.168.1.20:11434.",
       type: "string",
       default: ""
     },
     "ai.model": {
       title: "AI model",
-      description: "Model ID for inline completions and inline edits. With the agent provider, empty uses the Oxbit agent's model. Other providers need a model. A small, fast chat model keeps suggestions quick.",
+      description: "Model ID for inline completions and inline edits. With the Oxbit Agent provider, empty uses the Oxbit agent's model. Other providers need a model. A small, fast chat model keeps suggestions quick.",
       type: "string",
       default: ""
     },
@@ -1731,7 +1731,7 @@ var OXBIT_CLI_PROVIDER = "oxbit-cli";
 var ACP_PROVIDERS = [
   {
     id: OXBIT_CLI_PROVIDER,
-    name: "Oxbit Agent CLI",
+    name: "Oxbit Agent",
     command: "oxbit-agent",
     args: ["acp"],
     setup: "Runs the oxbit-agent CLI that ships with Oxbit. It reads providers, keys, MCP servers, skills and hooks from ~/.oxbit/agent. Elsewhere, install @oxbit/agent from npm.",
@@ -1740,7 +1740,7 @@ var ACP_PROVIDERS = [
   },
   {
     id: "codex",
-    name: "Codex ACP",
+    name: "Codex",
     command: "npx",
     args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     setup: "Uses the Codex ACP adapter. Sign in through an advertised authentication method, or use your existing Codex credentials.",
@@ -1749,7 +1749,7 @@ var ACP_PROVIDERS = [
   },
   {
     id: "claude",
-    name: "Claude Agent",
+    name: "Claude",
     command: "npx",
     args: ["-y", "@agentclientprotocol/claude-agent-acp@0.89.1"],
     setup: "Uses the Claude Agent ACP adapter. Sign in through an advertised authentication method, or use your existing Claude Code credentials.",
@@ -1758,7 +1758,7 @@ var ACP_PROVIDERS = [
   },
   {
     id: "gemini",
-    name: "Gemini CLI",
+    name: "Gemini",
     command: "npx",
     args: ["-y", "@google/gemini-cli@0.63.0", "--acp"],
     setup: "Runs Gemini CLI in ACP mode. Sign in through an advertised authentication method, or set GEMINI_API_KEY in the runtime environment.",
@@ -1776,7 +1776,7 @@ var ACP_PROVIDERS = [
   },
   {
     id: "cursor",
-    name: "Cursor ACP",
+    name: "Cursor",
     command: "agent",
     args: ["acp"],
     setup: "Install Cursor CLI and run agent login first. If your executable is cursor-agent, change the command below.",
@@ -1785,7 +1785,7 @@ var ACP_PROVIDERS = [
   },
   {
     id: "amp",
-    name: "Amp Agent ACP",
+    name: "Amp",
     command: "npx",
     args: ["-y", "amp-acp@0.10.0"],
     setup: "Uses the community Amp ACP adapter. Install Amp CLI and run amp login first. Set AMP_CLI_PATH in the runtime environment if needed.",

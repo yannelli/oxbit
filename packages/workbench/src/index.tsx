@@ -94,6 +94,27 @@ const phoneViewLabels: Record<string, string> = {
   extensions: "Extensions view",
 };
 const coreViews = ["explorer", "search", "scm", "extensions"];
+const phoneCoreViews = ["explorer", "search", "scm"];
+export function phoneTabViews(views: Contribution[]) {
+  const core = phoneCoreViews.flatMap((id) => views.filter((view) => view.id === id));
+  const extra = views.filter(
+    (view) =>
+      !coreViews.includes(view.id) &&
+      (view.data as { phoneBar?: boolean } | undefined)?.phoneBar,
+  );
+  return core.concat(extra.slice(0, Math.max(0, 4 - core.length)));
+}
+const isSettingsTab = (tab?: Tab) =>
+  !!tab && (tab.id === "settings" || tab.id.startsWith("settings:"));
+function boundShortcut(workbench: WorkbenchController, id: string) {
+  return displayShortcut(
+    commandBinding(
+      workbench.kernel,
+      workbench.state.keybindings,
+      workbench.kernel.commands.list().find((command) => command.id === id) ?? { id },
+    ),
+  );
+}
 export const badgeLabel = (text: string, badge?: ViewBadge) =>
   badge ? `${text}, ${badge.label}` : text;
 export function ViewBadgeMark({ badge }: { badge?: ViewBadge }) {
@@ -466,20 +487,21 @@ export function Workbench({
   const label = (view: Contribution) =>
     (t as Record<string, string>)[view.id] || tr(view.title);
   const extraViews = views.filter((view) => !coreViews.includes(view.id));
-  const phoneBarViews = extraViews.filter(
-    (view) => (view.data as { phoneBar?: boolean } | undefined)?.phoneBar,
-  );
   const barViews =
     mode === "phone"
-      ? views
-          .filter((view) => coreViews.includes(view.id))
-          .concat(phoneBarViews)
+      ? phoneTabViews(views)
       : views
           .filter((view) => coreViews.includes(view.id))
           .concat(extraViews.slice(0, 3));
   const overflowBadge = (overflow: Contribution[]) =>
     overflow.map((view) => s.viewBadges[view.id]).find(Boolean);
   const desktopOverflowBadge = overflowBadge(extraViews.slice(3));
+  const panelShown = kernel.contributions
+    .list()
+    .some((item) => ["activityView", "panel"].includes(item.kind) && workbench.panelVisible(item.id));
+  const settingsActive =
+    isSettingsTab(workbench.activeTab()) && (mode === "desktop" || !panelShown);
+  const languageStatus = status.filter((contribution) => contribution.id === "language.status");
   return (
     <IconProvider
       kernel={kernel}
@@ -592,9 +614,9 @@ export function Workbench({
             >
               <Icon name="search" size={14} />
               <span>
-                {s.projectName} {tr("— search files, type › for commands")}
+                {s.projectName} {tr("— search files, type > for commands")}
               </span>
-              <kbd>Ctrl P</kbd>
+              <kbd>{boundShortcut(workbench, "workbench.quickOpen")}</kbd>
             </button>
             <div className="title-actions">
               {onConnect && (
@@ -625,11 +647,6 @@ export function Workbench({
                 )
               )}
               <ToolbarContributions workbench={workbench} location="titlebar" />
-              {mode === "phone" && status
-                .filter((contribution) => contribution.id === "language.status")
-                .map((contribution) => (
-                  <StatusContribution key={contribution.id} contribution={contribution} workbench={workbench} />
-                ))}
               <IconButton
                 icon="bell"
                 className="icon-button notification-trigger"
@@ -731,16 +748,37 @@ export function Workbench({
                   </button>
                 )}
                 <span className="activity-spacer" />
-                <button
-                  data-tooltip={t.settings}
-                  title=""
-                  aria-label={t.settings}
-                  onClick={command("settings.open")}
-                >
-                  <Icon name="gear" size={18} />
-                  <span className="phone-label">{tr("Settings view")}</span>
-                </button>
-                {mode !== "desktop" && <PanelSwitcher workbench={workbench} navigation barViews={barViews.map((view) => view.id)} badge={mode === "phone" ? overflowBadge(views.filter((view) => !barViews.includes(view))) : undefined} />}
+                {mode !== "phone" && (
+                  <button
+                    data-tooltip={t.settings}
+                    title=""
+                    aria-label={t.settings}
+                    aria-pressed={settingsActive}
+                    className={settingsActive ? "active" : ""}
+                    onClick={command("settings.open")}
+                  >
+                    <Icon name="gear" size={18} />
+                    <span className="phone-label">{tr("Settings view")}</span>
+                  </button>
+                )}
+                {mode === "tablet" && <PanelSwitcher workbench={workbench} navigation barViews={barViews.map((view) => view.id)} />}
+                {mode === "phone" && (
+                  <PanelSwitcher
+                    workbench={workbench}
+                    navigation
+                    barViews={barViews.map((view) => view.id)}
+                    badge={overflowBadge(views.filter((view) => !barViews.includes(view)))}
+                    settingsActive={settingsActive}
+                    onSettings={command("settings.open")}
+                  >
+                    {languageStatus.map((contribution) => (
+                      <div key={contribution.id} className="panel-switcher-status">
+                        <span>{tr("Language Servers")}</span>
+                        <StatusContribution contribution={contribution} workbench={workbench} />
+                      </div>
+                    ))}
+                  </PanelSwitcher>
+                )}
               </nav>
             )}
             {alignment === "right" && <PanelDock side="left" mode={mode} />}
@@ -1235,14 +1273,14 @@ function EditorGroup({
         <div className="editor-empty">
           <OxbitMark className="editor-watermark" decorative />
           {[
-            ["Go to File", "Ctrl P", "workbench.quickOpen"],
-            ["Show All Commands", "Ctrl Shift P", "workbench.showCommands"],
-            ["Search in Files", "Ctrl Shift F", "view.search"],
-            ["New Terminal", "Ctrl Shift `", "terminal.new"],
-          ].map(([title, key, id]) => (
+            ["Go to File", "workbench.quickOpen"],
+            ["Show All Commands", "workbench.showCommands"],
+            ["Search in Files", "view.search"],
+            ["New Terminal", "terminal.new"],
+          ].map(([title, id]) => (
             <button key={id} onClick={() => void workbench.run(id)}>
               <span>{tr(title)}</span>
-              <kbd>{key}</kbd>
+              <kbd>{boundShortcut(workbench, id)}</kbd>
             </button>
           ))}
         </div>
@@ -1709,6 +1747,10 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     }
     return points;
   };
+  const recentRank = (id: string) => {
+    const rank = s.recentCommands.indexOf(id);
+    return rank < 0 ? s.recentCommands.length : rank;
+  };
   const rows: {
     id: string;
     title: string;
@@ -1721,16 +1763,24 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     mode === "commands"
       ? workbench.kernel.commands
           .list()
+          .filter((c) => workbench.kernel.commands.available(c.id).enabled)
           .map((c) => ({
             id: c.id,
             title: c.title,
             detail: c.category,
             keys: commandBinding(workbench.kernel, s.keybindings, c),
-            enabled: workbench.kernel.commands.available(c.id).enabled,
-            run: () => workbench.run(c.id),
+            enabled: true,
+            run: () => {
+              workbench.rememberCommand(c.id);
+              return workbench.run(c.id);
+            },
           }))
           .filter((r) => score(tr(r.title) + " " + r.title + " " + r.id) > 0)
-          .sort((a, b) => score(tr(b.title)) - score(tr(a.title)))
+          .sort(
+            (a, b) =>
+              score(tr(b.title)) - score(tr(a.title)) ||
+              recentRank(a.id) - recentRank(b.id),
+          )
       : mode === "symbols"
         ? symbolResult.items
             .filter((item) => score(item.name) > 0)
@@ -1752,6 +1802,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
                 id: "line",
                 title: `Go to line ${term || "1"}`,
                 detail: "Enter line[:column]",
+                icon: "goto",
                 enabled: /^\d*(?::\d*)?$/.test(term),
                 run: () =>
                   workbench.activePath() &&
@@ -1882,12 +1933,19 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
               {mode === "files" || mode === "recent" ? (
                 <FileBadge kernel={workbench.kernel} path={row.id} />
               ) : (
-                <Icon name={row.icon || "goto"} size={14} />
+                row.icon && <Icon name={row.icon} size={14} />
               )}
-              <span>
-                {mode === "symbols" ? row.title : tr(row.title)}
-                <small>{row.detail ? tr(row.detail) : undefined}</small>
-              </span>
+              {mode === "commands" ? (
+                <>
+                  <span>{tr(row.title)}</span>
+                  {row.detail && <small className="palette-category">{tr(row.detail)}</small>}
+                </>
+              ) : (
+                <span>
+                  {mode === "symbols" ? row.title : tr(row.title)}
+                  <small>{row.detail ? tr(row.detail) : undefined}</small>
+                </span>
+              )}
               <kbd>{displayShortcut(row.keys)}</kbd>
               {!row.enabled && <small>{tr("Unavailable")}</small>}
             </button>
@@ -2259,14 +2317,21 @@ function NotificationActions({
 function GitBranch({ workbench }: { workbench: WorkbenchController }) {
   const [, refresh] = useState(0);
   const git = workbench.kernel.services.optional<{
-    status?: () => { branch: string };
+    status?: () => { branch: string; repository?: boolean };
+    loaded?: () => boolean;
     subscribe?: (listener: () => void) => () => void;
   }>("git");
   useEffect(() => git?.subscribe?.(() => refresh((value) => value + 1)), [git]);
+  const status = git?.status?.();
+  if (git?.loaded && !git.loaded()) return null;
   return (
     <button onClick={() => void workbench.run("git.checkout")}>
       <Icon name="git" size={13} />
-      <span>{git?.status?.().branch || tr("Branch")}</span>
+      <span>
+        {status?.repository
+          ? status.branch || tr("Branch")
+          : tr("No repository")}
+      </span>
     </button>
   );
 }

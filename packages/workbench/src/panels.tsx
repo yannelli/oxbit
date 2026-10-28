@@ -18,7 +18,7 @@ import {
   translate as tr,
 } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
-import { Boundary, ToolbarContributions, viewIcon } from "./index.js";
+import { Boundary, phoneTabViews, ToolbarContributions, viewIcon } from "./index.js";
 import { currentTheme, themeMode, themeVariables } from "./contributions.js";
 import { PanelSwitcher } from "./panel-switcher.js";
 import { coarsePointer } from "./long-press.js";
@@ -490,12 +490,13 @@ function Sash({
   );
 }
 
+type WorkbenchMode = "desktop" | "tablet" | "phone";
 export function PanelDock({
   side,
   mode,
 }: {
   side: DockSide;
-  mode: "desktop" | "tablet" | "phone";
+  mode: WorkbenchMode;
 }) {
   const context = usePanels(),
     { workbench, drag } = context;
@@ -578,7 +579,7 @@ export function PanelDock({
           />
         )}
         {visible && dock.root ? (
-          <PanelTree node={dock.root} container={side} />
+          <PanelTree node={dock.root} container={side} mode={mode} />
         ) : (
           <div className="dock-empty">{tr("Drop a panel here")}</div>
         )}
@@ -590,13 +591,15 @@ export function PanelDock({
 function PanelTree({
   node,
   container,
+  mode = "desktop",
 }: {
   node: PanelNode;
   container: string;
+  mode?: WorkbenchMode;
 }) {
   const { workbench } = usePanels();
   if (node.kind === "group")
-    return <PanelTabs group={node} container={container} />;
+    return <PanelTabs group={node} container={container} mode={mode} />;
   const vertical = node.direction === "row";
   return (
     <div
@@ -608,7 +611,7 @@ function PanelTree({
       }}
     >
       <div className="dock-split-child" style={{ flex: `${node.ratio} 1 0` }}>
-        <PanelTree node={node.children[0]} container={container} />
+        <PanelTree node={node.children[0]} container={container} mode={mode} />
       </div>
       <Sash
         label={vertical ? "Resize panel columns" : "Resize panel rows"}
@@ -625,7 +628,7 @@ function PanelTree({
         className="dock-split-child"
         style={{ flex: `${1 - node.ratio} 1 0` }}
       >
-        <PanelTree node={node.children[1]} container={container} />
+        <PanelTree node={node.children[1]} container={container} mode={mode} />
       </div>
     </div>
   );
@@ -776,9 +779,11 @@ function PanelMenu({
 function PanelTabs({
   group,
   container,
+  mode,
 }: {
   group: PanelGroup;
   container: string;
+  mode: WorkbenchMode;
 }) {
   const context = usePanels(),
     { workbench, drag } = context;
@@ -800,6 +805,14 @@ function PanelTabs({
   const contributions = workbench.kernel.contributions.list();
   const active = contributions.find((c) => c.id === group.active);
   const isDock = dockSides.includes(container as DockSide);
+  const phoneTab =
+    mode === "phone" &&
+    phoneTabViews(workbench.kernel.contributions.list("activityView")).some(
+      (view) => view.id === group.active,
+    );
+  const ownHeader =
+    phoneTab &&
+    (active?.data as { phoneHeader?: boolean } | undefined)?.phoneHeader === false;
   const previewEdge =
     context.pointerTarget?.group === group.id
       ? context.pointerTarget.edge
@@ -889,8 +902,12 @@ function PanelTabs({
   });
   return (
     <div ref={groupRef} className="dock-group" data-panel-group={group.id}>
-      <div className="panel-header sidebar-heading">
-        <PanelSwitcher workbench={workbench} title={tr(active?.title ?? group.active)} />
+      {!ownHeader && <div className="panel-header sidebar-heading">
+        {phoneTab ? (
+          <span className="panel-header-title truncate">{tr(active?.title ?? group.active)}</span>
+        ) : (
+          <PanelSwitcher workbench={workbench} title={tr(active?.title ?? group.active)} />
+        )}
         <div
           className="panel-tabs"
           role="tablist"
@@ -1057,23 +1074,25 @@ function PanelTabs({
               }
             />
           )}
-          <IconButton
-            icon="x"
-            label={tr(
-              isDock
-                ? container === "bottom"
-                  ? "Close panel"
-                  : "Close sidebar"
-                : "Dock Back",
-            )}
-            onClick={() =>
-              isDock
-                ? workbench.toggleDock(container as DockSide)
-                : workbench.redockPanel(group.active)
-            }
-          />
+          {!phoneTab && (
+            <IconButton
+              icon="x"
+              label={tr(
+                isDock
+                  ? container === "bottom"
+                    ? "Close panel"
+                    : "Close sidebar"
+                  : "Dock Back",
+              )}
+              onClick={() =>
+                isDock
+                  ? workbench.toggleDock(container as DockSide)
+                  : workbench.redockPanel(group.active)
+              }
+            />
+          )}
         </div>
-      </div>
+      </div>}
       <PanelSlot id={group.active} />
       {drag && previewEdge && (
         <div

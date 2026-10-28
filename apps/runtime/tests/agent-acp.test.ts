@@ -209,7 +209,7 @@ describe("ACP runtime bridge", () => {
   });
   it("names preset and custom agents and maps registry entries to built-in presets", async () => {
     const { agent, connection } = await setup();
-    expect(connection).toMatchObject({ provider: "codex", name: "Codex ACP" });
+    expect(connection).toMatchObject({ provider: "codex", name: "Codex" });
     const custom = await agent.start("client", {
       provider: "custom",
       command: process.execPath,
@@ -226,7 +226,7 @@ describe("ACP runtime bridge", () => {
     expect(unnamed.name).toBe("Custom agent");
     const resolve = (launch: object) => (agent as any).resolveLaunch(launch);
     await expect(resolve({ provider: "ignored", registry: { id: "codex-acp" }, command: "/bin/false" })).resolves.toEqual({
-      provider: "codex", name: "Codex ACP", command: "npx", args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
+      provider: "codex", name: "Codex", command: "npx", args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     });
     await expect(resolve({ provider: "x", registry: { id: "cursor" } })).resolves.toMatchObject({ provider: "cursor", command: "agent", args: ["acp"] });
   });

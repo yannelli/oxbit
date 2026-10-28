@@ -83,7 +83,7 @@ describe("mentions", () => {
     ];
     expect(searchThreads(entries, "login", { exclude: "open", root: "/workspace" })).toEqual([
       { kind: "thread", id: "newer", title: "Login form copy", agent: "Claude Agent", updatedAt: "2026-10-10T12:00:00.000Z" },
-      { kind: "thread", id: "older", title: "Refactor LOGIN service", agent: "Codex ACP", updatedAt: "2026-10-10T12:00:00.000Z" },
+      { kind: "thread", id: "older", title: "Refactor LOGIN service", agent: "Codex", updatedAt: "2026-10-10T12:00:00.000Z" },
     ]);
     expect(searchThreads(entries, "login").map((thread) => thread.id)).toEqual(["open", "newer", "other-root", "older"]);
     expect(searchThreads(entries, "login", {}, 1)).toHaveLength(1);
@@ -100,11 +100,11 @@ describe("mentions", () => {
       ],
     });
     expect(threadTranscript(entry)).toBe(
-      "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
+      "Earlier conversation with Codex: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
     );
     const trimmed = threadTranscript(entry, 70);
     expect(trimmed).toHaveLength(70);
-    expect(trimmed.startsWith("Earlier conversation with Codex ACP: Fix login\n\n")).toBe(true);
+    expect(trimmed.startsWith("Earlier conversation with Codex: Fix login\n\n")).toBe(true);
     expect(trimmed.endsWith("The token expired.")).toBe(true);
     expect(threadTranscript(conversation("empty", "Nothing"))).toBe("");
   });
@@ -120,7 +120,7 @@ describe("mentions", () => {
     });
     expect(forkContext(entry, 3)).toEqual({
       path: ".", kind: "thread", label: "Thread: Fix login",
-      text: "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
+      text: "Earlier conversation with Codex: Fix login\n\nUser: Why does login fail?\n\nAgent: The token expired.",
     });
     expect(forkContext(entry, 0)).toBeUndefined();
     expect(entry.activity).toHaveLength(5);

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, Icon, translate as tr } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
@@ -10,12 +10,15 @@ const panelIcons: Record<string, string> = {
 };
 const panelOrder = ["explorer", "search", "scm", "extensions", "terminal", "problems", "output", "tasks"];
 
-export function PanelSwitcher({ workbench, title, navigation = false, barViews, badge }: {
+export function PanelSwitcher({ workbench, title, navigation = false, barViews, badge, settingsActive = false, onSettings, children }: {
   workbench: WorkbenchController;
   title?: string;
   navigation?: boolean;
   barViews?: string[];
   badge?: ViewBadge;
+  settingsActive?: boolean;
+  onSettings?: () => void;
+  children?: ReactNode;
 }) {
   useWorkbench(workbench);
   const [open, setOpen] = useState(false);
@@ -38,7 +41,7 @@ export function PanelSwitcher({ workbench, title, navigation = false, barViews, 
   });
   const active = panels.filter(item => workbench.panelVisible(item.id));
   const primaryViews = (barViews ?? ["explorer", "search", "scm", "extensions"]).filter(id => !iosPhone || !["search", "extensions"].includes(id));
-  const extraActive = active.some(item => !primaryViews.includes(item.id));
+  const extraActive = active.some(item => !primaryViews.includes(item.id)) || settingsActive;
   return <>
     <button
       ref={trigger}
@@ -68,7 +71,16 @@ export function PanelSwitcher({ workbench, title, navigation = false, barViews, 
           <span>{tr(item.title)}</span>
           {workbench.panelVisible(item.id) && <Icon name="check" size={14} />}
         </button>)}
+        {onSettings && <button aria-pressed={settingsActive} onClick={() => {
+          setOpen(false);
+          onSettings();
+        }}>
+          <Icon name="gear" />
+          <span>{tr("Settings")}</span>
+          {settingsActive && <Icon name="check" size={14} />}
+        </button>}
       </div>
+      {children}
       <button className="panel-switcher-commands" onClick={() => {
         setOpen(false);
         workbench.openPalette();

@@ -157,13 +157,13 @@ test("Tapping an agent notification that relaunched the app opens the agent pane
   await release(relaunched);
   await expect(relaunched.locator(".workspace-title")).toHaveText("Build box: project");
   // The mock runtime answers agent requests with empty results, so only the opened view is checked.
-  const agent = relaunched.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agent ACP" });
+  const agent = relaunched.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agents" });
   const view = relaunched.getByRole("tabpanel", { name: "agent-acp" });
   await expect(agent).toHaveAttribute("aria-pressed", "true");
   await expect(view).toBeVisible();
   await shoot(relaunched, "notification-tap-agent");
 
-  await relaunched.getByRole("button", { name: "Close sidebar" }).last().click();
+  await agent.click();
   await expect(view).toBeHidden();
   await relaunched.evaluate(() => (window as any).__iosTest.tapNotification());
   await expect(agent).toHaveAttribute("aria-pressed", "true");
@@ -192,6 +192,7 @@ test("The runtime button in an SFTP folder starts Oxbit in that folder", async (
   await installSshBridge(page, seed);
   await mockRuntime(page);
   await page.goto("/");
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Connect with SSH…", exact: true }).click();
   await page.getByRole("textbox", { name: "Remote folder" }).fill("project");
   await page.getByRole("button", { name: "Connect", exact: true }).click();
@@ -265,7 +266,7 @@ test("Long server paths truncate inside the start screen", async ({ page }) => {
     await page.setViewportSize({ width, height: 852 });
     const layout = await start.evaluate(element => ({
       overflow: element.parentElement!.scrollWidth - element.parentElement!.clientWidth,
-      forget: [...element.querySelectorAll("[aria-label^='Forget devbox']")].map(button => Math.round(button.getBoundingClientRect().right)),
+      forget: [...element.querySelectorAll("[aria-label^='Remove devbox']")].map(button => Math.round(button.getBoundingClientRect().right)),
     }));
     expect(layout.overflow).toBe(0);
     expect(layout.forget).toHaveLength(2);

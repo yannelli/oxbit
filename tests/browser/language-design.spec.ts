@@ -91,6 +91,7 @@ test("long documentation and status controls fit small viewports and support dis
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.evaluate((width) => (window as any).__oxbit.kernel.configuration.set("workbench.colorTheme", width === 390 ? "Paper (light)" : "Graphite (dark)"), width);
+    if (width === 390) await page.getByRole("button", { name: "More", exact: true }).click();
     await indicator(page).click();
     const popup = page.getByRole("dialog", { name: "Language Servers", exact: true });
     await expect(popup).toBeVisible();
@@ -102,10 +103,12 @@ test("long documentation and status controls fit small viewports and support dis
     await expect(popup.getByRole("button", { name: "Close Language Servers" })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(popup).toHaveCount(0);
-    await expect(indicator(page)).toBeFocused();
+    if (width === 1440) await expect(indicator(page)).toBeFocused();
+    else await page.getByRole("button", { name: "More", exact: true }).click();
     await indicator(page).click();
     await page.screenshot({ path: `evidence/language-design/servers-${width}.png` });
-    await page.locator(".titlebar .brand").click();
+    if (width === 1440) await page.locator(".titlebar .brand").click();
+    else await page.keyboard.press("Escape");
     await expect(popup).toHaveCount(0);
   }
 });

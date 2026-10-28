@@ -5,6 +5,8 @@ mod closing;
 mod commands;
 mod environment;
 mod icon_packs;
+#[cfg(target_os = "macos")]
+mod mac_menu;
 mod model;
 #[cfg(target_os = "macos")]
 mod notifications;
@@ -14,6 +16,8 @@ mod supervisor;
 mod updates;
 
 use commands::Desktop;
+#[cfg(target_os = "macos")]
+use mac_menu::menu;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -22,10 +26,9 @@ use std::{
         Mutex,
     },
 };
-use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
-};
+#[cfg(not(target_os = "macos"))]
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 fn application_url(url: &tauri::Url) -> bool {
     url.scheme() == "tauri" && url.host_str() == Some("localhost")
@@ -424,6 +427,7 @@ fn focused_label(app: &AppHandle) -> String {
         .unwrap_or_else(|| "main".into())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let item = |id: &str, title: &str, accelerator: Option<&str>| {
         MenuItem::with_id(app, id, title, true, accelerator)

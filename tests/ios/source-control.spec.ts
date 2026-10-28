@@ -3,10 +3,10 @@ import { installBridge } from "./bridge.js";
 import { installSshBridge } from "./ssh-bridge.js";
 
 const dialogs = [
-  { button: "Connect Runtime…", dialog: "Runtime" },
+  { button: "Connect Runtime…", dialog: "Runtime", add: true },
   { button: "Clone Repository…", dialog: "Clone Repository" },
   { button: "Git Accounts and Commit Author…", dialog: "Git Accounts and Commit Author" },
-  { button: "Connect with SSH…", dialog: "Connect with SSH" },
+  { button: "Connect with SSH…", dialog: "Connect with SSH", add: true },
   { button: "SSH Hosts and Keys…", dialog: "SSH Hosts and Keys" },
 ];
 
@@ -27,17 +27,18 @@ async function topmost(page: Page, name: string) {
   });
 }
 
-for (const { button, dialog } of dialogs) {
+for (const { button, dialog, add } of dialogs) {
   test(`${dialog} opens above the workspace sheet`, async ({ page }) => {
     await openDocuments(page);
     await page.locator(".workspace-title").click();
     await expect(page.getByRole("dialog", { name: "Workspaces" })).toBeVisible();
+    if (add) await page.getByRole("button", { name: "Add…", exact: true }).click();
     await page.getByRole("button", { name: button, exact: true }).click();
     expect(await topmost(page, dialog)).toBe(true);
   });
 }
 
-test("Git Accounts and Commit Author is in the palette and the Source Control toolbar", async ({ page }) => {
+test("Git Accounts and Commit Author is in the palette and the Source Control actions menu", async ({ page }) => {
   await openDocuments(page);
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("button", { name: "Show All Commands", exact: true }).click();
@@ -47,7 +48,8 @@ test("Git Accounts and Commit Author is in the palette and the Source Control to
   await page.getByRole("button", { name: "Done", exact: true }).click();
 
   await page.getByRole("button", { name: "Source Control", exact: true }).click();
-  await page.locator(".scm-toolbar").getByRole("button", { name: "Git Accounts and Commit Author", exact: true }).click();
+  await page.locator(".scm-toolbar").getByRole("button", { name: "Source control actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Git Accounts and Commit Author/ }).click();
   expect(await topmost(page, "Git Accounts and Commit Author")).toBe(true);
   await expect(page.getByRole("textbox", { name: "Git author name" })).toHaveValue("Oxbit Test");
 });

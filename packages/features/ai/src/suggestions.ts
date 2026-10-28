@@ -9,10 +9,14 @@ import {
   type SettingSuggestions,
 } from "@oxbit/sdk";
 import { AI_SETTINGS } from "./configuration.js";
-import { INLINE_MODELS, type InlineModelCatalog } from "./models.js";
+import { INLINE_MODELS, SCORE_NAMES, type InlineModelCatalog } from "./models.js";
 import { OPENROUTER_BASE_URL, RUNTIME_PROVIDERS, aiEndpoint, aiProvider } from "./service.js";
 
 const MAX_SUGGESTIONS = 12;
+
+/** `detail` with each score's full benchmark name, for the suggestion's tooltip. */
+const fullScoreNames = (detail: string) =>
+  SCORE_NAMES.reduce((text, [short, full]) => text.replace(new RegExp(`\\b${short}\\b`, "g"), full), detail);
 
 function catalogFor(kernel: Kernel): InlineModelCatalog | undefined {
   const provider = aiProvider(kernel);
@@ -57,10 +61,10 @@ export function modelSuggestions(kernel: Kernel, runtime?: RpcClient): SettingSu
         if (signal?.aborted) throw error;
       }
       const installed = new Set(listed);
-      const suggestions: SettingSuggestion[] = recommended.map((model) => ({
-        value: model.id, label: model.label,
-        detail: [catalog === "local" && installed.has(model.id) ? "installed" : "", model.detail].filter(Boolean).join(" · "),
-      }));
+      const suggestions: SettingSuggestion[] = recommended.map((model) => {
+        const detail = [catalog === "local" && installed.has(model.id) ? "installed" : "", model.detail].filter(Boolean).join(" · ");
+        return { value: model.id, label: model.label, detail, ...(model.detail ? { title: fullScoreNames(detail) } : {}) };
+      });
       for (const id of listed)
         if (!suggestions.some((item) => item.value === id))
           suggestions.push({ value: id, label: id, ...(catalog === "local" ? { detail: "installed" } : {}) });

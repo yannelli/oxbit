@@ -223,3 +223,4 @@ export { translate, setLocale, getLocale, getPhrases } from "./locale.js";
 export { Select } from "./select.js";
 export { IconThemeSelect } from "./icon-theme-select.js";
 export { installTextInputPolicy } from "./text-input.js";
+export { PHONE_QUERY, TOUCH_QUERY, useMedia, usePhone, useTouch, displayShortcut } from "./media.js";

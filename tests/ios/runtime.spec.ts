@@ -12,6 +12,7 @@ test("Connect Runtime opens the Runtime page with network runtimes and pairs one
     stored: { "session:recents": [{ id: "runtime:laptop", kind: "runtime", name: "laptop", url: laptop.url, runtimeId: laptop.runtimeId, lastOpened: 1 }] },
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Connect Runtime…" }).click();
   const sheet = page.locator(".ios-runtime-sheet");
   const network = sheet.getByRole("region", { name: "On this network" });
@@ -38,6 +39,7 @@ test("Connect Runtime opens the Runtime page with network runtimes and pairs one
 test("the Runtime page explains how to allow Local Network access when iOS denies it", async ({ page }) => {
   await installBridge(page, { localNetworkDenied: true });
   await page.goto("/");
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Connect Runtime…" }).click();
   const network = page.locator(".ios-runtime-sheet").getByRole("region", { name: "On this network" });
   await expect(network.getByRole("status")).toContainText("Turn on Local Network for Oxbit in Settings");
@@ -48,6 +50,7 @@ test("the Runtime page explains how to allow Local Network access when iOS denie
 test("keep-alive chosen on the start screen reaches the workspace settings", async ({ page }) => {
   await installBridge(page);
   await page.goto("/");
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Connect Runtime…" }).click();
   const sheet = page.locator(".ios-runtime-sheet");
   await sheet.getByRole("combobox", { name: "Keep Runtime Alive" }).click();

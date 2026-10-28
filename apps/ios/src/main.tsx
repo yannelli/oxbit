@@ -288,7 +288,7 @@ function App() {
     // Runtime workspaces use the service only for conversation titles.
     if (session.runtime || workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark")
       disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, withAiConsent(agentModels, (title, message, choices) => session.workbench.ask(title, message, choices))));
-    // Agent ACP posts the app's notifications.
+    // The agent panel posts the app's notifications.
     const tap = native.onNotificationTap(() => {
       if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");
     }).catch(() => undefined);

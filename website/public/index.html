@@ -87,15 +87,15 @@
         <div class="hero-cta" data-reveal>
           <div class="cmd" data-copy-root>
             <span class="cmd-prompt">$</span>
-            <code data-copy-text>npm install -g @oxbit/cli --allow-scripts=@oxbit/cli,node-pty</code>
+            <code data-copy-text>npm install -g @oxbit/cli <span>--allow-scripts=</span><wbr><span>@oxbit/cli,node-pty</span></code>
             <button class="copy" type="button" aria-label="Copy install command" data-copy>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
           </div>
-          <div class="hero-buttons">
-            <a class="btn btn-primary" href="/get-started/">Install Oxbit</a>
-            <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener">Download desktop app</a>
-            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join iOS TestFlight</a>
+          <div class="hero-buttons" data-hero-buttons>
+            <a class="btn btn-primary" href="/get-started/" data-hero-action="install">Install Oxbit</a>
+            <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener" data-hero-action="desktop">Download desktop app</a>
+            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener" data-hero-action="ios">Join iOS TestFlight</a>
           </div>
         </div>
         <p class="home-proof"><a href="/changelog/">Latest release: <span data-version>v0.14.4</span></a> · <a href="/about/">Who maintains Oxbit</a> · <a href="/security/">How workspace trust works</a></p>
@@ -108,7 +108,10 @@
             <span class="window-title">orbit-dash — api.ts</span>
             <span class="window-pill"><span class="pulse"></span>Connected</span>
           </div>
-          <img src="/screens/agent-desktop-dark.png" alt="Oxbit with the explorer, a TypeScript file, and the agent panel showing a finished Oxbit Agent turn and its reviewed diff" width="1440" height="900" loading="eager" fetchpriority="high" />
+          <picture>
+            <source media="(max-width: 720px)" srcset="/screens/agent-phone-dark.png" width="780" height="1688" />
+            <img src="/screens/agent-desktop-dark.png" alt="Oxbit with the Agents panel showing a finished Oxbit Agent turn and its reviewed diff" width="1440" height="900" loading="eager" fetchpriority="high" />
+          </picture>
         </div>
         <div class="shot-glow" aria-hidden="true"></div>
       </div>
@@ -118,7 +121,7 @@
     <section class="marquee" aria-label="Built with">
       <div class="marquee-track">
         <span>React</span><span>CodeMirror</span><span>Node runtime</span><span>Tauri</span><span>TypeScript</span><span>Agent Client Protocol</span><span>MCP</span><span>Language servers</span><span>Git</span><span>ripgrep</span><span>MIT</span>
-        <span>React</span><span>CodeMirror</span><span>Node runtime</span><span>Tauri</span><span>TypeScript</span><span>Agent Client Protocol</span><span>MCP</span><span>Language servers</span><span>Git</span><span>ripgrep</span><span>MIT</span>
+        <span aria-hidden="true">React</span><span aria-hidden="true">CodeMirror</span><span aria-hidden="true">Node runtime</span><span aria-hidden="true">Tauri</span><span aria-hidden="true">TypeScript</span><span aria-hidden="true">Agent Client Protocol</span><span aria-hidden="true">MCP</span><span aria-hidden="true">Language servers</span><span aria-hidden="true">Git</span><span aria-hidden="true">ripgrep</span><span aria-hidden="true">MIT</span>
       </div>
     </section>
 
@@ -186,12 +189,12 @@
     <section class="section section-alt" id="agents">
       <div class="container">
         <div class="section-head" data-reveal>
-          <h2>Use an ACP agent or Oxbit Agent</h2>
+          <h2>Bring your coding agent, or use Oxbit Agent</h2>
         </div>
         <div class="ext-grid">
           <article class="card card-tall" data-reveal data-spot>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg></div>
-            <h3>Agent panel</h3>
+            <h3>Agents panel</h3>
             <p>Run coding agents that speak the Agent Client Protocol in a trusted runtime workspace. Review each edit as a diff or apply edits as they land, mention files, symbols, commits, and branch diffs with @, and fork a conversation. Sessions keep running when the editor disconnects. Enable Agent ACP in Extensions.</p>
             <ul class="chips" aria-label="Agents">
               <li>Codex</li><li>Claude Agent</li><li>Gemini CLI</li><li>GitHub Copilot</li><li>Cursor</li><li>Amp</li><li>ACP Registry</li><li>Oxbit Agent CLI</li><li>Custom ACP</li>
@@ -208,7 +211,7 @@
           <article class="card card-tall" data-reveal data-spot>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></svg></div>
             <h3>Oxbit Agent CLI</h3>
-            <p>A terminal coding agent with a TUI, a print mode for scripts, and an ACP mode for editors that speak the Agent Client Protocol. It works with OpenAI or a ChatGPT plan, Anthropic, OpenRouter, Ollama, and OpenAI-compatible APIs, and reads AGENTS.md, skills, hooks, and MCP servers. The runtime and the desktop app bundle it for the agent panel.</p>
+            <p>A terminal coding agent with a TUI, a print mode for scripts, and an ACP mode for editors that speak the Agent Client Protocol. It works with OpenAI or a ChatGPT plan, Anthropic, OpenRouter, Ollama, and OpenAI-compatible APIs, and reads AGENTS.md, skills, hooks, and MCP servers. The runtime and the desktop app bundle it for the Agents panel.</p>
             <pre class="snippet"><code><span class="k">$</span> npm install -g @oxbit/agent
 <span class="k">$</span> oxbit-agent
 <span class="k">$</span> oxbit-agent -p <span class="s">"Fix the failing test"</span>
@@ -246,13 +249,13 @@
       <div class="container">
         <div class="section-head" data-reveal>
           <h2>Browser, desktop, iPhone, and iPad</h2>
-          <p class="lead">Each platform has the same editor and agent panel. What runs locally depends on the platform.</p>
+          <p class="lead">Each platform has the same editor and Agents panel. What runs locally depends on the platform.</p>
         </div>
 
         <div class="platforms">
           <article class="platform" data-reveal>
             <div class="platform-shot">
-              <img src="/screens/agent-desktop-dark.png" alt="Oxbit in a browser with the agent panel open" width="1440" height="900" loading="lazy" />
+              <img src="/screens/agent-desktop-dark.png" alt="Oxbit in a browser with the Agents panel open" width="1440" height="900" loading="lazy" />
             </div>
             <h3>Browser</h3>
             <p>Open a directory with browser directory access, or pair with a runtime for files on disk. Nothing to install.</p>

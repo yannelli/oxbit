@@ -22,16 +22,29 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-start h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
 .ios-start section { display: flex; flex-direction: column; gap: 8px; }
 .ios-start-error { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(224, 82, 82, 0.15); color: #ff8a8a; }
-.ios-workspace-row { display: flex; align-items: stretch; gap: 8px; }
+.ios-workspace-row { position: relative; display: flex; align-items: stretch; border-radius: 12px; overflow: hidden; }
+.ios-workspace-row[data-revealed] { background: var(--err, #e05252); }
+.ios-workspace-remove {
+  position: absolute; inset: 0 0 0 auto; width: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; background: var(--err, #e05252); color: #fff; font: inherit; font-size: 12px; cursor: pointer;
+}
 .ios-workspace {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border: 0; border-radius: 12px;
   background: rgba(255, 255, 255, 0.06); color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
+.ios-workspace-row > .ios-workspace {
+  position: relative; z-index: 1; border-radius: 0; background: var(--bg, #0f1115);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06));
+  touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform 180ms ease-out;
+}
+.ios-workspace-row > .ios-workspace[data-dragging] { transition: none; }
+.ios-workspace-row > .ios-workspace:active { background: linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)), var(--bg, #0f1115); }
 .ios-workspace:active { background: rgba(255, 255, 255, 0.12); }
 .ios-workspace[aria-current="true"] { outline: 2px solid var(--accent, #4fd1c5); outline-offset: -2px; }
 .ios-workspace > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ios-workspace small { font-size: 12px; opacity: 0.65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ios-workspace-row .icon-button { min-width: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); }
+.ios-start .modal-scrim { position: fixed; }
+.ios-action-sheet .workspace-options > .button { min-height: 48px; gap: 10px; }
 .ios-open-folder { min-height: 48px; justify-content: center; }
 .ios-start .muted { margin: 0; opacity: 0.65; font-size: 13px; }
 .commit-signing { display: flex; flex-direction: column; gap: 12px; padding: 12px 0; border-block: 1px solid var(--bd); }
@@ -46,7 +59,8 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .commit-signing-actions > p { flex-basis: 100%; }
 .commit-signing-actions > .button { flex: 1 1 140px; }
 .commit-signing .button { min-height: 44px; white-space: normal; }
-.commit-signing textarea { min-height: 112px; resize: vertical; font-family: var(--font-mono); }
+.commit-signing textarea { min-height: 112px; resize: none; font-family: var(--font-mono); }
+.ios-shell textarea { resize: none; }
 
 .git-settings .git-section { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .git-settings h3 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-3); }

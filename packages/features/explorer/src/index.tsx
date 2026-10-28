@@ -167,7 +167,7 @@ export function Explorer({
         </div>
       )}
       <button
-        className="section-label border-top"
+        className="section-label workspace-root border-top"
         onClick={() => setTree(!tree)}
         aria-expanded={tree}
         title={s.projectName}

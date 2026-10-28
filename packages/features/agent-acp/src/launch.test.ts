@@ -54,18 +54,18 @@ describe("agent arguments", () => {
 describe("agent naming", () => {
   it("prefers the connection name, then the preset, registry, and ID", () => {
     expect(agentName("claude", { provider: "claude", name: "Claude Code" })).toBe("Claude Code");
-    expect(agentName("claude")).toBe("Claude Agent");
+    expect(agentName("claude")).toBe("Claude");
     expect(agentName("unknown-agent")).toBe("unknown-agent");
     rememberRegistryName("opencode", "OpenCode");
     expect(agentName("opencode")).toBe("OpenCode");
     rememberAgentName("opencode", "OpenCode 1.18");
     expect(agentName("opencode")).toBe("OpenCode 1.18");
     rememberAgentName("codex", "codex-acp 2.2.2");
-    expect(agentName("codex")).toBe("Codex ACP");
+    expect(agentName("codex")).toBe("Codex");
   });
   it("keeps unknown providers on their own ID", () => {
     expect(providerFor("not-a-preset").name).toBe("not-a-preset");
-    expect(providerFor("codex").name).toBe("Codex ACP");
+    expect(providerFor("codex").name).toBe("Codex");
   });
 });
 

@@ -25,8 +25,8 @@ test("agent chat and Agents use distinct icons", async ({ page }) => {
   await details(page);
   await page.getByRole("button", { name: "Enable", exact: true }).click();
   await page.evaluate(() => (window as any).__oxbit.workbench.openSidebar("agent-acp"));
-  const chat = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agent ACP", exact: true });
-  const agents = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agents", exact: true });
+  const chat = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Agents", exact: true });
+  const agents = page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "Subagents", exact: true });
   await expect(chat).toBeVisible();
   await expect(agents).toBeVisible();
   expect(await chat.locator("svg path").getAttribute("d")).not.toBe(await agents.locator("svg path").getAttribute("d"));
@@ -102,9 +102,9 @@ test("Agent ACP is opt-in for fresh and existing workspaces and persists enable/
     page.getByText("Connect to a runtime workspace to use agents."),
   ).toBeVisible();
   const picker = page.getByRole("radiogroup", { name: "Agent", exact: true });
-  for (const name of ["Codex ACP", "Claude Agent", "Cursor ACP", "Amp Agent ACP"])
+  for (const name of ["Codex", "Claude", "Cursor", "Amp"])
     await expect(picker.getByRole("radio", { name })).toBeVisible();
-  await expect(picker.getByRole("radio", { name: "Codex ACP" })).toHaveAttribute("aria-checked", "true");
+  await expect(picker.getByRole("radio", { name: "Codex" })).toHaveAttribute("aria-checked", "true");
   await fs.mkdir("evidence/agent-acp", { recursive: true });
   await page.screenshot({ path: "evidence/agent-acp/desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });

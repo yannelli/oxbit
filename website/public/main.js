@@ -31,6 +31,21 @@
     revealed.forEach((el) => io.observe(el));
   }
 
+  const heroButtons = document.querySelector('[data-hero-buttons]');
+  if (heroButtons) {
+    const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const primary = heroButtons.querySelector(`[data-hero-action="${isAppleMobile ? 'ios' : 'install'}"]`);
+    if (primary) {
+      heroButtons.querySelectorAll('.btn').forEach((link) => {
+        link.classList.toggle('btn-primary', link === primary);
+        link.classList.toggle('btn-ghost', link !== primary);
+      });
+      heroButtons.prepend(primary);
+      heroButtons.classList.add('is-ranked');
+    }
+  }
+
   document.querySelectorAll('[data-copy]').forEach((button) => {
     const root = button.closest('[data-copy-root]');
     const source = root && root.querySelector('[data-copy-text]');

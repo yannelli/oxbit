@@ -224,6 +224,10 @@
       "oxbit.prettier",
       "oxbit.builtin-ts"
     ],
+    "enumLabels": [
+      "Prettier",
+      "TypeScript (built-in)"
+    ],
     "category": "Formatting"
   },
   {

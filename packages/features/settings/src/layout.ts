@@ -1,4 +1,4 @@
-export const PAGE_ORDER = ["Appearance", "Editor", "Formatting", "Files", "Terminal", "Source Control", "Language Servers", "Runtime", "Desktop", "Agent ACP"];
+export const PAGE_ORDER = ["Appearance", "Editor", "Formatting", "Files", "Terminal", "Source Control", "Language Servers", "Runtime", "Desktop", "Agents"];
 export const FALLBACK_PAGE = "Extensions";
 const SEPARATOR = " · ";
 

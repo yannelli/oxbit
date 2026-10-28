@@ -11,8 +11,8 @@ describe("settings layout", () => {
   });
 
   it("orders known pages first, then others by first appearance, with Extensions last", () => {
-    expect(orderPages(["Extensions", "Zeta", "Terminal", "Agent ACP", "Alpha", "Appearance", "Zeta"]))
-      .toEqual(["Appearance", "Terminal", "Agent ACP", "Zeta", "Alpha", "Extensions"]);
+    expect(orderPages(["Extensions", "Zeta", "Terminal", "Agents", "Alpha", "Appearance", "Zeta"]))
+      .toEqual(["Appearance", "Terminal", "Agents", "Zeta", "Alpha", "Extensions"]);
   });
 
   it("groups items by page and puts sectionless items before named sections", () => {

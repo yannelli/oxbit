@@ -7,7 +7,7 @@ import { createRuntime } from "../../apps/runtime/src/runtime.js";
 import { buildArchive, registryDocument, serve } from "../fixtures/agent-acp-registry/server.mjs";
 
 const shots = "/tmp/oxbit-agents/panel-start";
-const builtins = ["Oxbit Agent CLI", "Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
+const builtins = ["Oxbit Agent", "Codex", "Claude", "Gemini", "GitHub Copilot", "Cursor", "Amp"];
 const listing = {
   fetchedAt: "2026-10-10T00:00:00.000Z",
   agents: [
@@ -76,7 +76,7 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
     const picker = panel.getByRole("radiogroup", { name: "Agent", exact: true });
     for (const name of builtins) await expect(picker.getByRole("radio", { name })).toBeVisible();
     await expect(picker.getByRole("radio")).toHaveCount(7);
-    await expect(picker.getByRole("radio", { name: "Codex ACP" })).toHaveAttribute("aria-checked", "true");
+    await expect(picker.getByRole("radio", { name: "Codex" })).toHaveAttribute("aria-checked", "true");
     const logos = picker.locator(".acp-agent-logo");
     await expect(logos).toHaveCount(7);
     expect(await logos.evaluateAll((elements) => elements.map((element) => {
@@ -85,9 +85,9 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
     }))).toEqual([["oxbit-cli", false, "16px"], ...["codex", "claude", "gemini", "copilot", "cursor", "amp"].map((id) => [id, true, "16px"])]);
     await fs.mkdir(shots, { recursive: true });
     await page.screenshot({ path: `${shots}/desktop-1-picker.png` });
-    await picker.getByRole("radio", { name: "Claude Agent" }).click();
-    await expect(picker.getByRole("radio", { name: "Claude Agent" })).toHaveAttribute("aria-checked", "true");
-    await expect(panel.getByRole("button", { name: "Start Claude Agent" })).toBeEnabled();
+    await picker.getByRole("radio", { name: "Claude" }).click();
+    await expect(picker.getByRole("radio", { name: "Claude" })).toHaveAttribute("aria-checked", "true");
+    await expect(panel.getByRole("button", { name: "Start Claude" })).toBeEnabled();
     expect(await setting(page, "agentACP.provider")).toBe("claude");
     expect(await selection(page)).toEqual({ provider: "claude" });
     await page.reload();
@@ -97,7 +97,7 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
       await z.kernel.extensions.activate("oxbit.agent-acp");
       z.workbench.run("agentACP.open");
     });
-    await expect(picker.getByRole("radio", { name: "Claude Agent" })).toHaveAttribute("aria-checked", "true");
+    await expect(picker.getByRole("radio", { name: "Claude" })).toHaveAttribute("aria-checked", "true");
     await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.provider", "mystery-agent", "user"));
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").changed());
     await expect(picker.getByRole("radio", { name: "mystery-agent" })).toHaveAttribute("aria-checked", "true");
@@ -107,7 +107,7 @@ test("the picker lists built-ins, persists the choice, and names unknown agents 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => (window as any).__oxbit.workbench.run("agentACP.open"));
     await expect(panel.getByRole("heading", { name: "Choose an agent" })).toBeInViewport();
-    await expect(panel.getByRole("radio", { name: "Codex ACP" })).toBeInViewport();
+    await expect(panel.getByRole("radio", { name: "Codex" })).toBeInViewport();
     await page.screenshot({ path: `${shots}/phone-1-picker.png` });
   } finally {
     await close();
@@ -146,7 +146,7 @@ test("the registry browser filters, selects, and maps the old runtime error", as
     ]);
     await panel.getByRole("button", { name: /More agents…/ }).click();
     await registry.getByRole("button", { name: /Claude Agent/ }).click();
-    await expect(picker.getByRole("radio", { name: "Claude Agent" })).toHaveAttribute("aria-checked", "true");
+    await expect(picker.getByRole("radio", { name: "Claude" })).toHaveAttribute("aria-checked", "true");
     expect(await selection(page)).toEqual({ provider: "claude" });
   } finally {
     await close();
@@ -262,12 +262,12 @@ test("a registry binary agent installs through the runtime and its request badge
     const views = page.getByRole("navigation", { name: "Primary views" });
     await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp-agents"));
     await expect(panel).toBeHidden();
-    const agent = views.getByRole("button", { name: "Agent ACP, Agent needs input", exact: true });
+    const agent = views.getByRole("button", { name: "Agents, Agent needs input", exact: true });
     await expect(agent.locator(".badge.badge-attention")).toHaveText("1");
     await agent.click();
     await panel.getByRole("button", { name: "Reject", exact: true }).click();
     await expect(panel.getByRole("log")).toContainText("reject-once");
-    await expect(views.getByRole("button", { name: "Agent ACP", exact: true }).locator(".badge")).toHaveCount(0);
+    await expect(views.getByRole("button", { name: "Agents", exact: true }).locator(".badge")).toHaveCount(0);
   } finally {
     await close();
     await host.close();
@@ -366,7 +366,7 @@ test("the agent activity service follows a turn through a request to its end", a
     const statuses = async () => (await updates()).map((update) => update?.status ?? null)
       .filter((status, index, all) => status !== all[index - 1]);
     await expect.poll(statuses).toEqual(["working", "waiting", "working", "finished"]);
-    expect((await updates()).at(-1)).toMatchObject({ agent: "Codex ACP", title: "permission", pending: 0, detail: "Agent finished" });
+    expect((await updates()).at(-1)).toMatchObject({ agent: "Codex", title: "permission", pending: 0, detail: "Agent finished" });
     expect((await updates()).find((update) => update.status === "waiting")).toMatchObject({ pending: 1, detail: "1 request needs an answer" });
     expect((await updates())[0].startedAt).toEqual(expect.any(Number));
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").disconnect());

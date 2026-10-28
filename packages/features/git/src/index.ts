@@ -4,6 +4,9 @@ import {
   Select,
   FileBadge,
   translate as tr,
+  displayShortcut,
+  usePhone,
+  useTouch,
 } from "@oxbit/ui";
 import React, { useEffect, useState } from "react";
 import type {
@@ -116,6 +119,18 @@ export function createFeature(o: FeatureOptions): Extension {
   let tab: (typeof tabs)[number] = "Changes";
   const selectTab = (next: typeof tab) => {
     tab = next;
+    changed();
+  };
+  let view: "list" | "tree" | undefined;
+  const currentView = () =>
+    (view ??=
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("oxbit.scm.view") === "tree"
+        ? "tree"
+        : "list");
+  const setView = (next: "list" | "tree") => {
+    view = next;
+    localStorage.setItem("oxbit.scm.view", next);
     changed();
   };
   const listeners = new Set<() => void>();
@@ -377,6 +392,7 @@ export function createFeature(o: FeatureOptions): Extension {
     );
     if (!destination) return;
     cloning = true;
+    o.kernel.context.set("gitCloning", true);
     progress = "Cloning repository…";
     error = "";
     cloneController = new AbortController();
@@ -397,6 +413,7 @@ export function createFeature(o: FeatureOptions): Extension {
       throw failure;
     } finally {
       cloning = false;
+      o.kernel.context.set("gitCloning", false);
       cloneController = undefined;
       changed();
     }
@@ -693,9 +710,9 @@ export function createFeature(o: FeatureOptions): Extension {
       commitMessage = value;
       changed();
     };
-    const [view, setView] = useState(() =>
-      localStorage.getItem("oxbit.scm.view") === "tree" ? "tree" : "list",
-    );
+    const view = currentView();
+    const phone = usePhone();
+    const touch = useTouch() || phone;
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
     const [pending, setPending] = useState(false);
     const [filter, setFilter] = useState("");
@@ -736,6 +753,46 @@ export function createFeature(o: FeatureOptions): Extension {
     const submit = () => {
       if (canCommit) run(() => commit(message).then(() => setMessage("")));
     };
+    const statusBadge = (code: string) =>
+      code === "?"
+        ? h(
+            "span",
+            {
+              className: "scm-status",
+              "data-status": code,
+              title: tr("Untracked"),
+              "aria-label": tr("Untracked"),
+            },
+            "U",
+          )
+        : h("span", { className: "scm-status", "data-status": code }, code);
+    const overflow = (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const available = (id: string) =>
+        o.kernel.commands.available(id).enabled;
+      const contributed = o.kernel.contributions
+        .list("toolbar")
+        .filter(
+          (item) =>
+            item.location === "sidebar:scm" &&
+            item.command &&
+            o.kernel.context.matches(item.when),
+        )
+        .map((item) => item.command!);
+      const ids = [
+        "git.refresh",
+        "git.fetch",
+        "git.clone",
+        ...(available("git.account") ? ["git.account"] : []),
+        view === "list" ? "git.viewTree" : "git.viewList",
+        ...(contributed.length ? ["-", ...contributed] : []),
+        ...(o.workbench.movePanel
+          ? ["-", "git.moveLeft", "git.moveRight", "git.moveBottom"]
+          : []),
+      ];
+      o.workbench.showContextMenu("scm.toolbar", rect.left, rect.bottom, ids);
+    };
     const file = (change: Change, group: string, depth = 0) => {
       const isStaged = group === "staged";
       const name = change.path.split("/").at(-1)!;
@@ -772,14 +829,7 @@ export function createFeature(o: FeatureOptions): Extension {
           dirty &&
             h("span", { className: "dirty-dot", title: tr("Unsaved changes") }),
         ),
-        h(
-          "span",
-          {
-            className: "scm-status",
-            "data-status": isStaged ? change.index : change.working,
-          },
-          isStaged ? change.index : change.working,
-        ),
+        statusBadge(isStaged ? change.index : change.working),
         h(
           "div",
           { className: "scm-file-actions" },
@@ -878,12 +928,13 @@ export function createFeature(o: FeatureOptions): Extension {
           "div",
           { className: "scm-toolbar" },
           h("span", { className: "scm-repository-label" }, tr("Repository")),
-          h(IconButton, {
-            icon: "refresh",
-            label: "Refresh",
-            disabled: pending,
-            onClick: () => run(refresh),
-          }),
+          !phone &&
+            h(IconButton, {
+              icon: "refresh",
+              label: "Refresh",
+              disabled: pending,
+              onClick: () => run(refresh),
+            }),
           h(IconButton, {
             icon: "arrowUp",
             label: status.upstream ? "Push" : "Publish branch",
@@ -899,34 +950,41 @@ export function createFeature(o: FeatureOptions): Extension {
             disabled: pending || !status.upstream,
             onClick: () => run(() => perform("pull")),
           }),
-          h(IconButton, {
-            icon: "sync",
-            label: "Fetch",
-            disabled: pending || !status.remotes.length,
-            onClick: () => run(() => perform("fetch")),
-          }),
-          h(IconButton, {
-            icon: "copy",
-            label: "Clone",
-            disabled: pending || !git?.connected,
-            onClick: () => run(clone),
-          }),
-          o.kernel.commands.available("git.account").enabled &&
+          !phone &&
+            h(IconButton, {
+              icon: "sync",
+              label: "Fetch",
+              disabled: pending || !status.remotes.length,
+              onClick: () => run(() => perform("fetch")),
+            }),
+          !phone &&
+            h(IconButton, {
+              icon: "copy",
+              label: "Clone",
+              disabled: pending || !git?.connected,
+              onClick: () => run(clone),
+            }),
+          !phone &&
+            o.kernel.commands.available("git.account").enabled &&
             h(IconButton, {
               icon: "users",
               label: "Git Accounts and Commit Author",
               onClick: () => report(() => o.kernel.commands.execute("git.account")),
             }),
-          h(IconButton, {
-            icon: view === "list" ? "folder" : "menu",
-            label:
-              view === "list" ? "Switch to tree view" : "Switch to list view",
-            onClick: () => {
-              const next = view === "list" ? "tree" : "list";
-              setView(next);
-              localStorage.setItem("oxbit.scm.view", next);
-            },
-          }),
+          !phone &&
+            h(IconButton, {
+              icon: view === "list" ? "folder" : "menu",
+              label:
+                view === "list" ? "Switch to tree view" : "Switch to list view",
+              onClick: () => setView(view === "list" ? "tree" : "list"),
+            }),
+          phone &&
+            h(IconButton, {
+              icon: "more",
+              label: "Source control actions",
+              "aria-haspopup": "menu",
+              onClick: overflow,
+            }),
         ),
         h(Select, {
           className: "scm-branch",
@@ -987,7 +1045,11 @@ export function createFeature(o: FeatureOptions): Extension {
             className: "scm-message",
             "aria-label": tr("Commit message"),
             rows: 3,
-            placeholder: tr("Message (Ctrl+Enter to commit)"),
+            placeholder: touch
+              ? tr("Message")
+              : tr("Message ({0} to commit)", {
+                  "0": displayShortcut("Mod+Enter"),
+                }),
             value: message,
             onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
               setMessage(event.target.value),
@@ -1259,7 +1321,7 @@ export function createFeature(o: FeatureOptions): Extension {
                         "div",
                         { className: "scm-empty" },
                         h(Icon, { name: "okCircle", size: 24 }),
-                        h("span", null, tr("No disk changes")),
+                        h("span", null, tr("No changes")),
                       ),
                   ),
         ),
@@ -1281,6 +1343,7 @@ export function createFeature(o: FeatureOptions): Extension {
       ctx.own(
         ctx.services.register("git", {
           status: () => status,
+          loaded: () => revision > 0 || error !== "",
           subscribe: (listener: () => void) => {
             listeners.add(listener);
             return () => {
@@ -1305,13 +1368,15 @@ export function createFeature(o: FeatureOptions): Extension {
           title: "Source Control",
           component: Panel,
           order: 30,
+          data: { phoneHeader: false },
         }),
       );
       const command = (
         id: string,
         title: string,
         run: (args?: any) => unknown,
-      ) => ctx.own(ctx.commands.register({ id, title, run }));
+        when?: string,
+      ) => ctx.own(ctx.commands.register({ id, title, run, when }));
       command("git.restore", "Restore Missing File from Git", (args) =>
         restore(args?.path),
       );
@@ -1362,9 +1427,20 @@ export function createFeature(o: FeatureOptions): Extension {
       command("git.openChanges", "Open Changes", () => diff());
       command("git.checkout", "Checkout Existing Branch", () => checkout());
       command("git.clone", "Clone Repository", clone);
-      command("git.cancelClone", "Cancel Clone", () =>
-        cloneController?.abort(),
+      command(
+        "git.cancelClone",
+        "Cancel Clone",
+        () => cloneController?.abort(),
+        "gitCloning",
       );
+      command("git.viewTree", "Switch to tree view", () => setView("tree"));
+      command("git.viewList", "Switch to list view", () => setView("list"));
+      for (const [id, title, container] of [
+        ["git.moveLeft", "Move Source Control to Left", "left"],
+        ["git.moveRight", "Move Source Control to Right", "right"],
+        ["git.moveBottom", "Move Source Control to Bottom", "bottom"],
+      ] as const)
+        command(id, title, () => o.workbench.movePanel?.("scm", { container }));
       let failures = 0,
         timer: ReturnType<typeof setTimeout> | undefined,
         fetchController: AbortController | undefined,

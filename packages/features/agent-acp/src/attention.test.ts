@@ -83,12 +83,12 @@ describe("agent attention", () => {
 });
 
 describe("agent activity", () => {
-  const thread = { agent: "Codex ACP", title: "Fix login", connected: true, busy: false, pending: 0 };
+  const thread = { agent: "Codex", title: "Fix login", connected: true, busy: false, pending: 0 };
   it("maps the thread to a Live Activity state", () => {
     expect(activityUpdate({ ...thread, connected: false, busy: true })).toBeNull();
     expect(activityUpdate(thread)).toBeNull();
     expect(activityUpdate({ ...thread, busy: true, startedAt: 5, tool: "Edit hello.txt" })).toEqual(
-      { agent: "Codex ACP", title: "Fix login", pending: 0, status: "working", detail: "Edit hello.txt", startedAt: 5 });
+      { agent: "Codex", title: "Fix login", pending: 0, status: "working", detail: "Edit hello.txt", startedAt: 5 });
     expect(activityUpdate({ ...thread, busy: true, pending: 2 })).toMatchObject({ status: "waiting", detail: "2 requests need an answer" });
     expect(activityUpdate({ ...thread, pending: 1 })).toMatchObject({ status: "waiting", detail: "1 request needs an answer" });
     expect(activityUpdate(thread, "failed")).toMatchObject({ status: "failed", detail: "Agent turn failed" });
@@ -111,7 +111,7 @@ describe("agent activity", () => {
       ["finished", "Agent finished"],
       null,
     ]);
-    expect(updates[0]).toMatchObject({ agent: "Codex ACP", title: "Fix login", startedAt: expect.any(Number) });
+    expect(updates[0]).toMatchObject({ agent: "Codex", title: "Fix login", startedAt: expect.any(Number) });
   });
   it("re-sends a working state every 5 minutes until the turn ends", () => {
     vi.useFakeTimers();

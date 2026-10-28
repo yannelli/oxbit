@@ -92,6 +92,7 @@ export interface WorkbenchState {
   workspaceRoot?: string;
   revision: number;
   recent: string[];
+  recentCommands: string[];
   keybindings: Record<string, string>;
   chord?: string;
   aboutOpen?: boolean;
@@ -133,6 +134,7 @@ const initial = (): WorkbenchState => ({
   projectName: "Workspace",
   revision: 0,
   recent: [],
+  recentCommands: [],
   keybindings: {},
 });
 export class WorkbenchController {
@@ -370,6 +372,7 @@ export class WorkbenchController {
       direction,
       expanded,
       recent,
+      recentCommands,
       keybindings,
     } = this.state;
     await this.persistence.set(`layout:${this.filesystem.id}`, {
@@ -404,6 +407,7 @@ export class WorkbenchController {
       direction,
       expanded,
       recent,
+      recentCommands,
       keybindings,
     });
   }
@@ -958,6 +962,9 @@ export class WorkbenchController {
     this.set({ dialog: undefined });
     dialog?.resolve(choice, value);
   }
+  rememberCommand(id: string) {
+    this.set({ recentCommands: [id, ...this.state.recentCommands.filter((item) => item !== id)].slice(0, 10) });
+  }
   async run(id: string, args?: unknown) {
     if (this.state.menu) this.set({ menu: undefined });
     try {
@@ -1096,6 +1103,7 @@ export class WorkbenchController {
       files: this.state.files,
       projectName: this.state.projectName,
       recent: this.state.recent,
+      recentCommands: this.state.recentCommands,
       keybindings: this.state.keybindings,
       workspaceOpen: this.state.workspaceOpen,
       groups: [{ id: "g1", tabs, active: tabs[0]?.id }],

@@ -15,7 +15,7 @@ import {
   type Extension,
   type FeatureOptions,
 } from "@oxbit/sdk";
-import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
+import { Icon, IconButton, Select, translate as tr, usePhone } from "@oxbit/ui";
 import { AgentController, FILE_REJECTED, SETUP_ERRORS, type AgentRequest } from "./controller.js";
 import { AgentPicker, CustomAgentForm, type Chooser } from "./agent-picker.js";
 import { ContextMeter } from "./context-meter.js";
@@ -44,6 +44,7 @@ import { watchThreads } from "./threads.js";
 import { agentConfiguration } from "./configuration.js";
 import { AgentLogo } from "./agent-logo.js";
 import { LocalAgentRuntime } from "./local/runtime.js";
+import { PhoneToolbar, panelMenuItems } from "./phone-header.js";
 function RequestCard({
   request,
   agent,
@@ -320,6 +321,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const enabled = !!runtime?.connected;
   const local = agent.local;
   const controls = sessionControls(connection);
+  const phone = usePhone();
+  const starts = !connection && !agent.archived && !agent.draft.trim();
   const settingsDisabled =
     agent.busy ||
     agent.connecting ||
@@ -443,7 +446,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           },
         }]
       : []),
-    { id: "agents", label: "Open Agents", icon: "agent", run: () => agent.openAgents() },
+    { id: "agents", label: "Open Subagents", icon: "agent", run: () => agent.openAgents() },
     { id: "setup", label: "Agent setup", icon: "gear", run: () => setShowSetup(!showSetup) },
     ...(connection && !local ? [{ id: "thread", label: "New thread", icon: "plus", run: newThread }] : []),
     ...(agent.canForkSession
@@ -458,6 +461,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           run: () => void Notification.requestPermission().then(setPermission),
         }]
       : []),
+    ...(phone ? panelMenuItems(agent.options.workbench, kernel) : []),
   ];
   const chooserView =
     chooser === "registry" ? (
@@ -514,6 +518,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             aria-expanded={showHistory}
             onClick={() => setShowHistory(!showHistory)}
           />
+          {phone && <PhoneToolbar workbench={agent.options.workbench} />}
           <OverflowMenu label="More agent actions" items={menu} />
         </div>
         {!enabled && (
@@ -598,7 +603,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       >
         {!agent.messages.length && chooserView}
         {!agent.messages.length && !chooserView && !connection && !agent.archived && (
-          <AgentPicker agent={agent} enabled={enabled} onChoose={setChooser} />
+          <AgentPicker agent={agent} onChoose={setChooser} />
         )}
         {!agent.messages.length && !chooserView && (connection || agent.archived) && (
           <div className="acp-welcome">
@@ -685,7 +690,7 @@ function AgentPanel({ agent }: { agent: AgentController }) {
         className="acp-composer"
         onSubmit={(event) => {
           event.preventDefault();
-          void agent.action(() => agent.send());
+          void agent.action(() => (starts ? agent.connectSelected() : agent.send()));
         }}
         onDragOver={(event) => {
           if (event.dataTransfer.types.includes("Files")) event.preventDefault();
@@ -862,12 +867,17 @@ function AgentPanel({ agent }: { agent: AgentController }) {
             onClick={() => void agent.action(() => agent.interruptAndSend())}>{tr("Interrupt & send")}</button>}
           <IconButton
               icon="arrowUp"
-              label={agent.busy ? "Queue message" : "Send"}
+              label={
+                agent.busy ? "Queue message"
+                  : !starts ? "Send"
+                    : local && agent.claudePlan ? tr("Runtime connection")
+                      : tr("Start {0}", { 0: agent.displayName })
+              }
               className="icon-button acp-send"
               type="submit"
               disabled={
                 (!!connection && !connection.sessionId) ||
-                !agent.draft.trim() ||
+                (!starts && !agent.draft.trim()) ||
                 !enabled ||
                 agent.connecting ||
                 agent.updatingSettings ||
@@ -879,14 +889,15 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       </form>
       <div className="acp-footer">
         {agent.usage && <ContextMeter usage={agent.usage} />}
-        {connection || (local && (agent.messages.length > 0 || agent.archived)) ? (
+        {connection || local ? (
           <div className="acp-provider" title={agent.displayName}>
             <AgentLogo provider={connection?.provider ?? chosen} size={14} />
             <span>{agent.displayName}</span>
           </div>
-        ) : (agent.messages.length > 0 || agent.archived) && (
+        ) : (
           <Select
-            label={tr("ACP provider")}
+            className="acp-agent-chip"
+            label={tr("Agent: {0}", { 0: agent.displayName })}
             icon={<AgentLogo provider={chosen} size={14} />}
             value={chosen}
             options={[
@@ -1009,9 +1020,9 @@ export function createFeature(options: FeatureOptions): Extension {
         ctx.contributions.register({
           id: AGENT_VIEW,
           kind: "activityView",
-          title: "Agent ACP",
+          title: "Agents",
           order: 45,
-          data: { icon: "agentChat", dock: "right", phoneBar: true, phoneLabel: "Agent" },
+          data: { icon: "agentChat", dock: "right", phoneBar: true, phoneLabel: "Agent", phoneHeader: false },
           component: () => <AgentPanel agent={agent} />,
         }),
       );
@@ -1019,7 +1030,7 @@ export function createFeature(options: FeatureOptions): Extension {
         ctx.contributions.register({
           id: "agent-acp-agents",
           kind: "activityView",
-          title: "Agents",
+          title: "Subagents",
           order: 46,
           data: { icon: "agent", dock: "right" },
           component: () => (
@@ -1047,16 +1058,16 @@ export function createFeature(options: FeatureOptions): Extension {
       ctx.own(
         ctx.commands.register({
           id: "agentACP.openAgents",
-          title: "Open Agents",
-          category: "Agent ACP",
+          title: "Open Subagents",
+          category: "Agents",
           run: () => agent.openAgents(),
         }),
       );
       ctx.own(
         ctx.commands.register({
           id: "agentACP.open",
-          title: "Open Agent ACP",
-          category: "Agent ACP",
+          title: "Open Agents",
+          category: "Agents",
           run: () => {
             options.workbench.openPanel(AGENT_VIEW);
             agent.markSeen();
@@ -1076,7 +1087,7 @@ export function createFeature(options: FeatureOptions): Extension {
           ctx.commands.register({
             id,
             title,
-            category: "Agent ACP",
+            category: "Agents",
             run: async () => {
               await options.kernel.commands.execute("agentACP.open");
               await agent.action(run);

@@ -3,13 +3,12 @@ import { translate as tr } from "@oxbit/ui";
 import { Fragment, useRef, useState, useSyncExternalStore } from "react";
 import type { Extension, ExtensionRecord, Kernel, Setting } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
-import { Icon, IconButton, Dialog, Select } from "@oxbit/ui";
+import { Icon, IconButton, Dialog, Select, usePhone } from "@oxbit/ui";
 import { settingsConfiguration } from "./configuration.js";
 import { scopedSetting } from "./scopes.js";
 import { groupSettings, matchesQuery, splitCategory } from "./layout.js";
 import { ActionRow, ServerRow, SettingRow, type SettingAction } from "./rows.js";
 import { EditJsonDialog } from "./json-dialog.js";
-import { usePhone } from "./use-phone.js";
 import { activeKeymap, commandBinding, normalizeShortcut } from "@oxbit/workbench";
 
 const SERVER_PREFIX = "Language Servers · ";
@@ -46,6 +45,7 @@ export function Settings({
   const list = useRef<HTMLDivElement>(null);
   const gitAccounts = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("git.account").enabled);
   const aiKey = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("ai.setApiKey").enabled);
+  const iconPacks = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("iconPacks.manage").enabled);
   const themeEditor = useSyncExternalStore(kernel.contributions.subscribe, () => kernel.commands.available("theme.editor.new").enabled);
   const records = kernel.extensions.list();
   const owner = extension ? records.find(record => record.manifest.id === extension) : undefined;
@@ -64,8 +64,9 @@ export function Settings({
   const showAll = searching || !!owner;
   const actions: SettingAction[] = owner || modified ? [] : [
     { category: "Appearance", title: tr("Theme Packs"), description: tr("Import and remove theme packs."), label: tr("Manage Theme Packs"), command: "theme.packs.manage" },
+    ...(iconPacks ? [{ category: "Appearance", title: tr("Icon Packs"), description: tr("Import, enable and remove icon packs."), label: tr("Manage Icon Packs"), command: "iconPacks.manage" }] : []),
     ...(themeEditor ? [{ category: "Appearance", title: tr("Theme Editor"), description: tr("Create a color theme or edit a copy of the current one."), label: tr("New Color Theme"), command: "theme.editor.new" }] : []),
-    ...(aiKey ? [{ last: true, category: "Editor · AI", title: tr("AI provider API key"), description: tr("Save the key for the OpenRouter or Custom OpenAI API provider. The iPhone keeps it in the Keychain; a runtime keeps it in the Oxbit agent's auth.json."), label: tr("Set API Key…"), command: "ai.setApiKey" }] : []),
+    ...(aiKey ? [{ last: true, category: "Editor · AI", title: tr("AI provider API key"), description: tr("Save the key for the OpenRouter or OpenAI-compatible provider. The iPhone keeps it in the Keychain; a runtime keeps it in the Oxbit agent's auth.json."), label: tr("Set API Key…"), command: "ai.setApiKey" }] : []),
     ...(gitAccounts ? [{ category: "Source Control", title: tr("Git Accounts and Commit Author"), description: tr("Sign in to Git hosts and set the name and email used for commits."), label: tr("Manage Git Accounts…"), command: "git.account" }] : []),
   ];
   const servers = owner || modified ? [] : records
