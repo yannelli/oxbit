@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = Object.freeze({
     ollamaUrl: 'http://127.0.0.1:11434',
     llamacppUrl: 'http://127.0.0.1:8080',
     mlxModel: 'mlx-community/embeddinggemma-300m-4bit',
-    mlxPort: 8765,
+    mlxPort: 47821,
     budgetMs: 150,
     minScore: 0.5,
     checkTtlMs: 60_000,

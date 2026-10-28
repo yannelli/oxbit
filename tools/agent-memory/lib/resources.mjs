@@ -114,9 +114,11 @@ export const defaultProbes = {
     const response = await fetchWithTimeout(`${url}/health`);
     return Boolean(response?.ok);
   },
-  async mlxAvailable(model, env = process.env) {
+  async mlxAvailable(model, env = process.env, port) {
+    if (port && (await fetchWithTimeout(`http://127.0.0.1:${port}/health`))?.ok) return { module: true, modelDir: true };
     const modelDir = existsSync(huggingFaceModelDir(model, env));
-    const module = (await run('python3', ['-c', 'import mlx_embeddings'])) !== null;
+    const check = "import importlib.util as u, sys; sys.exit(0 if u.find_spec('mlx_embeddings') and u.find_spec('mlx_lm') else 1)";
+    const module = (await run('python3', ['-c', check])) !== null;
     return { module, modelDir };
   },
 };
@@ -156,8 +158,8 @@ async function presence(backend, e, probes, env) {
     return { model: null, reason: `llamacpp: no /health answer at ${e.llamacppUrl}` };
   }
   if (backend === 'mlx') {
-    const { module, modelDir } = await probes.mlxAvailable(e.mlxModel, env);
-    if (!module) return { model: null, reason: 'mlx: python3 cannot import mlx_embeddings' };
+    const { module, modelDir } = await probes.mlxAvailable(e.mlxModel, env, e.mlxPort);
+    if (!module) return { model: null, reason: 'mlx: python3 has no mlx_embeddings and mlx_lm modules' };
     if (!modelDir) return { model: null, reason: `mlx: model ${e.mlxModel} missing from Hugging Face cache` };
     return { model: e.mlxModel };
   }

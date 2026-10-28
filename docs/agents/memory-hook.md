@@ -1,6 +1,6 @@
 # Memory hook
 
-Created: 2026-10-21. Last updated: 2026-10-21.
+Created: 2026-10-21. Last updated: 2026-10-27.
 
 `tools/agent-memory/` is an optional hook for Claude Code, Codex and Cursor. It matches the agent's prompt or shell command and output against Markdown memory notes and adds up to 3 pointer lines, each an openable path with the reason it matched. It is off until you run the enable script.
 
@@ -30,7 +30,7 @@ Settings live in `~/.config/agent-memory/config.json` (or the file in `AGENT_MEM
 1. Index. Each file over 3,000 characters is split at `##` and `###` headings, so a line points at `path:line`. Term counts per field (title and path, description, body) are cached in `~/.cache/agent-memory/` per file, keyed by mtime and size. When a file changed, the hook answers from the old index and rebuilds it in a detached process.
 2. Query. A prompt is used as is. A shell tool call uses the command plus the head and tail of stderr and stdout (4,000 characters), and other tools are skipped. Terms are stemmed and split on camelCase, kebab-case and paths; the 24 rarest known terms are kept, plus up to 4 unknown terms for fuzzy matching (backed by BM25Q and the query-robustness study below).
 3. Rank. BM25F with field weights 3, 2 and 1 and k1 1.2 (BM25S, BRIGHT). A term missing from the vocabulary expands to terms within edit distance 1, or 2 for 8+ letters, or a shared 5+ letter prefix, at reduced weight (MiniSearch). A hit needs a score of 4 and 75% of the top score, and either 3 matched terms or 2 terms with a score of 7, so weak matches print nothing (context rot, NoisyBench).
-4. Optional embeddings. With `embedding.enabled`, `pickBackend` checks free memory (`vm_stat` or `/proc/meminfo`), CPU count, load per CPU, power (`pmset` or `/sys/class/power_supply`, Low Power Mode) and model presence (Ollama `/api/tags`, llama.cpp `/health`, MLX `mlx_embeddings` plus the Hugging Face cache) before anything loads, and caches the answer for 60 s. Backends are an existing Ollama or llama.cpp server on GPU or CPU (`device: cpu` sends `num_gpu: 0`), or a `mlx_server.py` sidecar on Apple silicon. The query embedding gets a 150 ms budget; a failed check, missing vectors or a timeout leaves the lexical result. Results fuse by RRF with k 60 (Zep, BM25 to corrective RAG). There is no reranker: it does not fit the budget (SkillRet).
+4. Optional embeddings. With `embedding.enabled`, `pickBackend` checks free memory (`vm_stat` or `/proc/meminfo`), CPU count, load per CPU, power (`pmset` or `/sys/class/power_supply`, Low Power Mode) and model presence (Ollama `/api/tags`, llama.cpp `/health`, MLX: a sidecar answering `/health`, or the `mlx_embeddings` and `mlx_lm` modules found with `find_spec` plus the model in the Hugging Face cache) before anything loads, and caches the answer for 60 s. Backends are an existing Ollama or llama.cpp server on GPU or CPU (`device: cpu` sends `num_gpu: 0`), or a `mlx_server.py` sidecar on Apple silicon (port 47821; install with `python3 -m pip install mlx-embeddings mlx-lm`). The query embedding gets a 150 ms budget; a failed check, missing vectors or a timeout leaves the lexical result. Results fuse by RRF with k 60 (Zep, BM25 to corrective RAG). There is no reranker: it does not fit the budget (SkillRet).
 5. Inject. Output is JSON `additionalContext` (`additional_context` for Cursor): a header and at most 3 lines and 900 characters per call, 6,000 per epoch, well under the 10,000-character Claude Code cap and 2,500-token Codex cap.
 
 Session state sits in `~/.cache/agent-memory/sessions/`, one file per tool, session id and agent id, so a subagent with its own `agent_id` (or `subagent_id`) starts fresh. A note shown in a session stays quiet until one of these holds:
@@ -62,9 +62,13 @@ Measured 2026-10-21 on an M1 Max (10 cores, 64 GB, AC power) with load averages 
 | Lexical | 100 | 97 ms | 127 ms | under the 150 ms target |
 | Ollama `embeddinggemma:300m-qat-q8_0`, forced past the resource check, 150 ms budget | 100 | 252 ms | 282 ms | 100 of 100 hit the budget and returned the lexical result |
 | Same, 2 s budget | 50 | 228 ms | 288 ms | 50 of 50 used embeddings |
+| Ollama with `device: cpu` (`num_gpu: 0`; `ollama ps` showed `100% CPU`), forced, 2 s budget, load about 127 | 50 | 1,186 ms | 2,354 ms | 25 used CPU embeddings, 4 fell back when the 300 ms presence probe got no answer, 21 hit the 2 s process limit and printed nothing |
+| MLX sidecar `mlx-community/embeddinggemma-300m-4bit`, forced, 150 ms budget (measured 2026-10-27, load 10 to 60) | 50 | 218 ms | 468 ms | 46 used MLX embeddings, 4 hit the budget and returned lexical results |
+| MLX with the resource check on | 50 | 118 ms | 251 ms | the check refused (`load 2.34/cpu > 1`) and the hook returned lexical results |
 
 - Cold index build: 265 to 437 ms. A warm index loads in about 50 ms (file walk about 30 ms, JSON parse about 17 ms).
-- Vector cache: 2,386 chunks in 133 s, 7.3 MB.
+- Vector cache: 2,386 chunks in 133 s, 7.3 MB, through Ollama. Through MLX: 2,457 chunks in 133 s.
+- The MLX run used `mlx-embeddings` 0.1.0 and `mlx-lm` in a temporary Python 3.12 venv. `mlx_server.py` calls the model directly, since that version's `generate()` passes `input_ids` by keyword and the `gemma3_text` model rejects it.
 - Without `AGENT_MEMORY_FORCE_BACKEND`, `pickBackend` refused the embedding path on this machine with `load 6.56/cpu > 1`, which is the intended choice at that load.
 - Prompts unrelated to the corpus (a haiku request, arithmetic, a rename) printed nothing.
 

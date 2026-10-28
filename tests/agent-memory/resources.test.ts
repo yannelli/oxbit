@@ -87,7 +87,7 @@ describe("pickBackend", () => {
     expect(result.reasons).toEqual([
       `ollama: model ${MODEL} missing`,
       "llamacpp: no /health answer at http://127.0.0.1:8080",
-      "mlx: python3 cannot import mlx_embeddings",
+      "mlx: python3 has no mlx_embeddings and mlx_lm modules",
     ]);
   });
 

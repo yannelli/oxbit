@@ -13,24 +13,19 @@ MAX_TOKENS = 2048
 
 def load_embedder(model_name):
     try:
-        import mlx_embeddings
         from mlx_embeddings.utils import load
     except ImportError:
         print(
             "agent-memory mlx_server: python module mlx_embeddings is missing; "
-            "install it with `python3 -m pip install mlx-embeddings`",
+            "install it with `python3 -m pip install mlx-embeddings mlx-lm`",
             file=sys.stderr,
         )
         sys.exit(2)
     model, tokenizer = load(model_name)
-    generate = getattr(mlx_embeddings, "generate", None)
 
+    # mlx_embeddings 0.1.0 generate() passes input_ids by keyword, which gemma3_text rejects.
     def embed(texts):
-        if generate is not None:
-            return generate(model, tokenizer, texts=texts).text_embeds.tolist()
-        inputs = tokenizer.batch_encode_plus(
-            texts, return_tensors="mlx", padding=True, truncation=True, max_length=MAX_TOKENS
-        )
+        inputs = tokenizer(texts, return_tensors="mlx", padding=True, truncation=True, max_length=MAX_TOKENS)
         outputs = model(inputs["input_ids"], attention_mask=inputs["attention_mask"])
         return outputs.text_embeds.tolist()
 
@@ -80,7 +75,7 @@ def make_handler(state):
 
 def main():
     parser = argparse.ArgumentParser(description="agent-memory MLX embedding sidecar")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=47821)
     parser.add_argument("--model", default="mlx-community/embeddinggemma-300m-4bit")
     args = parser.parse_args()
 
