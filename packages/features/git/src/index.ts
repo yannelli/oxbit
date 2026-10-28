@@ -8,15 +8,33 @@ import {
   usePhone,
   useTouch,
 } from "@oxbit/ui";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   Extension,
   FeatureOptions,
+  GitBranchDiff,
   GitChange as Change,
   GitStatus as Status,
   GitDiff,
+  GitLog,
   GitStash,
 } from "@oxbit/sdk";
+import {
+  AI_SERVICE_ID,
+  cleanCommitMessage,
+  collectDiffs,
+  commitMessagePrompt,
+  commitPlanPrompt,
+  parseCommitPlan,
+  parsePullRequest,
+  pullRequestPrompt,
+  pullRequestRemote,
+  type AiCompletion,
+  type PlannedCommit,
+} from "./ai.js";
+import { CommitPlanDialog } from "./commit-plan.js";
+import { PullRequestDialog } from "./pull-request.js";
 import {
   History,
   Branches,
@@ -105,6 +123,9 @@ const staged = (change: Change) =>
   !change.conflict && ![" ", "?", ""].includes(change.index);
 const unstaged = (change: Change) =>
   !change.conflict && ![" ", ""].includes(change.working);
+const messageOf = (failure: unknown) =>
+  failure instanceof Error ? failure.message : String(failure);
+const AI_MISSING = "Set up an AI provider to use AI in Source Control";
 export function createFeature(o: FeatureOptions): Extension {
   const git = o.git ?? o.runtime;
   let status: Status = emptyStatus(),
@@ -115,6 +136,13 @@ export function createFeature(o: FeatureOptions): Extension {
   let revision = 0;
   let commitMessage = "",
     committing = false;
+  let aiController: AbortController | undefined,
+    aiTask: "message" | "plan" | undefined,
+    aiFailure = "";
+  let dialog:
+    | { kind: "plan"; plan: PlannedCommit[] }
+    | { kind: "pullRequest"; title: string }
+    | undefined;
   const tabs = ["Changes", "History", "Branches", "Stashes"] as const;
   let tab: (typeof tabs)[number] = "Changes";
   const selectTab = (next: typeof tab) => {
@@ -170,6 +198,8 @@ export function createFeature(o: FeatureOptions): Extension {
       o.kernel.context.set("gitRepo", status.repository);
       o.kernel.context.set("gitChanges", status.changes.length > 0);
       o.kernel.context.set("gitStaged", status.changes.some(staged));
+      o.kernel.context.set("gitAmend", canAmend());
+      o.kernel.context.set("gitPullRequest", canPullRequest());
       changed();
     } catch (failure) {
       if (sequence !== statusRequest || disposed) return;
@@ -178,10 +208,20 @@ export function createFeature(o: FeatureOptions): Extension {
       o.kernel.context.set("gitRepo", false);
       o.kernel.context.set("gitChanges", false);
       o.kernel.context.set("gitStaged", false);
+      o.kernel.context.set("gitAmend", false);
+      o.kernel.context.set("gitPullRequest", false);
       changed();
       throw failure;
     }
   };
+  // The iOS on-device client (o.git) has no amend or pull request support.
+  const runtimeHost = () => !o.git && !!o.runtime;
+  const canAmend = () => runtimeHost() && !!status.head;
+  const canPullRequest = () =>
+    runtimeHost() &&
+    !!status.head &&
+    status.branches.includes(status.branch) &&
+    !!pullRequestRemote(status);
   const report = (action: () => Promise<unknown>) => {
     void action().catch((failure) => {
       error = String(failure);
@@ -268,13 +308,14 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   const stageAll = async () => {
     await refresh();
-    if (!(await saveBuffers(undefined, true))) return;
+    if (!(await saveBuffers(undefined, true))) return false;
     if (status.changes.some((change) => change.conflict))
       throw new Error(
         "Resolve and stage conflicted files individually before staging all changes",
       );
     await request("stageAll");
     await refresh();
+    return true;
   };
   const stage = async (path: string, save = false) => {
     const doc = o.documents.get(path);
@@ -346,23 +387,245 @@ export function createFeature(o: FeatureOptions): Extension {
     await refresh();
     if (failures.length) throw new Error(failures.join("\n"));
   };
-  const commit = async (message?: string) => {
-    if (committing) return;
+  const commit = async (message?: string, method = "commit") => {
+    if (committing) return false;
     message ??=
       commitMessage || (await o.workbench.prompt(tr("Commit message")));
-    if (message === undefined) return;
-    if (!message.trim()) throw new Error("Enter a commit message");
+    if (message === undefined) return false;
+    if (!message.trim() && method === "commit")
+      throw new Error("Enter a commit message");
     committing = true;
     changed();
     try {
-      await request("commit", { message });
+      await request(method, { message });
       if (commitMessage === message) commitMessage = "";
       await refresh();
-      o.workbench.notify("Commit created");
+      o.workbench.notify(
+        tr(method === "amend" ? "Last commit amended" : "Commit created"),
+      );
+      return true;
     } finally {
       committing = false;
       changed();
     }
+  };
+  const pushOrPublish = async () => {
+    if (status.upstream) return perform("push");
+    const remote =
+      pullRequestRemote(status) ??
+      (status.remotes.length === 1 ? status.remotes[0]!.name : undefined);
+    if (!remote) {
+      tab = "Branches";
+      o.workbench.openPanel("scm");
+      changed();
+      return false;
+    }
+    return perform("publish", { remote });
+  };
+  /** Commits staged changes, or stages everything first when nothing is staged. */
+  const commitChanges = async ({ push = false } = {}) => {
+    await refresh();
+    if (status.changes.some((change) => change.conflict))
+      throw new Error("Resolve conflicts before committing");
+    const message = commitMessage.trim()
+      ? commitMessage
+      : await o.workbench.prompt(tr("Commit message"));
+    if (message === undefined) return false;
+    if (!status.changes.some(staged)) {
+      if (!status.changes.length) throw new Error("There are no changes to commit");
+      if (!(await stageAll())) return false;
+    }
+    if (!(await commit(message))) return false;
+    if (push) await pushOrPublish();
+    return true;
+  };
+  const amend = async () => {
+    await refresh();
+    if (!canAmend()) throw new Error("This workspace cannot amend commits");
+    if (
+      status.upstream &&
+      !status.ahead &&
+      (await o.workbench.ask(
+        tr("Amend pushed commit?"),
+        tr("The last commit is already on {0}. Amending it rewrites history you have pushed.", {
+          "0": status.upstream,
+        }),
+        ["Amend Last Commit", "Cancel"],
+        true,
+      )) !== "Amend Last Commit"
+    )
+      return false;
+    return commit(commitMessage, "amend");
+  };
+  const sync = async () => {
+    if (await perform("pull", runtimeHost() ? { rebase: true } : {}))
+      await perform("push");
+  };
+  const aiService = () =>
+    o.kernel.services.optional<AiCompletion>(AI_SERVICE_ID);
+  const aiUnavailable = () =>
+    aiFailure || (aiService() ? undefined : tr(AI_MISSING));
+  /** Runs one AI task at a time; AI service errors disable AI actions until settings change. */
+  const withAi = async <T>(
+    task: "message" | "plan",
+    work: (ai: AiCompletion, signal: AbortSignal) => Promise<T>,
+  ) => {
+    const ai = aiService();
+    if (!ai) {
+      error = tr(AI_MISSING);
+      changed();
+      return undefined;
+    }
+    if (aiController) throw new Error("Wait for the current AI request to finish");
+    const controller = (aiController = new AbortController());
+    aiTask = task;
+    error = "";
+    changed();
+    const guarded: AiCompletion = {
+      complete: (input, signal) =>
+        ai.complete(input, signal).catch((failure: unknown) => {
+          if (!signal?.aborted) aiFailure = messageOf(failure);
+          throw failure;
+        }),
+    };
+    try {
+      return await work(guarded, controller.signal);
+    } catch (failure) {
+      if (controller.signal.aborted) return undefined;
+      error = messageOf(failure);
+      return undefined;
+    } finally {
+      aiController = undefined;
+      aiTask = undefined;
+      changed();
+    }
+  };
+  const recentSubjects = async (signal: AbortSignal) =>
+    status.head
+      ? (await request<GitLog>("log", { limit: 10 }, signal)).commits.map(
+          (commit) => commit.subject,
+        )
+      : [];
+  const generateMessage = () =>
+    withAi("message", async (ai, signal) => {
+      await refresh();
+      const hasStaged = status.changes.some(staged);
+      const changes = status.changes.filter((change) =>
+        hasStaged ? staged(change) : !change.conflict,
+      );
+      if (!changes.length) throw new Error("There are no changes to describe");
+      const [files, subjects] = await Promise.all([
+        collectDiffs(request, changes, hasStaged ? "staged" : "all", signal),
+        recentSubjects(signal),
+      ]);
+      const text = await ai.complete(commitMessagePrompt(files, subjects), signal);
+      if (!signal.aborted) commitMessage = cleanCommitMessage(text);
+    });
+  const commitWithAi = () =>
+    withAi("plan", async (ai, signal) => {
+      await refresh();
+      if (status.changes.some((change) => change.conflict))
+        throw new Error("Resolve conflicts before committing with AI");
+      if (!status.changes.length) throw new Error("There are no changes to commit");
+      const [files, subjects] = await Promise.all([
+        collectDiffs(request, status.changes, "all", signal),
+        recentSubjects(signal),
+      ]);
+      const text = await ai.complete(commitPlanPrompt(files, subjects), signal);
+      if (signal.aborted) return;
+      dialog = {
+        kind: "plan",
+        plan: parseCommitPlan(text, status.changes.map((change) => change.path)),
+      };
+      o.workbench.openPanel("scm");
+    });
+  const runPlan = async (plan: PlannedCommit[], step: (index: number) => void) => {
+    if (!(await saveBuffers(undefined, true))) throw new Error(tr("Commit cancelled"));
+    try {
+      for (const [index, entry] of plan.entries()) {
+        step(index);
+        try {
+          await request("unstageAll");
+          for (const path of entry.files) await request("stage", { path });
+          await request("commit", { message: entry.message });
+        } catch (failure) {
+          throw new Error(
+            tr("Commit {0} of {1} failed: {2}", {
+              "0": index + 1,
+              "1": plan.length,
+              "2": messageOf(failure),
+            }),
+          );
+        }
+      }
+      commitMessage = "";
+      o.workbench.notify(tr("{0} commits created", { "0": plan.length }));
+    } finally {
+      await refresh().catch(() => {});
+      await o.workbench.refreshFiles();
+    }
+  };
+  const openPullRequest = async () => {
+    await refresh();
+    if (!canPullRequest())
+      throw new Error("Draft pull requests need a github.com remote and a runtime workspace");
+    dialog = {
+      kind: "pullRequest",
+      title: status.refs.find((ref) => ref.current)?.subject ?? "",
+    };
+    o.workbench.openPanel("scm");
+    changed();
+  };
+  const generatePullRequest = async (signal: AbortSignal) => {
+    const ai = aiService();
+    if (!ai) throw new Error(tr(AI_MISSING));
+    const diff = await request<GitBranchDiff>("branchDiff", {}, signal);
+    if (!("base" in diff)) throw new Error("Open a Git repository first");
+    const known = new Set(
+      (
+        await request<GitLog>("log", { ref: diff.base, limit: 100 }, signal).catch(
+          () => ({ commits: [] }) as Pick<GitLog, "commits">,
+        )
+      ).commits.map((commit) => commit.id),
+    );
+    const commits: string[] = [];
+    for (const commit of (await request<GitLog>("log", { limit: 50 }, signal)).commits) {
+      if (known.has(commit.id)) break;
+      commits.push(commit.body ? `${commit.subject}\n  ${commit.body.replace(/\n/g, "\n  ")}` : commit.subject);
+    }
+    const files = diff.files.map((file) => ({
+      path: file.path,
+      status: "M",
+      diff: file.binary ? "(binary file changed)" : file.diff,
+    }));
+    const text = await ai
+      .complete(pullRequestPrompt({ base: diff.base, head: diff.head, commits, files }), signal)
+      .catch((failure: unknown) => {
+        if (!signal.aborted) {
+          aiFailure = messageOf(failure);
+          changed();
+        }
+        throw failure;
+      });
+    return parsePullRequest(text);
+  };
+  const createPullRequest = async (
+    title: string,
+    body: string,
+    step: (message: string) => void,
+  ) => {
+    await refresh();
+    const remote = pullRequestRemote(status);
+    if (!remote) throw new Error("Add a github.com remote to create a pull request");
+    if (!status.upstream) {
+      step(tr("Publishing branch…"));
+      await perform("publish", { remote });
+    } else if (status.ahead > 0) {
+      step(tr("Pushing commits…"));
+      await perform("push");
+    }
+    step(tr("Creating draft pull request…"));
+    return (await request<{ url: string }>("createPullRequest", { title, body })).url;
   };
   let branchOpenRequest = 0;
   const checkout = async (branch?: string) => {
@@ -711,8 +974,8 @@ export function createFeature(o: FeatureOptions): Extension {
       changed();
     };
     const view = currentView();
-    const phone = usePhone();
-    const touch = useTouch() || phone;
+    const touch = useTouch() || usePhone();
+    const root = useRef<HTMLDivElement>(null);
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
     const [pending, setPending] = useState(false);
     const [filter, setFilter] = useState("");
@@ -744,15 +1007,91 @@ export function createFeature(o: FeatureOptions): Extension {
         return next;
       });
     const hasStaged = status.changes.some(staged);
+    const commitAll = !hasStaged && status.changes.length > 0;
     const canCommit =
-      hasStaged &&
+      (hasStaged || commitAll) &&
       !!message.trim() &&
       !pending &&
       !committing &&
       !status.changes.some((change) => change.conflict);
     const submit = () => {
-      if (canCommit) run(() => commit(message).then(() => setMessage("")));
+      if (canCommit) run(() => commitChanges());
     };
+    const aiOff = aiUnavailable();
+    const commitMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      o.workbench.showContextMenu("scm.commit", rect.left, rect.bottom, [
+        "git.commitAndPush",
+        "git.commitWithAi",
+        ...(canPullRequest() ? ["git.createPullRequest"] : []),
+        ...(canAmend() ? ["git.amend"] : []),
+      ]);
+    };
+    const syncButtons = !status.repository
+      ? []
+      : !status.upstream
+        ? [
+            h(IconButton, {
+              key: "publish",
+              icon: "cloud",
+              label: "Publish branch",
+              disabled: pending || !status.head,
+              onClick: () => run(pushOrPublish),
+            }),
+          ]
+        : status.ahead && status.behind && runtimeHost()
+          ? [
+              h(IconButton, {
+                key: "sync",
+                icon: "sync",
+                label: "Sync",
+                title: tr("Pull {0} and push {1} commits", {
+                  "0": status.behind,
+                  "1": status.ahead,
+                }),
+                disabled: pending,
+                onClick: () => run(sync),
+              }),
+            ]
+          : [
+              h(IconButton, {
+                key: "pull",
+                icon: "arrowDown",
+                label: "Pull",
+                disabled: pending,
+                onClick: () => run(() => perform("pull")),
+              }),
+              h(IconButton, {
+                key: "push",
+                icon: "arrowUp",
+                label: "Push",
+                disabled: pending || !status.head,
+                onClick: () => run(() => perform("push")),
+              }),
+            ];
+    const modal =
+      dialog?.kind === "plan"
+        ? h(CommitPlanDialog, {
+            plan: dialog.plan,
+            run: runPlan,
+            onClose: () => {
+              dialog = undefined;
+              changed();
+            },
+          })
+        : dialog?.kind === "pullRequest"
+          ? h(PullRequestDialog, {
+              title: dialog.title,
+              aiUnavailable: aiOff,
+              generate: generatePullRequest,
+              create: createPullRequest,
+              onClose: () => {
+                dialog = undefined;
+                changed();
+              },
+            })
+          : null;
     const statusBadge = (code: string) =>
       code === "?"
         ? h(
@@ -915,119 +1254,68 @@ export function createFeature(o: FeatureOptions): Extension {
     return h(
       "div",
       {
+        ref: root,
         className: "scm-panel",
         onContextMenu: (event: React.MouseEvent) => {
           event.preventDefault();
           o.workbench.showContextMenu("scm", event.clientX, event.clientY);
         },
       },
+      modal &&
+        createPortal(modal, root.current?.closest(".workbench") ?? document.body),
       h(
         "div",
         { className: "scm-compose" },
         h(
           "div",
           { className: "scm-toolbar" },
-          h("span", { className: "scm-repository-label" }, tr("Repository")),
-          !phone &&
-            h(IconButton, {
-              icon: "refresh",
-              label: "Refresh",
-              disabled: pending,
-              onClick: () => run(refresh),
-            }),
-          h(IconButton, {
-            icon: "arrowUp",
-            label: status.upstream ? "Push" : "Publish branch",
-            disabled: pending || !status.head,
-            onClick: () =>
-              status.upstream
-                ? run(() => perform("push"))
-                : selectTab("Branches"),
+          h(Select, {
+            className: "scm-branch",
+            label: tr("Git branch"),
+            icon: "git",
+            value: status.branch,
+            disabled: pending || !status.branch,
+            openRequest: branchOpenRequest,
+            onOpen: () => {
+              branchOpenRequest = 0;
+              void refresh().catch(() => {});
+            },
+            options: [...new Set([status.branch, ...status.branches])].map(
+              (branch) => ({
+                value: branch,
+                label: branch || tr("No repository"),
+                disabled: !status.branches.includes(branch),
+              }),
+            ),
+            onChange: (branch) => {
+              if (branch !== status.branch) run(() => checkout(branch));
+            },
           }),
+          status.upstream &&
+            h(
+              "span",
+              {
+                className: "scm-tracking",
+                role: "status",
+                title: status.upstream,
+                "aria-label": tr("{0}: {1} ahead, {2} behind", {
+                  "0": status.upstream,
+                  "1": status.ahead,
+                  "2": status.behind,
+                }),
+              },
+              status.ahead ? "↑" + status.ahead : "",
+              status.ahead && status.behind ? " " : "",
+              status.behind ? "↓" + status.behind : "",
+            ),
+          ...syncButtons,
           h(IconButton, {
-            icon: "arrowDown",
-            label: "Pull",
-            disabled: pending || !status.upstream,
-            onClick: () => run(() => perform("pull")),
+            icon: "more",
+            label: "Source control actions",
+            "aria-haspopup": "menu",
+            onClick: overflow,
           }),
-          !phone &&
-            h(IconButton, {
-              icon: "sync",
-              label: "Fetch",
-              disabled: pending || !status.remotes.length,
-              onClick: () => run(() => perform("fetch")),
-            }),
-          !phone &&
-            h(IconButton, {
-              icon: "copy",
-              label: "Clone",
-              disabled: pending || !git?.connected,
-              onClick: () => run(clone),
-            }),
-          !phone &&
-            o.kernel.commands.available("git.account").enabled &&
-            h(IconButton, {
-              icon: "users",
-              label: "Git Accounts and Commit Author",
-              onClick: () => report(() => o.kernel.commands.execute("git.account")),
-            }),
-          !phone &&
-            h(IconButton, {
-              icon: view === "list" ? "folder" : "menu",
-              label:
-                view === "list" ? "Switch to tree view" : "Switch to list view",
-              onClick: () => setView(view === "list" ? "tree" : "list"),
-            }),
-          phone &&
-            h(IconButton, {
-              icon: "more",
-              label: "Source control actions",
-              "aria-haspopup": "menu",
-              onClick: overflow,
-            }),
         ),
-        h(Select, {
-          className: "scm-branch",
-          label: tr("Git branch"),
-          icon: "git",
-          value: status.branch,
-          disabled: pending || !status.branch,
-          openRequest: branchOpenRequest,
-          onOpen: () => {
-            branchOpenRequest = 0;
-            void refresh().catch(() => {});
-          },
-          options: [...new Set([status.branch, ...status.branches])].map(
-            (branch) => ({
-              value: branch,
-              label: branch || tr("No repository"),
-              disabled: !status.branches.includes(branch),
-            }),
-          ),
-          onChange: (branch) => {
-            if (branch !== status.branch) run(() => checkout(branch));
-          },
-        }),
-        status.repository &&
-          h(
-            "div",
-            { className: "scm-tracking", role: "status" },
-            status.upstream
-              ? h(
-                  "span",
-                  { title: status.upstream },
-                  status.upstream,
-                  " · ↑ ",
-                  status.ahead,
-                  " ↓ ",
-                  status.behind,
-                )
-              : h(
-                  "button",
-                  { onClick: () => selectTab("Branches") },
-                  tr(status.head ? "Publish branch…" : "No commits yet"),
-                ),
-          ),
         !status.branch &&
           h(
             "button",
@@ -1041,36 +1329,87 @@ export function createFeature(o: FeatureOptions): Extension {
           ),
         tab === "Changes" &&
           status.repository &&
-          h("textarea", {
-            className: "scm-message",
-            "aria-label": tr("Commit message"),
-            rows: 3,
-            placeholder: touch
-              ? tr("Message")
-              : tr("Message ({0} to commit)", {
-                  "0": displayShortcut("Mod+Enter"),
-                }),
-            value: message,
-            onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
-              setMessage(event.target.value),
-            onKeyDown: (event: React.KeyboardEvent) => {
-              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                event.preventDefault();
-                submit();
-              }
-            },
-          }),
+          h(
+            "div",
+            { className: "scm-message-box" },
+            h("textarea", {
+              className: "scm-message",
+              "aria-label": tr("Commit message"),
+              rows: 3,
+              placeholder: touch
+                ? tr("Message")
+                : tr("Message ({0} to commit)", {
+                    "0": displayShortcut("Mod+Enter"),
+                  }),
+              value: message,
+              onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setMessage(event.target.value),
+              onKeyDown: (event: React.KeyboardEvent) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  submit();
+                }
+              },
+            }),
+            h(IconButton, {
+              icon: aiTask === "message" ? "stop" : "agent",
+              label:
+                aiTask === "message"
+                  ? "Stop generating commit message"
+                  : "Generate commit message",
+              title: aiTask === "message" ? undefined : aiOff,
+              "aria-busy": aiTask === "message",
+              // aria-disabled keeps pointer events so the tooltip explains why AI is off.
+              "aria-disabled": !aiTask && !!aiOff ? true : undefined,
+              disabled:
+                aiTask !== "message" && (!!aiTask || !status.changes.length),
+              onClick: () =>
+                aiTask === "message"
+                  ? aiController?.abort()
+                  : !aiOff && report(generateMessage),
+            }),
+          ),
         tab === "Changes" &&
           status.repository &&
           h(
-            "button",
-            {
-              className: "button primary scm-commit",
-              disabled: !canCommit,
-              onClick: submit,
-            },
-            h(Icon, { name: "check" }),
-            tr("Commit staged changes"),
+            "div",
+            { className: "scm-commit-split" },
+            h(
+              "button",
+              {
+                className: "button primary scm-commit",
+                disabled: !canCommit,
+                "data-tooltip": commitAll
+                  ? tr("Stage all changes and commit")
+                  : undefined,
+                onClick: submit,
+              },
+              h(Icon, { name: "check" }),
+              tr(commitAll ? "Commit All" : "Commit"),
+            ),
+            h(
+              "button",
+              {
+                className: "button primary scm-commit-menu",
+                "aria-label": tr("More commit actions"),
+                "data-tooltip": tr("More commit actions"),
+                "aria-haspopup": "menu",
+                disabled: pending || committing || !!aiTask,
+                onClick: commitMenu,
+              },
+              h(Icon, { name: "chevD" }),
+            ),
+          ),
+        aiTask === "plan" &&
+          h(
+            "div",
+            { className: "scm-ai-status", role: "status" },
+            h("span", null, tr("Planning commits with AI…")),
+            h(
+              "button",
+              { className: "button", onClick: () => aiController?.abort() },
+              tr("Cancel"),
+            ),
           ),
         error &&
           h(
@@ -1207,14 +1546,23 @@ export function createFeature(o: FeatureOptions): Extension {
         ),
       tab === "Changes" &&
         status.repository &&
-        h("input", {
-          className: "scm-filter",
-          "aria-label": tr("Filter changed files"),
-          placeholder: tr("Filter changed files"),
-          value: filter,
-          onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
-            setFilter(event.target.value),
-        }),
+        h(
+          "div",
+          { className: "scm-filter-row" },
+          h("input", {
+            className: "scm-filter",
+            "aria-label": tr("Filter changed files"),
+            placeholder: tr("Filter changed files"),
+            value: filter,
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+              setFilter(event.target.value),
+          }),
+          h(IconButton, {
+            icon: view === "list" ? "folder" : "menu",
+            label: view === "list" ? "Switch to tree view" : "Switch to list view",
+            onClick: () => setView(view === "list" ? "tree" : "list"),
+          }),
+        ),
       status.repository &&
         h(
           "div",
@@ -1386,6 +1734,20 @@ export function createFeature(o: FeatureOptions): Extension {
         request("init").then(refresh),
       );
       command("git.commit", "Commit Staged Changes", () => commit());
+      command("git.commitAll", "Commit All", () => commitChanges());
+      command("git.commitAndPush", "Commit and Push", () =>
+        commitChanges({ push: true }),
+      );
+      command("git.commitWithAi", "Commit with AI…", commitWithAi);
+      command("git.generateCommitMessage", "Generate Commit Message", generateMessage);
+      command("git.amend", "Amend Last Commit", amend, "gitAmend");
+      command(
+        "git.createPullRequest",
+        "Create Draft Pull Request…",
+        openPullRequest,
+        "gitPullRequest",
+      );
+      command("git.sync", "Sync (Pull and Push)", sync);
       command("git.push", "Push", () =>
         status.upstream ? perform("push") : showTab("Branches"),
       );
@@ -1404,7 +1766,7 @@ export function createFeature(o: FeatureOptions): Extension {
         const name = await o.workbench.prompt(tr("New branch name"));
         if (name) await perform("branchCreate", { name });
       });
-      command("git.publish", "Publish Branch", () => showTab("Branches"));
+      command("git.publish", "Publish Branch", pushOrPublish);
       command("git.stage", "Stage File", () => {
         const path = o.workbench.activePath();
         if (path) return stage(path);
@@ -1478,6 +1840,10 @@ export function createFeature(o: FeatureOptions): Extension {
       };
       ctx.subscribe(
         o.kernel.configuration.subscribe(() => {
+          if (aiFailure) {
+            aiFailure = "";
+            changed();
+          }
           const next = o.kernel.configuration.get("scm.autoFetch") === true;
           if (next !== enabled) {
             enabled = next;
@@ -1556,6 +1922,7 @@ export function createFeature(o: FeatureOptions): Extension {
         fetchController?.abort();
         cloneController?.abort();
         operationController?.abort();
+        aiController?.abort();
         listeners.clear();
       });
     },

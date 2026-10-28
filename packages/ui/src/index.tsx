@@ -50,9 +50,17 @@ export function FolderIcon({ path, expanded = false, root = false }: { path: str
   if (root && !asset) return null;
   return asset ? <IconImage asset={asset} /> : <IconImage asset={{ kind: "path", path: custom[expanded ? "folderOpen" : "folder"] || icons[expanded ? "folderOpen" : "folder"] }} />;
 }
+/** Sidebar disclosure control: one icon in one box, rotated when expanded. */
+export function Chevron({ expanded = false, hidden = false }: { expanded?: boolean; hidden?: boolean }) {
+  return (
+    <span className="tree-chevron" data-expanded={expanded} aria-hidden="true">
+      {!hidden && <Icon name="chevR" size={12} />}
+    </span>
+  );
+}
 export function FolderArrow({ path, expanded = false, root = false }: { path: string; expanded?: boolean; root?: boolean }) {
   const { service, variant } = useContext(iconThemeContext);
-  return service?.hideArrows({ path, root }, variant) ? null : <Icon name={expanded ? "chevD" : "chevR"} size={12} />;
+  return <Chevron expanded={expanded} hidden={service?.hideArrows({ path, root }, variant)} />;
 }
 export function IconButton({
   icon,

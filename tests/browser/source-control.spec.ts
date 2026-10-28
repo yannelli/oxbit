@@ -120,7 +120,7 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     const message = page.getByRole("textbox", { name: "Commit message" });
     await message.fill("Improve two sections");
     await expect(
-      page.getByRole("button", { name: "Commit staged changes", exact: true }),
+      page.getByRole("button", { name: "Commit", exact: true }),
     ).toBeEnabled();
     await message.press("Control+Enter");
     await expect
@@ -163,7 +163,8 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await page
       .getByRole("button", { name: "Publish current branch", exact: true })
       .click();
-    await expect(page.locator(".scm-tracking")).toContainText(
+    await expect(page.locator(".scm-tracking")).toHaveAttribute(
+      "title",
       "origin/feature/source-control",
     );
     expect(
@@ -368,18 +369,23 @@ test("source control protects dirty buffers and guides merge resolution and reco
   }
 });
 
-test("the accounts toolbar action appears only when git.account is registered", async ({
+test("the accounts overflow action appears only when git.account is registered", async ({
   page,
 }) => {
   const f = await fixture(page);
   try {
-    const accounts = page
+    const overflow = page
       .locator(".scm-toolbar")
-      .getByRole("button", { name: "Git Accounts and Commit Author" });
+      .getByRole("button", { name: "Source control actions", exact: true });
+    const accounts = page.getByRole("menuitem", {
+      name: /^Git Accounts and Commit Author/,
+    });
+    await overflow.click();
     await expect(
-      page.locator(".scm-toolbar").getByRole("button", { name: "Refresh" }),
+      page.getByRole("menuitem", { name: /^Refresh Source Control/ }),
     ).toBeVisible();
     await expect(accounts).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await page.evaluate(() => {
       const z = (window as any).__oxbit;
       z.kernel.commands.register({
@@ -391,6 +397,7 @@ test("the accounts toolbar action appears only when git.account is registered", 
       });
       z.workbench.touch();
     });
+    await overflow.click();
     await accounts.click();
     await expect
       .poll(() => page.evaluate(() => (window as any).__oxbit.accountsOpened))

@@ -159,6 +159,8 @@ export const operationMethods = [
   "git.remoteRemove",
   "git.publish",
   "git.pull",
+  "git.amend",
+  "git.createPullRequest",
   "fs.write",
   "fs.rename",
   "fs.delete",

@@ -40,7 +40,7 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
 .ios-workspace-row > .ios-workspace[data-dragging] { transition: none; }
 .ios-workspace-row > .ios-workspace:active { background: linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)), var(--bg, #0f1115); }
 .ios-workspace:active { background: rgba(255, 255, 255, 0.12); }
-.ios-workspace[aria-current="true"] { outline: 2px solid var(--accent, #4fd1c5); outline-offset: -2px; }
+.ios-workspace[aria-current="true"] { background: var(--bg-selected); }
 .ios-workspace > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ios-workspace small { font-size: 12px; opacity: 0.65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ios-start .modal-scrim { position: fixed; }
@@ -124,10 +124,6 @@ body { background: #0f1115; color: #e6e6e6; -webkit-text-size-adjust: 100%; }
   .ios-shell .activity-bar { padding-top: 4px; }
   .ios-shell .activity-bar > button { height: 51px; }
   .ios-shell .activity-bar .badge { display: grid; place-items: center; line-height: 1; }
-  .ios-shell .workbench:not([data-theme-pack="oxbit.classicos98"]) {
-    & .activity-bar > button.active { box-shadow: inset 0 0 0 1px var(--accent); }
-    & .activity-bar > button.active::before { display: none; }
-  }
 }
 .ios-runtime-sheet > .runtime-page {
   height: auto; min-height: 100%;

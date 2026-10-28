@@ -309,6 +309,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
   const [showContext, setShowContext] = useState(false);
   const [following, setFollowing] = useState(true);
   const contextId = useId();
+  const settingsId = useId();
+  const [showSettings, setShowSettings] = useState(false);
   const composerInput = useRef<HTMLTextAreaElement>(null);
   const composerActions = useRef<ComposerActions>(null);
   const contextTrigger = useRef<HTMLButtonElement>(null);
@@ -686,6 +688,38 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           <IconButton icon="x" label={tr("Remove queued message")} onClick={() => void agent.action(() => agent.removeQueued(prompt.id))} />
         </div>)}
       </section>}
+      {controls.length > 0 && showSettings && (
+        <div id={settingsId} className="acp-settings" aria-busy={agent.updatingSettings}>
+          {controls.map((control) => (
+            <div
+              className="acp-setting"
+              key={`${control.method}:${control.id}`}
+            >
+              <span
+                className="acp-setting-label"
+                title={control.description}
+              >
+                {tr(control.name)}
+              </span>
+              <Select
+                label={tr(control.name)}
+                value={control.value}
+                options={control.options}
+                disabled={settingsDisabled}
+                onChange={(value) => {
+                  settingsFocus.current =
+                    document.activeElement instanceof HTMLElement
+                      ? document.activeElement
+                      : null;
+                  void agent.action(() =>
+                    agent.setSessionControl(control, value),
+                  );
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
       <form
         className="acp-composer"
         onSubmit={(event) => {
@@ -848,11 +882,55 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               agent.changed();
             }}
           />
-          {agent.autoApply && !agent.archived && (
-            <span className="acp-auto-apply-on" title={tr("Agent edits save without review")}>
-              <Icon name="check" size={12} />
-              {tr("Auto-apply on")}
-            </span>
+          {connection || local ? (
+            <div className="acp-provider" title={agent.displayName}>
+              <AgentLogo provider={connection?.provider ?? chosen} size={14} />
+              <span>{agent.displayName}</span>
+            </div>
+          ) : (
+            <Select
+              className="acp-agent-chip"
+              label={tr("Agent: {0}", { 0: agent.displayName })}
+              icon={<AgentLogo provider={chosen} size={14} />}
+              value={chosen}
+              options={[
+                ...ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name, icon: <AgentLogo provider={p.id} size={14} /> })),
+                ...(acpPreset(chosen) ? [] : [{ value: chosen, label: agent.displayName, icon: <AgentLogo provider={chosen} size={14} /> }]),
+                { value: "#registry", label: tr("More agents…") },
+                { value: "#custom", label: tr("Custom agent…") },
+              ]}
+              disabled={agent.connecting}
+              onChange={(value) => {
+                if (value === "#registry") setChooser("registry");
+                else if (value === "#custom") setChooser("custom");
+                else void agent.action(() => agent.select({ provider: value }));
+              }}
+            />
+          )}
+          {!agent.archived && (
+            <button
+              type="button"
+              className="icon-button acp-auto-apply"
+              aria-pressed={agent.autoApply}
+              aria-label={tr("Auto-apply edits")}
+              data-tooltip={tr(agent.autoApply ? "Auto-apply edits: on" : "Auto-apply edits: off")}
+              onClick={() => agent.setAutoApply(!agent.autoApply)}
+            >
+              <Icon name={agent.autoApply ? "shieldCheck" : "shield"} />
+            </button>
+          )}
+          {controls.length > 0 && (
+            <button
+              type="button"
+              className="icon-button acp-session-options"
+              aria-label={tr("Session settings")}
+              data-tooltip={tr("Session settings")}
+              aria-controls={settingsId}
+              aria-expanded={showSettings}
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Icon name="sliders" />
+            </button>
           )}
           <SendHint configuration={kernel.configuration} />
           {agent.busy && (
@@ -889,76 +967,6 @@ function AgentPanel({ agent }: { agent: AgentController }) {
       </form>
       <div className="acp-footer">
         {agent.usage && <ContextMeter usage={agent.usage} />}
-        {connection || local ? (
-          <div className="acp-provider" title={agent.displayName}>
-            <AgentLogo provider={connection?.provider ?? chosen} size={14} />
-            <span>{agent.displayName}</span>
-          </div>
-        ) : (
-          <Select
-            className="acp-agent-chip"
-            label={tr("Agent: {0}", { 0: agent.displayName })}
-            icon={<AgentLogo provider={chosen} size={14} />}
-            value={chosen}
-            options={[
-              ...ACP_PROVIDERS.map((p) => ({ value: p.id, label: p.name, icon: <AgentLogo provider={p.id} size={14} /> })),
-              ...(acpPreset(chosen) ? [] : [{ value: chosen, label: agent.displayName, icon: <AgentLogo provider={chosen} size={14} /> }]),
-              { value: "#registry", label: tr("More agents…") },
-              { value: "#custom", label: tr("Custom agent…") },
-            ]}
-            disabled={agent.connecting}
-            onChange={(value) => {
-              if (value === "#registry") setChooser("registry");
-              else if (value === "#custom") setChooser("custom");
-              else void agent.action(() => agent.select({ provider: value }));
-            }}
-          />
-        )}
-        {!agent.archived && (
-          <label className="acp-auto-apply" title={tr("Save agent file changes without review. Permission prompts still ask.")}>
-            <input type="checkbox" role="switch" className="setting-switch" checked={agent.autoApply}
-              onChange={(event) => agent.setAutoApply(event.target.checked)} />
-            <span>{tr("Auto-apply edits")}</span>
-          </label>
-        )}
-        {controls.length > 0 && (
-          <details className="acp-session-options">
-            <summary>
-              {tr("Session settings")}
-              <Icon name="chevD" size={12} />
-            </summary>
-            <div className="acp-settings" aria-busy={agent.updatingSettings}>
-              {controls.map((control) => (
-                <div
-                  className="acp-setting"
-                  key={`${control.method}:${control.id}`}
-                >
-                  <span
-                    className="acp-setting-label"
-                    title={control.description}
-                  >
-                    {tr(control.name)}
-                  </span>
-                  <Select
-                    label={tr(control.name)}
-                    value={control.value}
-                    options={control.options}
-                    disabled={settingsDisabled}
-                    onChange={(value) => {
-                      settingsFocus.current =
-                        document.activeElement instanceof HTMLElement
-                          ? document.activeElement
-                          : null;
-                      void agent.action(() =>
-                        agent.setSessionControl(control, value),
-                      );
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
       </div>
     </div>
   );

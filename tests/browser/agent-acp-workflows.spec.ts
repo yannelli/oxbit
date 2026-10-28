@@ -317,7 +317,7 @@ test("ACP history, rich activity, context snapshots, editor review and guarded u
     await expect(panel.locator(".acp-context-menu")).toBeHidden();
     await menu("Agent setup");
     await panel.getByRole("button", { name: "History", exact: true }).click();
-    await panel.locator(".acp-session-options > summary").click();
+    await panel.getByRole("button", { name: "Session settings", exact: true }).click();
     await expect(panel.getByRole("button", { name: "Send", exact: true })).toBeInViewport();
     expect(await panel.evaluate((el) => el.scrollHeight <= el.clientHeight)).toBe(true);
   } catch (error) {

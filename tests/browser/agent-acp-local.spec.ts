@@ -287,7 +287,7 @@ test("a failed agent read stays on its tool call, the write creates new folders,
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await expect(composer).toBeEnabled();
-  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await panel.getByRole("button", { name: "Auto-apply edits", exact: true }).click();
   await composer.fill("Add a pirate talk skill");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("Added the pirate-talk skill.")).toBeVisible();
@@ -308,7 +308,7 @@ test("applied edits stay with their turn and wide replies scroll inside their bl
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await expect(composer).toBeEnabled();
-  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await panel.getByRole("button", { name: "Auto-apply edits", exact: true }).click();
   await composer.fill("First request");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("Wrote it.")).toBeVisible();

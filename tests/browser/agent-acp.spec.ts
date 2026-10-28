@@ -232,7 +232,7 @@ test("ACP conversations support approvals, editor context, tools, cancellation a
       await trustNotice
         .getByRole("button", { name: "Dismiss notification" })
         .click();
-    await page.locator(".acp-session-options > summary").click();
+    await page.getByRole("button", { name: "Session settings", exact: true }).click();
     const settings = page.locator(".acp-settings");
     await expect(settings.getByRole("combobox")).toHaveCount(5);
     await expect(

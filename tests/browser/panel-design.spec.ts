@@ -190,14 +190,17 @@ test("source control keeps its form visible and supports real branches, trees, a
     page.getByRole("button", { name: "Unstage " + file, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Commit staged changes", exact: true }),
+    page.getByRole("button", { name: "Commit", exact: true }),
   ).toBeEnabled();
   await page
     .getByRole("button", { name: "Unstage " + file, exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Commit staged changes", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: "Commit All", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Commit", exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Unstage " + file, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Switch to tree view" }).click();
   const folder = page.locator('.scm-folder[title="panel-design-fixture/"]');

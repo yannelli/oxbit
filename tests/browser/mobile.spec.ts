@@ -221,7 +221,7 @@ test("a held toolbar button does not swallow its click or the next tap", async (
   // Safari's synthesized click must survive an unhandled contextmenu.
   await search.evaluate(element => element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
   await expect(page.getByRole("dialog", { name: "Quick Open" })).toBeVisible();
-  await page.getByRole("button", { name: "Close palette" }).tap();
+  await page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true }).tap();
   await hold(search);
   await page.getByRole("button", { name: "More", exact: true }).tap();
   await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
@@ -305,7 +305,7 @@ test("phone palette clears the notch and home indicator and responds to one tap"
   const input = page.getByRole("combobox", { name: "Search files and commands" });
   await expect.poll(() => input.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(59);
   expect(await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
-  const close = page.getByRole("button", { name: "Close palette" });
+  const close = page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true });
   await insideViewport(close);
   expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect(await page.locator(".palette-footer .push").evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(852 - 34);
@@ -322,7 +322,7 @@ test("palette search and close remain reachable as the software keyboard moves",
   await keyboardViewport(page, 360, 100);
   await insideViewport(page.getByRole("dialog", { name: "Quick Open" }));
   await insideViewport(page.getByRole("combobox"));
-  await insideViewport(page.getByRole("button", { name: "Close palette" }));
+  await insideViewport(page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true }));
   await page.getByRole("combobox").fill(">About Oxbit");
   await page.getByRole("option", { name: "About Oxbit", exact: true }).tap();
   await insideViewport(page.getByRole("dialog", { name: "About Oxbit" }));

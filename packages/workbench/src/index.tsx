@@ -1898,11 +1898,13 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
               }
             }}
           />
-          <IconButton
-            icon="x"
-            label={tr("Close palette")}
+          <button
+            type="button"
+            className="palette-cancel"
             onClick={() => workbench.set({ palette: undefined })}
-          />
+          >
+            {tr("Cancel")}
+          </button>
         </div>
         <div className="palette-label">
           {mode === "commands"

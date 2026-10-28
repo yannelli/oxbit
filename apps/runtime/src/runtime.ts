@@ -972,6 +972,8 @@ export async function createRuntime(options: RuntimeOptions) {
       case "git.remoteRemove":
       case "git.publish":
       case "git.pull":
+      case "git.amend":
+      case "git.createPullRequest":
         return git.action(method.slice(4), params, signal, (data) =>
           event(connection, "git.progress", { id: requestId, data }),
         );
