@@ -6,7 +6,8 @@ async function openGitSettings(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Oxbit Files app" }).click();
   await page.getByRole("button", { name: "Source Control", exact: true }).click();
-  await page.locator(".scm-toolbar").getByRole("button", { name: "Git Accounts and Commit Author", exact: true }).click();
+  await page.locator(".scm-toolbar").getByRole("button", { name: "Source control actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Git Accounts and Commit Author/ }).click();
   const dialog = page.getByRole("dialog", { name: "Git Accounts and Commit Author", exact: true });
   await expect(dialog.getByRole("textbox", { name: "Git author email" })).toHaveValue("oxbit@example.test");
   return dialog.getByRole("region", { name: "Commit Signing" });

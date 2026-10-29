@@ -428,12 +428,18 @@ test("the microphone dictates into the draft and stops when the draft changes", 
   }
 });
 
-test("the composer toolbar keeps the Auto-apply label whole and has no Review changes button", async ({ page }) => {
+test("the composer toolbar keeps the agent chip and Auto-apply toggle on one row and has no Review changes button", async ({ page }) => {
   const app = await open(page);
   try {
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").setAutoApply(true));
-    const pill = app.panel.locator(".acp-auto-apply-on");
-    await expect(pill).toHaveText("Auto-apply on");
+    await expect(app.panel.getByRole("button", { name: "Auto-apply edits", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await page.evaluate(() => {
+      const side = document.querySelector(".acp-panel")!.closest("[data-dock]")!.getAttribute("data-dock");
+      (window as any).__oxbit.workbench.resizeDock(side, 300);
+    });
+    await expect.poll(() => app.panel.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBeLessThan(340);
+    expect(await app.panel.locator(".acp-composer-toolbar").evaluate((toolbar) => toolbar.scrollWidth <= toolbar.clientWidth)).toBe(true);
+    await expect(app.panel.locator(".acp-agent-chip .select-trigger > span")).toBeVisible();
     // A running turn with a draft adds Stop and Interrupt & send to the toolbar.
     await app.input.fill("wait");
     await app.input.press("Enter");
@@ -447,8 +453,7 @@ test("the composer toolbar keeps the Auto-apply label whole and has no Review ch
         (window as any).__oxbit.workbench.resizeDock(side, width);
       }, width);
       await expect.poll(() => app.panel.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBeGreaterThan(width - 40);
-      const overflows = await app.panel.locator(".acp-composer-toolbar").evaluate((toolbar) =>
-        [toolbar, toolbar.querySelector(".acp-auto-apply-on")!].some((el) => el.scrollWidth > el.clientWidth));
+      const overflows = await app.panel.locator(".acp-composer-toolbar").evaluate((toolbar) => toolbar.scrollWidth > toolbar.clientWidth);
       if (overflows) clipped.push(width);
       if (width === 500) await app.panel.locator(".acp-composer").screenshot({ path: "evidence/agent-acp/composer-toolbar-500.png" });
     }

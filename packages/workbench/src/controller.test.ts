@@ -566,3 +566,12 @@ describe("view badges and preferred docks", () => {
   });
 });
 
+describe("recent commands", () => {
+  it("moves a rerun command to the front and keeps ten entries", async () => {
+    const { workbench } = await setup();
+    for (let i = 0; i < 12; i++) workbench.rememberCommand(`command.${i}`);
+    workbench.rememberCommand("command.5");
+    expect(workbench.state.recentCommands).toHaveLength(10);
+    expect(workbench.state.recentCommands.slice(0, 3)).toEqual(["command.5", "command.11", "command.10"]);
+  });
+});

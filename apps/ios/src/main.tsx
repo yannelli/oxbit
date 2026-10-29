@@ -8,6 +8,7 @@ import { BACKGROUND_LOCATION_SETTING, BackgroundKeepAlive, backgroundLocationSet
 import { withAiConsent } from "./ai-consent.js";
 import { configurePanelWindows, currentTheme, themeMode, themeVariables, Workbench } from "@oxbit/workbench";
 import { installTextInputPolicy, setLocale } from "@oxbit/ui";
+import { builtinBase, cssVariables } from "@oxbit/themes";
 import { StartScreen } from "./start-screen.js";
 import { RuntimePage } from "@oxbit/feature-runtime";
 import { runtimeConnector } from "./runtime-connector.js";
@@ -20,9 +21,18 @@ import { SshGitPrompt } from "./ssh-git-prompt.js";
 import { DOCUMENTS_ID, closeWorkspace, lastWorkspace, loadRecents, forgetRecent, openWorkspace, type OpenRequest, type OpenWorkspace } from "./workspaces.js";
 import "@oxbit/ui/tokens.css";
 import "@oxbit/ui/workbench.css";
+import "@oxbit/ui/flat.css";
 import "./ios.css";
 
 (globalThis as any).__OXBIT_REACT__ = ReactHost;
+// The start screen opens before any workbench sets the layout style; Flat is the default.
+document.documentElement.dataset.style ??= (() => {
+  try {
+    return localStorage.getItem("oxbit.layoutStyle") === "classic" ? "classic" : "flat";
+  } catch {
+    return "flat";
+  }
+})();
 installTextInputPolicy(document);
 installSpeechRecognition();
 installNotifications();
@@ -288,7 +298,7 @@ function App() {
     // Runtime workspaces use the service only for conversation titles.
     if (session.runtime || workspace.recent.kind === "documents" || workspace.recent.kind === "bookmark")
       disposables.push(session.kernel.services.register(AGENT_MODELS_SERVICE, withAiConsent(agentModels, (title, message, choices) => session.workbench.ask(title, message, choices))));
-    // Agent ACP posts the app's notifications.
+    // The agent panel posts the app's notifications.
     const tap = native.onNotificationTap(() => {
       if (session.kernel.commands.available("agentACP.open").enabled) void session.workbench.run("agentACP.open");
     }).catch(() => undefined);
@@ -345,12 +355,15 @@ function App() {
   );
 }
 
+// Without a workspace the start screen uses the default Graphite (dark) tokens.
+const startTheme = cssVariables(builtinBase("dark"));
+
 function Shell({ session, children }: { session?: Session; children: React.ReactNode }) {
   useSyncExternalStore<unknown>(session?.workbench.subscribe ?? (() => () => {}), session?.workbench.snapshot ?? (() => 0));
   return (
     <div
       className="ios-shell"
-      style={session ? themeVariables(session.kernel) : undefined}
+      style={session ? themeVariables(session.kernel) : startTheme}
       data-theme={session ? themeMode(session.kernel) : "dark"}
       data-theme-pack={session ? currentTheme(session.kernel).packId : undefined}
       data-density="compact"

@@ -27,6 +27,7 @@ type Session = {
   terminal?: Terminal;
   search?: SearchAddon;
   fit?: FitAddon;
+  searching?: boolean;
   revealSearch?: () => void;
 };
 export function createFeature(o: FeatureOptions): Extension {
@@ -191,6 +192,33 @@ export function createFeature(o: FeatureOptions): Extension {
     active = id;
     changed();
   };
+  const toggleSearch = (session: Session) => {
+    session.searching = !session.searching;
+    if (!session.searching) session.search?.clearDecorations();
+    changed();
+  };
+  const rename = (session: Session) => {
+    void o.workbench
+      .prompt(tr("Terminal name"), session.name)
+      .then((name) => {
+        if (name?.trim()) {
+          session.name = name.trim();
+          changed();
+        }
+      });
+  };
+  const close = (session: Session) => {
+    void kill(session.id).catch((error) =>
+      o.workbench.notify(String(error), "error"),
+    );
+  };
+  const sessionActions = (session: Session) => [
+    React.createElement(IconButton, { key: "search", icon: "search", label: tr("Search terminal"), "aria-pressed": !!session.searching,
+      onClick: () => toggleSearch(session) }),
+    React.createElement(IconButton, { key: "rename", icon: "pencil", label: tr("Rename"), onClick: () => rename(session) }),
+    React.createElement(IconButton, { key: "close", icon: "trash", label: session.exitCode === undefined ? tr("Terminate") : tr("Close"),
+      onClick: () => close(session) }),
+  ];
   const selected = () =>
     sessions.get(active ?? "") ?? sessions.values().next().value;
   const theme = () => terminalTheme(currentTheme(o.kernel));
@@ -200,10 +228,10 @@ export function createFeature(o: FeatureOptions): Extension {
       searchRef = useRef<HTMLInputElement>(null),
       tap = useRef<{ x: number; y: number }>(undefined);
     const [query, setQuery] = useState("");
-    const [searching, setSearching] = useState(false);
+    const searching = !!session.searching;
     useEffect(() => { if (searching) searchRef.current?.focus(); }, [searching]);
     useEffect(() => {
-      session.revealSearch = () => { setSearching(true); searchRef.current?.focus(); };
+      session.revealSearch = () => searchRef.current?.focus();
       return () => { session.revealSearch = undefined; };
     }, [session]);
     useEffect(() => {
@@ -304,15 +332,14 @@ export function createFeature(o: FeatureOptions): Extension {
           height: "100%",
         },
       },
-      React.createElement(
+      (split || searching) && React.createElement(
         "div",
         {
           className: "terminal-pane-toolbar",
         },
-        React.createElement("span", { className: "terminal-pane-name", title: session.name }, session.name),
-        React.createElement("span", { className: "terminal-state", "data-state": session.state }, session.state),
-        React.createElement(IconButton, { icon: "search", label: tr("Search terminal"), "aria-pressed": searching,
-          onClick: () => { setSearching(!searching); if (searching) session.search?.clearDecorations(); } }),
+        split && React.createElement("span", { className: "terminal-pane-name", title: session.name }, session.name),
+        split && React.createElement("span", { className: "terminal-state", "data-state": session.state }, session.state),
+        split && sessionActions(session)[0],
         searching &&
         React.createElement("input", {
           ref: searchRef,
@@ -330,37 +357,12 @@ export function createFeature(o: FeatureOptions): Extension {
             }
             if (event.key === "Escape") {
               setQuery("");
-              setSearching(false);
-              session.search?.clearDecorations();
+              toggleSearch(session);
               session.terminal?.focus();
             }
           },
         }),
-        React.createElement(
-          IconButton,
-          { icon: "pencil", label: tr("Rename"),
-            onClick: () => {
-              void o.workbench
-                .prompt(tr("Terminal name"), session.name)
-                .then((name) => {
-                  if (name?.trim()) {
-                    session.name = name.trim();
-                    changed();
-                  }
-                });
-            },
-          },
-        ),
-        React.createElement(
-          IconButton,
-          { icon: "trash", label: session.exitCode === undefined ? tr("Terminate") : tr("Close"),
-            onClick: () => {
-              void kill(session.id).catch((error) =>
-                o.workbench.notify(String(error), "error"),
-              );
-            },
-          },
-        ),
+        ...(split ? sessionActions(session).slice(1) : []),
       ),
       session.truncated &&
         React.createElement(
@@ -419,6 +421,7 @@ export function createFeature(o: FeatureOptions): Extension {
             React.createElement("span", null, session.name),
             React.createElement("span", { className: "terminal-state-dot", "data-state": session.state, title: session.state })))),
         React.createElement("div", { className: "terminal-actions" },
+          ...(current && !split ? sessionActions(current) : []),
           React.createElement("button", { className: "button terminal-new", disabled: !o.runtime?.connected, "aria-label": tr("New terminal"), title: tr("New terminal"),
             onClick: () => { void o.kernel.commands.execute("terminal.new").catch(error => o.workbench.notify(String(error), "error")); } },
             React.createElement(Icon, { name: "plus", size: 14 }), React.createElement("span", null, tr("New terminal"))),
@@ -509,7 +512,11 @@ export function createFeature(o: FeatureOptions): Extension {
           "Find in Terminal",
           () => {
             o.workbench.openPanel("terminal");
-            requestAnimationFrame(() => selected()?.revealSearch?.());
+            const session = selected();
+            if (!session) return;
+            session.searching = true;
+            changed();
+            requestAnimationFrame(() => session.revealSearch?.());
           },
         ],
       ];

@@ -139,16 +139,15 @@ test("Auto-apply edits applies agent writes without review, keeps Undo all and l
   const panelShots = "/tmp/oxbit-agent2/panel-shots";
   try {
     await fs.mkdir(panelShots, { recursive: true });
-    const toggle = panel.getByRole("switch", { name: "Auto-apply edits" });
-    const indicator = panel.locator(".acp-auto-apply-on");
+    const toggle = panel.getByRole("button", { name: "Auto-apply edits", exact: true });
     await expect(toggle).toBeVisible();
-    await expect(toggle).not.toBeChecked();
-    await expect(indicator).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toHaveAttribute("data-tooltip", "Auto-apply edits: off");
     await panel.screenshot({ path: `${panelShots}/${info.project.name}-auto-apply-off.png` });
     await toggle.click();
-    await expect(toggle).toBeChecked();
-    await expect(indicator).toHaveText("Auto-apply on");
-    await expect(indicator).toBeInViewport();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toHaveAttribute("data-tooltip", "Auto-apply edits: on");
+    await expect(toggle).toBeInViewport();
     await panel.screenshot({ path: `${panelShots}/${info.project.name}-auto-apply-on.png` });
 
     await app.send(app.writes);
@@ -164,7 +163,7 @@ test("Auto-apply edits applies agent writes without review, keeps Undo all and l
     expect((await summaries.allTextContents()).map((text) => text.split(" · ")[0]).sort()).toEqual(files);
     await summaries.first().click();
     await expect(edits.getByLabel("File change diff").first()).toContainText("+agent edit");
-    await expect(toggle).toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await edits.screenshot({ path: `${panelShots}/${info.project.name}-auto-applied-edits.png` });
     await edits.getByRole("button", { name: "Undo all" }).click();
     await expect(summaries).toHaveText(files.map(() => / · Undone$/));
@@ -178,7 +177,7 @@ test("Auto-apply edits applies agent writes without review, keeps Undo all and l
     await expect(app.log).toContainText("allow-once");
 
     await toggle.click();
-    await expect(indicator).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await app.send(app.writes);
     await expect(panel.getByText("Review file change")).toHaveCount(3);
     await panel.getByRole("region", { name: "Pending file changes" }).getByRole("button", { name: "Reject all" }).click();

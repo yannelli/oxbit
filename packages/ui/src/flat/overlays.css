@@ -1,0 +1,118 @@
+/* Flat layout style (workbench.style = flat): palette, menus, select popups, notifications, tooltips and dialogs. */
+/* Overlays also open outside .workbench (desktop and iOS app dialogs), so the scope is the document. */
+:root[data-style="flat"]:not(:has(.workbench[data-theme-pack="oxbit.classicos98"])){
+  --overlay-fs:var(--fs,13px);--overlay-fs-sm:var(--fs-sm,12px);
+  & .workbench{--overlay-fs:var(--fs);--overlay-fs-sm:var(--fs-sm)}
+
+  /* One surface for every popover. */
+  & :is(.palette,.command-menu,.select-popup,.notification-center,.dialog),& .toasts>.notification{background:var(--bg-raised);border:1px solid var(--bd);border-radius:8px;box-shadow:var(--shadow)}
+  & :is(.command-menu,.select-popup,.notification-center,.dialog,.palette){font-size:var(--overlay-fs)}
+  & .workbench-tooltip{padding:4px 8px;border:1px solid var(--bd);border-radius:6px;font-size:var(--overlay-fs-sm);line-height:16px}
+
+  /* Menubar, context and panel menus. */
+  & .command-menu{padding:4px;min-width:240px}
+  & .command-menu>button{gap:12px;padding:0 8px;border-radius:4px;color:var(--fg);line-height:20px}
+  & .command-menu>button:hover:not([aria-disabled=true]){background:var(--bg-hover)}
+  & .command-menu>button>:is(kbd,small){color:var(--fg-3);font-size:var(--overlay-fs-sm)}
+  & .command-menu>hr{margin:4px 0;height:1px;border:0;background:var(--bd)}
+  & .menu-parent>.command-menu{top:calc(100% + 4px)}
+
+  /* Select popups: the check mark uses text color. */
+  & .select-popup{padding:4px}
+  & .select-option{gap:8px;padding:0 8px;border-radius:4px;color:var(--fg);line-height:20px}
+  & .select-option[data-active=true]{background:var(--bg-selected);color:var(--fg)}
+  & .select-option[aria-selected=true]>svg{color:var(--fg)}
+
+  /* Command palette and quick open. */
+  & .palette-input{padding:0 8px;border-bottom:1px solid var(--bd)}
+  & .palette-input>input{height:44px;padding:0 8px;border:0;border-radius:0;background:transparent;font-size:var(--overlay-fs)}
+  & .palette-label{padding:8px 16px 4px;color:var(--fg-3);font-size:var(--overlay-fs-sm);font-weight:500;line-height:16px;letter-spacing:0;text-transform:none}
+  & .palette-results{padding:0 6px 6px}
+  & .palette-results>button{gap:10px;padding:0 10px;border-radius:4px;color:var(--fg-2);line-height:20px}
+  & .palette-results>button.selected{background:var(--bg-selected);color:var(--fg)}
+  & .palette-results>button>span:not(.file-badge){white-space:nowrap;color:inherit}
+  & .palette-results>button>span>small{display:inline;margin-left:8px;color:var(--fg-3);font-size:var(--overlay-fs-sm)}
+  & .palette-results :is(kbd,.palette-category){color:var(--fg-3);font-size:var(--overlay-fs-sm)}
+  & .palette-footer{padding:0 16px;height:32px;align-items:center;color:var(--fg-3);font-size:var(--overlay-fs-sm)}
+
+  /* Notification center and toasts: icon colors carry the status. */
+  & .notification{grid-template-columns:16px minmax(0,1fr) 28px;gap:10px;padding:12px;font-size:var(--overlay-fs);line-height:20px}
+  & .notification-icon{height:20px}
+  & .notification>.icon-button{width:28px;height:28px;min-width:28px;min-height:28px;margin:-4px 0;color:var(--fg-3)}
+  & .notification>.icon-button:hover{color:var(--fg)}
+  & .notification-content>small{color:var(--fg-3);font-size:var(--overlay-fs-sm)}
+  & .notification-actions{margin:6px 0 0 -8px}
+  & .notification-actions .text-button{min-height:28px;padding:0 8px;border-radius:4px;color:var(--fg);text-decoration:none}
+  & .notification-actions .text-button:hover:not(:disabled){background:var(--bg-hover);text-decoration:none}
+  & .notification-center{padding:0}
+  & .notification-center>.sidebar-heading{height:40px;padding:0 6px 0 12px;gap:4px;border-bottom:1px solid var(--bd);color:var(--fg);font-size:var(--overlay-fs);font-weight:600;letter-spacing:0;text-transform:none}
+  & .notification-center>.sidebar-heading>button:not(.icon-button){height:28px;padding:0 8px;border-radius:4px;color:var(--fg-2);font-size:var(--overlay-fs-sm);font-weight:400}
+  & .notification-center>.sidebar-heading>button:not(.icon-button):hover{color:var(--fg);background:var(--bg-hover)}
+  & .notification-center>.sidebar-heading>.icon-button{width:28px;height:28px;color:var(--fg-3)}
+  & .notification-center>.notification{border:0;border-bottom:1px solid var(--bd);border-radius:0;box-shadow:none;background:transparent}
+  & .notification-center>.notification:last-child{border-bottom:0}
+  & .notification-center>.empty-state{padding:16px 12px;color:var(--fg-3)}
+
+  /* Dialogs, confirm and prompt. */
+  & .dialog{line-height:20px}
+  & .dialog-title{margin-bottom:8px;min-height:28px;font-size:calc(var(--overlay-fs) + 2px);font-weight:600;color:var(--fg)}
+  & .dialog-title>strong{font-weight:inherit}
+  & .dialog-title .icon-button{color:var(--fg-3);border-radius:6px}
+  & .dialog-title .icon-button:hover{color:var(--fg)}
+  & .dialog>p,& .dialog-intro{color:var(--fg-2)}
+  & .dialog>p{margin:0 0 12px}
+  & .dialog>input{box-sizing:border-box;height:32px;padding:0 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg-input);font-size:var(--overlay-fs)}
+  & .dialog-actions{gap:8px;margin-top:20px}
+  & .dialog-actions>.button.danger{background:var(--err);border-color:var(--err);color:var(--bg-editor)}
+  & .workspace-choice{border:0}
+  & .workspace-choice:hover{background:var(--bg-hover)}
+  & .workspace-choice-icon{border-radius:8px;background:var(--bg-hover);color:var(--fg-2)}
+
+  /* About dialog. */
+  & .about-identity{padding:8px 0 20px}
+  & .about-identity p{font-size:var(--overlay-fs)}
+  & .about-links{gap:0;padding:8px 0}
+  & .about-links a{gap:10px;padding:0 8px;min-height:32px;border-radius:4px;color:var(--fg)}
+  & .about-links a>svg:first-child{color:var(--fg-2)}
+  & .about-credits{margin:12px 0}
+  & .about-credits summary{color:var(--fg-2);font-size:var(--overlay-fs)}
+  & .about-credits dl{font-size:var(--overlay-fs)}
+  & .about-footer p{font-size:var(--overlay-fs-sm);line-height:16px}
+}
+
+/* Desktop and tablet: 28px rows with 8px side padding. */
+@media(min-width:600px){
+  :root[data-style="flat"]:not(:has(.workbench[data-theme-pack="oxbit.classicos98"])){
+    & .command-menu>button{min-height:28px}
+    & .select-option{min-height:28px}
+    & .palette-results{max-height:none;flex:1}
+    & .dialog{padding:16px 20px 20px}
+    & .dialog-title .icon-button{width:28px;height:28px;margin-right:-6px}
+    & .palette-results>button{min-height:32px}
+    & .dialog-actions .button{min-height:28px;padding-block:0}
+  }
+}
+
+/* Phone: 44px rows; phone.css owns the sheet shape and the palette header. */
+@media(max-width:599px){
+  :root[data-style="flat"]:not(:has(.workbench[data-theme-pack="oxbit.classicos98"])){
+    &,& .workbench{--overlay-fs:16px;--overlay-fs-sm:14px}
+    & :is(.palette,.dialog){box-shadow:none}
+    & .palette{border:0;border-radius:0}
+    & .palette-results>button{min-height:44px;padding:0 12px;gap:12px}
+    & .palette-results>button>span>small{display:block;margin:0;line-height:18px}
+    & .palette-footer{height:auto;min-height:32px;padding-bottom:calc(8px + var(--safe-area-bottom, 0px))}
+    & .command-menu{min-width:240px}
+    & .command-menu>button{min-height:44px;padding:0 12px;font-size:var(--overlay-fs)}
+    & .select-option{min-height:44px;padding:0 12px}
+    & .toasts>.notification,& .notification-center{box-shadow:var(--shadow)}
+    & .notification{grid-template-columns:16px minmax(0,1fr) 44px;padding:12px;line-height:22px}
+    & .notification-icon{height:22px}
+    & .notification>.icon-button{width:44px;height:44px;min-width:44px;min-height:44px;margin:-11px -4px -11px 0}
+    & .notification-center>.sidebar-heading{height:48px}
+    & .notification-center>.sidebar-heading>button:not(.icon-button){height:44px;font-size:var(--overlay-fs-sm)}
+    & .notification-center>.sidebar-heading>.icon-button{width:44px;height:44px}
+    & .dialog>input{height:44px}
+    & .about-links a{min-height:44px}
+  }
+}

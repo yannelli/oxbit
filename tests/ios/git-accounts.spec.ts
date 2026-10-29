@@ -21,7 +21,8 @@ async function openFromRepository(page: Page, accounts: BridgeAccount[]) {
   await page.getByRole("button", { name: "Oxbit Files app" }).click();
   await expect(page.locator(".workspace-title")).toHaveText("Oxbit");
   await page.getByRole("button", { name: "Source Control", exact: true }).click();
-  await page.locator(".scm-toolbar").getByRole("button", { name: TITLE, exact: true }).click();
+  await page.locator(".scm-toolbar").getByRole("button", { name: "Source control actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Git Accounts and Commit Author/ }).click();
   return page.getByRole("dialog", { name: TITLE, exact: true });
 }
 
@@ -75,7 +76,8 @@ test("binds the open repository to a chosen account", async ({ page }) => {
   expect(await binding(page)).toBe("github-hubot");
 
   await dialog.getByRole("button", { name: "Done" }).click();
-  await page.locator(".scm-toolbar").getByRole("button", { name: TITLE, exact: true }).click();
+  await page.locator(".scm-toolbar").getByRole("button", { name: "Source control actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Git Accounts and Commit Author/ }).click();
   dialog = page.getByRole("dialog", { name: TITLE, exact: true });
   await expect(dialog.getByRole("combobox", { name: "Account for this repository" })).toHaveText("hubot");
 });

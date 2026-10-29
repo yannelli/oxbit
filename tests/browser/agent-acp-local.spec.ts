@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import * as fs from "node:fs/promises";
 
 const shots = "/tmp/oxbit-agents/local-panel";
-const presets = ["Oxbit Agent CLI", "Codex ACP", "Claude Agent", "Gemini CLI", "GitHub Copilot", "Cursor ACP", "Amp Agent ACP"];
+const presets = ["Codex", "Claude", "Gemini", "GitHub Copilot", "Cursor", "Amp"];
 
 const sse = (...events: unknown[]) => [...events.map((event) => `data: ${JSON.stringify(event)}\n\n`), "data: [DONE]\n\n"];
 const chatTool = (id: string, name: string, args: unknown) => sse(
@@ -199,7 +199,7 @@ test("the ChatGPT plan signs in with a device code, shows expiry inline, cancels
 
 test("the Claude plan choice points to Claude Agent on a runtime and keeps the saved API", async ({ page }) => {
   const panel = await open(page, true);
-  const claude = panel.getByRole("radiogroup", { name: "Agent", exact: true }).getByRole("radio", { name: /Claude Agent/ });
+  const claude = panel.getByRole("radiogroup", { name: "Agent", exact: true }).getByRole("radio", { name: /^Claude/ });
   await expect(claude).toBeDisabled();
   await expect(claude).toContainText("Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.");
   const api = await setting(page, "agentACP.oxbit.api");
@@ -224,9 +224,9 @@ test("without a model service the browser workspace keeps the runtime prompt and
   const picker = panel.getByRole("radiogroup", { name: "Agent", exact: true });
   await expect(picker.getByRole("radio")).toHaveCount(7);
   await expect(picker.getByRole("radio", { name: /Runs in Oxbit with your API key/ })).toHaveCount(0);
-  await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toBeEnabled();
-  await expect(picker.getByRole("radio", { name: /Codex ACP/ })).toHaveAttribute("aria-checked", "true");
-  await expect(panel.getByRole("button", { name: "Start Codex ACP" })).toBeDisabled();
+  await expect(picker.getByRole("radio", { name: /^Codex/ })).toBeEnabled();
+  await expect(picker.getByRole("radio", { name: /^Codex/ })).toHaveAttribute("aria-checked", "true");
+  await expect(panel.getByRole("button", { name: "Start Codex" })).toBeDisabled();
 });
 
 test("the Oxbit agent runs a turn in the app: its file write waits for review, a phone keeps the panel open after Apply, and the conversation gets a title", async ({ page }) => {
@@ -287,7 +287,7 @@ test("a failed agent read stays on its tool call, the write creates new folders,
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await expect(composer).toBeEnabled();
-  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await panel.getByRole("button", { name: "Auto-apply edits", exact: true }).click();
   await composer.fill("Add a pirate talk skill");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("Added the pirate-talk skill.")).toBeVisible();
@@ -308,7 +308,7 @@ test("applied edits stay with their turn and wide replies scroll inside their bl
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   const composer = panel.getByRole("textbox", { name: "Message agent" });
   await expect(composer).toBeEnabled();
-  await panel.getByRole("switch", { name: "Auto-apply edits" }).click();
+  await panel.getByRole("button", { name: "Auto-apply edits", exact: true }).click();
   await composer.fill("First request");
   await panel.getByRole("button", { name: "Send", exact: true }).click();
   await expect(panel.getByText("Wrote it.")).toBeVisible();

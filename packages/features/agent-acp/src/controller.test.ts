@@ -946,7 +946,7 @@ describe("ACP thread mentions", () => {
     agent.attachThread("here");
     expect(agent.context).toEqual([{
       path: ".", kind: "thread", label: "Thread: Login here",
-      text: "Earlier conversation with Codex ACP: Login here\n\nUser: Question here",
+      text: "Earlier conversation with Codex: Login here\n\nUser: Question here",
     }]);
     expect(() => agent.attachThread("missing")).toThrow("This conversation is no longer in history");
     agent.history.entries = [{ ...entry("empty", "/workspace"), activity: [] }];
@@ -1353,7 +1353,7 @@ describe("Fork from here", () => {
     expect(agent.draft).toBe("Refresh it");
     expect(agent.context).toEqual([{
       path: ".", kind: "thread", label: "Thread: Fix login",
-      text: "Earlier conversation with Codex ACP: Fix login\n\nUser: Why does login fail?\n\nAgent: Token expired.",
+      text: "Earlier conversation with Codex: Fix login\n\nUser: Why does login fail?\n\nAgent: Token expired.",
     }]);
     const saved = agent.history.entries.find((entry) => entry.id === original)!;
     expect(saved.activity).toHaveLength(3);

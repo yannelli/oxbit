@@ -137,18 +137,4 @@ export function resolveWorkbenchShortcut(
     (item) => normalizeShortcut(item.key) === normalizeShortcut(key),
   )?.command;
 }
-export function displayShortcut(key: string | undefined): string {
-  if (!key) return "";
-  const mac =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPad/.test(navigator.platform);
-  return mac
-    ? key
-        .replace(/Ctrl\+|Mod\+/g, "⌘")
-        .replace(/Shift\+/g, "⇧")
-        .replace(/Alt\+/g, "⌥")
-        .replace(/ArrowRight/g, "→")
-        .replace(/ArrowLeft/g, "←")
-        .replace(/Enter/g, "↩\uFE0E")
-    : key.replace(/Mod/g, "Ctrl");
-}
+export { displayShortcut } from "@oxbit/ui";

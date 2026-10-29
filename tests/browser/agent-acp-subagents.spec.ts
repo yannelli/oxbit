@@ -123,7 +123,7 @@ test("dispatched subagents share a tree, child approvals, results and historical
       .getByRole("button", { name: "More agent actions", exact: true })
       .click();
     await conversation
-      .getByRole("menuitem", { name: "Open Agents", exact: true })
+      .getByRole("menuitem", { name: "Open Subagents", exact: true })
       .click();
     const agents = page.locator(".acp-agents-view");
     await expect(agents).toBeVisible();

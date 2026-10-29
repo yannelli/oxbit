@@ -69,14 +69,14 @@ test("a second thread runs beside a busy one and the strip switches between them
     await expect(status).toHaveText("Ready");
     await expect(chips).toHaveCount(2);
     await expect(chips.nth(0)).toContainText("wait");
-    await expect(chips.nth(0)).toContainText("Working… · Codex ACP");
+    await expect(chips.nth(0)).toContainText("Working… · Codex");
     await expect(chips.nth(1)).toHaveAttribute("aria-current", "true");
     expect(await liveCount(page)).toBe(2);
 
     await send("hello");
     await expect(panel.getByRole("log")).toContainText("Done.");
     await expect(chips.nth(1)).toContainText("hello");
-    await expect(chips.nth(1)).toContainText("Ready · Codex ACP");
+    await expect(chips.nth(1)).toContainText("Ready · Codex");
     await expect(chips.nth(0)).toContainText("Working…");
     await send("permission");
     await expect(panel.getByText("Permission required")).toBeVisible();
@@ -97,7 +97,7 @@ test("a second thread runs beside a busy one and the strip switches between them
     const views = page.getByRole("navigation", { name: "Primary views" });
     await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp-agents"));
     await expect(panel).toBeHidden();
-    const agentButton = views.getByRole("button", { name: "Agent ACP, Agent needs input", exact: true });
+    const agentButton = views.getByRole("button", { name: "Agents, Agent needs input", exact: true });
     await expect(agentButton.locator(".badge.badge-attention")).toHaveText("1");
     await agentButton.click();
     await expect(strip).toBeVisible();

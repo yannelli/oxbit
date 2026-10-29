@@ -34,6 +34,7 @@ async function topmost(page: Page, name: string, role: "dialog" | "alertdialog" 
 }
 
 async function connect(page: Page, folder?: string) {
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Connect with SSH…", exact: true }).click();
   expect(await topmost(page, "Connect with SSH")).toBe(true);
   if (folder) await page.getByRole("textbox", { name: "Remote folder" }).fill(folder);

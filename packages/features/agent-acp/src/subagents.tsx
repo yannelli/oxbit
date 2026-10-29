@@ -163,7 +163,7 @@ export function Subagents({
   return (
     <section
       className={compact ? "acp-subagents" : "acp-panel acp-agents-view"}
-      aria-label={tr(compact ? "Conversation subagents" : "Agents")}
+      aria-label={tr(compact ? "Conversation subagents" : "Subagents")}
     >
       <div className="acp-agents-heading">
         {compact ? (
@@ -178,7 +178,7 @@ export function Subagents({
             {tr("Subagents")} · {children.length}
           </button>
         ) : (
-          <h2>{tr("Agents")}</h2>
+          <h2>{tr("Subagents")}</h2>
         )}
         <span className="acp-agents-counts" role="status">
           {agent.activeSubagentCount} {tr("active")} · {counts.completed}{" "}
@@ -186,7 +186,7 @@ export function Subagents({
         </span>
         {compact && (
           <button className="button" onClick={() => agent.openAgents()}>
-            {tr("Open Agents")}
+            {tr("Open Subagents")}
           </button>
         )}
       </div>

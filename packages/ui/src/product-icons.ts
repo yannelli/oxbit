@@ -11,4 +11,5 @@ export const productIconIds: Record<string, string | null> = {
   folder: 'folder', folderOpen: 'folder-opened', newFile: 'new-file', newFolder: 'new-folder', collapse: 'collapse-all', goto: 'link-external',
   wifiOff: null, sync: 'sync', keyboard: 'keyboard', bulb: 'lightbulb', package: 'package', sun: null, moon: null,
   clock: 'history', share: 'share', maximize: 'screen-full', minimize: 'chrome-minimize', menu: 'menu', power: 'plug', tasks: 'tasklist', symbol: 'symbol-misc', diff: 'diff',
+  shield: null, shieldCheck: null, sliders: null,
 };

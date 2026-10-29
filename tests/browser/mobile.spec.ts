@@ -86,13 +86,17 @@ async function ready(page: Page) {
 
 test("tapping an extension reveals its details above the mobile panels", async ({ page }) => {
   await ready(page);
-  await page.getByRole("button", { name: "Extensions", exact: true }).tap();
+  const openExtensions = async () => {
+    await page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "More", exact: true }).tap();
+    await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Extensions", exact: true }).tap();
+  };
+  await openExtensions();
   const card = page.locator(".extension-card").first();
   const title = await card.locator("strong").innerText();
   await card.tap();
   await expect(page.locator(".extension-details h1")).toHaveText(title);
   await expect(page.locator(".panel-dock")).toHaveCount(0);
-  await page.getByRole("button", { name: "Extensions", exact: true }).tap();
+  await openExtensions();
   await card.tap();
   await expect(page.locator(".panel-dock")).toHaveCount(0);
 });
@@ -217,7 +221,7 @@ test("a held toolbar button does not swallow its click or the next tap", async (
   // Safari's synthesized click must survive an unhandled contextmenu.
   await search.evaluate(element => element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
   await expect(page.getByRole("dialog", { name: "Quick Open" })).toBeVisible();
-  await page.getByRole("button", { name: "Close palette" }).tap();
+  await page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true }).tap();
   await hold(search);
   await page.getByRole("button", { name: "More", exact: true }).tap();
   await page.getByRole("button", { name: "Show All Commands", exact: true }).tap();
@@ -301,11 +305,11 @@ test("phone palette clears the notch and home indicator and responds to one tap"
   const input = page.getByRole("combobox", { name: "Search files and commands" });
   await expect.poll(() => input.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(59);
   expect(await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
-  const close = page.getByRole("button", { name: "Close palette" });
+  const close = page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true });
   await insideViewport(close);
   expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect(await page.locator(".palette-footer .push").evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(852 - 34);
-  await expect(page.locator(".palette-results [aria-disabled=true]").first()).toBeDisabled();
+  await expect(page.locator(".palette-results [aria-disabled=true]")).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("palette-safe-area.png"), animations: "disabled" });
   await page.getByRole("option", { name: "About Oxbit", exact: true }).tap();
   await expect(page.getByRole("dialog", { name: "About Oxbit" })).toBeVisible();
@@ -318,7 +322,7 @@ test("palette search and close remain reachable as the software keyboard moves",
   await keyboardViewport(page, 360, 100);
   await insideViewport(page.getByRole("dialog", { name: "Quick Open" }));
   await insideViewport(page.getByRole("combobox"));
-  await insideViewport(page.getByRole("button", { name: "Close palette" }));
+  await insideViewport(page.getByRole("dialog", { name: "Quick Open" }).getByRole("button", { name: "Cancel", exact: true }));
   await page.getByRole("combobox").fill(">About Oxbit");
   await page.getByRole("option", { name: "About Oxbit", exact: true }).tap();
   await insideViewport(page.getByRole("dialog", { name: "About Oxbit" }));
@@ -398,7 +402,7 @@ test("one bottom bar reserves the home inset once and keeps all touch targets al
     await page.setViewportSize({ width, height: 852 });
     await expect(page.locator(".statusbar")).toHaveCount(0);
     const buttons = nav.getByRole("button");
-    await expect(buttons).toHaveCount(6);
+    await expect(buttons).toHaveCount(4);
     await expect.poll(() => nav.evaluate(element => element.getBoundingClientRect().bottom)).toBe(852);
     const bounds = (await nav.boundingBox())!;
     expect(bounds.height).toBe(90);
@@ -440,7 +444,7 @@ test("phone navigation labels fit in each supported locale", async ({ page }, in
     for (const width of [320, 393]) {
       await page.setViewportSize({ width, height: 852 });
       const labels = page.locator(".activity-bar .phone-label");
-      await expect(labels).toHaveCount(6);
+      await expect(labels).toHaveCount(4);
       expect(await labels.evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth))).toBe(true);
     }
     await page.screenshot({ path: info.outputPath(`navigation-${locale}.png`), animations: "disabled" });
@@ -533,7 +537,7 @@ test("extra tool panels stay in More without crowding phone navigation", async (
     });
   });
   const nav = page.getByRole("navigation", { name: "Primary views" });
-  await expect(nav.getByRole("button")).toHaveCount(6);
+  await expect(nav.getByRole("button")).toHaveCount(4);
   await nav.getByRole("button", { name: "More", exact: true }).tap();
   await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Phone extra view", exact: true }).tap();
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("phone-extra-view"))).toBe(true);
@@ -553,6 +557,7 @@ test("a phoneBar view gets a bottom-bar slot with a badge and opens as an overla
   const nav = page.getByRole("navigation", { name: "Primary views" });
   const agent = nav.getByRole("button", { name: "Test agent panel, 3 updates", exact: true });
   await expect(agent).toBeVisible();
+  await expect(nav.getByRole("button")).toHaveCount(5);
   await expect(agent.locator(".badge")).toHaveText("3");
   await expect(agent.locator(".phone-label")).toHaveText("Agent");
   const labels = await nav.locator(".phone-label").evaluateAll(items =>
@@ -602,7 +607,9 @@ test("phone panel picker switches full-height panels and preserves drafts", asyn
   await expect(picker.getByRole("button", { name: "Draft panel", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ path: info.outputPath("phone-panel-picker.png"), animations: "disabled" });
   await picker.getByRole("button", { name: "Explorer", exact: true }).tap();
-  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toHaveText("Explorer");
+  await expect(page.locator(".panel-dock .panel-header-title")).toHaveText("Explorer");
+  await expect(page.getByRole("button", { name: "Switch panel", exact: true })).toBeHidden();
+  await expect(page.locator(".panel-dock").getByRole("button", { name: "Close sidebar", exact: true })).toHaveCount(0);
   const collapse = page.getByRole("button", { name: "Collapse folders", exact: true });
   await expect(collapse).toBeVisible();
   await insideViewport(collapse);
@@ -636,10 +643,16 @@ test("More highlights panels hidden from iOS navigation without duplicating web 
   await ready(page);
   const nav = page.getByRole("navigation", { name: "Primary views" });
   const more = nav.getByRole("button", { name: "More", exact: true });
-  for (const id of ["search", "extensions"]) {
-    await nav.locator(`[data-view="${id}"]`).tap();
-    await expect(more).not.toHaveClass(/active/);
-  }
+  await nav.locator('[data-view="search"]').tap();
+  await expect(more).not.toHaveClass(/active/);
+  await expect(nav.locator('[data-view="extensions"]')).toHaveCount(0);
+  await more.tap();
+  await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Extensions", exact: true }).tap();
+  await expect(more).toHaveClass(/active/);
+  await more.tap();
+  await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Settings", exact: true }).tap();
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await expect(more).toHaveClass(/active/);
   await page.addStyleTag({ content: await readFile(new URL("../../apps/ios/src/ios.css", import.meta.url), "utf8") });
   await page.evaluate(() => document.querySelector(".workbench")!.parentElement!.classList.add("ios-shell"));
   await page.setViewportSize({ width: 834, height: 1112 });
@@ -655,13 +668,14 @@ test("More highlights panels hidden from iOS navigation without duplicating web 
   await expect(more).not.toHaveClass(/active/);
 });
 
-test("language status opens below the phone header and above the desktop footer", async ({ page }, info) => {
+test("language status opens from the phone More sheet and above the desktop footer", async ({ page }, info) => {
   await ready(page);
   const trigger = page.getByRole("button", { name: /^Language Servers:/ });
   const popup = page.getByRole("dialog", { name: "Language Servers", exact: true });
-  await page.locator(".titlebar").getByRole("button", { name: /^Language Servers:/ }).tap();
+  await expect(page.locator(".titlebar").getByRole("button", { name: /^Language Servers:/ })).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "More", exact: true }).tap();
+  await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: /^Language Servers:/ }).tap();
   await insideViewport(popup);
-  expect((await popup.boundingBox())!.y).toBeGreaterThanOrEqual((await trigger.boundingBox())!.y + (await trigger.boundingBox())!.height);
   await page.screenshot({ path: info.outputPath("phone-language-status.png"), animations: "disabled" });
   await popup.getByRole("button", { name: "Close Language Servers" }).tap();
   await keyboardViewport(page, 320, 80);
@@ -754,17 +768,16 @@ test("phone settings open on a page list, drill into a page, and return", async 
   expect(toggle!.x + toggle!.width).toBeLessThanOrEqual(393);
   await expect(minimap.getByRole("button", { name: "Copy setting ID" })).toBeHidden();
   const wordWrap = page.locator('[data-setting-id="editor.wordWrap"]');
-  const title = await wordWrap.locator(".setting-title").boundingBox(), select = await wordWrap.getByRole("combobox", { name: "Word Wrap" }).boundingBox();
+  const select = await wordWrap.getByRole("combobox", { name: "Word Wrap" }).boundingBox();
   const description = await wordWrap.locator(".setting-text > p").boundingBox(), row = await wordWrap.boundingBox();
   expect(select!.height).toBeGreaterThanOrEqual(44);
-  expect(select!.width).toBeLessThanOrEqual(393 * 0.45 + 1);
-  expect(Math.abs(select!.y + select!.height / 2 - (title!.y + title!.height / 2))).toBeLessThan(2);
-  expect(description!.y).toBeGreaterThanOrEqual(select!.y + select!.height - 1);
+  expect(select!.y).toBeGreaterThanOrEqual(description!.y + description!.height - 1);
+  expect(select!.width).toBeGreaterThan(row!.width * 0.8);
   expect(description!.width).toBeGreaterThan(row!.width * 0.8);
   const tabSize = page.locator('[data-setting-id="editor.tabSize"]');
-  const tabTitle = await tabSize.locator(".setting-title").boundingBox(), number = await tabSize.getByRole("spinbutton", { name: "Tab Size" }).boundingBox();
+  const tabText = await tabSize.locator(".setting-text").boundingBox(), number = await tabSize.getByRole("spinbutton", { name: "Tab Size" }).boundingBox();
   expect(number!.height).toBeGreaterThanOrEqual(44);
-  expect(Math.abs(number!.y + number!.height / 2 - (tabTitle!.y + tabTitle!.height / 2))).toBeLessThan(2);
+  expect(number!.y).toBeGreaterThanOrEqual(tabText!.y + tabText!.height - 1);
   const fontFamily = page.locator('[data-setting-id="editor.fontFamily"]');
   const fontText = await fontFamily.locator(".setting-text").boundingBox(), fontInput = await fontFamily.getByRole("textbox", { name: "Font Family" }).boundingBox();
   expect(fontInput!.y).toBeGreaterThanOrEqual(fontText!.y + fontText!.height - 1);

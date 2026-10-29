@@ -487,66 +487,21 @@ export function Branches({
 }
 export function Stashes({
   api,
-  status,
   pending,
   revision,
   run,
 }: {
   api: RepositoryUI;
-  status: GitStatus;
   pending: boolean;
   revision: number;
   run(action: () => Promise<unknown>): void;
 }) {
-  const [message, setMessage] = useState(""),
-    [includeUntracked, setIncludeUntracked] = useState(true);
   const { data, error, loading } = useQuery<GitStash[]>(
     (signal) => api.request("stashes", {}, signal),
     [revision],
   );
   return (
     <div className="scm-section-content">
-      <form
-        className="scm-filter-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          run(async () => {
-            if (
-              await api.perform("stashSave", {
-                message: message.trim(),
-                includeUntracked,
-              })
-            )
-              setMessage("");
-          });
-        }}
-      >
-        <input
-          aria-label={tr("Stash message")}
-          placeholder={tr("Describe work to save for later")}
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-        />
-        <label className="scm-checkbox">
-          <input
-            type="checkbox"
-            checked={includeUntracked}
-            onChange={(event) => setIncludeUntracked(event.target.checked)}
-          />
-          {tr("Include untracked files")}
-        </label>
-        <button
-          className="button"
-          disabled={
-            pending ||
-            !message.trim() ||
-            !status.changes.length ||
-            !!status.operation
-          }
-        >
-          {tr("Stash changes")}
-        </button>
-      </form>
       <Feedback error={error} loading={loading} />
       {!loading && !error && !data?.length && (
         <p className="scm-empty">{tr("No stashes yet")}</p>

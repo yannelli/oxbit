@@ -30,6 +30,18 @@
     "category": "Appearance"
   },
   {
+    "id": "workbench.style",
+    "title": "Layout Style",
+    "description": "Flat places panes edge to edge with thin dividers and neutral buttons. Classic shows the sidebar, editor and panels as separate cards.",
+    "type": "string",
+    "default": "flat",
+    "enum": [
+      "flat",
+      "classic"
+    ],
+    "category": "Appearance"
+  },
+  {
     "id": "workbench.sidebarLocation",
     "title": "Sidebar Location",
     "description": "Where the primary sidebar is docked.",
@@ -223,6 +235,10 @@
     "enum": [
       "oxbit.prettier",
       "oxbit.builtin-ts"
+    ],
+    "enumLabels": [
+      "Prettier",
+      "TypeScript (built-in)"
     ],
     "category": "Formatting"
   },

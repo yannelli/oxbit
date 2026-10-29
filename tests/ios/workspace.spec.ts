@@ -9,7 +9,9 @@ test("switching iOS workspaces replaces panels before disposing the old session"
   await page.goto("/");
   await page.getByRole("button", { name: "Oxbit Files app" }).click();
   await expect(page.locator(".cm-content")).toContainText("/device/Documents");
+  await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("button", { name: "Language Servers: 1 running" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.locator(".workspace-title").click();
   await page.getByRole("button", { name: "Oxbit Files app" }).click();
@@ -17,9 +19,11 @@ test("switching iOS workspaces replaces panels before disposing the old session"
   expect(await page.evaluate(() => (window as any).__iosTest.opened)).toBe(1);
 
   await page.locator(".workspace-title").click();
+  await page.getByRole("button", { name: "Add…", exact: true }).click();
   await page.getByRole("button", { name: "Open Folder…", exact: true }).click();
   await expect(page.locator(".workspace-title")).toHaveText("Second");
   await expect(page.locator(".cm-content")).toContainText("/device/Second");
+  await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("button", { name: "Language Servers: 1 running" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).__iosTest.closed)).toEqual([
     { id: "/device/Documents", title: "Second" },
@@ -27,6 +31,7 @@ test("switching iOS workspaces replaces panels before disposing the old session"
   await page.getByRole("button", { name: "Language Servers: 1 running" }).click();
   await expect(page.getByRole("dialog", { name: "Language Servers", exact: true })).toContainText("Language intelligence is active");
   await page.getByRole("button", { name: "Close Language Servers" }).click();
+  await page.keyboard.press("Escape");
   await page.screenshot({ path: "evidence/ios-language/workspace-switched.png" });
   await page.getByRole("button", { name: "Explorer", exact: true }).click();
   await page.getByText("settings.jsonc", { exact: true }).click();

@@ -17,6 +17,7 @@ button:disabled{cursor:not-allowed}
 /* Windows-era 3D edge colours, consumed only by classicos98.css. */
 [data-theme-pack="oxbit.classicos98"]{--w98-hilight:#ffffff;--w98-light:#dfdfdf;--w98-shadow:#808080;--w98-dkshadow:#000000;--w98-caption-end:#1084d0;--w98-tip:#ffffe1;--w98-tip-fg:#000000}
 [data-theme-pack="oxbit.classicos98"][data-theme="dark"]{--w98-hilight:var(--bd-strong);--w98-light:var(--bd-strong);--w98-shadow:var(--bd);--w98-caption-end:var(--accent);--w98-tip:var(--bg-raised);--w98-tip-fg:var(--popover-foreground)}
+:root{--activity-bar-width:36px}
 [data-density="compact"]{--row:22px;--ui:12px;--tab:34px;--pad:8px;--ctl:24px}
 [data-density="comfortable"]{--row:28px;--ui:13px;--tab:38px;--pad:12px;--ctl:28px}
 [data-mode="phone"]{--row:44px;--tab:44px;--ctl:44px;--ui:14px}

@@ -426,7 +426,7 @@ test("an agent conversation and its unsent draft follow the same live panel", as
     page.getByRole("log", { name: "Agent conversation" }),
   ).toContainText("Existing conversation");
   const popupPromise = page.waitForEvent("popup");
-  await move(page, "Agent ACP", "float");
+  await move(page, "Agents", "float");
   const popup = await popupPromise;
   await expect(
     popup.getByRole("log", { name: "Agent conversation" }),

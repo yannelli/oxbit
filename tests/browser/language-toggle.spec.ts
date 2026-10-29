@@ -24,6 +24,11 @@ async function completes(page: Page) {
   return shown;
 }
 const indicator = (page: Page) => page.getByRole("button", { name: /^Language Servers:/ });
+// Phone layouts list the language status in the More sheet.
+async function shownIndicator(page: Page) {
+  if (!(await indicator(page).isVisible())) await page.getByRole("button", { name: "More", exact: true }).click();
+  return indicator(page);
+}
 const popup = (page: Page) => page.getByRole("dialog", { name: "Language Servers", exact: true });
 const fileSwitch = (page: Page) => popup(page).getByRole("switch", { name: "Language features for this file" });
 
@@ -43,13 +48,13 @@ test("turns language server features off and on for one file for the session", a
   expect(await completes(page)).toBe(true);
 
   const savedSettings = await page.evaluate(() => JSON.stringify((window as any).__oxbit.kernel.configuration.get("languageServers") ?? {}));
-  await indicator(page).click();
+  await (await shownIndicator(page)).click();
   await expect(fileSwitch(page)).toHaveAttribute("aria-checked", "true");
   await fileSwitch(page).click();
   await expect(fileSwitch(page)).toHaveAttribute("aria-checked", "false");
   await expect(fileSwitch(page)).toHaveText("Off");
   await expect(popup(page)).toContainText("Language server features are off for this file.");
-  await expect(indicator(page)).toHaveAccessibleName("Language Servers: off for this file");
+  await expect(await shownIndicator(page)).toHaveAccessibleName("Language Servers: off for this file");
   await popup(page).press("Escape");
   await expect.poll(() => errors(page)).toBe(0);
   expect(await page.evaluate((path) => (window as any).__oxbit.kernel.services.get("language").diagnostics.has(path), first)).toBe(false);
@@ -58,13 +63,13 @@ test("turns language server features off and on for one file for the session", a
 
   await open(page, second);
   await expect.poll(() => errors(page), { timeout: 30000 }).toBeGreaterThan(0);
-  await expect(indicator(page)).toHaveAccessibleName(/^Language Servers: \d+ running$/);
+  await expect(await shownIndicator(page)).toHaveAccessibleName(/^Language Servers: \d+ running$/);
   expect(await completes(page)).toBe(true);
 
   await page.evaluate((path) => (window as any).__oxbit.openFile(path), first);
-  await expect(indicator(page)).toHaveAccessibleName("Language Servers: off for this file");
+  await expect(await shownIndicator(page)).toHaveAccessibleName("Language Servers: off for this file");
   expect(await errors(page)).toBe(0);
-  await indicator(page).click();
+  await (await shownIndicator(page)).click();
   await fileSwitch(page).click();
   await expect(fileSwitch(page)).toHaveAttribute("aria-checked", "true");
   await popup(page).press("Escape");
@@ -78,7 +83,7 @@ test("turns language server features off and on for one file for the session", a
   await open(page, first);
   expect(await page.evaluate((path) => (window as any).__oxbit.kernel.services.get("language").fileEnabled(path), first)).toBe(true);
   await expect.poll(() => errors(page), { timeout: 30000 }).toBeGreaterThan(0);
-  await expect(indicator(page)).toHaveAccessibleName(/^Language Servers: \d+ running$/);
+  await expect(await shownIndicator(page)).toHaveAccessibleName(/^Language Servers: \d+ running$/);
 });
 
 test("names the command for the active file state", async ({ page }) => {
