@@ -1,6 +1,6 @@
 # Oxbit agent instructions
 
-Created: 2026-10-21. Last updated: 2026-10-21.
+Created: 2026-10-21. Last updated: 2026-10-29.
 
 This file is the one source of project instructions for Claude Code, Codex and Cursor. `CLAUDE.md` imports it. [Agent tooling](docs/agents/agent-tooling.md) records how each tool loads instructions, skills, agents, hooks and MCP servers, with links.
 
@@ -51,9 +51,10 @@ Run the checks the PR workflows run for the paths you changed before you push. T
 
 - `cat` is aliased to `pygmentize` and writes ANSI codes into files. Use `/bin/cat`, `printf` or the editor tools.
 - `find` is bfs and breaks on directory names that start with `-`. Use Python for those.
-- `timeout` is not installed. Use `perl -e 'alarm N; exec @ARGV' cmd ...`.
+- Put a limit on every build and test run with `timeout <seconds> <cmd>` (`/usr/bin/timeout`).
 - The git stash stack is shared by every worktree. Bare `git stash` and `git stash pop` are blocked by a hook. Use a WIP commit, or `git stash push -u -m "<tag>"` and `git stash apply <sha>`.
 - Run `launchctl managername` before you conclude a credential is missing. In a `Background` session the login keychain reads as locked, so `codesign`, `xcrun notarytool`, HTTPS `git push`, GPG signing and `devicectl` device access fail. Run those through a Terminal `.command` script (`open -a Terminal /tmp/task.command`, poll its log, write a sentinel line at the end). `git push git@github.com:yannelli/oxbit.git <ref>` and `gh` work without the keychain.
+- HTTPS `git push` of a branch that changes `.github/workflows/` is rejected because the `gh` OAuth token has no `workflow` scope. Push those branches to `git@github.com:yannelli/oxbit.git`.
 - A push to the URL leaves `origin/<branch>` stale, so the Stop hook and `unpushed_work` report the commits as unpushed. Run `git fetch origin <branch>` after the push.
 - Commit with `git -c commit.gpgsign=false commit`; the GPG passphrase is not cached. Run Playwright and `scripts/release.mjs` with `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false`.
 - The `doctor` MCP tool reports the session type and the Node and bun versions.
