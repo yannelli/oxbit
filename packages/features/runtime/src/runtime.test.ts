@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RuntimeConnector, RuntimeStatus, RuntimeTarget } from "@oxbit/workbench";
 import { keepAliveMs, keepAliveOptions } from "./configuration.js";
-import { RuntimeStatusStore, clientStatus, formatUptime, oneTap } from "./store.js";
+import { RuntimeStatusStore, clientStatus, formatUptime, oneTap, shortHostName } from "./store.js";
 
 const target: RuntimeTarget = { key: "url:abc12345", kind: "url", name: "studio", url: "http://192.168.1.5:50123", runtimeId: "abc12345" };
 
@@ -76,5 +76,15 @@ describe("status store", () => {
     expect(formatUptime(1, 30_000)).toBe("<1m");
     expect(formatUptime(1, 1 + 125 * 60_000)).toBe("2h 5m");
     expect(formatUptime(1, 1 + 26 * 3_600_000)).toBe("1d 2h");
+  });
+});
+
+describe("short host name", () => {
+  it("drops domain suffixes and keeps IP addresses and plain names", () => {
+    expect(shortHostName("Anonymous-Lobster-MBP.local")).toBe("Anonymous-Lobster-MBP");
+    expect(shortHostName("build.example.com")).toBe("build");
+    expect(shortHostName("192.168.1.5")).toBe("192.168.1.5");
+    expect(shortHostName("::1")).toBe("::1");
+    expect(shortHostName("studio")).toBe("studio");
   });
 });

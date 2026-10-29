@@ -1,0 +1,9 @@
+/* Flat layout style. Each file scopes its rules to :root[data-style="flat"]. */
+@import "./flat/density.css";
+@import "./flat/shell.css";
+@import "./flat/phone.css";
+@import "./flat/ios.css";
+@import "./flat/settings.css";
+@import "./flat/agent.css";
+@import "./flat/overlays.css";
+@import "./flat/panels.css";

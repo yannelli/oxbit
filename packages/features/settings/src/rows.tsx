@@ -73,6 +73,14 @@ function useSuggestions(kernel: Kernel, id: string) {
   return source ? items : undefined;
 }
 
+/** Readable text for an enum value without a schema label: its translation, or the ID split into words. */
+export function enumLabel(value: string | number): string {
+  const text = String(value), translated = tr(text);
+  const words = translated !== text || !/^[A-Za-z][\w.-]*$/.test(text) ? translated
+    : text.replace(/([a-z\d])([A-Z])/g, "$1 $2").replace(/[-_.]+/g, " ").toLowerCase();
+  return words.charAt(0).toLocaleUpperCase() + words.slice(1);
+}
+
 const draftOf = (value: unknown) => (typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
 
 export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
@@ -135,7 +143,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   const suggestions = useSuggestions(kernel, s.id);
   const iconTheme = s.id === "workbench.iconTheme" || s.id === "workbench.productIconTheme";
   const stringList = s.type === "array" && s.items === "string" && Array.isArray(value);
-  const stacked = !!suggestions?.length || stringList || s.type === "object" || s.type === "array" || iconTheme || s.id === "workbench.colorTheme";
+  const stacked = !!suggestions?.length || stringList || s.type === "object" || s.type === "array";
   const control = s.type === "boolean" ? (
     <input type="checkbox" role="switch" className="setting-switch" aria-label={title} checked={!!value} onChange={event => set(event.target.checked)} />
   ) : stringList ? (
@@ -155,7 +163,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
     </>
   ) : s.enum ? (
     <Select label={title} value={String(value)} onChange={value => set(s.type === "number" ? Number(value) : value)}
-      options={s.enum.map((value, index) => ({ value: String(value), label: s.enumLabels?.[index] ? tr(s.enumLabels[index]) : typeof value === "string" ? tr(value) : String(value) }))} />
+      options={s.enum.map((value, index) => ({ value: String(value), label: s.enumLabels?.[index] ? tr(s.enumLabels[index]) : enumLabel(value) }))} />
   ) : (
     <input aria-label={title} type={s.type === "number" ? "number" : "text"} min={s.min} max={s.max} value={draft} aria-invalid={!!error} {...typing}
       onChange={event => {
@@ -178,7 +186,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
     <ul className="setting-suggestions" aria-label={tr("Suggestions for {0}", { "0": title })}>
       {suggestions.map(item => (
         <li key={item.value}>
-          <button type="button" className="setting-suggestion" aria-pressed={value === item.value} title={item.value} onClick={() => choose(item.value)}>
+          <button type="button" className="setting-suggestion" aria-pressed={value === item.value} title={[item.value, item.title ?? item.detail].filter(Boolean).join("\n")} onClick={() => choose(item.value)}>
             <span>{item.label}</span>
             {item.detail && <small>{item.detail}</small>}
           </button>
@@ -186,8 +194,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
       ))}
     </ul>
   );
-  const compact = !stacked && (s.type === "boolean" || s.type === "number" || !!s.enum);
-  const variant = [stacked ? "stacked" : "", compact ? "compact" : "", s.type === "boolean" ? "switch-row" : "", modified ? "modified" : ""].filter(Boolean).join(" ");
+  const variant = [stacked ? "stacked" : "", s.type === "boolean" ? "switch-row" : "", modified ? "modified" : ""].filter(Boolean).join(" ");
   return (
     <Row className={variant} id={s.id} title={title} description={s.description ? tr(s.description) : undefined} notice={notice} actions={actions} error={error}>
       {control}

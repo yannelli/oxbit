@@ -144,7 +144,7 @@ test("tooltip colors follow all themes and stay inside desktop and phone edges",
       await page.mouse.move(width / 2, 350);
       await page
         .getByRole("button", {
-          name: width === 1440 ? "Toggle theme" : "Settings",
+          name: width === 1440 ? "Toggle theme" : "Explorer",
           exact: true,
         })
         .hover();
@@ -185,7 +185,8 @@ test("touch taps do not leave a hover tooltip open", async ({ browser }) => {
   const page = await context.newPage();
   try {
     await ready(page);
-    await page.getByRole("button", { name: "Settings", exact: true }).tap();
+    await page.getByRole("navigation", { name: "Primary views" }).getByRole("button", { name: "More", exact: true }).tap();
+    await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Settings", exact: true }).tap();
     await expect(
       page.getByRole("heading", { name: "Settings", exact: true }),
     ).toBeVisible();

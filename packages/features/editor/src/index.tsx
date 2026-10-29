@@ -12,7 +12,8 @@ import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import { python } from "@codemirror/legacy-modes/mode/python";
 import { localSyntax, astroSyntax } from "./local-syntax.js";
-import { translate as tr, getPhrases } from "@oxbit/ui";
+import { effectiveWordWrap, explicitSetting, hangingIndent, phoneLayout } from "./wrap-indent.js";
+import { translate as tr, getPhrases, PHONE_QUERY } from "@oxbit/ui";
 import { useEffect, useRef, useState } from "react";
 import {
   Compartment,
@@ -237,6 +238,7 @@ function configured(
   kernel: Kernel,
   path: string,
   content: string,
+  phone = phoneLayout(),
 ): CMExtension[] {
   const language = editorLanguageId(kernel, path);
   const get: {
@@ -248,23 +250,12 @@ function configured(
   let size = get("editor.tabSize", 2),
     spaces = get("editor.insertSpaces", true);
   if (get("editor.detectIndentation", true)) {
-    const data = kernel.configuration.export() as {
-      user: Record<string, unknown>;
-      workspace: Record<string, unknown>;
-      userLanguages: Record<string, Record<string, unknown>>;
-      workspaceLanguages: Record<string, Record<string, unknown>>;
-    };
-    const explicit = (id: string) =>
-      [
-        data.user,
-        data.workspace,
-        data.userLanguages[language],
-        data.workspaceLanguages[language],
-      ].some((layer) => layer && Object.hasOwn(layer, id));
+    const explicit = (id: string) => explicitSetting(kernel, id, language);
     const detected = detectedIndentation(content, size, spaces);
     if (!explicit("editor.tabSize")) size = detected.size;
     if (!explicit("editor.insertSpaces")) spaces = detected.spaces;
   }
+  const wrap = effectiveWordWrap(kernel, language, phone);
   const font = themeTypography(kernel, "editor", language);
   const fontSize = font.size;
   return [
@@ -281,7 +272,7 @@ function configured(
     ),
     EditorState.tabSize.of(size),
     indentUnit.of(spaces ? " ".repeat(size) : "\t"),
-    get("editor.wordWrap", "off") !== "off" ? EditorView.lineWrapping : [],
+    wrap !== "off" ? [EditorView.lineWrapping, hangingIndent(size, size)] : [],
     get("editor.renderWhitespace", "selection") === "all"
       ? highlightWhitespace()
       : [],
@@ -300,7 +291,7 @@ function configured(
         ".cm-content": {
           padding: "6px 0",
           caretColor: "var(--editor-cursor)",
-          ...(get("editor.wordWrap", "off") === "bounded"
+          ...(wrap === "bounded"
             ? { maxWidth: "90ch" }
             : {}),
         },
@@ -414,12 +405,15 @@ export function CodeEditor({
     const unsub = kernel.configuration.subscribe(tick);
     const unlanguages = kernel.contributions.subscribe(tick);
     const measure = () => viewRef.current?.requestMeasure();
+    const phone = typeof matchMedia === "function" ? matchMedia(PHONE_QUERY) : undefined;
+    phone?.addEventListener("change", tick);
     document.fonts?.addEventListener("loadingdone", measure);
     document.addEventListener("oxbit-fonts-loaded", measure);
 
     return () => {
       unsub();
       unlanguages();
+      phone?.removeEventListener("change", tick);
       document.fonts?.removeEventListener("loadingdone", measure);
       document.removeEventListener("oxbit-fonts-loaded", measure);
     };
@@ -788,7 +782,7 @@ export function createFeature({
         () =>
           kernel.configuration.set(
             "editor.wordWrap",
-            kernel.configuration.get("editor.wordWrap") === "off"
+            effectiveWordWrap(kernel, undefined, phoneLayout()) === "off"
               ? "on"
               : "off",
           ),

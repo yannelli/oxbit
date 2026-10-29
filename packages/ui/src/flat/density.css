@@ -1,0 +1,3 @@
+/* Flat layout style: larger type and rows at both densities. */
+:root[data-style="flat"] [data-density="compact"]{--row:28px;--ui:13px;--tab:36px;--pad:8px;--ctl:28px}
+:root[data-style="flat"] [data-density="comfortable"]{--row:32px;--ui:14px;--tab:40px;--pad:12px;--ctl:32px}

@@ -70,8 +70,11 @@ async function prompt(page: Page, text: string) {
   await dialog.getByRole("textbox").fill(text);
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
 }
-async function tab(page: Page, name: string) {
-  await page.getByRole("tab", { name, exact: true }).click();
+async function section(page: Page, name: string) {
+  const toggle = page.locator(".scm-section-toggle", { hasText: name });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true")
+    await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
 test("source control supports hunks, commits, branch creation, publishing, history, and stashes", async ({
@@ -117,17 +120,20 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await page
       .getByRole("button", { name: "Stage All Changes", exact: true })
       .click();
-    const message = page.getByRole("textbox", { name: "Commit message" });
+    const message = page.getByRole("textbox", {
+      name: "Commit message",
+      exact: true,
+    });
     await message.fill("Improve two sections");
     await expect(
-      page.getByRole("button", { name: "Commit staged changes", exact: true }),
+      page.getByRole("button", { name: "Commit", exact: true }),
     ).toBeEnabled();
     await message.press("Control+Enter");
     await expect
       .poll(() => git(f.root, "log", "-1", "--format=%s"))
       .toBe("Improve two sections");
     await expect(message).toHaveValue("");
-    await tab(page, "History");
+    await section(page, "Commits");
     await page.getByRole("button", { name: /Improve two sections/ }).click();
     await expect(page.locator(".scm-commit-details h2")).toHaveText(
       "Improve two sections",
@@ -147,7 +153,7 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await expect(page.locator(".scm-history-row")).toContainText(
       "Initial project",
     );
-    await tab(page, "Branches");
+    await section(page, "Branches");
     await page
       .getByRole("button", { name: "Create branch", exact: true })
       .click();
@@ -163,7 +169,8 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await page
       .getByRole("button", { name: "Publish current branch", exact: true })
       .click();
-    await expect(page.locator(".scm-tracking")).toContainText(
+    await expect(page.locator(".scm-tracking")).toHaveAttribute(
+      "title",
       "origin/feature/source-control",
     );
     expect(
@@ -174,13 +181,13 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     });
     await fs.writeFile(path.join(f.root, "later.txt"), "save this for later\n");
     await refresh(page);
-    await tab(page, "Stashes");
+    await expect(page.locator(".scm-section-toggle", { hasText: "Stashes" })).toHaveCount(0);
     await page
-      .getByRole("textbox", { name: "Stash message" })
-      .fill("Work in progress");
-    await page
-      .getByRole("button", { name: "Stash changes", exact: true })
+      .locator(".scm-toolbar")
+      .getByRole("button", { name: "Source control actions", exact: true })
       .click();
+    await page.getByRole("menuitem", { name: /^Stash Changes…/ }).click();
+    await prompt(page, "Work in progress");
     await expect(page.locator(".scm-stash-open")).toContainText(
       "Work in progress",
     );
@@ -201,10 +208,11 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await page.evaluate(() =>
       (window as any).__oxbit.workbench.openPanel("scm"),
     );
-    await tab(page, "Changes");
-    await page.getByRole("textbox", { name: "Commit message" }).click();
+    await page
+      .getByRole("textbox", { name: "Commit message", exact: true })
+      .click();
     await expect(
-      page.getByRole("textbox", { name: "Commit message" }),
+      page.getByRole("textbox", { name: "Commit message", exact: true }),
     ).toBeFocused();
     expect(
       await page
@@ -212,11 +220,16 @@ test("source control supports hunks, commits, branch creation, publishing, histo
         .evaluate((el) => el.scrollWidth <= el.clientWidth),
     ).toBe(true);
     await page.screenshot({ path: "evidence/source-control/phone-dark.png" });
-    await page.getByRole("tab", { name: "Changes", exact: true }).focus();
-    await page.keyboard.press("ArrowRight");
     await expect(
-      page.getByRole("tab", { name: "History", exact: true }),
-    ).toHaveAttribute("aria-selected", "true");
+      page.locator(".scm-section-toggle", { hasText: "Commits" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await page
+      .getByRole("textbox", { name: "Search commit messages" })
+      .fill("");
+    await page
+      .locator(".scm-filter-form")
+      .getByRole("button", { name: "Search", exact: true })
+      .click();
     await page.evaluate(() =>
       (window as any).__oxbit.kernel.configuration.set(
         "workbench.colorTheme",
@@ -278,7 +291,7 @@ test("source control protects dirty buffers and guides merge resolution and reco
     await page.evaluate(() =>
       (window as any).__oxbit.documents.get("example.txt").replace("current\n"),
     );
-    await tab(page, "Branches");
+    await section(page, "Branches");
     const branch = page
       .locator(".scm-branch-card")
       .filter({ has: page.locator("strong", { hasText: /^other$/ }) });
@@ -311,7 +324,6 @@ test("source control protects dirty buffers and guides merge resolution and reco
     await expect(page.locator(".scm-operation")).toContainText(
       "merge in progress",
     );
-    await tab(page, "Changes");
     await expect(
       page.getByRole("region", { name: "Merge changes", exact: true }),
     ).toBeVisible();
@@ -368,18 +380,23 @@ test("source control protects dirty buffers and guides merge resolution and reco
   }
 });
 
-test("the accounts toolbar action appears only when git.account is registered", async ({
+test("the accounts overflow action appears only when git.account is registered", async ({
   page,
 }) => {
   const f = await fixture(page);
   try {
-    const accounts = page
+    const overflow = page
       .locator(".scm-toolbar")
-      .getByRole("button", { name: "Git Accounts and Commit Author" });
+      .getByRole("button", { name: "Source control actions", exact: true });
+    const accounts = page.getByRole("menuitem", {
+      name: /^Git Accounts and Commit Author/,
+    });
+    await overflow.click();
     await expect(
-      page.locator(".scm-toolbar").getByRole("button", { name: "Refresh" }),
+      page.getByRole("menuitem", { name: /^Refresh Source Control/ }),
     ).toBeVisible();
     await expect(accounts).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await page.evaluate(() => {
       const z = (window as any).__oxbit;
       z.kernel.commands.register({
@@ -391,6 +408,7 @@ test("the accounts toolbar action appears only when git.account is registered", 
       });
       z.workbench.touch();
     });
+    await overflow.click();
     await accounts.click();
     await expect
       .poll(() => page.evaluate(() => (window as any).__oxbit.accountsOpened))

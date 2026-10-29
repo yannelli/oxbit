@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, AGENT_MODELS_SERVICE, OXBIT_AGENT_PROVIDER, acpPreset, type AgentModels } from "@oxbit/sdk";
+import { ACP_CUSTOM_PROVIDER, ACP_PROVIDERS, AGENT_MODELS_SERVICE, OXBIT_AGENT_PROVIDER, OXBIT_CLI_PROVIDER, acpPreset, type AgentModels } from "@oxbit/sdk";
 import { Icon, translate as tr } from "@oxbit/ui";
 import type { AgentController } from "./controller.js";
 import { AgentLogo } from "./agent-logo.js";
@@ -21,14 +21,13 @@ const UNAVAILABLE: Record<string, string> = {
   claude: "Needs a runtime workspace. Uses your Claude plan through Claude Code's sign-in on the runtime.",
 };
 
-/** Built-in agents, the current registry or custom choice, and entries for more agents. Without a runtime workspace, the Oxbit agent leads and the others are disabled. */
+/** Built-in agents, the current registry or custom choice, and entries for more agents. Without a runtime workspace, the Oxbit agent leads and the others are disabled.
+ * A row sets the agent that the composer's first message starts. */
 export function AgentPicker({
   agent,
-  enabled,
   onChoose,
 }: {
   agent: AgentController;
-  enabled: boolean;
   onChoose(chooser: Chooser): void;
 }) {
   const current = agent.chosen.provider;
@@ -63,7 +62,7 @@ export function AgentPicker({
       <h2>{tr("Choose an agent")}</h2>
       <div role="radiogroup" aria-label={tr("Agent")}>
         {local && row(OXBIT_AGENT_PROVIDER, OXBIT_AGENT_NAME, tr(chatgpt ? "Runs in Oxbit with your API key or ChatGPT plan" : "Runs in Oxbit with your API key"))}
-        {ACP_PROVIDERS.map((preset) =>
+        {ACP_PROVIDERS.filter((preset) => !local || preset.id !== OXBIT_CLI_PROVIDER).map((preset) =>
           row(preset.id, preset.name, tr(HINTS[preset.id] ?? preset.setup), tr(preset.setup)),
         )}
         {extra &&
@@ -83,14 +82,6 @@ export function AgentPicker({
           <span><strong>{tr("Custom agent…")}</strong><small>{tr(local ? NEEDS_RUNTIME : "Run any ACP executable")}</small></span>
         </button>
       </div>
-      <button
-        type="button"
-        className="button primary acp-agent-start"
-        disabled={!enabled || agent.connecting}
-        onClick={() => void agent.action(() => agent.connectSelected())}
-      >
-        {local && agent.claudePlan ? tr("Runtime connection") : tr("Start {0}", { 0: agent.displayName })}
-      </button>
     </section>
   );
 }

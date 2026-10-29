@@ -5,12 +5,12 @@ import { RUNTIME_CONNECTOR_SERVICE, type RuntimeConnector, type RuntimeStatus, t
 import { runtimeConfiguration } from "./configuration.js";
 import { RuntimePage } from "./page.js";
 import type { RuntimeSettingsAccess } from "./sections.js";
-import { oneTap } from "./store.js";
+import { oneTap, shortHostName } from "./store.js";
 import "./runtime.css";
 
 export { RuntimePage } from "./page.js";
 export type { RuntimeSettingsAccess } from "./sections.js";
-export { RuntimeStatusStore, clientStatus, oneTap, formatUptime, type RuntimeClientLike } from "./store.js";
+export { RuntimeStatusStore, clientStatus, oneTap, formatUptime, shortHostName, type RuntimeClientLike } from "./store.js";
 export { runtimeConfiguration, keepAliveMs, keepAliveOptions, KEEP_ALIVE_SETTING, AUTO_RECONNECT_SETTING, type KeepAlive } from "./configuration.js";
 
 const connectorOf = (kernel: Kernel) => kernel.services.optional<RuntimeConnector>(RUNTIME_CONNECTOR_SERVICE);
@@ -35,11 +35,11 @@ function RuntimeStatusItem({ kernel, workbench }: { kernel: Kernel; workbench: W
   const connector = connectorOf(kernel);
   const status = useSyncExternalStore(connector?.subscribe ?? noSubscription, connector?.status ?? (() => idle));
   const busy = status.state === "connecting" || status.state === "reconnecting";
-  const label = status.state === "connected" ? status.name ?? tr("Connected")
+  const label = status.state === "connected" ? (status.name ? shortHostName(status.name) : tr("Connected"))
     : busy ? tr("Connecting…") : status.state === "failed" ? tr("Connection failed") : tr("Local");
   return (
     <button className="runtime-status-item" data-state={status.state} aria-busy={busy}
-      title={tr("Runtime connection")} onClick={() => void workbench.run("runtime.cloud")}>
+      title={status.state === "connected" && status.name ? `${tr("Runtime connection")}: ${status.name}` : tr("Runtime connection")} onClick={() => void workbench.run("runtime.cloud")}>
       <Icon name={status.state === "connected" ? "cloudCheck" : busy ? "sync" : "cloudOff"} size={13} />
       <span>{label}</span>
     </button>

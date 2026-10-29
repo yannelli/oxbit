@@ -1,7 +1,7 @@
 import { translate as tr } from "@oxbit/ui";
 import { Outline } from "./outline.js";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { FileBadge, FolderIcon, FolderArrow, Icon, IconButton } from "@oxbit/ui";
+import { Chevron, FileBadge, FolderIcon, FolderArrow, Icon, IconButton } from "@oxbit/ui";
 import type { WorkbenchController } from "@oxbit/workbench";
 import type { Extension, FileEntry, FileSystem, Kernel } from "@oxbit/sdk";
 import type { DocumentService } from "@oxbit/documents";
@@ -112,7 +112,7 @@ export function Explorer({
         onClick={() => setOpenEditors(!openEditors)}
         aria-expanded={openEditors}
       >
-        <Icon name={openEditors ? "chevD" : "chevR"} size={12} />
+        <Chevron expanded={openEditors} />
         {t.open}
         <span className="push muted">
           {[...documents.documents.values()].filter((d) => d.dirty).length ||
@@ -167,7 +167,7 @@ export function Explorer({
         </div>
       )}
       <button
-        className="section-label border-top"
+        className="section-label workspace-root border-top"
         onClick={() => setTree(!tree)}
         aria-expanded={tree}
         title={s.projectName}
@@ -222,7 +222,7 @@ export function Explorer({
                 tabIndex={selected || (!s.selectedPath && index === 0) ? 0 : -1}
                 draggable={!touch}
                 className={`tree-row ${selected ? "selected" : ""} ${doc?.state === "missing" ? "missing" : ""} ${doc?.state === "conflict" ? "external-change" : ""}`}
-                style={{ paddingLeft: entry.path.split("/").length * 12 + 4 }}
+                style={{ paddingLeft: (entry.path.split("/").length - 1) * 12 + 6 }}
                 title={entry.path}
                 onFocus={() => {
                   if (!selected) workbench.set({ selectedPath: entry.path });
@@ -294,11 +294,11 @@ export function Explorer({
                   }
                 }}
               >
-                <span className="tree-chevron">
-                  {entry.kind === "directory" && (
-                    <FolderArrow path={entry.path} expanded={expanded} />
-                  )}
-                </span>
+                {entry.kind === "directory" ? (
+                  <FolderArrow path={entry.path} expanded={expanded} />
+                ) : (
+                  <Chevron hidden />
+                )}
                 {entry.kind === "directory" ? (
                   <FolderIcon path={entry.path} expanded={expanded} />
                 ) : (
@@ -332,7 +332,7 @@ export function Explorer({
       )}
       <div className="explorer-spacer" />
       <details className="outline" onToggle={event => setOutlineOpen(event.currentTarget.open)}>
-        <summary className="section-label border-top">{t.outline}</summary>
+        <summary className="section-label border-top"><Chevron expanded={outlineOpen} />{t.outline}</summary>
         {outlineOpen && <Outline workbench={workbench} />}
       </details>
     </div>

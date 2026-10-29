@@ -4,7 +4,7 @@ export const OXBIT_CLI_PROVIDER = "oxbit-cli";
 export const ACP_PROVIDERS = [
   {
     id: OXBIT_CLI_PROVIDER,
-    name: "Oxbit Agent CLI",
+    name: "Oxbit Agent",
     command: "oxbit-agent",
     args: ["acp"],
     setup:
@@ -14,7 +14,7 @@ export const ACP_PROVIDERS = [
   },
   {
     id: "codex",
-    name: "Codex ACP",
+    name: "Codex",
     command: "npx",
     args: ["-y", "@agentclientprotocol/codex-acp@2.2.2"],
     setup:
@@ -24,7 +24,7 @@ export const ACP_PROVIDERS = [
   },
   {
     id: "claude",
-    name: "Claude Agent",
+    name: "Claude",
     command: "npx",
     args: ["-y", "@agentclientprotocol/claude-agent-acp@0.89.1"],
     setup:
@@ -34,7 +34,7 @@ export const ACP_PROVIDERS = [
   },
   {
     id: "gemini",
-    name: "Gemini CLI",
+    name: "Gemini",
     command: "npx",
     args: ["-y", "@google/gemini-cli@0.63.0", "--acp"],
     setup:
@@ -54,7 +54,7 @@ export const ACP_PROVIDERS = [
   },
   {
     id: "cursor",
-    name: "Cursor ACP",
+    name: "Cursor",
     command: "agent",
     args: ["acp"],
     setup:
@@ -64,7 +64,7 @@ export const ACP_PROVIDERS = [
   },
   {
     id: "amp",
-    name: "Amp Agent ACP",
+    name: "Amp",
     command: "npx",
     args: ["-y", "amp-acp@0.10.0"],
     setup:

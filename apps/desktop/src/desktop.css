@@ -17,7 +17,7 @@ html[data-native-titlebar="macos"] .desktop-shell .titlebar {
   user-select: none;
   -webkit-user-select: none;
 }
-html[data-native-titlebar="macos"] .desktop-shell .titlebar > .brand {
+html[data-native-titlebar="macos"] .desktop-shell .titlebar > :is(.brand, .menu-parent) {
   display: none;
 }
 html[data-native-titlebar="macos"] .desktop-shell .workbench.focus-mode::before {

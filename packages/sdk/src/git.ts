@@ -4,6 +4,12 @@ export interface GitChange {
   index: string;
   working: string;
   conflict?: boolean;
+  staged?: GitLineCounts;
+  unstaged?: GitLineCounts;
+}
+export interface GitLineCounts {
+  added: number;
+  removed: number;
 }
 export interface GitBranch {
   name: string;

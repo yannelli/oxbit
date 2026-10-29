@@ -20,7 +20,7 @@ describe("Integrated macOS title bar", () => {
     assert.ok(header.projectLeft >= 88);
   });
 
-  it("keeps menus and search interactive beside the traffic lights", async () => {
+  it("hides the in-window menus and keeps search interactive beside the traffic lights", async () => {
     await browser.execute(async (project) => globalThis.__oxbitDesktop.native.open(project),
       path.join(process.env.OXBIT_NATIVE_FIXTURES, "Alpha project"));
     await browser.waitUntil(() => browser.execute(() => !!globalThis.__oxbit?.ready));
@@ -29,16 +29,17 @@ describe("Integrated macOS title bar", () => {
       return {
         top: header.getBoundingClientRect().top,
         height: header.getBoundingClientRect().height,
-        menuLeft: header.querySelector(".menu-parent").getBoundingClientRect().left,
+        controlLeft: header.querySelector(".desktop-project-control").getBoundingClientRect().left,
         hiddenBrand: getComputedStyle(header.querySelector(".brand")).display === "none",
+        hiddenMenus: [...header.querySelectorAll(".menu-parent")]
+          .every((menu) => getComputedStyle(menu).display === "none"),
       };
     });
-    assert.deepEqual({ top: header.top, height: header.height, hiddenBrand: header.hiddenBrand },
-      { top: 0, height: 40, hiddenBrand: true });
-    assert.ok(header.menuLeft >= 88);
-    await $("button=View").click();
-    await $(".command-menu").waitForDisplayed();
-    await browser.keys("Escape");
+    assert.deepEqual(
+      { top: header.top, height: header.height, hiddenBrand: header.hiddenBrand, hiddenMenus: header.hiddenMenus },
+      { top: 0, height: 40, hiddenBrand: true, hiddenMenus: true },
+    );
+    assert.ok(header.controlLeft >= 88);
     await $(".title-search").click();
     await $(".palette").waitForDisplayed();
     await browser.keys("Escape");

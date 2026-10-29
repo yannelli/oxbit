@@ -202,7 +202,7 @@ test("AI settings offer named providers and model suggestions with price and sco
   await expect(page.getByRole("button", { name: "Set API Key…" })).toBeVisible();
   const provider = page.getByRole("combobox", { name: "AI provider", exact: true });
   await provider.click();
-  await expect(page.getByRole("option")).toHaveText(["Agent harness", "OpenRouter", "Custom OpenAI API", "Local model (Ollama or llama.cpp)"]);
+  await expect(page.getByRole("option")).toHaveText(["Oxbit Agent", "OpenRouter", "OpenAI-compatible", "Local"]);
   await page.getByRole("option", { name: "OpenRouter" }).click();
   const list = page.getByRole("list", { name: "Suggestions for AI model" });
   await expect(list.getByRole("button").first()).toContainText("Mercury 2.5");

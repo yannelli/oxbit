@@ -75,3 +75,9 @@ export function formatUptime(startedAt: number | undefined, now = Date.now()) {
   const days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60), rest = minutes % 60;
   return days ? `${days}d ${hours}h` : hours ? `${hours}h ${rest}m` : `${rest}m`;
 }
+
+/** "studio-mbp.local" → "studio-mbp"; IP addresses and names without a domain stay whole. */
+export function shortHostName(name: string) {
+  if (/^[\d.]+$/.test(name) || name.includes(":") || /\s/.test(name)) return name;
+  return name.split(".")[0] || name;
+}

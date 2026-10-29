@@ -1,0 +1,97 @@
+/* Flat layout style (workbench.style = flat): phone layout. */
+/* Bars use --bg-app, panels --bg-surface, the editor --bg-editor. Rows and touch targets are 44px, icons 20px. */
+:root[data-style="flat"] .workbench[data-mode=phone]:not([data-theme-pack="oxbit.classicos98"]){
+  --phone-inset:12px;--phone-fs:calc(var(--font-body-font-size) * 1.33333);--phone-fs-sm:calc(var(--font-body-font-size) * 1.16667);--radius-tab:6px;--radius-panel:0px;
+
+  /* Top app bar. */
+  & .titlebar{height:calc(48px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 4px 0 var(--phone-inset);background:var(--bg-app);border:0;box-shadow:inset 0 -1px 0 var(--bd)}
+  & .titlebar>.brand{width:24px;height:24px;margin:0}
+  & .workspace-title{height:44px;max-width:200px;padding:0 8px;font-size:var(--phone-fs);font-weight:600;color:var(--fg);border-radius:6px}
+  & .workspace-title svg{width:16px;height:16px;color:var(--fg-3)}
+  & :is(.title-search,.connection-button,.title-actions>.icon-button,.title-actions>.lsp-status-trigger,.title-actions>.contribution-failure-trigger){width:44px;height:44px;color:var(--fg-2);border-radius:6px}
+  & :is(.title-search,.connection-button,.title-actions>.icon-button)>svg{width:20px;height:20px}
+
+  /* Bottom tab bar: the active tab uses --fg text. */
+  & .activity-bar{background:var(--bg-app);border:0;box-shadow:inset 0 1px 0 var(--bd)}
+  & .activity-bar>button{height:56px;color:var(--fg-3);border-radius:6px}
+  & .activity-bar>button>svg{width:20px;height:20px}
+  & .activity-bar>button.active{color:var(--fg);background:transparent}
+  & .phone-label{font-size:var(--font-small-font-size);font-weight:500;letter-spacing:0;text-transform:none}
+
+  /* Open editors strip: full-height tabs; the active tab joins the editor. */
+  & .tabbar{height:44px;min-height:44px;padding:0;gap:0;align-items:stretch;background:var(--bg-surface);border:0;box-shadow:inset 0 -1px 0 var(--bd)}
+  & .editor-tab{height:100%;border:0;border-radius:0;color:var(--fg-3);background:transparent}
+  & .editor-tab>button[role=tab]{padding:0 2px 0 var(--phone-inset);gap:8px;font-size:calc(var(--font-body-font-size) * 1.25)}
+  & :is(.editor-tab.active,.active-group .editor-tab.active){background:var(--bg-editor);color:var(--fg);box-shadow:inset 1px 0 0 var(--bd),inset -1px 0 0 var(--bd)}
+  & .editor-tab.active:first-child{box-shadow:inset -1px 0 0 var(--bd)}
+  & .editor-tab .tab-close{width:32px;height:32px;margin-right:4px;border-radius:6px}
+  & .group-actions{height:100%;padding:0;background:var(--bg-surface);box-shadow:inset 0 -1px 0 var(--bd)}
+  & .group-actions::before{background:linear-gradient(to left,var(--bg-surface),transparent)}
+  & :is(.group-actions,.panel-actions) .icon-button{width:44px;height:44px;color:var(--fg-2);border-radius:6px}
+  & :is(.group-actions,.panel-actions) .icon-button>svg{width:20px;height:20px}
+
+  /* Breadcrumbs. */
+  & .breadcrumbs{height:32px;padding:0 var(--phone-inset);gap:4px;background:var(--bg-editor);border:0;color:var(--fg-3);font-size:var(--phone-fs-sm)}
+  & .breadcrumbs button{height:32px;color:inherit}
+  & .breadcrumbs>span:last-child button{color:var(--fg-2)}
+
+  /* Panel and session headers: a plain title over a hairline. */
+  & .dock-group{border:0;border-radius:0;background:var(--bg-surface)}
+  & .dock-group .panel-header{height:48px;min-height:48px;padding:0 2px 0 var(--phone-inset);gap:0;align-items:center;background:var(--bg-surface);border:0;box-shadow:inset 0 -1px 0 var(--bd);font-size:var(--phone-fs)}
+  & .panel-header-title{font-size:var(--phone-fs);font-weight:600;color:var(--fg)}
+  & .panel-switcher-trigger{min-height:44px;padding:0;font-size:var(--phone-fs);font-weight:600;border-radius:6px}
+  & .acp-header{min-height:48px;padding:2px 2px 2px var(--phone-inset);box-sizing:border-box;background:var(--bg-surface);border-bottom:1px solid var(--bd)}
+  & .acp-thread-heading{min-height:44px;font-size:var(--phone-fs)}
+  & .acp-thread-heading>.icon-button{width:44px;height:44px;color:var(--fg-2)}
+  & .section-label{letter-spacing:0;text-transform:none}
+
+  /* Quick open and commands. */
+  & .palette{border:0}
+  & .palette-input{min-height:60px;padding:0 4px 0 8px;border:0;box-shadow:inset 0 -1px 0 var(--bd)}
+  & :is(.palette-cancel,.palette-cancel:hover){color:var(--fg);font-size:var(--phone-fs)}
+
+  /* Editor key bar. */
+  & .key-bar{background:var(--bg-app);border-top:1px solid var(--bd)}
+  & .key-bar button{border:0;border-radius:6px;background:var(--bg-raised);color:var(--fg)}
+  & .key-bar button.active{background:var(--fg);color:var(--bg-editor)}
+}
+
+/* Sheets and dialogs open at the workbench root and in the More sheet. */
+:root[data-style="flat"] .workbench[data-mode=phone]:not([data-theme-pack="oxbit.classicos98"]) .modal-scrim>.dialog{
+  border:0;border-top:1px solid var(--bd);border-radius:8px 8px 0 0;box-shadow:none;
+  & .dialog-title{min-height:52px;margin-bottom:8px;padding-top:4px;padding-bottom:4px}
+  & .dialog-title .icon-button>svg{width:20px;height:20px}
+}
+:root[data-style="flat"] .workbench[data-mode=phone]:not([data-theme-pack="oxbit.classicos98"]) .panel-switcher-dialog{
+  & .dialog-title{padding-left:12px}
+  & .panel-switcher-grid{gap:2px 8px;margin:8px 0}
+  & .panel-switcher-grid>button{min-height:44px;padding:0 12px;gap:12px;border:0;border-radius:6px;background:transparent;color:var(--fg);font-size:var(--phone-fs)}
+  & .panel-switcher-grid>button>svg{width:20px;height:20px;color:var(--fg-2)}
+  & .panel-switcher-grid>button[aria-pressed=true]{background:var(--bg-selected);color:var(--fg)}
+  & .panel-switcher-grid>button[aria-pressed=true]>svg{color:var(--fg)}
+  & :is(.panel-switcher-editor,.panel-switcher-commands,.panel-switcher-status){min-height:44px;padding:0 12px;gap:12px;color:var(--fg);font-size:var(--phone-fs);border:0;border-radius:0;background:transparent}
+  & .panel-switcher-editor{box-shadow:inset 0 -1px 0 var(--bd)}
+  & :is(.panel-switcher-status,.panel-switcher-commands){box-shadow:inset 0 1px 0 var(--bd)}
+  & :is(.panel-switcher-editor,.panel-switcher-commands)>svg{width:20px;height:20px;color:var(--fg-2)}
+  & .panel-switcher-status>.lsp-status-trigger{min-height:44px;margin-right:-8px;color:var(--fg-2)}
+  & :is(.panel-switcher-grid>button,.panel-switcher-editor,.panel-switcher-commands):active{background:var(--bg-selected)}
+}
+/* Source Control and the agent picker use the same 16px text and 44px rows as the other phone views. */
+:root[data-style="flat"] .workbench[data-mode=phone]:not([data-theme-pack="oxbit.classicos98"]){
+  --phone-fs:calc(var(--font-body-font-size) * 1.33333);--phone-fs-sm:calc(var(--font-body-font-size) * 1.16667);--phone-inset:12px;
+  & .scm-panel{font-size:var(--phone-fs)}
+  & .scm-toolbar{min-height:52px;padding:0 6px}
+  & .scm-panel :is(.scm-branch,.scm-scope-select) .select-trigger{min-height:44px;font-size:var(--phone-fs)}
+  & .scm-scope{min-height:44px}
+  & .scm-message-box :is(textarea,input){min-height:44px;font-size:var(--phone-fs)}
+  & .scm-group-header{height:44px;font-size:var(--phone-fs-sm)}
+  & .scm-file{height:44px}
+  & .scm-filename{font-size:var(--phone-fs)}
+  & :is(.scm-directory,.scm-stat,.scm-status,.scm-count){font-size:var(--phone-fs-sm)}
+  & .scm-section-toggle{height:44px;font-size:var(--phone-fs-sm)}
+  & .acp-agent-option{min-height:56px;padding:8px 12px}
+  & .acp-agent-option strong{font-size:var(--phone-fs)}
+  & .acp-agent-option small{font-size:var(--phone-fs-sm)}
+  & .section-label{padding-left:var(--phone-inset)}
+  & :is(input,textarea)::placeholder{font-size:inherit}
+}

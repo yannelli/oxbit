@@ -1,9 +1,10 @@
 import { IconPackManager } from "./icon-packs.js";
+import { ExtensionIcon } from "./extension-icon.js";
 import { translate as tr } from "@oxbit/ui";
 import { useState, useSyncExternalStore } from "react";
 import type { Extension, Kernel } from "@oxbit/sdk";
 import type { WorkbenchController } from "@oxbit/workbench";
-import { Icon, IconButton, OxbitMark } from "@oxbit/ui";
+import { Icon, IconButton } from "@oxbit/ui";
 export function Extensions({
   kernel,
   workbench,
@@ -29,7 +30,13 @@ export function Extensions({
           onClick={() => void workbench.run("extensions.install")}
         />
       </div>
-      <div className="section-label">Icon Packs <button className="button push" onClick={() => void workbench.run("iconPacks.manage")}>Manage Icon Packs</button></div>
+      <div className="section-label extension-packs">
+        {tr("Manage")}
+        <span className="push extension-pack-actions">
+          <button className="button" onClick={() => void workbench.run("theme.packs.manage")}>{tr("Theme Packs")}</button>
+          <button className="button" onClick={() => void workbench.run("iconPacks.manage")}>{tr("Icon Packs")}</button>
+        </span>
+      </div>
       <div className="section-label">
         {tr("Installed")} <span className="push">{extensions.length}</span>
       </div>
@@ -57,11 +64,7 @@ export function Extensions({
             }
           >
             <span className="extension-icon">
-              {e.manifest.id.startsWith("oxbit.") ? (
-                <OxbitMark decorative />
-              ) : (
-                <Icon name="package" size={24} />
-              )}
+              <ExtensionIcon manifest={e.manifest} kernel={kernel} size={24} />
             </span>
             <span>
               <strong>{e.manifest.name}</strong>
@@ -122,11 +125,7 @@ export function ExtensionDetails({
     <div className="extension-details">
       <div className="extension-hero">
         <div className="extension-icon">
-          {record.manifest.id.startsWith("oxbit.") ? (
-            <OxbitMark decorative />
-          ) : (
-            <Icon name="package" size={44} />
-          )}
+          <ExtensionIcon manifest={record.manifest} kernel={kernel} size={44} />
         </div>
         <div>
           <h1>{record.manifest.name}</h1>

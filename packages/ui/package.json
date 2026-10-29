@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.tsx",
     "./tokens.css": "./src/tokens.css",
-    "./workbench.css": "./src/workbench.css"
+    "./workbench.css": "./src/workbench.css",
+    "./flat.css": "./src/flat.css"
   },
   "scripts": {},
   "dependencies": {

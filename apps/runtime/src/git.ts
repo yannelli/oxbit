@@ -5,15 +5,94 @@ import type {
   GitStatus,
   GitChange,
   GitCommit,
+  GitLineCounts,
   GitCommitFile,
   GitStash,
   GitDiff,
   GitBranchDiff,
 } from "@oxbit/sdk";
 import * as fs from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { RpcError, MAX_MESSAGE_BYTES } from "@oxbit/protocol";
-import { runCommand } from "./processes.js";
+import { runCommand, killProcess } from "./processes.js";
+import { trackChild } from "./owned-processes.js";
 import { WorkspaceFiles } from "./filesystem.js";
+export interface InputCommandResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+export type InputCommand = (
+  command: string,
+  args: string[],
+  options: { cwd: string; input: string; env: NodeJS.ProcessEnv; signal?: AbortSignal },
+) => Promise<InputCommandResult>;
+const OUTPUT_CAP = 1_000_000;
+/** Runs a command without a shell and writes `input` to its stdin. */
+export const runWithInput: InputCommand = (command, args, { cwd, input, env, signal }) => {
+  if (signal?.aborted)
+    return Promise.reject(new RpcError("CANCELLED", "Operation was cancelled"));
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env,
+      detached: process.platform !== "win32",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    trackChild(child);
+    let stdout = "",
+      stderr = "";
+    const cancel = () => killProcess(child);
+    signal?.addEventListener("abort", cancel, { once: true });
+    child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+      if (stdout.length < OUTPUT_CAP) stdout += chunk;
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+      if (stderr.length < OUTPUT_CAP) stderr += chunk;
+    });
+    child.stdin.on("error", () => {});
+    child.once("error", (error) => {
+      signal?.removeEventListener("abort", cancel);
+      reject(error);
+    });
+    child.once("close", (code) => {
+      signal?.removeEventListener("abort", cancel);
+      if (signal?.aborted)
+        reject(new RpcError("CANCELLED", "Operation was cancelled"));
+      else resolve({ stdout, stderr, exitCode: code ?? 1 });
+    });
+    child.stdin.end(input);
+  });
+};
+export const GH_SETUP = "Install the GitHub CLI and run gh auth login";
+export function pullRequestArgs(title: string, base: string) {
+  return ["pr", "create", "--draft", "--title", title, "--body-file", "-", "--base", base];
+}
+/** Maps a failed `gh` spawn or exit to an RpcError with a message the panel can show. */
+export function pullRequestError(failure: unknown): RpcError {
+  if (failure instanceof RpcError) return failure;
+  const value = failure as Partial<InputCommandResult> & { code?: string; message?: string };
+  if (value.code === "ENOENT") return new RpcError("GH_UNAVAILABLE", GH_SETUP);
+  const output = (value.stderr ?? "").trim() || (value.stdout ?? "").trim();
+  if (/gh auth login|not logged in|authentication required|HTTP 401/i.test(output))
+    return new RpcError("GH_UNAVAILABLE", GH_SETUP);
+  return new RpcError(
+    "GH_FAILED",
+    output || value.message || `gh exited ${value.exitCode ?? 1}`,
+  );
+}
+export function pullRequestUrl(stdout: string) {
+  const url = stdout.trim().split("\n").at(-1)?.trim() ?? "";
+  if (!/^https:\/\/\S+$/.test(url))
+    throw new RpcError("GH_FAILED", stdout.trim() || "gh did not return a pull request URL");
+  return url;
+}
+const validBranch = (value: unknown): value is string =>
+  typeof value === "string" &&
+  !!value &&
+  !value.startsWith("-") &&
+  !value.includes("\0") &&
+  value.length <= 240;
 function bounded<T>(value: T): T {
   if (
     Buffer.byteLength(JSON.stringify(value), "utf8") >
@@ -29,6 +108,47 @@ const BRANCH_DIFF_FILES = 50;
 const BRANCH_DIFF_TEXT = 200_000;
 const conflicted = (index: string, working: string) =>
   ["DD", "AU", "UD", "UA", "DU", "AA", "UU"].includes(index + working);
+const UNTRACKED_COUNT_FILES = 50;
+const UNTRACKED_COUNT_BYTES = 1_000_000;
+const BINARY_PROBE_BYTES = 8192;
+/** Parses `git diff --numstat -z`; binary files (`-`) are left out. */
+function numstat(output: string) {
+  const counts = new Map<string, GitLineCounts>();
+  const records = output.split("\0");
+  for (let i = 0; i < records.length; i++) {
+    const match = /^(-|\d+)\t(-|\d+)\t(.*)$/s.exec(records[i]!);
+    if (!match) continue;
+    let file = match[3]!;
+    if (!file) {
+      i += 2;
+      file = records[i] ?? "";
+    }
+    if (file && match[1] !== "-" && match[2] !== "-")
+      counts.set(file, { added: Number(match[1]), removed: Number(match[2]) });
+  }
+  return counts;
+}
+/** Counts lines of a regular file; symbolic links, FIFOs and other special files are skipped before any open. */
+async function textLines(file: string) {
+  const entry = await fs.lstat(file);
+  if (!entry.isFile() || entry.size > UNTRACKED_COUNT_BYTES) return undefined;
+  const handle = await fs.open(
+    file,
+    fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK,
+  );
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > UNTRACKED_COUNT_BYTES) return undefined;
+    const data = await handle.readFile();
+    if (data.subarray(0, BINARY_PROBE_BYTES).includes(0)) return undefined;
+    let lines = 0;
+    for (const byte of data) if (byte === 10) lines++;
+    if (data.length && data[data.length - 1] !== 10) lines++;
+    return lines;
+  } finally {
+    await handle.close();
+  }
+}
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export class Git {
@@ -36,7 +156,44 @@ export class Git {
   constructor(
     private files: WorkspaceFiles,
     private executable = "git",
+    private runInput: InputCommand = runWithInput,
   ) {}
+  private async gh(args: string[], cwd: string, input: string, signal?: AbortSignal) {
+    let result: InputCommandResult;
+    try {
+      result = await this.runInput("gh", args, {
+        cwd,
+        input,
+        signal,
+        env: {
+          ...process.env,
+          GH_PROMPT_DISABLED: "1",
+          GH_NO_UPDATE_NOTIFIER: "1",
+          NO_COLOR: "1",
+          GIT_TERMINAL_PROMPT: "0",
+        },
+      });
+    } catch (error) {
+      throw pullRequestError(error);
+    }
+    if (result.exitCode) throw pullRequestError(result);
+    return result;
+  }
+  /** The remote's default branch from `gh repo view`, then the upstream remote's HEAD, origin/HEAD, main or master. */
+  private async defaultBranch(root: string, status: GitStatus, signal?: AbortSignal) {
+    try {
+      const name = (
+        await this.gh(["repo", "view", "--json", "defaultBranchRef", "--jq", ".defaultBranchRef.name"], root, "", signal)
+      ).stdout.trim();
+      if (validBranch(name)) return name;
+    } catch (error) {
+      if ((error as RpcError).code === "CANCELLED") throw error;
+    }
+    const base = await this.baseBranch(status.branch, signal);
+    if (!base) return undefined;
+    const remote = status.remotes.find((remote) => base.name.startsWith(remote.name + "/"));
+    return remote ? base.name.slice(remote.name.length + 1) : base.name;
+  }
   private async run(
     args: string[],
     signal?: AbortSignal,
@@ -131,11 +288,14 @@ export class Git {
         behind: 0,
       };
     }
-    const [raw, branch, refs, remotes, head] = await Promise.all([
+    const [raw, unstagedDiff, stagedDiff, top, branch, refs, remotes, head] = await Promise.all([
       this.run(
         ["status", "--porcelain=v1", "--untracked-files=all", "-z"],
         signal,
       ),
+      this.optional(["diff", "--numstat", "-z"], signal),
+      this.optional(["diff", "--cached", "--numstat", "-z"], signal),
+      this.run(["rev-parse", "--show-toplevel"], signal),
       this.optional(["symbolic-ref", "--short", "HEAD"], signal),
       this.run(
         [
@@ -163,6 +323,29 @@ export class Git {
       if (/[RC]/.test(change.index + change.working))
         change.originalPath = records[++i];
       changes.push(change);
+    }
+    const stagedCounts = numstat(stagedDiff.exitCode ? "" : stagedDiff.stdout);
+    const unstagedCounts = numstat(
+      unstagedDiff.exitCode ? "" : unstagedDiff.stdout,
+    );
+    const root = top.stdout.trim();
+    let untrackedCounted = 0;
+    for (const change of changes) {
+      if (change.index === "?") {
+        if (untrackedCounted++ >= UNTRACKED_COUNT_FILES) continue;
+        const full = path.join(root, change.path);
+        const added = await this.files
+          .resolve(path.relative(this.files.root, full).split(path.sep).join("/"))
+          .then(() => textLines(full))
+          .catch(() => undefined);
+        if (added !== undefined) change.unstaged = { added, removed: 0 };
+        continue;
+      }
+      const staged = change.index !== " " && stagedCounts.get(change.path);
+      const unstaged =
+        change.working !== " " && unstagedCounts.get(change.path);
+      if (staged) change.staged = staged;
+      if (unstaged) change.unstaged = unstaged;
     }
     const branches = refs.stdout
       .trim()
@@ -361,6 +544,8 @@ export class Git {
       ? await this.commitId(params.ref, signal)
       : await this.head(signal);
     if (!head) return { commits: [], hasMore: false };
+    const base =
+      params.base === undefined ? undefined : await this.commitId(params.base, signal);
     if (params.path !== undefined) {
       if (typeof params.path !== "string")
         throw new RpcError("INVALID_PARAMS", "Invalid path");
@@ -386,7 +571,7 @@ export class Git {
               `--grep=${params.search}`,
             ]
           : []),
-        head,
+        base ? `${base}..${head}` : head,
         "--",
         ...(params.path ? [String(params.path)] : []),
       ],
@@ -741,6 +926,56 @@ export class Git {
           commit: (await this.run(["rev-parse", "HEAD"], signal)).stdout.trim(),
         };
       }
+      case "amend": {
+        if (!(await this.head(signal)))
+          throw new RpcError("NOT_FOUND", "There is no commit to amend");
+        const message =
+          typeof params.message === "string" && params.message.trim()
+            ? params.message
+            : undefined;
+        await this.run(
+          ["commit", "--amend", ...(message ? ["-m", message] : ["--no-edit"])],
+          signal,
+        );
+        return {
+          commit: (await this.run(["rev-parse", "HEAD"], signal)).stdout.trim(),
+        };
+      }
+      case "indexSnapshot":
+        return { tree: (await this.run(["write-tree"], signal)).stdout.trim() };
+      case "indexRestore": {
+        const tree = params.tree;
+        if (typeof tree !== "string" || !/^[0-9a-f]{40,64}$/.test(tree))
+          throw new RpcError("INVALID_PARAMS", "Invalid index snapshot");
+        await this.run(["rev-parse", "--verify", "--end-of-options", `${tree}^{tree}`], signal);
+        const paths = params.paths;
+        if (!Array.isArray(paths) || paths.some((entry) => typeof entry !== "string" || !entry))
+          throw new RpcError("INVALID_PARAMS", "Invalid paths");
+        if (!paths.length) break;
+        for (const entry of paths) await this.files.resolve(entry, true);
+        await this.run(["reset", "-q", tree, "--", ...paths], signal);
+        break;
+      }
+      case "createPullRequest": {
+        const title = typeof params.title === "string" ? params.title.trim() : "";
+        if (!title || title.length > 256)
+          throw new RpcError("INVALID_PARAMS", "Enter a pull request title");
+        const body = params.body ?? "";
+        if (typeof body !== "string" || body.length > 65536)
+          throw new RpcError("INVALID_PARAMS", "The pull request body is too long");
+        if (params.base !== undefined && !validBranch(params.base))
+          throw new RpcError("INVALID_PARAMS", "Choose a valid base branch");
+        const status = await this.status(signal);
+        if (!status.head || !status.branches.includes(status.branch))
+          throw new RpcError("INVALID_PARAMS", "Create a commit on a local branch first");
+        if (!status.upstream)
+          throw new RpcError("NO_UPSTREAM", "Publish this branch before creating a pull request");
+        const root = (await this.run(["rev-parse", "--show-toplevel"], signal)).stdout.trim();
+        const base = (params.base as string | undefined) ?? (await this.defaultBranch(root, status, signal));
+        if (!base) throw new RpcError("NOT_FOUND", "Choose a base branch for the pull request");
+        const result = await this.gh(pullRequestArgs(title, base), root, body, signal);
+        return { url: pullRequestUrl(result.stdout) };
+      }
       case "stageAll":
         if (
           (await this.status(signal)).changes.some((change) => change.conflict)
@@ -1051,7 +1286,7 @@ export class Git {
             "Commit or stash disk changes before pulling",
           );
         await this.run(
-          ["pull", "--ff-only", "--progress"],
+          ["pull", params.rebase === true ? "--rebase" : "--ff-only", "--progress"],
           signal,
           this.files.root,
           progress,

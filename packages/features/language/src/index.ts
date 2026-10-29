@@ -6,7 +6,7 @@ import { logLinkExtensions } from "./log-links.js";
 import { languages, languageForKernel, findFences, fencePath, fenceText, fromFenceOffset, toFenceOffset, type CodeFence, type LanguageDefinition, selectorsMatch, lspGlobMatches, lspWatchPattern, textOffset, textPosition, incrementalChange, synchronization, effectiveCapabilities, lspCapabilityKeys, type LspRegistration, type LanguageServerSettings, type LanguageSelector } from "@oxbit/sdk";
 import { LocalLanguageTransport } from "./local.js";
 import { managedServerName } from "./managed-extensions.js";
-import { translate as tr } from "@oxbit/ui";
+import { translate as tr, FileBadge, Icon } from "@oxbit/ui";
 import React, { useState, useEffect } from "react";
 import {
   autocompletion,
@@ -1964,6 +1964,11 @@ export class LanguageService {
   }
 }
 export { managedServerExtensionId, managedServerIds, registerManagedServerFeatures } from "./managed-extensions.js";
+function problemSeverity(severity: number | undefined) {
+  if (severity === 1) return { icon: "error", label: tr("Error") } as const;
+  if (severity === 2) return { icon: "warning", label: tr("Warning") } as const;
+  return { icon: "info", label: tr("Info") } as const;
+}
 export function createFeature(o: FeatureOptions): Extension {
   let language: LanguageService;
   function Problems() {
@@ -1993,28 +1998,44 @@ export function createFeature(o: FeatureOptions): Extension {
           },
           tr("Start language server"),
         ),
-      ...Array.from(language.diagnostics, ([path, items]) =>
-        React.createElement(
+      ...Array.from(language.diagnostics, ([path, items]) => {
+        const slash = path.lastIndexOf("/");
+        return React.createElement(
           "section",
-          { key: path },
-          React.createElement("strong", null, path),
-          ...items.map((d: any, i: number) =>
-            React.createElement(
+          { key: path, className: "problems-group", "aria-label": path },
+          React.createElement(
+            "h3",
+            { className: "problems-file" },
+            React.createElement(FileBadge, { path, kernel: o.kernel }),
+            React.createElement("span", null, path.slice(slash + 1)),
+            slash > 0 &&
+              React.createElement("span", { className: "muted" }, path.slice(0, slash)),
+          ),
+          ...items.map((d: any, i: number) => {
+            const severity = problemSeverity(d.severity),
+              line = d.range.start.line + 1,
+              col = d.range.start.character + 1;
+            return React.createElement(
               "button",
               {
                 key: i,
-                onClick: () =>
-                  o.workbench.openFile(path, {
-                    line: d.range.start.line + 1,
-                    col: d.range.start.character + 1,
-                  }),
-                style: { display: "block", textAlign: "left", padding: 4 },
+                type: "button",
+                className: `problem-row ${severity.icon}`,
+                "aria-label": tr("{0}: {1}, line {2}, column {3}", {
+                  "0": severity.label,
+                  "1": d.message,
+                  "2": String(line),
+                  "3": String(col),
+                }),
+                onClick: () => o.workbench.openFile(path, { line, col }),
               },
-              `${d.severity === 1 ? "Error" : "Warning"} ${d.range.start.line + 1}:${d.range.start.character + 1} ${d.message}`,
-            ),
-          ),
-        ),
-      ),
+              React.createElement(Icon, { name: severity.icon, size: 14 }),
+              React.createElement("span", { className: "problem-message" }, d.message),
+              React.createElement("span", { className: "problem-location" }, `${line}:${col}`),
+            );
+          }),
+        );
+      }),
     );
   }
   function Results({

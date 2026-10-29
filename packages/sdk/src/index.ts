@@ -84,6 +84,8 @@ export interface SettingSuggestion {
   label: string;
   /** Short facts shown after the label, such as price or a benchmark score. */
   detail?: string;
+  /** Tooltip text for the suggestion. */
+  title?: string;
 }
 /** Data of a `settingSuggestions` contribution: values the Settings page offers under a string setting. */
 export interface SettingSuggestions {
@@ -206,6 +208,8 @@ export interface ExtensionManifest {
   sdk: string;
   environments: Environment[];
   description?: string;
+  /** Icon name from the product icon set, or an image URL. */
+  icon?: string;
   /** Opt-in extensions stay disabled until explicitly enabled by the user. */
   enabledByDefault?: boolean;
   dependencies?: Record<string, string>;

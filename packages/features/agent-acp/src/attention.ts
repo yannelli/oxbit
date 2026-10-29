@@ -100,7 +100,7 @@ export class Attention {
     if (!appHidden && !this.panelHidden()) return;
     this.options.workbench.notify(message, "info", {
       actions: [{ title: tr("Open Agent"), command: "agentACP.open" }],
-      source: "Agent ACP",
+      source: "Agents",
     });
     if (
       !appHidden ||

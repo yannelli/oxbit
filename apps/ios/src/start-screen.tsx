@@ -1,6 +1,17 @@
-import { Icon, OxbitMark } from "@oxbit/ui";
+import { useState } from "react";
+import { Dialog, Icon, OxbitMark, getLocale, translate as tr } from "@oxbit/ui";
 import type { RecentWorkspace } from "@oxbit/host-ios";
 import { DOCUMENTS_ID } from "./workspaces.js";
+import { relativeDate } from "./relative-date.js";
+import { WorkspaceRow } from "./workspace-row.js";
+
+const ICONS: Record<RecentWorkspace["kind"], string> = {
+  documents: "folder",
+  bookmark: "folder",
+  runtime: "cloud",
+  ssh: "terminal",
+  sshRuntime: "terminal",
+};
 
 export function StartScreen({
   recents,
@@ -38,6 +49,41 @@ export function StartScreen({
   const folders = recents.filter((recent) => recent.kind === "bookmark" || (recent.kind === "documents" && recent.directory));
   const runtimes = recents.filter(recent => recent.kind === "runtime");
   const servers = recents.filter(recent => recent.kind === "ssh" || recent.kind === "sshRuntime");
+  const [menu, setMenu] = useState<"add" | RecentWorkspace>();
+  const [revealed, setRevealed] = useState<string>();
+  const choose = (action: () => void) => () => {
+    setMenu(undefined);
+    action();
+  };
+  const open = (recent: RecentWorkspace) => {
+    if (recent.kind === "ssh") onSsh(recent);
+    else if (recent.kind === "sshRuntime") onSshRuntime(recent);
+    else onOpenRecent(recent);
+  };
+  const detail = (recent: RecentWorkspace) => {
+    if (recent.kind === "runtime") return recent.url;
+    if (recent.kind === "sshRuntime") return `Oxbit runtime · ${recent.remotePath}`;
+    if (recent.kind === "ssh") return recent.remotePath;
+    return relativeDate(recent.lastOpened, Date.now(), getLocale());
+  };
+  const row = (recent: RecentWorkspace) => (
+    <WorkspaceRow
+      key={recent.id}
+      name={recent.name}
+      icon={ICONS[recent.kind]}
+      detail={detail(recent)}
+      current={current === recent.id}
+      disabled={!!busy}
+      revealed={revealed === recent.id}
+      onReveal={(next) => setRevealed(next ? recent.id : (id) => (id === recent.id ? undefined : id))}
+      onOpen={() => open(recent)}
+      onRemove={() => onForget(recent)}
+      onMenu={() => {
+        setRevealed(undefined);
+        setMenu(recent);
+      }}
+    />
+  );
   return (
     <div className="ios-start" role="dialog" aria-label="Workspaces">
       <header className="ios-start-header">
@@ -51,6 +97,10 @@ export function StartScreen({
           </button>
         )}
       </header>
+      <button className="button primary ios-open-folder" onClick={() => setMenu("add")} disabled={!!busy}>
+        <Icon name="plus" />
+        {tr("Add…")}
+      </button>
       {error && (
         <p className="ios-start-error" role="alert">
           {error}
@@ -68,59 +118,45 @@ export function StartScreen({
       </section>
       <section aria-label="Folders">
         <h2>Folders</h2>
-        {folders.map((recent) => (
-          <div className="ios-workspace-row" key={recent.id}>
-            <button className="ios-workspace" onClick={() => onOpenRecent(recent)} disabled={!!busy} aria-current={current === recent.id ? "true" : undefined}>
-              <Icon name="folder" />
-              <span>
-                {recent.name}
-                <small>{new Date(recent.lastOpened).toLocaleString()}</small>
-              </span>
-            </button>
-            <button className="icon-button" aria-label={`Forget ${recent.name}`} onClick={() => onForget(recent)} disabled={!!busy}>
-              <Icon name="x" size={14} />
-            </button>
-          </div>
-        ))}
-        <button className="button primary ios-open-folder" onClick={onPick} disabled={!!busy}>
-          <Icon name="folder" />
-          Open Folder…
-        </button>
-        <p className="muted">Choose any folder from the Files app. Oxbit keeps access after you relaunch.</p>
+        {folders.map(row)}
+        <p className="muted">{tr("Choose any folder from the Files app. Oxbit keeps access after you relaunch.")}</p>
       </section>
       <section aria-label="Remote workspaces">
         <h2>On your computer</h2>
-        {runtimes.map(recent => <div className="ios-workspace-row" key={recent.id}>
-          <button className="ios-workspace" disabled={!!busy} onClick={() => onOpenRecent(recent)} aria-current={current === recent.id ? "true" : undefined}>
-            <Icon name="cloud" /><span>{recent.name}<small>{recent.url}</small></span>
-          </button>
-          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="x" size={14} /></button>
-        </div>)}
-        <button className="button primary ios-open-folder" onClick={onConnect} disabled={!!busy}><Icon name="cloud" />Connect Runtime…</button>
+        {runtimes.map(row)}
       </section>
       <section aria-label="On a server">
         <h2>On a server</h2>
-        {servers.map(recent => <div className="ios-workspace-row" key={recent.id}>
-          <button className="ios-workspace" disabled={!!busy} onClick={() => (recent.kind === "sshRuntime" ? onSshRuntime : onSsh)(recent)}
-            aria-current={current === recent.id ? "true" : undefined}>
-            <Icon name={recent.kind === "sshRuntime" ? "terminal" : "cloud"} />
-            <span>{recent.name}<small>{recent.kind === "sshRuntime" ? `Oxbit runtime · ${recent.remotePath}` : recent.remotePath}</small></span>
-          </button>
-          <button className="icon-button" aria-label={`Forget ${recent.name}`} disabled={!!busy} onClick={() => onForget(recent)}><Icon name="x" size={14} /></button>
-        </div>)}
-        <button className="button primary ios-open-folder" onClick={() => onSsh()} disabled={!!busy}><Icon name="cloud" />Connect with SSH…</button>
+        {servers.map(row)}
         <button className="button ios-open-folder" onClick={() => onSshRuntime()} disabled={!!busy}><Icon name="terminal" />Start Oxbit on This Server…</button>
         <button className="button ios-open-folder" onClick={onSshSettings} disabled={!!busy}><Icon name="settings" />SSH Hosts and Keys…</button>
       </section>
       <section aria-label="Source Control">
         <h2>Source Control</h2>
-        <button className="button primary ios-open-folder" onClick={onClone} disabled={!!busy}><Icon name="copy" />Clone Repository…</button>
+        <button className="button ios-open-folder" onClick={onClone} disabled={!!busy}><Icon name="copy" />Clone Repository…</button>
         <button className="button ios-open-folder" onClick={onGitSettings} disabled={!!busy}><Icon name="git" />Git Accounts and Commit Author…</button>
       </section>
       {busy && (
         <p className="muted" role="status">
           {busy}
         </p>
+      )}
+      {menu === "add" && (
+        <Dialog title="Add Workspace" className="ios-action-sheet" onClose={() => setMenu(undefined)}>
+          <div className="workspace-options">
+            <button className="button" onClick={choose(onPick)}><Icon name={ICONS.bookmark} />{tr("Open Folder…")}</button>
+            <button className="button" onClick={choose(onConnect)}><Icon name={ICONS.runtime} />{tr("Connect Runtime…")}</button>
+            <button className="button" onClick={choose(() => onSsh())}><Icon name={ICONS.ssh} />{tr("Connect with SSH…")}</button>
+          </div>
+        </Dialog>
+      )}
+      {menu && menu !== "add" && (
+        <Dialog title={menu.name} className="ios-action-sheet" onClose={() => setMenu(undefined)}>
+          <div className="workspace-options">
+            <button className="button" onClick={choose(() => open(menu))}><Icon name={ICONS[menu.kind]} />{tr("Open")}</button>
+            <button className="button danger" onClick={choose(() => onForget(menu))}><Icon name="trash" />{tr("Remove")}</button>
+          </div>
+        </Dialog>
       )}
     </div>
   );

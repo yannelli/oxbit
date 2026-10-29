@@ -1,0 +1,226 @@
+/* Flat layout style: Search, Problems, Output, Terminal, Tasks, Outline, editor chrome, previews and the Runtime page. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]){
+  /* Sentence case and neutral selection. */
+  & :is(.tasks-list-heading,.runtime-card>h2,.welcome-columns h2,.lsp-code-language){text-transform:none;letter-spacing:0}
+  & .tasks-list-heading{font-weight:500}
+  & .runtime-card>h2{color:var(--fg);font-weight:600}
+  & .welcome-columns h2{font-weight:600}
+  & .outline-symbol>svg{color:var(--fg-3)}
+  & .terminal-tab{border:0;border-radius:6px;color:var(--fg-3)}
+  & .terminal-tab:hover{background:var(--bg-hover);color:var(--fg)}
+  & .terminal-tab[aria-selected=true]{background:var(--bg-selected);color:var(--fg)}
+  & .tasks-tabs button{border-radius:6px}
+  & .task-list-row>.task-row-main:hover{background:transparent}
+  & .tasks-tabs button:hover{background:var(--bg-hover);color:var(--fg)}
+  & .tasks-tabs [aria-selected=true]{background:var(--bg-selected)}
+  & .tasks-footer button{color:var(--fg-2)}
+  & .tasks-footer button:hover{color:var(--fg);background:transparent}
+  & .runtime-hero-icon{background:var(--bg-raised)}
+  & .runtime-switch>input[type=checkbox]:checked{background:var(--fg)}
+
+  /* Text inputs: neutral border, no accent ring. */
+  & :is(.feature-search>input,.tasks-search,.terminal-pane-toolbar>input,.runtime-pair input,.runtime-ssh>input,.cm-textfield){border:1px solid var(--bd);border-radius:6px;background:var(--bg-input);color:var(--fg);box-shadow:none}
+  & :is(.feature-search>input,.tasks-search,.terminal-pane-toolbar>input,.runtime-pair input,.runtime-ssh>input,.cm-textfield):focus{outline:0;border-color:var(--fg-3)}
+
+  /* Option toggles: tinted when on; the checkbox stays in the accessibility tree. */
+  & :is(.search-options>label,.cm-search label){position:relative;display:inline-block;padding:0 8px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--bd);color:var(--fg-2);white-space:nowrap;cursor:pointer}
+  & :is(.search-options,.cm-search) label>input[type=checkbox]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+  & :is(.search-options>label,.cm-search label):hover{background:var(--bg-hover);color:var(--fg)}
+  & :is(.search-options>label,.cm-search label):has(input:checked){background:var(--bg-selected);box-shadow:inset 0 0 0 1px var(--bg-selected);color:var(--fg)}
+  & :is(.search-options>label,.cm-search label):has(input:focus-visible){outline:2px solid var(--focus);outline-offset:-2px}
+  & :is(.cm-search label,.cm-search .cm-button)::first-letter{text-transform:uppercase}
+
+  /* Find and replace widget. */
+  & .cm-panels{background:var(--bg-editor);color:var(--fg)}
+  & .cm-panels-top{border-bottom:1px solid var(--bd)}
+  & .cm-panels-bottom{border-top:1px solid var(--bd)}
+  & .cm-search{gap:4px;padding:4px 40px 4px 12px!important;font-size:var(--fs);font-family:var(--font-body-font-family)}
+  & .cm-search .cm-textfield{margin:0;padding:0 8px;font-size:var(--fs)}
+  & .cm-search .cm-button{margin:0;padding:0 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg-raised);background-image:none;color:var(--fg);font-size:var(--fs)}
+  & .cm-search .cm-button:hover{background:var(--bg-hover)}
+  & .cm-search label{margin:0;font-size:var(--fs)}
+  & .cm-search [name=close]{position:absolute;top:4px;right:6px;display:grid;place-items:center;width:28px;height:28px;padding:0;border-radius:6px;color:var(--fg-3);font-size:calc(var(--fs) * 1.4);line-height:1}
+  & .cm-search [name=close]:hover{background:var(--bg-hover);color:var(--fg)}
+
+  /* Hover, completion and rename popups. */
+  & .cm-tooltip{border:1px solid var(--bd);border-radius:8px;font-size:var(--fs)}
+  & .cm-tooltip-autocomplete{padding:4px}
+  & .cm-tooltip-autocomplete>ul{font-family:var(--font-mono)}
+  & .cm-tooltip-autocomplete>ul>li{display:flex;align-items:center;gap:6px;min-height:24px;padding:0 8px!important;border-radius:4px}
+  & .cm-completionIcon{width:16px;padding:0;opacity:.7}
+  & .cm-completionDetail{margin-left:auto;padding-left:12px;color:var(--fg-3);font-style:normal}
+  & .cm-completionInfo{border-radius:8px;padding:6px 10px}
+
+  /* Merge conflict and document banners: status color on the label, neutral buttons. */
+  & :is(.document-banner,.conflict-toolbar){gap:8px;padding:4px 6px 4px 12px;color:var(--fg)}
+  & .conflict-toolbar>span{color:var(--warn);font-weight:600}
+  & :is(.document-banner,.conflict-toolbar) button{border:1px solid var(--bd);border-radius:6px;background:var(--bg-raised);color:var(--fg);padding:0 10px}
+  & :is(.document-banner,.conflict-toolbar) button:hover{background:var(--bg-hover)}
+
+  /* Compare view header. Its padding is an inline style in packages/features/git. */
+  & .diff-editor>header{gap:4px!important;padding:0 6px 0 12px!important;border-bottom:1px solid var(--bd);color:var(--fg-2);font-size:var(--fs-sm)}
+  & .diff-editor>header>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  & .diff-editor>header>button{padding:0 10px;border-radius:6px;color:var(--fg-2);font-size:var(--fs)}
+  & .diff-editor>header>button:hover{background:var(--bg-hover);color:var(--fg)}
+  & .diff-editor>header>button[aria-pressed=true]{background:var(--bg-selected);color:var(--fg)}
+
+  /* Preview toolbars: markdown, HTML, image and media. */
+  & .preview-toolbar{gap:8px;padding:0 6px 0 12px;color:var(--fg-3);font-size:var(--fs-sm)}
+  & .preview-toolbar :is(.button,.icon-button){flex:none}
+  & .preview-resource-control{gap:4px 8px;padding:6px 12px;font-size:var(--fs-sm)}
+  & .preview-resource-control select{border-radius:6px;padding:0 8px}
+  & .image-actions>.text-button{color:var(--fg-2)}
+
+  /* Empty editor. */
+  & .editor-empty button{border-radius:6px;padding:0 8px;color:var(--fg-2)}
+  & .editor-empty button:hover{background:var(--bg-hover);color:var(--fg)}
+  & .editor-empty kbd{color:var(--fg-3)}
+}
+
+/* Desktop and tablet: 13px text, 28px rows and controls, 36px bars, one 12px gutter. */
+:root[data-style="flat"] .workbench:not([data-theme-pack="oxbit.classicos98"]):not([data-mode=phone]){
+  & .feature-search{gap:8px;padding:8px 12px 12px;font-size:var(--fs)}
+  & .feature-search>input{height:var(--ctl);min-height:var(--ctl);padding:0 8px;font-size:var(--fs)}
+  & .search-options{gap:4px;padding:0}
+  & .search-options>label{height:var(--ctl);line-height:var(--ctl);font-size:var(--fs-sm)}
+  & .search-actions{gap:6px;padding:0}
+  & .search-actions .button{min-height:var(--ctl);height:var(--ctl);padding:0 10px;font-size:var(--fs)}
+  & .search-actions>strong{font-size:var(--fs-sm);font-weight:500}
+  & .search-results{gap:0;margin:4px -6px 0}
+  & .search-file{height:var(--row);min-height:var(--row);padding:0 6px;font-size:var(--fs-sm);font-weight:600}
+  & .search-match{align-items:center;min-height:var(--row);padding:2px 6px 2px 28px}
+  & .search-match>pre{font-size:var(--fs-sm)}
+  & .search-match>.muted{font-size:var(--fs-sm)}
+
+  & .panel-instance[data-panel-instance=problems]>div{padding:6px!important}
+  & .problems-group+.problems-group{margin-top:4px}
+  & .problems-file{height:var(--row);min-height:var(--row);padding:0 6px;font-size:var(--fs-sm);font-weight:600}
+  & .problems-group>.problem-row{align-items:center;min-height:var(--row);padding:2px 6px 2px 28px;font-size:var(--fs)}
+  & .problem-location{font-size:var(--fs-sm)}
+
+  & .output-panel{font-size:var(--fs)}
+  & .output-panel>.custom-select{margin-bottom:8px}
+
+  & .terminal-panel{font-size:var(--fs)}
+  & :is(.terminal-tabs-toolbar,.tasks-toolbar){min-height:var(--tab);height:var(--tab);padding:0 6px 0 8px;gap:4px;background:var(--bg-surface)}
+  & .terminal-tab{height:var(--ctl);min-width:0;padding:0 10px;gap:6px;font-size:var(--fs)}
+  & .terminal-tab>svg{width:16px;height:16px}
+  & :is(.terminal-actions,.terminal-pane-toolbar)>.icon-button{width:28px;height:28px;min-width:28px;min-height:28px;color:var(--fg-3)}
+  & :is(.terminal-actions,.terminal-pane-toolbar)>.icon-button:hover{color:var(--fg)}
+  & :is(.terminal-actions,.terminal-pane-toolbar)>.icon-button svg{width:16px;height:16px}
+  & .terminal-actions>.button{min-height:var(--ctl);height:var(--ctl);padding:0 10px;border-color:transparent;background:transparent;color:var(--fg-2);font-size:var(--fs)}
+  & .terminal-actions>.button:hover:not(:disabled){background:var(--bg-hover);color:var(--fg)}
+  & .terminal-pane-toolbar{min-height:var(--tab);padding:0 6px 0 12px;gap:6px}
+  & .terminal-pane-toolbar>input{height:var(--ctl);padding:0 8px;font-size:var(--fs)}
+  & .terminal-pane-name{font-size:var(--fs)}
+  & .terminal-state{font-size:var(--fs-sm)}
+  & .terminal-session>div:has(>.xterm){padding:6px 12px!important}
+
+  & .tasks-panel{font-size:var(--fs)}
+  & .tasks-tabs{gap:2px}
+  & .tasks-tabs button{height:var(--ctl);padding:0 10px;font-size:var(--fs)}
+  & .tasks-toolbar .button{min-height:var(--ctl);height:var(--ctl);padding:0 10px;font-size:var(--fs)}
+  & .tasks-toolbar .icon-button{width:28px;height:28px;color:var(--fg-3)}
+  & .tasks-toolbar .icon-button svg{width:16px;height:16px}
+  & .tasks-search{width:calc(100% - 24px);height:var(--ctl);margin:8px 12px;padding:0 8px;font-size:var(--fs)}
+  & .tasks-list-heading{padding:8px 12px 4px;font-size:var(--fs-sm)}
+  & .task-list-row{margin:0 6px;padding-right:0;border-radius:6px}
+  & :is(.task-row-main,.task-run-row){min-height:var(--row);padding:6px;gap:8px}
+  & :is(.task-row-main,.task-run-row) strong{font-size:var(--fs)}
+  & :is(.task-row-main,.task-run-row) small{font-size:var(--fs-sm)}
+  & .tasks-footer{min-height:var(--row);padding:0 12px;font-size:var(--fs-sm)}
+
+  & .outline-toolbar{min-height:var(--row);padding:0 8px 0 12px;font-size:var(--fs-sm)}
+  & .outline-message{padding:6px 12px 12px;font-size:var(--fs)}
+  & .outline-symbol{width:calc(100% - 12px);height:var(--row);min-height:var(--row);margin:0 6px;padding:0 6px;border-radius:6px}
+  & .outline-symbol>span{font-size:var(--fs)}
+  & .outline-symbol>small{font-size:var(--fs-sm)}
+
+  & .cm-search{padding-left:14px!important}
+  & .cm-search .cm-textfield{height:var(--ctl);min-height:var(--ctl)}
+  & .cm-search .cm-button{height:var(--ctl);min-height:var(--ctl)}
+  & .cm-search label{height:var(--ctl);line-height:var(--ctl)}
+  & :is(.document-banner,.conflict-toolbar){min-height:var(--tab)}
+  & :is(.document-banner,.conflict-toolbar) button{height:var(--ctl)}
+  & :is(.document-banner,.conflict-toolbar){padding-left:14px}
+  & .diff-editor>header{height:var(--tab);min-height:var(--tab);padding-left:14px!important}
+  & .diff-editor>header>button{height:var(--ctl)}
+
+  & .preview-toolbar{min-height:var(--tab);height:var(--tab);padding-left:14px}
+  & .preview-resource-control{padding:6px 14px}
+  & .preview-toolbar .button{min-height:var(--ctl);height:var(--ctl);padding:0 10px;font-size:var(--fs)}
+  & .preview-toolbar .icon-button{width:28px;height:28px;color:var(--fg-3)}
+  & .preview-toolbar .icon-button svg{width:16px;height:16px}
+  & .preview-toolbar .icon-button:hover{color:var(--fg)}
+  & .image-actions>.text-button{height:var(--ctl);font-size:var(--fs-sm)}
+  & .preview-resource-control select{height:var(--ctl)}
+
+  & .editor-empty{gap:2px}
+  & .editor-empty>svg{margin-bottom:16px}
+  & .editor-empty button{height:var(--row);font-size:var(--fs)}
+  & .editor-empty kbd{font-size:var(--fs-sm)}
+
+  & .runtime-card>h2{font-size:var(--fs)}
+  & :is(.runtime-pair input,.runtime-ssh>input){height:var(--ctl);padding:0 8px}
+}
+
+/* Phone: 16px text, 44px rows, 40px controls. */
+:root[data-style="flat"] .workbench[data-mode=phone]:not([data-theme-pack="oxbit.classicos98"]){
+  --panel-fs:calc(var(--font-body-font-size) * 1.33333);--panel-fs-sm:calc(var(--font-body-font-size) * 1.25);--panel-fs-xs:calc(var(--font-body-font-size) * 1.16667);--panel-fs-2xs:calc(var(--font-body-font-size) * 1.08333);
+  & .feature-search{gap:8px;padding:8px 12px 16px;font-size:var(--panel-fs)}
+  & .feature-search>input{height:40px;min-height:40px;padding:0 12px;font-size:var(--panel-fs)}
+  & .search-options{gap:6px;padding:0}
+  & .search-options>label{height:40px;line-height:40px;padding:0 10px;font-size:var(--panel-fs-sm)}
+  & .search-actions{gap:8px;padding:0}
+  & .search-actions .button{min-height:40px;padding:0 14px;font-size:var(--panel-fs)}
+  & .search-actions>strong{font-size:var(--panel-fs-xs);font-weight:500}
+  & .search-results{gap:0;margin:4px -6px 0}
+  & .search-file{min-height:44px;padding:0 6px;font-size:var(--panel-fs-sm);font-weight:600}
+  & .search-match{align-items:center;min-height:44px;padding:4px 6px 4px 28px}
+  & .search-match>pre{font-size:var(--panel-fs-xs)}
+  & .search-match>.muted{font-size:var(--panel-fs-2xs)}
+
+  & .panel-instance[data-panel-instance=problems]>div{padding:6px!important}
+  & .problems-file{min-height:44px;padding:0 6px;font-size:var(--panel-fs-sm);font-weight:600}
+  & .problems-group>.problem-row{align-items:center;min-height:44px;padding:4px 6px 4px 28px;font-size:var(--panel-fs)}
+
+  & .output-panel{font-size:var(--panel-fs)}
+
+  & :is(.terminal-tabs-toolbar,.tasks-toolbar){min-height:48px;padding:0 6px;gap:4px;background:var(--bg-surface)}
+  & .terminal-tab{height:40px;padding:0 12px;font-size:var(--panel-fs)}
+  & .terminal-actions>.button{border-color:transparent;background:transparent;color:var(--fg-2)}
+  & .terminal-pane-toolbar{min-height:48px;padding:0 6px 0 12px}
+  & .terminal-pane-toolbar>input{height:40px;padding:0 12px;font-size:var(--panel-fs)}
+  & .terminal-pane-toolbar>.icon-button{width:40px;height:40px;min-width:40px;min-height:40px}
+  & .terminal-session>div:has(>.xterm){padding:6px 12px!important}
+
+  & .tasks-panel{font-size:var(--panel-fs)}
+  & .tasks-tabs button{height:40px;padding:0 12px;font-size:var(--panel-fs)}
+  & .tasks-search{width:calc(100% - 24px);height:40px;margin:8px 12px;padding:0 12px;font-size:var(--panel-fs)}
+  & .tasks-list-heading{padding:8px 12px 4px;font-size:var(--panel-fs-xs)}
+  & .task-list-row{margin:0 6px;padding-right:0;border-radius:6px}
+  & :is(.task-row-main,.task-run-row){min-height:44px;padding:6px}
+  & :is(.task-row-main,.task-run-row) strong{font-size:var(--panel-fs)}
+  & .tasks-toolbar .button{min-height:40px;padding:0 12px;font-size:var(--panel-fs)}
+  & .tasks-toolbar .icon-button{width:40px;height:40px}
+  & .tasks-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  & .tasks-list{max-height:45vh;border-right:0;border-bottom:1px solid var(--bd)}
+
+  & .outline-toolbar{min-height:44px;padding:0 8px 0 12px;font-size:var(--panel-fs-sm)}
+  & .outline-symbol{width:calc(100% - 12px);min-height:44px;margin:0 6px;padding:0 6px;border-radius:6px}
+  & .outline-symbol>span{font-size:var(--panel-fs)}
+
+  & .cm-search{padding:6px 52px 6px 12px!important;gap:6px;font-size:var(--panel-fs)}
+  & .cm-search :is(.cm-textfield,.cm-button){height:40px;min-height:40px;font-size:var(--panel-fs)}
+  & .cm-search .cm-textfield{flex:1 1 140px;width:auto;max-width:none}
+  & .cm-search label{height:40px;line-height:40px;font-size:var(--panel-fs)}
+  & .cm-search [name=close]{top:6px;width:40px;height:40px}
+  & .cm-tooltip-autocomplete>ul>li{min-height:40px}
+  & :is(.document-banner,.conflict-toolbar){min-height:48px;font-size:var(--panel-fs)}
+  & :is(.document-banner,.conflict-toolbar) button{height:40px;font-size:var(--panel-fs)}
+  & .diff-editor>header{min-height:48px;flex-wrap:wrap;font-size:var(--panel-fs-xs)}
+  & .diff-editor>header>button{height:40px;font-size:var(--panel-fs)}
+
+  & .preview-toolbar{min-height:48px;font-size:var(--panel-fs-xs)}
+  & .editor-empty button{min-height:44px;font-size:var(--panel-fs)}
+}
