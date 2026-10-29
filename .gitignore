@@ -5,6 +5,7 @@ node_modules/
 test-results/
 playwright-report/
 release/
+!.agents/skills/release/
 .env
 .env.*
 !.env.example
@@ -52,6 +53,11 @@ apps/ios/src-tauri/gen/apple/assets/
 .idea/
 .opencode/
 .playwright-mcp/
-.claude/
-.codex/
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/skills
+.codex/*
+!.codex/config.toml
+!.codex/agents/
 .paseo/

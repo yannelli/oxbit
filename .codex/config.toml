@@ -1,0 +1,20 @@
+[mcp_servers.oxbit-dev]
+command = "sh"
+args = ["-c", "exec node \"$(git rev-parse --show-toplevel)/scripts/agent/mcp/server.mjs\""]
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'node "$(git rev-parse --show-toplevel)/scripts/agent/hooks/run.mjs" codex pre-shell'
+timeout = 15
+statusMessage = "Checking git stash and gh pr merge"
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'node "$(git rev-parse --show-toplevel)/scripts/agent/hooks/run.mjs" codex stop'
+timeout = 10
+statusMessage = "Checking for unpushed work"
