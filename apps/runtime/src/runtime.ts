@@ -742,6 +742,8 @@ export async function createRuntime(options: RuntimeOptions) {
         return {};
       case "ai.complete":
         return ai.complete(params, signal);
+      case "ai.status":
+        return ai.status(params);
       case "ai.key":
         return ai.key(params);
       case "ai.models":

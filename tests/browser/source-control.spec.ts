@@ -475,13 +475,14 @@ test("the AI button shows the setup state before the first request and opens AI 
     await expect(button).toHaveAttribute("aria-disabled", "true");
     await expect(button).toHaveAttribute("data-tooltip", "Add an AI model in Settings to use AI in Source Control");
     const groups = await panel.locator(".scm-group-header").first().boundingBox();
-    await button.click();
+    // aria-disabled keeps the button clickable so the notice can explain the state.
+    await button.click({ force: true });
     const notice = panel.locator(".scm-ai-popover");
     await expect(notice).toContainText("Add an AI model in Settings to use AI in Source Control");
     expect((await panel.locator(".scm-group-header").first().boundingBox())!.y).toBe(groups!.y);
     await page.keyboard.press("Escape");
     await expect(notice).toHaveCount(0);
-    await button.click();
+    await button.click({ force: true });
     await notice.getByRole("button", { name: "Open AI settings", exact: true }).click();
     await expect(page.getByRole("tab", { name: /AI Editing Settings/ })).toBeVisible();
   } finally {

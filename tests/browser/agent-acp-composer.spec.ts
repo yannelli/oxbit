@@ -434,6 +434,10 @@ test("the composer toolbar keeps the agent chip and Auto-apply toggle on one row
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").setAutoApply(true));
     await expect(app.panel.getByRole("button", { name: "Auto-apply edits", exact: true })).toHaveAttribute("aria-pressed", "true");
     const chip = app.panel.getByRole("button", { name: "Auto-apply edits", exact: true });
+    await page.evaluate(() => {
+      const side = document.querySelector(".acp-panel")!.closest("[data-dock]")!.getAttribute("data-dock");
+      (window as any).__oxbit.workbench.resizeDock(side, 420);
+    });
     await expect(chip).toHaveText("Auto-apply", { useInnerText: true });
     await page.evaluate(() => {
       const side = document.querySelector(".acp-panel")!.closest("[data-dock]")!.getAttribute("data-dock");
