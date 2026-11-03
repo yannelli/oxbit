@@ -1,6 +1,6 @@
 # AI editing
 
-Created: 2026-10-18. Last updated: 2026-10-20.
+Created: 2026-10-18. Last updated: 2026-11-03.
 
 The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and inline edits to the CodeMirror editor. Both send code from the open file to the provider `ai.provider` names: the Oxbit agent's provider, OpenRouter, a custom OpenAI-compatible API, or a local Ollama or llama.cpp server.
 
@@ -50,11 +50,13 @@ The Settings page reloads suggestions when `SettingSuggestions.key()` changes, w
 2. Otherwise, with a runtime connection, it calls the runtime's `ai.complete` method. `apps/runtime/src/ai.ts` loads `~/.oxbit/agent/settings.json` (or `OXBIT_AGENT_HOME`) and `auth.json`, and selects the provider the way `oxbit-agent` does. A request with `provider` (`openrouter`, `openai-compatible` or `ollama`) and `baseUrl` lays them over the agent's settings first, so that provider's saved key, environment key (`OPENROUTER_API_KEY`) and method apply. It returns the reply's text. The key does not leave the runtime.
 3. With neither, the request fails with "AI editor features need a runtime connection or an API key in Agent setup".
 
+`AiService.available()` follows the same three steps without a model request. It resolves the setup message a request would fail with, or `undefined` when a request can run. On the runtime path it calls `ai.status`, which runs the provider, key and model checks of `ai.complete` and returns `{ model }` or the same error. A runtime without `ai.status` counts as available. Source Control calls it when the panel opens and when settings change, to show the state of its AI button before the first click.
+
 On a runtime, `local` reaches `http://` on loopback hosts only, the rule `normalizeBase` applies to `oxbit-agent`. On iOS, `AgentModelEndpoint.swift` also accepts `http://` on private network hosts, which the app's App Transport Security settings allow, and sends no key there when none is saved.
 
 Requests use Chat Completions with a system prompt. Use chat or instruct models; fill-in-the-middle-only models return unusable text.
 
-`ai.complete`, `ai.key` and `ai.models` require an owner session and a trusted workspace, the same rule as `acp.*`. It passes the request's abort signal to the model request, so a cancelled client request stops it. The runtime imports `@oxbit/agent/auth`, `@oxbit/agent/config` and `@oxbit/agent/providers`, which `vite.config.ts` and `vite.desktop.config.ts` bundle.
+`ai.complete`, `ai.status`, `ai.key` and `ai.models` require an owner session and a trusted workspace, the same rule as `acp.*`. It passes the request's abort signal to the model request, so a cancelled client request stops it. The runtime imports `@oxbit/agent/auth`, `@oxbit/agent/config` and `@oxbit/agent/providers`, which `vite.config.ts` and `vite.desktop.config.ts` bundle.
 
 ## Prompts
 
@@ -83,7 +85,7 @@ Base code models such as `qwen2.5-coder:1.5b-base` have no chat template; a chat
 
 - `packages/features/ai/src/*.test.ts`: prompt cleanup, ghost state, inline edit application, transport and provider selection, and model suggestions.
 - `packages/agent-core/src/fim.test.ts`: the FIM request body and the fallback after a rejection.
-- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, the local FIM request and its chat fallback, named providers, `ai.key` and `ai.models`, with a fake `fetch`.
+- `apps/runtime/tests/ai.test.ts`: provider, key and model selection for `ai.complete`, the local FIM request and its chat fallback, named providers, `ai.status`, `ai.key` and `ai.models`, with a fake `fetch`.
 - `tests/browser/settings-pages.spec.ts`: provider labels, suggestion details, and choosing a suggested model.
 - `tests/browser/ai-editor.spec.ts`: ghost text accept and dismiss, the inline completion limits, instructions and excluded files, and the inline edit with undo, against a fake `agentModels` service.
 

@@ -54,6 +54,21 @@ describe("AiCompletions", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("reports the model a request would use, or what is missing, without calling the provider", async () => {
+    const { calls, fetch } = recordingFetch(chatText("x"));
+    const ready = new AiCompletions({ home: await agentHome({ provider: "openrouter", model: "agent-model" }, { "apikey:openrouter": "sk-test" }), env: {}, fetch });
+    expect(await ready.status({})).toEqual({ model: "agent-model" });
+    expect(await ready.status({ model: "fast-model" })).toEqual({ model: "fast-model" });
+    await expect(ready.status({ provider: "openrouter" })).rejects.toMatchObject({ code: "INVALID_PARAMS" });
+    const noModel = new AiCompletions({ home: await agentHome({ provider: "openrouter" }, { "apikey:openrouter": "sk-test" }), env: {}, fetch });
+    await expect(noModel.status({})).rejects.toMatchObject({ code: "UNAVAILABLE", message: "Set ai.model, or a model for the Oxbit agent" });
+    const noKey = new AiCompletions({ home: await agentHome({ provider: "openrouter", model: "m" }, {}), env: {}, fetch });
+    await expect(noKey.status({})).rejects.toMatchObject({ code: "UNAVAILABLE", message: expect.stringContaining("No API key for openrouter") });
+    await expect(noKey.status({ provider: "openrouter", model: "vendor/fast" }))
+      .rejects.toMatchObject({ code: "UNAVAILABLE", message: "Run Set AI Provider API Key to add a key for this provider" });
+    expect(calls).toHaveLength(0);
+  });
+
   it("sends to the provider the request names with that provider's saved key", async () => {
     const home = await agentHome({ provider: "anthropic", model: "agent-model" }, { "apikey:openrouter": "sk-router" });
     const { calls, fetch } = recordingFetch(chatText("x"));

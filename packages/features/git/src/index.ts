@@ -148,8 +148,10 @@ export function createFeature(o: FeatureOptions): Extension {
     mountedPanels = 0;
   let lastCommit: { hash: string; subject: string; amended: boolean } | undefined;
   let aiController: AbortController | undefined,
+    aiCheck: AbortController | undefined,
     aiTask: "message" | "plan" | undefined,
-    aiFailure = "";
+    aiFailure = "",
+    aiReadiness = "";
   let dialog:
     | { kind: "plan"; plan: PlannedCommit[] }
     | { kind: "pullRequest"; title: string }
@@ -512,7 +514,40 @@ export function createFeature(o: FeatureOptions): Extension {
   const aiService = () =>
     o.kernel.services.optional<AiCompletion>(AI_SERVICE_ID);
   const aiUnavailable = () =>
-    aiFailure || (aiService() ? undefined : tr(AI_MISSING));
+    aiFailure || aiReadiness || (aiService() ? undefined : tr(AI_MISSING));
+  /** Asks the AI service whether a request can run, so the AI button shows its state before the first click. */
+  const checkAi = () => {
+    aiCheck?.abort();
+    const ai = aiService();
+    if (!ai?.available) {
+      aiReadiness = "";
+      return;
+    }
+    const controller = (aiCheck = new AbortController());
+    ai.available(controller.signal).then(
+      (reason) => {
+        const next = reason ? aiMessage(reason) : "";
+        if (controller.signal.aborted || next === aiReadiness) return;
+        aiReadiness = next;
+        changed();
+      },
+      () => {},
+    );
+  };
+  const aiNeedsSetup = (message?: string) =>
+    message === tr(AI_SETUP) || message === tr(AI_MISSING);
+  const openAiSettings = () =>
+    void o.kernel.commands.execute("settings.open", { extension: "oxbit.ai" });
+  /** Setup errors become a toast with a settings action; other AI errors show in the panel. */
+  const showAiError = (message: string) => {
+    if (!aiNeedsSetup(message)) {
+      error = message;
+      return;
+    }
+    o.workbench.notify(message, "info", {
+      actions: [{ title: tr("Open AI settings"), command: "settings.open", args: { extension: "oxbit.ai" } }],
+    });
+  };
   /** Runs one AI task at a time; AI service errors disable AI actions until settings change. */
   const withAi = async <T>(
     task: "message" | "plan",
@@ -520,8 +555,7 @@ export function createFeature(o: FeatureOptions): Extension {
   ) => {
     const ai = aiService();
     if (!ai) {
-      error = tr(AI_MISSING);
-      changed();
+      showAiError(tr(AI_MISSING));
       return undefined;
     }
     if (aiController) throw new Error("Wait for the current AI request to finish");
@@ -540,7 +574,7 @@ export function createFeature(o: FeatureOptions): Extension {
       return await work(guarded, controller.signal);
     } catch (failure) {
       if (controller.signal.aborted) return undefined;
-      error = aiMessage(failure);
+      showAiError(aiMessage(failure));
       return undefined;
     } finally {
       aiController = undefined;
@@ -1021,6 +1055,25 @@ export function createFeature(o: FeatureOptions): Extension {
     const [pending, setPending] = useState(false);
     const [filter, setFilter] = useState("");
     const [filtering, setFiltering] = useState(false);
+    const [composing, setComposing] = useState(false);
+    const pointerDown = useRef(false);
+    useEffect(() => {
+      const down = () => (pointerDown.current = true);
+      const up = () => (pointerDown.current = false);
+      document.addEventListener("pointerdown", down, true);
+      document.addEventListener("pointerup", up, true);
+      document.addEventListener("pointercancel", up, true);
+      return () => {
+        document.removeEventListener("pointerdown", down, true);
+        document.removeEventListener("pointerup", up, true);
+        document.removeEventListener("pointercancel", up, true);
+      };
+    }, []);
+    // A blur from a click shrinks the message box after the click, so the rows below do not move under the pointer.
+    const stopComposing = () => {
+      if (!pointerDown.current) return setComposing(false);
+      document.addEventListener("pointerup", () => setTimeout(() => setComposing(false)), { once: true });
+    };
     const [stashCount, setStashCount] = useState(0);
     useEffect(() => {
       if (!status.repository) {
@@ -1041,6 +1094,7 @@ export function createFeature(o: FeatureOptions): Extension {
       listeners.add(listener);
       mountedPanels++;
       void refresh().catch(() => {});
+      checkAi();
       return () => {
         listeners.delete(listener);
         mountedPanels--;
@@ -1076,6 +1130,8 @@ export function createFeature(o: FeatureOptions): Extension {
       if (canCommit) run(() => commitChanges());
     };
     const aiOff = aiUnavailable();
+    const showCommit = !!lastCommit && !message && !composing;
+    const aiSetup = !aiTask && aiNeedsSetup(aiOff);
     const commitMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
@@ -1545,13 +1601,15 @@ export function createFeature(o: FeatureOptions): Extension {
       status.repository &&
         h(
           "div",
-          { className: "scm-message-box" },
+          { className: "scm-message-box", "data-open": composing || !!message || showCommit || undefined },
           h("textarea", {
             className: "scm-message",
             "aria-label": tr("Commit message"),
             rows: 1,
-            placeholder: tr("Commit message"),
+            placeholder: showCommit ? "" : tr("Commit message"),
             value: message,
+            onFocus: () => setComposing(true),
+            onBlur: stopComposing,
             onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
               setMessage(event.target.value),
             onKeyDown: (event: React.KeyboardEvent) => {
@@ -1561,24 +1619,52 @@ export function createFeature(o: FeatureOptions): Extension {
               }
             },
           }),
+          showCommit &&
+            lastCommit &&
+            h(
+              "div",
+              { className: "scm-result", role: "status" },
+              h(Icon, { name: "check", size: 14 }),
+              h(
+                "span",
+                { className: "scm-result-text", title: lastCommit.subject },
+                tr(lastCommit.amended ? "Amended {0}" : "Committed {0}", {
+                  "0": lastCommit.hash.slice(0, 7),
+                }),
+                lastCommit.subject && h("span", { className: "scm-result-subject" }, lastCommit.subject),
+              ),
+              canAmend() &&
+                h(
+                  "button",
+                  {
+                    className: "text-button scm-result-undo",
+                    disabled: pending,
+                    onClick: () => run(undoCommit),
+                  },
+                  tr("Undo"),
+                ),
+            ),
           h(IconButton, {
             icon: aiTask === "message" ? "stop" : "agent",
+            className: aiSetup ? "icon-button scm-ai-setup" : "icon-button",
             label:
               aiTask === "message"
                 ? "Stop generating commit message"
-                : "Generate commit message",
-            title: aiTask === "message" ? undefined : aiOff,
+                : aiSetup
+                  ? aiOff!
+                  : "Generate commit message",
+            title: aiTask === "message" || aiSetup ? undefined : aiOff,
             "aria-busy": aiTask === "message",
-            // aria-disabled keeps pointer events so the tooltip explains why AI is off.
-            "aria-disabled": !aiTask && !!aiOff ? true : undefined,
             disabled:
-              aiTask !== "message" && (!!aiTask || !status.changes.length),
+              aiTask !== "message" &&
+              (!!aiTask || (!aiSetup && !status.changes.length)),
             onClick: () => {
               if (aiTask === "message") aiController?.abort();
-              else if (aiOff) {
-                error = aiOff;
-                changed();
-              } else report(generateMessage);
+              else if (aiSetup) openAiSettings();
+              else {
+                aiFailure = "";
+                report(generateMessage);
+              }
             },
           }),
         ),
@@ -1612,30 +1698,6 @@ export function createFeature(o: FeatureOptions): Extension {
             h(Icon, { name: "chevD", size: 14 }),
           ),
         ),
-      lastCommit &&
-        h(
-          "div",
-          { className: "scm-result", role: "status" },
-          h(Icon, { name: "check", size: 14 }),
-          h(
-            "span",
-            { className: "scm-result-text", title: lastCommit.subject },
-            tr(lastCommit.amended ? "Amended {0}" : "Committed {0}", {
-              "0": lastCommit.hash.slice(0, 7),
-            }),
-            lastCommit.subject && h("span", { className: "scm-result-subject" }, lastCommit.subject),
-          ),
-          canAmend() &&
-            h(
-              "button",
-              {
-                className: "text-button scm-result-undo",
-                disabled: pending,
-                onClick: () => run(undoCommit),
-              },
-              tr("Undo"),
-            ),
-        ),
       (aiTask === "plan" ||
         error ||
         progress ||
@@ -1656,26 +1718,11 @@ export function createFeature(o: FeatureOptions): Extension {
               ),
             ),
           error &&
-            (error === tr(AI_SETUP) || error === tr(AI_MISSING)
-              ? h(
-                  "div",
-                  { className: "scm-ai-status", role: "status" },
-                  h("span", null, error),
-                  h(
-                    "button",
-                    {
-                      className: "button",
-                      onClick: () =>
-                        void o.kernel.commands.execute("settings.open", { extension: "oxbit.ai" }),
-                    },
-                    tr("Open AI settings"),
-                  ),
-                )
-              : h(
-                  "p",
-                  { className: "scm-feedback error-text", role: "alert" },
-                  error,
-                )),
+            h(
+              "p",
+              { className: "scm-feedback error-text", role: "alert" },
+              error,
+            ),
           progress &&
             h(
               "details",
@@ -1800,24 +1847,30 @@ export function createFeature(o: FeatureOptions): Extension {
                     h("span", null, groupTitle(group)),
                     h("span", { className: "scm-count" }, changes.length),
                   ),
-                  lineStat(groupTotal(group, all), "scm-stat scm-group-stat"),
+                  lineStat(groupTotal(group, all)),
                   group !== "conflicts" &&
-                    h(IconButton, {
-                      icon: group === "staged" ? "minus" : "plus",
-                      label:
-                        group === "staged"
-                          ? "Unstage All Changes"
-                          : "Stage All Changes",
-                      disabled: !changes.length || pending,
-                      onClick: () =>
-                        run(() =>
-                          o.kernel.commands.execute(
-                            group === "staged"
-                              ? "git.unstageAll"
-                              : "git.stageAll",
+                    h(
+                      "div",
+                      { className: "scm-file-actions" },
+                      h(IconButton, {
+                        icon: group === "staged" ? "minus" : "plus",
+                        label:
+                          group === "staged"
+                            ? "Unstage All Changes"
+                            : "Stage All Changes",
+                        disabled: !changes.length || pending,
+                        onClick: () =>
+                          run(() =>
+                            o.kernel.commands.execute(
+                              group === "staged"
+                                ? "git.unstageAll"
+                                : "git.stageAll",
+                            ),
                           ),
-                        ),
-                    }),
+                      }),
+                    ),
+                  // Keeps the line totals in the same column as the file rows.
+                  h("span", { className: "scm-status", "aria-hidden": true }),
                 ),
                 expanded &&
                   (view === "tree"
@@ -2028,6 +2081,7 @@ export function createFeature(o: FeatureOptions): Extension {
             aiFailure = "";
             changed();
           }
+          checkAi();
           const next = o.kernel.configuration.get("scm.autoFetch") === true;
           if (next !== enabled) {
             enabled = next;

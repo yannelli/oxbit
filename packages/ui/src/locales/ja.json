@@ -1275,5 +1275,6 @@
   "Open AI settings": "AI 設定を開く",
   "Unstaged": "未ステージ",
   "Unstaged changes": "ステージされていない変更",
-  "Auto": "自動"
+  "Auto": "自動",
+  "Auto-apply": "自動適用"
 }

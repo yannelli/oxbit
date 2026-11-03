@@ -916,7 +916,8 @@ function AgentPanel({ agent }: { agent: AgentController }) {
               data-tooltip={tr(agent.autoApply ? "Auto-apply edits: on" : "Auto-apply edits: off")}
               onClick={() => agent.setAutoApply(!agent.autoApply)}
             >
-              {tr("Auto")}
+              <span className="acp-auto-apply-short">{tr("Auto")}</span>
+              <span className="acp-auto-apply-long">{tr("Auto-apply")}</span>
             </button>
           )}
           {controls.length > 0 && (

@@ -102,7 +102,7 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 
 /* Panel text sizes shared by both layout styles; they follow the density and mode --ui step. */
 :root .workbench{--fs:calc(var(--font-body-font-size) + var(--ui) - 12px);--fs-sm:calc(var(--fs) - 1px)}
-.scm-panel{--scm-icon:28px;--scm-control:28px;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;font-size:var(--fs,var(--font-body-font-size))}
+.scm-panel{--scm-icon:28px;--scm-control:28px;--scm-action:24px;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;font-size:var(--fs,var(--font-body-font-size))}
 .scm-toolbar{display:flex;align-items:center;gap:2px;min-width:0;flex:none;min-height:40px;padding:0 6px;container:scm-toolbar/inline-size}
 .scm-toolbar-spacer{flex:1;min-width:4px}
 /* The branch keeps its icon and about 6 characters; the commit label gives way first. */
@@ -112,8 +112,8 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .scm-panel .scm-branch .select-trigger:hover:not(:disabled){background:var(--bg-hover)}
 .scm-panel .scm-branch .select-trigger[aria-expanded=true]{background:var(--bg-selected)}
 .scm-panel .scm-branch .select-icon,.scm-panel .scm-branch .select-trigger>svg{color:var(--fg-3)}
-.scm-toolbar>.icon-button,.scm-group-header>.icon-button{width:var(--scm-icon);height:var(--scm-icon);min-width:var(--scm-icon);min-height:var(--scm-icon);flex:none;color:var(--fg-3)}
-.scm-toolbar>.icon-button:hover,.scm-group-header>.icon-button:hover,.scm-file-actions>.icon-button:hover{color:var(--fg)}
+.scm-toolbar>.icon-button{width:var(--scm-icon);height:var(--scm-icon);min-width:var(--scm-icon);min-height:var(--scm-icon);flex:none;color:var(--fg-3)}
+.scm-toolbar>.icon-button:hover,.scm-file-actions>.icon-button:hover{color:var(--fg)}
 .scm-toolbar>.icon-button[aria-pressed=true]{color:var(--fg);background:var(--bg-selected)}
 .scm-panel .scm-sync{display:inline-flex;align-items:center;gap:4px;width:auto;padding:0 6px}
 .scm-tracking{flex:none;font-size:var(--fs-sm,var(--font-small-font-size));line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -125,18 +125,18 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .scm-panel .scm-commit-menu{width:24px;min-height:var(--scm-control);padding:0;margin-left:-1px;color:var(--fg-2);border-start-start-radius:0;border-end-start-radius:0}
 .scm-commit-split:has(>.scm-commit:disabled)>.scm-commit-menu:not(:hover):not([aria-expanded=true]){opacity:.45}
 .scm-stat{display:inline-flex;gap:6px;flex:none;font-family:var(--font-mono);font-size:var(--fs-sm,var(--font-small-font-size));font-variant-numeric:tabular-nums;white-space:nowrap}
-.scm-group-stat{padding:0 4px}
-.scm-result{display:flex;align-items:center;gap:6px;flex:none;min-width:0;margin:-4px 12px 8px;color:var(--fg-2);font-size:var(--fs-sm,var(--font-small-font-size))}
+.scm-result{position:absolute;inset:1px 34px auto 1px;height:30px;display:flex;align-items:center;gap:6px;min-width:0;padding:0 4px 0 10px;color:var(--fg-2);font-size:var(--fs-sm,var(--font-small-font-size));pointer-events:none}
 .scm-result>svg{flex:none;color:var(--add)}
 .scm-result-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scm-result-subject{margin-left:6px;color:var(--fg-3)}
-.scm-result-undo{flex:none;margin-left:auto;padding:2px 6px}
+.scm-result-undo{flex:none;margin-left:auto;padding:2px 6px;pointer-events:auto}
+.scm-message-box>.scm-ai-setup:not(:hover,:focus-visible){opacity:.5}
 .scm-added{color:var(--add)}
 .scm-removed{color:var(--del)}
 .scm-message-box{position:relative;flex:none;min-width:0;margin:4px 12px 8px}
 .scm-panel .scm-message{display:block;width:100%;height:32px;min-height:32px;max-height:160px;resize:none;margin:0;padding:6px 34px 6px 10px;font-size:inherit;line-height:20px;overflow:hidden;border-radius:6px}
-.scm-panel .scm-message:is(:focus,:not(:placeholder-shown)){height:auto;min-height:72px;field-sizing:content;overflow:auto}
-@supports not (field-sizing:content){.scm-panel .scm-message:is(:focus,:not(:placeholder-shown)){height:72px;resize:vertical}}
+.scm-panel :is(.scm-message:focus,.scm-message-box[data-open] .scm-message){height:auto;min-height:72px;field-sizing:content;overflow:auto}
+@supports not (field-sizing:content){.scm-panel :is(.scm-message:focus,.scm-message-box[data-open] .scm-message){height:72px;resize:vertical}}
 .scm-message-box>.icon-button{position:absolute;right:4px;top:4px;width:24px;height:24px;min-width:24px;min-height:24px;color:var(--fg-3)}
 .scm-message-box>.icon-button:hover{color:var(--fg)}
 .scm-message-box>.icon-button[aria-busy=true]{color:var(--fg);animation:scm-busy 1.2s ease-in-out infinite}
@@ -154,9 +154,8 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .scm-heading>svg{flex:none}
 .scm-heading>span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scm-count{flex:none;margin-left:4px;font-weight:400;color:var(--fg-3);font-variant-numeric:tabular-nums}
-.scm-group-header{display:flex;align-items:center;gap:4px;height:28px;padding:0 6px 0 8px;position:sticky;top:0;z-index:1;background:var(--scm-bg,var(--bg-surface))}
-.scm-group-header>.icon-button{width:24px;height:24px;min-width:24px;min-height:24px}
-.scm-group-header:not(:hover,:focus-within)>.icon-button{opacity:0}
+.scm-group-header{display:flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 8px;position:sticky;top:0;z-index:1;background:var(--scm-bg,var(--bg-surface))}
+.scm-group-header>.scm-file-actions{right:32px}
 .scm-file{position:relative;display:flex;align-items:center;gap:8px;min-width:0;height:28px;margin:0 6px;padding-right:6px;border-radius:6px}
 .scm-file:hover,.scm-file:focus-within{background:var(--bg-hover)}
 .scm-file-open{display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;overflow:hidden;text-align:left}
@@ -169,13 +168,12 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
 .scm-status[data-status=D]{color:var(--del)}
 .scm-file>.scm-status{display:inline-grid;place-items:center;height:24px;line-height:1}
 .scm-file-actions{position:absolute;right:26px;top:0;bottom:0;display:flex;align-items:center;gap:0}
-.scm-file-actions>.icon-button{width:24px;height:24px;min-width:24px;min-height:24px;color:var(--fg-3)}
-.scm-file:not(:hover,:focus-within)>.scm-file-actions{opacity:0}
-.scm-file:is(:hover,:focus-within)>.scm-stat{visibility:hidden}
-.scm-panel[data-touch] .scm-file-actions{position:static;opacity:1}
-.scm-panel[data-touch] .scm-file>.scm-stat{visibility:visible}
-.scm-panel[data-touch] .scm-file>.scm-status{order:1}
-.scm-panel[data-touch] .scm-group-header>.icon-button{opacity:1}
+.scm-file-actions>.icon-button{width:var(--scm-action);height:var(--scm-action);min-width:var(--scm-action);min-height:var(--scm-action);color:var(--fg-3)}
+.scm-file:not(:hover,:focus-within)>.scm-file-actions,.scm-group-header:not(:hover,:focus-within)>.scm-file-actions{opacity:0}
+.scm-file:is(:hover,:focus-within)>.scm-stat,.scm-group-header:is(:hover,:focus-within)>.scm-stat{visibility:hidden}
+.scm-panel[data-touch] .scm-file-actions{position:static;opacity:1;min-width:calc(var(--scm-action) * 2);justify-content:flex-end}
+.scm-panel[data-touch] :is(.scm-file,.scm-group-header)>.scm-stat{visibility:visible}
+.scm-panel[data-touch] :is(.scm-file,.scm-group-header)>.scm-status{order:1}
 .scm-folder{display:flex;align-items:center;gap:6px;width:calc(100% - 12px);height:28px;margin:0 6px;border-radius:6px;text-align:left;padding-right:10px;color:var(--fg-2)}
 .scm-folder>svg{flex:none;color:var(--fg-3)}
 .scm-folder>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -196,13 +194,14 @@ input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
   .terminal-actions>.button.terminal-new,.terminal-actions>.icon-button{width:36px;height:36px;padding:0;justify-content:center}
   .terminal-panes:has(.terminal-session+.terminal-session){flex-direction:column}
   .terminal-session+.terminal-session{border-left:0;border-top:1px solid var(--bd)}
-  .scm-panel{--scm-icon:44px;--scm-control:44px}
+  .scm-panel{--scm-icon:44px;--scm-control:44px;--scm-action:44px}
   .scm-toolbar{min-height:52px}
   .scm-file{height:44px}
   .scm-folder,.scm-group-header,.scm-heading{height:44px}
   .scm-section-toggle{height:44px}
   .scm-panel .scm-message{height:44px;min-height:44px;padding-right:48px;line-height:30px}
-  :is(.scm-group-header,.scm-message-box,.scm-file-actions)>.icon-button{width:44px;height:44px;min-width:44px;min-height:44px}
+  .scm-message-box>.icon-button{width:44px;height:44px;min-width:44px;min-height:44px}
+  .scm-result{right:48px;height:42px}
   .scm-message-box>.icon-button{top:0;right:0}
   .scm-panel .scm-commit-menu{width:44px}
 }
@@ -296,6 +295,8 @@ button:disabled,button[aria-disabled=true]{color:var(--control-disabled-foregrou
 .acp-panel .icon-button { width:28px; height:28px; min-width:28px; min-height:28px; }
 .acp-panel .icon-button[aria-expanded=true] { background:var(--bg-selected); color:var(--fg); }
 .acp-panel .acp-auto-apply { flex:none; height:24px; padding:0 7px; border:1px solid var(--bd); border-radius:12px; color:var(--fg-3); font-size:var(--fs-sm,var(--font-small-font-size)); white-space:nowrap; }
+.acp-panel .acp-auto-apply-long { display:none; }
+@container(min-width:360px) { .acp-panel .acp-auto-apply-short { display:none; } .acp-panel .acp-auto-apply-long { display:inline; } }
 .acp-panel .acp-auto-apply[aria-pressed=true] { border-color:var(--warn); background:color-mix(in srgb,var(--warn) 16%,transparent); color:var(--warn); }
 .acp-history { margin-top:12px; }
 .acp-history label,.acp-context-picker label { display:grid; gap:6px; color:var(--fg-2); }

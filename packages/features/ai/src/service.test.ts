@@ -20,15 +20,21 @@ function kernelWith(settings: Record<string, unknown>) {
   for (const [id, value] of Object.entries(settings)) kernel.configuration.set(id, value);
   return kernel;
 }
-function fakeRuntime(reply: string) {
+function fakeRuntime(reply: string, status: Error | { model: string } = { model: "fast" }) {
   const calls: { method: string; params?: Record<string, unknown> }[] = [];
   const runtime: RpcClient = {
     connected: true,
     subscribe: () => () => {},
-    async request<T>(method: string, params?: Record<string, unknown>) { calls.push({ method, params }); return { text: reply } as T; },
+    async request<T>(method: string, params?: Record<string, unknown>) {
+      calls.push({ method, params });
+      if (method !== "ai.status") return { text: reply } as T;
+      if (status instanceof Error) throw status;
+      return status as T;
+    },
   };
   return { runtime, calls };
 }
+const rpcError = (code: string, message: string) => Object.assign(new Error(message), { code });
 
 describe("createAiService", () => {
   it("uses the host's model service with the AI model setting", async () => {
@@ -90,6 +96,57 @@ describe("createAiService", () => {
 
   it("explains what is missing without a runtime or a host service", async () => {
     await expect(createAiService(kernelWith({})).complete({ system: "s", prompt: "p" })).rejects.toThrow(AI_UNAVAILABLE);
+    await expect(createAiService(kernelWith({})).available()).resolves.toBe(AI_UNAVAILABLE);
+  });
+});
+
+describe("AiService.available", () => {
+  it("asks the runtime's ai.status for the agent's model", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.model]: "fast" });
+    const { runtime, calls } = fakeRuntime("unused");
+    await expect(createAiService(kernel, runtime).available()).resolves.toBeUndefined();
+    expect(calls).toEqual([{ method: "ai.status", params: { model: "fast" } }]);
+    const unavailable = "No API key for openrouter. Set OPENROUTER_API_KEY or run `oxbit-agent login --provider openrouter`";
+    const missing = fakeRuntime("unused", rpcError("UNAVAILABLE", unavailable));
+    await expect(createAiService(kernelWith({}), missing.runtime).available()).resolves.toBe(unavailable);
+    expect(missing.calls).toEqual([{ method: "ai.status", params: {} }]);
+  });
+
+  it("treats a runtime without ai.status as ready", async () => {
+    const { runtime } = fakeRuntime("unused", rpcError("METHOD_NOT_FOUND", "Unknown runtime method ai.status"));
+    await expect(createAiService(kernelWith({}), runtime).available()).resolves.toBeUndefined();
+  });
+
+  it("names the provider and base URL to ai.status", async () => {
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "local", [AI_SETTINGS.model]: "qwen2.5-coder:7b" });
+    const { runtime, calls } = fakeRuntime("unused");
+    await expect(createAiService(kernel, runtime).available()).resolves.toBeUndefined();
+    expect(calls).toEqual([{ method: "ai.status", params: { model: "qwen2.5-coder:7b", provider: "ollama", baseUrl: "http://localhost:11434" } }]);
+    kernel.configuration.set(AI_SETTINGS.provider, "openai-compatible");
+    await expect(createAiService(kernel, runtime).available()).resolves.toMatch("Set AI base URL");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("returns the setup message for a provider with no model or key without a request", async () => {
+    const { runtime, calls } = fakeRuntime("unused");
+    const kernel = kernelWith({ [AI_SETTINGS.provider]: "openrouter" });
+    await expect(createAiService(kernel, runtime).available()).resolves.toBe("Set AI model to a model on OpenRouter");
+    kernel.configuration.set(AI_SETTINGS.model, "vendor/fast");
+    const { models, requests } = fakeModels([], { key: false });
+    kernel.services.register(AGENT_MODELS_SERVICE, models);
+    await expect(createAiService(kernel, runtime).available()).resolves.toBe("Run Set AI Provider API Key to add a key for OpenRouter");
+    expect(calls).toHaveLength(0);
+    expect(requests).toHaveLength(0);
+  });
+
+  it("checks the host's model setting when the host holds the key", async () => {
+    const kernel = kernelWith({});
+    const { models, requests } = fakeModels([]);
+    kernel.services.register(AGENT_MODELS_SERVICE, models);
+    await expect(createAiService(kernel).available()).resolves.toBe("Set ai.model, or a model in Agent setup");
+    kernel.configuration.set("agentACP.oxbit.model", "agent-model");
+    await expect(createAiService(kernel).available()).resolves.toBeUndefined();
+    expect(requests).toHaveLength(0);
   });
 });
 
@@ -103,6 +160,7 @@ function fakeView(doc: string, anchor: number, head: number) {
 }
 const replying = (reply: string, before?: () => void): AiService => ({
   async complete() { before?.(); return reply; },
+  async available() { return undefined; },
 });
 
 describe("runInlineEdit", () => {

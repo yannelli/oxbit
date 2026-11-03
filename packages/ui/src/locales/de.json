@@ -1247,5 +1247,6 @@
   "Open AI settings": "KI-Einstellungen öffnen",
   "Unstaged": "Nicht bereitgestellt",
   "Unstaged changes": "Nicht bereitgestellte Änderungen",
-  "Auto": "Auto"
+  "Auto": "Auto",
+  "Auto-apply": "Automatisch anwenden"
 }

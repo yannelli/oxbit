@@ -47,17 +47,12 @@ export class AiCompletions {
   async complete(params: Record<string, unknown>, signal?: AbortSignal) {
     const system = text(params, "system", 20_000)!;
     const prompt = text(params, "prompt", MAX_PROMPT_CHARS)!;
-    const requested = text(params, "model", 200, true);
     const effort = text(params, "effort", 32, true);
     const maxTokens = params.maxTokens;
     if (maxTokens !== undefined && (!Number.isSafeInteger(maxTokens) || (maxTokens as number) < 1 || (maxTokens as number) > MAX_OUTPUT_TOKENS))
       throw new RpcError("INVALID_PARAMS", "Invalid maxTokens");
-    const { provider, baseUrl } = editorProvider(params);
-    if (provider && !requested) throw new RpcError("INVALID_PARAMS", "Set AI model for this provider");
     const fim = fimParams(params.fim);
-    const choice = await this.choose(provider, baseUrl);
-    const model = requested ?? choice.model;
-    if (!model) throw new RpcError("UNAVAILABLE", "Set ai.model, or a model for the Oxbit agent");
+    const { choice, model, provider } = await this.target(params);
     const endpoint = choice.runtime.endpoint();
     if (fim && provider === "ollama" && fimAvailable(endpoint, model)) {
       try {
@@ -80,6 +75,23 @@ export class AiCompletions {
       throw new RpcError("MODEL_ERROR", modelError(error).message);
     }
     return { text: output, model };
+  }
+
+  /** The model `complete` would use for the same `provider`, `baseUrl` and `model`, checked without a model request. */
+  async status(params: Record<string, unknown>) {
+    const { model } = await this.target(params);
+    return { model };
+  }
+
+  /** The provider and model for a request, or the INVALID_PARAMS or UNAVAILABLE error `complete` and `status` throw. */
+  private async target(params: Record<string, unknown>) {
+    const requested = text(params, "model", 200, true);
+    const { provider, baseUrl } = editorProvider(params);
+    if (provider && !requested) throw new RpcError("INVALID_PARAMS", "Set AI model for this provider");
+    const choice = await this.choose(provider, baseUrl);
+    const model = requested ?? choice.model;
+    if (!model) throw new RpcError("UNAVAILABLE", "Set ai.model, or a model for the Oxbit agent");
+    return { choice, model, provider };
   }
 
   /** Model IDs the named provider lists, for the Settings suggestions of a local model server. */
