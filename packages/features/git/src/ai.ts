@@ -8,6 +8,9 @@ export interface AiCompletion {
   ): Promise<string>;
 }
 export const AI_SERVICE_ID = "ai";
+/** True for provider, model and key errors that AI settings fix. */
+export const aiSetupFailure = (message: string) =>
+  /ai\.model|AI model|API key|Agent setup|runtime connection/i.test(message);
 export const DIFF_BUDGET = 24_000;
 const MAX_DIFF_FILES = 80;
 

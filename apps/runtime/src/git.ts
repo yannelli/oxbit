@@ -941,6 +941,16 @@ export class Git {
           commit: (await this.run(["rev-parse", "HEAD"], signal)).stdout.trim(),
         };
       }
+      case "undoCommit": {
+        const head = await this.head(signal);
+        if (!head) throw new RpcError("NOT_FOUND", "There is no commit to undo");
+        const message = (await this.run(["log", "-1", "--format=%B", head], signal)).stdout;
+        const parents = (await this.run(["rev-list", "--parents", "-n", "1", head], signal)).stdout.trim().split(/\s+/);
+        // A root commit has no parent to reset to; deleting the ref keeps its files staged.
+        if (parents.length > 1) await this.run(["reset", "--soft", "HEAD~1"], signal);
+        else await this.run(["update-ref", "-d", "HEAD"], signal);
+        return { message };
+      }
       case "indexSnapshot":
         return { tree: (await this.run(["write-tree"], signal)).stdout.trim() };
       case "indexRestore": {

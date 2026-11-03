@@ -1235,9 +1235,17 @@
   "{name} picker": "Farbauswahl für {name}",
   "Staged": "Bereitgestellt",
   "Commits": "Commits",
-  "Uncommitted": "Nicht committet",
-  "Changes shown": "Angezeigte Änderungen",
   "Create branch…": "Branch erstellen…",
   "Manage branches and remotes…": "Branches und Remotes verwalten…",
-  "{0} added, {1} removed": "{0} hinzugefügt, {1} entfernt"
+  "{0} added, {1} removed": "{0} hinzugefügt, {1} entfernt",
+  "Add an AI model in Settings to use AI in Source Control": "Fügen Sie in den Einstellungen ein KI-Modell hinzu, um KI in der Quellcodeverwaltung zu verwenden",
+  "Committed {0}": "Commit {0} erstellt",
+  "Amended {0}": "Commit {0} geändert",
+  "Undo Last Commit": "Letzten Commit rückgängig machen",
+  "Undo pushed commit?": "Gepushten Commit rückgängig machen?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "Der letzte Commit ist bereits auf {0}. Ein Rückgängigmachen schreibt bereits gepushten Verlauf neu.",
+  "Open AI settings": "KI-Einstellungen öffnen",
+  "Unstaged": "Nicht bereitgestellt",
+  "Unstaged changes": "Nicht bereitgestellte Änderungen",
+  "Auto": "Auto"
 }

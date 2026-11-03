@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GitStatus } from "@oxbit/sdk";
 import {
+  aiSetupFailure,
   budgetDiffs,
   cleanCommitMessage,
   collectDiffs,
@@ -10,6 +11,20 @@ import {
   parsePullRequest,
   pullRequestRemote,
 } from "./ai.js";
+
+describe("AI setup failures", () => {
+  it("matches the model, key and connection errors that AI settings fix", () => {
+    for (const message of [
+      "Set ai.model, or a model for the Oxbit agent",
+      "Set ai.model, or a model in Agent setup",
+      "Set AI model to a model on OpenRouter",
+      "Run Set AI Provider API Key to add a key for OpenRouter",
+      "AI editor features need a runtime connection or an API key in Agent setup",
+    ])
+      expect(aiSetupFailure(message)).toBe(true);
+    expect(aiSetupFailure("Rate limit reached, try again in 20s")).toBe(false);
+  });
+});
 
 describe("diff budget", () => {
   it("keeps small diffs whole and gives large ones an equal share", () => {

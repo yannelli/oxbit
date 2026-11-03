@@ -81,8 +81,7 @@
   --phone-fs:calc(var(--font-body-font-size) * 1.33333);--phone-fs-sm:calc(var(--font-body-font-size) * 1.16667);--phone-inset:12px;
   & .scm-panel{font-size:var(--phone-fs)}
   & .scm-toolbar{min-height:52px;padding:0 6px}
-  & .scm-panel :is(.scm-branch,.scm-scope-select) .select-trigger{min-height:44px;font-size:var(--phone-fs)}
-  & .scm-scope{min-height:44px}
+  & .scm-panel .scm-branch .select-trigger{min-height:44px;font-size:var(--phone-fs)}
   & .scm-message-box :is(textarea,input){min-height:44px;font-size:var(--phone-fs)}
   & .scm-group-header{height:44px;font-size:var(--phone-fs-sm)}
   & .scm-file{height:44px}

@@ -1263,9 +1263,17 @@
   "{name} picker": "Selector de color de {name}",
   "Staged": "Preparados",
   "Commits": "Commits",
-  "Uncommitted": "Sin confirmar",
-  "Changes shown": "Cambios mostrados",
   "Create branch…": "Crear rama…",
   "Manage branches and remotes…": "Administrar ramas y remotos…",
-  "{0} added, {1} removed": "{0} añadidas, {1} eliminadas"
+  "{0} added, {1} removed": "{0} añadidas, {1} eliminadas",
+  "Add an AI model in Settings to use AI in Source Control": "Añada un modelo de IA en Configuración para usar la IA en el control de código fuente",
+  "Committed {0}": "Commit {0} creado",
+  "Amended {0}": "Commit {0} modificado",
+  "Undo Last Commit": "Deshacer el último commit",
+  "Undo pushed commit?": "¿Deshacer un commit ya enviado?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "El último commit ya está en {0}. Deshacerlo reescribe el historial que ya envió.",
+  "Open AI settings": "Abrir la configuración de IA",
+  "Unstaged": "Sin preparar",
+  "Unstaged changes": "Cambios sin preparar",
+  "Auto": "Auto"
 }

@@ -1263,9 +1263,17 @@
   "{name} picker": "{name} 颜色选取器",
   "Staged": "已暂存",
   "Commits": "提交",
-  "Uncommitted": "未提交",
-  "Changes shown": "显示的更改",
   "Create branch…": "创建分支…",
   "Manage branches and remotes…": "管理分支和远程…",
-  "{0} added, {1} removed": "新增 {0} 行，删除 {1} 行"
+  "{0} added, {1} removed": "新增 {0} 行，删除 {1} 行",
+  "Add an AI model in Settings to use AI in Source Control": "在设置中添加 AI 模型，以在源代码管理中使用 AI",
+  "Committed {0}": "已创建提交 {0}",
+  "Amended {0}": "已修改为提交 {0}",
+  "Undo Last Commit": "撤消上一次提交",
+  "Undo pushed commit?": "撤消已推送的提交?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "上一次提交已在 {0} 上。撤消它会重写已推送的历史记录。",
+  "Open AI settings": "打开 AI 设置",
+  "Unstaged": "未暂存",
+  "Unstaged changes": "未暂存的更改",
+  "Auto": "自动"
 }

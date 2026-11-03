@@ -156,3 +156,23 @@ describe("amend", () => {
     expect(await command(root, ["show", "HEAD:file.txt"])).toBe("second");
   });
 });
+
+describe("undoCommit", () => {
+  it("removes the last commit, keeps its files staged and returns its message", async () => {
+    const { root, git } = await setup(async () => ({ stdout: "", stderr: "", exitCode: 0 }), false);
+    await fs.writeFile(path.join(root, "file.txt"), "second\n");
+    await command(root, ["commit", "-am", "Second line"]);
+    const result = await git.action("undoCommit", {}, signal, () => {});
+    expect(result).toEqual({ message: "Second line\n\n" });
+    expect(await command(root, ["log", "--format=%s"])).toBe("Seed");
+    expect(await command(root, ["diff", "--cached", "--name-only"])).toBe("file.txt");
+  });
+
+  it("undoes a root commit and keeps its files staged", async () => {
+    const { root, git } = await setup(async () => ({ stdout: "", stderr: "", exitCode: 0 }), false);
+    await git.action("undoCommit", {}, signal, () => {});
+    expect((await runCommand("git", ["rev-parse", "--verify", "HEAD"], { cwd: root })).exitCode).not.toBe(0);
+    expect(await command(root, ["diff", "--cached", "--name-only"])).toBe("file.txt");
+    await expect(git.action("undoCommit", {}, signal, () => {})).rejects.toThrow("There is no commit to undo");
+  });
+});

@@ -15,6 +15,10 @@ import { compareVersions, doctor } from "../../scripts/agent/mcp/doctor.mjs";
 import { staleWork } from "../../scripts/agent/mcp/stale.mjs";
 
 const repo = path.resolve(import.meta.dirname, "../..");
+/** Flaky-test IDs in the repo ledger, which grows as flakes are logged. */
+const repoFlakes = () =>
+  [...fs.readFileSync(path.join(repo, "docs/agents/ledgers/flaky-tests.md"), "utf8").matchAll(/^\| (T-\d{3}) \|/gm)].map((match) => match[1]!);
+const nextFlake = () => `T-${String(Math.max(0, ...repoFlakes().map((id) => Number(id.slice(2)))) + 1).padStart(3, "0")}`;
 const temps: string[] = [];
 const GIT_ENV = { ...process.env, GIT_CONFIG_COUNT: "3", GIT_CONFIG_KEY_0: "commit.gpgsign", GIT_CONFIG_VALUE_0: "false", GIT_CONFIG_KEY_1: "user.name", GIT_CONFIG_VALUE_1: "t", GIT_CONFIG_KEY_2: "user.email", GIT_CONFIG_VALUE_2: "t@example.com" };
 
@@ -129,17 +133,18 @@ describe("ledgers", () => {
     const flake = addEntry(dirs, { ledger: "flaky-tests", item: "local flake", source: "run 7", local: true });
     expect(flake).toMatchObject({ location: "local", row: { id: "T-001" } });
     const rows = listLedgers(dirs, { ledger: "flaky-tests" })[0].rows;
-    expect(rows.map((row: any) => `${row.location}:${row.id}`)).toEqual(["repo:T-001", "repo:T-002", "local:T-001"]);
+    expect(rows.map((row: any) => `${row.location}:${row.id}`)).toEqual([...repoFlakes().map((id) => `repo:${id}`), "local:T-001"]);
     updateEntry(dirs, { ledger: "open-questions", id: "Q-001", status: "done" });
     expect(listLedgers(dirs, { ledger: "open-questions", status: "done" })[0].rows).toHaveLength(1);
   });
 
   it("adds, escapes, updates and filters rows", () => {
     const dir = copyLedgers();
+    const id = nextFlake();
     const added = addEntry(dir, { ledger: "flaky-tests", item: "a | b\nc", source: "run 42", date: "2026-11-01" });
-    expect(added.row.id).toBe("T-003");
+    expect(added.row.id).toBe(id);
     const text = fs.readFileSync(path.join(dir, "flaky-tests.md"), "utf8");
-    expect(text).toContain("| T-003 | open | a \\| b c | run 42 | 2026-11-01 |");
+    expect(text).toContain(`| ${id} | open | a \\| b c | run 42 | 2026-11-01 |`);
     expect(text).toContain("Last updated: 2026-11-01.");
     expect(parseLedger(text).at(-1).item).toBe("a | b c");
     updateEntry(dir, { ledger: "flaky-tests", id: "T-001", status: "done", date: "2026-11-02" });

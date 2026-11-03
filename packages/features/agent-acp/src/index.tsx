@@ -910,13 +910,13 @@ function AgentPanel({ agent }: { agent: AgentController }) {
           {!agent.archived && (
             <button
               type="button"
-              className="icon-button acp-auto-apply"
+              className="acp-auto-apply"
               aria-pressed={agent.autoApply}
               aria-label={tr("Auto-apply edits")}
               data-tooltip={tr(agent.autoApply ? "Auto-apply edits: on" : "Auto-apply edits: off")}
               onClick={() => agent.setAutoApply(!agent.autoApply)}
             >
-              <Icon name={agent.autoApply ? "shieldCheck" : "shield"} />
+              {tr("Auto")}
             </button>
           )}
           {controls.length > 0 && (

@@ -22,6 +22,7 @@ import type {
 } from "@oxbit/sdk";
 import {
   AI_SERVICE_ID,
+  aiSetupFailure,
   cleanCommitMessage,
   collectDiffs,
   commitMessagePrompt,
@@ -129,6 +130,11 @@ const unstaged = (change: Change) =>
 const messageOf = (failure: unknown) =>
   failure instanceof Error ? failure.message : String(failure);
 const AI_MISSING = "Set up an AI provider to use AI in Source Control";
+const AI_SETUP = "Add an AI model in Settings to use AI in Source Control";
+const aiMessage = (failure: unknown) => {
+  const message = messageOf(failure);
+  return aiSetupFailure(message) ? tr(AI_SETUP) : message;
+};
 export function createFeature(o: FeatureOptions): Extension {
   const git = o.git ?? o.runtime;
   let status: Status = emptyStatus(),
@@ -138,7 +144,9 @@ export function createFeature(o: FeatureOptions): Extension {
     disposed = false;
   let revision = 0;
   let commitMessage = "",
-    committing = false;
+    committing = false,
+    mountedPanels = 0;
+  let lastCommit: { hash: string; subject: string; amended: boolean } | undefined;
   let aiController: AbortController | undefined,
     aiTask: "message" | "plan" | undefined,
     aiFailure = "";
@@ -148,7 +156,6 @@ export function createFeature(o: FeatureOptions): Extension {
     | undefined;
   type Section = "commits" | "branches" | "stashes";
   const sections = new Set<Section>();
-  let scope: "all" | "staged" = "all";
   const showSection = (section: Section) => {
     sections.add(section);
     o.workbench.openPanel("scm");
@@ -200,6 +207,8 @@ export function createFeature(o: FeatureOptions): Extension {
       status.remotes ??= [];
       revision++;
       error = "";
+      if (lastCommit && !(status.head && lastCommit.hash && status.head.startsWith(lastCommit.hash)))
+        lastCommit = undefined;
       o.kernel.context.set("gitRepo", status.repository);
       o.kernel.context.set("gitChanges", status.changes.length > 0);
       o.kernel.context.set("gitStaged", status.changes.some(staged));
@@ -402,17 +411,53 @@ export function createFeature(o: FeatureOptions): Extension {
     committing = true;
     changed();
     try {
-      await request(method, { message });
+      const result = await request<{ commit?: string } | undefined>(method, { message });
       if (commitMessage === message) commitMessage = "";
+      // The result renders with the cleared message so the list moves once.
+      if (result?.commit) showResult(result.commit, message, method === "amend");
       await refresh();
-      o.workbench.notify(
-        tr(method === "amend" ? "Last commit amended" : "Commit created"),
-      );
+      if (!result?.commit) showResult(status.head ?? "", message, method === "amend");
       return true;
     } finally {
       committing = false;
       changed();
     }
+  };
+  /** Shows the new commit under the Commit button until HEAD moves, or as a toast when Source Control is hidden. */
+  const showResult = (hash: string, message: string, amended: boolean) => {
+    const subject = message.trim().split("\n")[0] || status.refs.find((ref) => ref.current)?.subject || "";
+    lastCommit = { hash, subject, amended };
+    changed();
+    if (!mountedPanels)
+      o.workbench.notify(
+        hash
+          ? tr(amended ? "Amended {0}" : "Committed {0}", { "0": hash.slice(0, 7) })
+          : tr(amended ? "Last commit amended" : "Commit created"),
+        "info",
+        canAmend() ? { actions: [{ title: tr("Undo"), command: "git.undoCommit" }] } : {},
+      );
+  };
+  const undoCommit = async () => {
+    await refresh();
+    if (!canAmend()) throw new Error("This workspace cannot undo commits");
+    if (
+      status.upstream &&
+      !status.ahead &&
+      (await o.workbench.ask(
+        tr("Undo pushed commit?"),
+        tr("The last commit is already on {0}. Undoing it rewrites history you have pushed.", {
+          "0": status.upstream,
+        }),
+        ["Undo Last Commit", "Cancel"],
+        true,
+      )) !== "Undo Last Commit"
+    )
+      return false;
+    const { message } = await request<{ message: string }>("undoCommit");
+    lastCommit = undefined;
+    if (!commitMessage.trim()) commitMessage = message.trim();
+    await refresh();
+    return true;
   };
   const pushOrPublish = async () => {
     if (status.upstream) return perform("push");
@@ -487,7 +532,7 @@ export function createFeature(o: FeatureOptions): Extension {
     const guarded: AiCompletion = {
       complete: (input, signal) =>
         ai.complete(input, signal).catch((failure: unknown) => {
-          if (!signal?.aborted) aiFailure = messageOf(failure);
+          if (!signal?.aborted) aiFailure = aiMessage(failure);
           throw failure;
         }),
     };
@@ -495,7 +540,7 @@ export function createFeature(o: FeatureOptions): Extension {
       return await work(guarded, controller.signal);
     } catch (failure) {
       if (controller.signal.aborted) return undefined;
-      error = messageOf(failure);
+      error = aiMessage(failure);
       return undefined;
     } finally {
       aiController = undefined;
@@ -599,7 +644,7 @@ export function createFeature(o: FeatureOptions): Extension {
       .complete(pullRequestPrompt({ base: diff.base, head: diff.head, commits, files }), signal)
       .catch((failure: unknown) => {
         if (!signal.aborted) {
-          aiFailure = messageOf(failure);
+          aiFailure = aiMessage(failure);
           changed();
         }
         throw failure;
@@ -994,9 +1039,11 @@ export function createFeature(o: FeatureOptions): Extension {
     useEffect(() => {
       const listener = () => render((value) => value + 1);
       listeners.add(listener);
+      mountedPanels++;
       void refresh().catch(() => {});
       return () => {
         listeners.delete(listener);
+        mountedPanels--;
       };
     }, []);
     const h = React.createElement;
@@ -1036,55 +1083,74 @@ export function createFeature(o: FeatureOptions): Extension {
         "git.commitAndPush",
         "git.commitWithAi",
         ...(canPullRequest() ? ["git.createPullRequest"] : []),
-        ...(canAmend() ? ["git.amend"] : []),
+        ...(canAmend() ? ["git.amend", "git.undoCommit"] : []),
       ]);
     };
-    const syncButtons = !status.repository
-      ? []
+    /** The header shows one sync control with the ahead and behind counts; the overflow menu leaves it out. */
+    const syncCommand = !status.repository
+      ? undefined
       : !status.upstream
-        ? [
-            h(IconButton, {
-              key: "publish",
-              className: "icon-button scm-sync",
-              icon: "cloud",
-              label: "Publish branch",
-              disabled: pending || !status.head,
-              onClick: () => run(pushOrPublish),
-            }),
-          ]
-        : status.ahead && status.behind && runtimeHost()
-          ? [
-              h(IconButton, {
-                key: "sync",
-                className: "icon-button scm-sync",
-                icon: "sync",
-                label: "Sync",
-                title: tr("Pull {0} and push {1} commits", {
-                  "0": status.behind,
-                  "1": status.ahead,
-                }),
-                disabled: pending,
-                onClick: () => run(sync),
-              }),
-            ]
-          : [
-              h(IconButton, {
-                key: "pull",
-                className: "icon-button scm-sync",
-                icon: "arrowDown",
-                label: "Pull",
-                disabled: pending,
-                onClick: () => run(() => perform("pull")),
-              }),
-              h(IconButton, {
-                key: "push",
-                className: "icon-button scm-sync",
-                icon: "arrowUp",
-                label: "Push",
-                disabled: pending || !status.head,
-                onClick: () => run(() => perform("push")),
-              }),
-            ];
+        ? "git.publish"
+        : status.ahead && status.behind
+          ? runtimeHost()
+            ? "git.sync"
+            : "git.pull"
+          : status.ahead
+            ? "git.push"
+            : "git.pull";
+    const syncButton =
+      syncCommand &&
+      h(
+        "button",
+        {
+          key: "sync",
+          type: "button",
+          className: "icon-button scm-sync",
+          "aria-label": tr(
+            syncCommand === "git.publish"
+              ? "Publish branch"
+              : syncCommand === "git.sync"
+                ? "Sync"
+                : syncCommand === "git.push"
+                  ? "Push"
+                  : "Pull",
+          ),
+          "data-tooltip": status.upstream
+            ? tr("{0}: {1} ahead, {2} behind", {
+                "0": status.upstream,
+                "1": status.ahead,
+                "2": status.behind,
+              })
+            : tr("Publish branch"),
+          disabled: pending || (syncCommand !== "git.pull" && !status.head),
+          onClick: () =>
+            run(() =>
+              syncCommand === "git.publish"
+                ? pushOrPublish()
+                : syncCommand === "git.sync"
+                  ? sync()
+                  : perform(syncCommand === "git.push" ? "push" : "pull"),
+            ),
+        },
+        h(Icon, {
+          name:
+            syncCommand === "git.publish"
+              ? "cloud"
+              : syncCommand === "git.sync"
+                ? "sync"
+                : syncCommand === "git.push"
+                  ? "arrowUp"
+                  : "arrowDown",
+        }),
+        (status.ahead > 0 || status.behind > 0) &&
+          h(
+            "span",
+            { className: "scm-tracking" },
+            status.ahead ? "↑" + status.ahead : "",
+            status.ahead && status.behind ? " " : "",
+            status.behind ? "↓" + status.behind : "",
+          ),
+      );
     const modal =
       dialog?.kind === "plan"
         ? h(CommitPlanDialog, {
@@ -1133,22 +1199,20 @@ export function createFeature(o: FeatureOptions): Extension {
       value: { added: number; removed: number } | undefined,
       className = "scm-stat",
     ) =>
-      value &&
-      (value.added || value.removed) &&
-      h(
-        "span",
-        {
-          className,
-          "aria-label": tr("{0} added, {1} removed", {
-            "0": value.added,
-            "1": value.removed,
-          }),
-        },
-        value.added ? h("span", { className: "scm-added" }, "+" + value.added) : null,
-        value.removed
-          ? h("span", { className: "scm-removed" }, "−" + value.removed)
-          : null,
-      );
+      value && (value.added || value.removed)
+        ? h(
+            "span",
+            {
+              className,
+              "aria-label": tr("{0} added, {1} removed", {
+                "0": value.added,
+                "1": value.removed,
+              }),
+            },
+            value.added ? h("span", { className: "scm-added" }, "+" + value.added) : null,
+            value.removed ? h("span", { className: "scm-removed" }, "−" + value.removed) : null,
+          )
+        : null;
     const overflow = (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
@@ -1166,9 +1230,11 @@ export function createFeature(o: FeatureOptions): Extension {
       const ids = [
         "git.refresh",
         "git.fetch",
-        "git.pull",
-        status.upstream || !status.repository ? "git.push" : "git.publish",
-        ...(status.ahead && status.behind && runtimeHost() ? ["git.sync"] : []),
+        ...[
+          "git.pull",
+          status.upstream || !status.repository ? "git.push" : "git.publish",
+          ...(status.ahead && status.behind && runtimeHost() ? ["git.sync"] : []),
+        ].filter((id) => id !== syncCommand),
         "git.clone",
         ...(available("git.account") ? ["git.account"] : []),
         "-",
@@ -1179,11 +1245,7 @@ export function createFeature(o: FeatureOptions): Extension {
         "git.branchCreate",
         "git.branches",
         "git.history",
-        view === "list" ? "git.viewTree" : "git.viewList",
         ...(contributed.length ? ["-", ...contributed] : []),
-        ...(o.workbench.movePanel
-          ? ["-", "git.moveLeft", "git.moveRight", "git.moveBottom"]
-          : []),
       ];
       o.workbench.showContextMenu("scm.toolbar", rect.left, rect.bottom, ids);
     };
@@ -1231,7 +1293,7 @@ export function createFeature(o: FeatureOptions): Extension {
           !isStaged &&
             !change.conflict &&
             h(IconButton, {
-              icon: "refresh",
+              icon: "discard",
               label: "Discard " + change.path,
               disabled: pending,
               onClick: () => run(() => discard(change.path)),
@@ -1307,11 +1369,7 @@ export function createFeature(o: FeatureOptions): Extension {
           .map((change) => file(change, group, depth)),
       ];
     };
-    const groups = (
-      scope === "staged"
-        ? (["conflicts", "staged"] as const)
-        : (["conflicts", "staged", "unstaged"] as const)
-    ).map((group) => {
+    const groups = (["conflicts", "staged", "unstaged"] as const).map((group) => {
       const all = status.changes.filter(
         group === "conflicts"
           ? (change) => change.conflict
@@ -1327,23 +1385,22 @@ export function createFeature(o: FeatureOptions): Extension {
         ),
       };
     });
-    const total = groups.reduce(
-      (sum, { group, all }) => {
-        for (const change of all) {
+    const groupTotal = (group: string, all: Change[]) =>
+      all.reduce(
+        (sum, change) => {
           const value = counts(change, group);
           sum.added += value?.added ?? 0;
           sum.removed += value?.removed ?? 0;
-        }
-        return sum;
-      },
-      { added: 0, removed: 0 },
-    );
+          return sum;
+        },
+        { added: 0, removed: 0 },
+      );
     const groupTitle = (group: string) =>
       group === "conflicts"
         ? tr("Merge changes")
         : group === "staged"
           ? tr("Staged")
-          : tr("Changes");
+          : tr("Unstaged");
     const section = (
       id: Section,
       title: string,
@@ -1424,55 +1481,24 @@ export function createFeature(o: FeatureOptions): Extension {
             } else if (branch !== status.branch) run(() => checkout(branch));
           },
         }),
-        status.upstream &&
-          h(
-            "span",
-            {
-              className: "scm-tracking",
-              role: "status",
-              title: status.upstream,
-              "aria-label": tr("{0}: {1} ahead, {2} behind", {
-                "0": status.upstream,
-                "1": status.ahead,
-                "2": status.behind,
-              }),
-            },
-            status.ahead ? "↑" + status.ahead : "",
-            status.ahead && status.behind ? " " : "",
-            status.behind ? "↓" + status.behind : "",
-          ),
         h("span", { className: "scm-toolbar-spacer" }),
-        ...syncButtons,
+        syncButton,
         status.repository &&
-          h(
-            "div",
-            { className: "scm-commit-split" },
-            h(
-              "button",
-              {
-                className: "button scm-commit",
-                disabled: !canCommit,
-                "data-tooltip": commitAll
-                  ? tr("Stage all changes and commit")
-                  : `${tr("Commit")} (${displayShortcut("Mod+Enter")})`,
-                onClick: submit,
-              },
-              h(Icon, { name: "check", size: 14 }),
-              h("span", { className: "scm-commit-label" }, tr(commitAll ? "Commit All" : "Commit")),
-            ),
-            h(
-              "button",
-              {
-                className: "button scm-commit-menu",
-                "aria-label": tr("More commit actions"),
-                "data-tooltip": tr("More commit actions"),
-                "aria-haspopup": "menu",
-                disabled: pending || committing || !!aiTask,
-                onClick: commitMenu,
-              },
-              h(Icon, { name: "chevD", size: 14 }),
-            ),
-          ),
+          h(IconButton, {
+            icon: "search",
+            label: "Filter changed files",
+            "aria-pressed": filtering,
+            onClick: () => {
+              if (filtering) setFilter("");
+              setFiltering(!filtering);
+            },
+          }),
+        status.repository &&
+          h(IconButton, {
+            icon: view === "list" ? "folder" : "menu",
+            label: view === "list" ? "Switch to tree view" : "Switch to list view",
+            onClick: () => setView(view === "list" ? "tree" : "list"),
+          }),
         h(IconButton, {
           icon: "more",
           label: "Source control actions",
@@ -1494,46 +1520,6 @@ export function createFeature(o: FeatureOptions): Extension {
             h(Icon, { name: "plus" }),
             tr("Initialize Repository"),
           ),
-        ),
-      status.repository &&
-        h(
-          "div",
-          { className: "scm-scope" },
-          h(Select, {
-            className: "scm-scope-select",
-            label: tr("Changes shown"),
-            value: scope,
-            options: [
-              { value: "all", label: tr("Uncommitted") },
-              { value: "staged", label: tr("Staged") },
-            ],
-            onChange: (value) => {
-              scope = value === "staged" ? "staged" : "all";
-              changed();
-            },
-          }),
-          lineStat(total, "scm-stat scm-total"),
-          h("span", { className: "scm-toolbar-spacer" }),
-          h(IconButton, {
-            icon: "search",
-            label: "Filter changed files",
-            "aria-pressed": filtering,
-            onClick: () => {
-              if (filtering) setFilter("");
-              setFiltering(!filtering);
-            },
-          }),
-          h(IconButton, {
-            icon: view === "list" ? "folder" : "menu",
-            label: view === "list" ? "Switch to tree view" : "Switch to list view",
-            onClick: () => setView(view === "list" ? "tree" : "list"),
-          }),
-          h(IconButton, {
-            icon: "refresh",
-            label: "Refresh Source Control",
-            disabled: pending,
-            onClick: () => run(refresh),
-          }),
         ),
       status.repository &&
         filtering &&
@@ -1587,11 +1573,68 @@ export function createFeature(o: FeatureOptions): Extension {
             "aria-disabled": !aiTask && !!aiOff ? true : undefined,
             disabled:
               aiTask !== "message" && (!!aiTask || !status.changes.length),
-            onClick: () =>
-              aiTask === "message"
-                ? aiController?.abort()
-                : !aiOff && report(generateMessage),
+            onClick: () => {
+              if (aiTask === "message") aiController?.abort();
+              else if (aiOff) {
+                error = aiOff;
+                changed();
+              } else report(generateMessage);
+            },
           }),
+        ),
+      status.repository &&
+        h(
+          "div",
+          { className: "scm-commit-split" },
+          h(
+            "button",
+            {
+              className: "button scm-commit",
+              disabled: !canCommit,
+              "data-tooltip": commitAll
+                ? tr("Stage all changes and commit")
+                : `${tr("Commit")} (${displayShortcut("Mod+Enter")})`,
+              onClick: submit,
+            },
+            h(Icon, { name: "check", size: 14 }),
+            h("span", { className: "scm-commit-label" }, tr(commitAll ? "Commit All" : "Commit")),
+          ),
+          h(
+            "button",
+            {
+              className: "button scm-commit-menu",
+              "aria-label": tr("More commit actions"),
+              "data-tooltip": tr("More commit actions"),
+              "aria-haspopup": "menu",
+              disabled: pending || committing || !!aiTask,
+              onClick: commitMenu,
+            },
+            h(Icon, { name: "chevD", size: 14 }),
+          ),
+        ),
+      lastCommit &&
+        h(
+          "div",
+          { className: "scm-result", role: "status" },
+          h(Icon, { name: "check", size: 14 }),
+          h(
+            "span",
+            { className: "scm-result-text", title: lastCommit.subject },
+            tr(lastCommit.amended ? "Amended {0}" : "Committed {0}", {
+              "0": lastCommit.hash.slice(0, 7),
+            }),
+            lastCommit.subject && h("span", { className: "scm-result-subject" }, lastCommit.subject),
+          ),
+          canAmend() &&
+            h(
+              "button",
+              {
+                className: "text-button scm-result-undo",
+                disabled: pending,
+                onClick: () => run(undoCommit),
+              },
+              tr("Undo"),
+            ),
         ),
       (aiTask === "plan" ||
         error ||
@@ -1613,11 +1656,26 @@ export function createFeature(o: FeatureOptions): Extension {
               ),
             ),
           error &&
-            h(
-              "p",
-              { className: "scm-feedback error-text", role: "alert" },
-              error,
-            ),
+            (error === tr(AI_SETUP) || error === tr(AI_MISSING)
+              ? h(
+                  "div",
+                  { className: "scm-ai-status", role: "status" },
+                  h("span", null, error),
+                  h(
+                    "button",
+                    {
+                      className: "button",
+                      onClick: () =>
+                        void o.kernel.commands.execute("settings.open", { extension: "oxbit.ai" }),
+                    },
+                    tr("Open AI settings"),
+                  ),
+                )
+              : h(
+                  "p",
+                  { className: "scm-feedback error-text", role: "alert" },
+                  error,
+                )),
           progress &&
             h(
               "details",
@@ -1723,7 +1781,7 @@ export function createFeature(o: FeatureOptions): Extension {
                       ? tr("Merge changes")
                       : group === "staged"
                         ? tr("Staged changes")
-                        : tr("Changes"),
+                        : tr("Unstaged changes"),
                 },
                 h(
                   "div",
@@ -1742,6 +1800,7 @@ export function createFeature(o: FeatureOptions): Extension {
                     h("span", null, groupTitle(group)),
                     h("span", { className: "scm-count" }, changes.length),
                   ),
+                  lineStat(groupTotal(group, all), "scm-stat scm-group-stat"),
                   group !== "conflicts" &&
                     h(IconButton, {
                       icon: group === "staged" ? "minus" : "plus",
@@ -1857,6 +1916,7 @@ export function createFeature(o: FeatureOptions): Extension {
       command("git.commitWithAi", "Commit with AI…", commitWithAi);
       command("git.generateCommitMessage", "Generate Commit Message", generateMessage);
       command("git.amend", "Amend Last Commit", amend, "gitAmend");
+      command("git.undoCommit", "Undo Last Commit", undoCommit, "gitAmend");
       command(
         "git.createPullRequest",
         "Create Draft Pull Request…",
