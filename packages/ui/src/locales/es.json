@@ -1275,5 +1275,6 @@
   "Open AI settings": "Abrir la configuración de IA",
   "Unstaged": "Sin preparar",
   "Unstaged changes": "Cambios sin preparar",
-  "Auto": "Auto"
+  "Auto": "Auto",
+  "Auto-apply": "Aplicar automáticamente"
 }

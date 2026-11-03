@@ -433,7 +433,8 @@ test("the composer toolbar keeps the agent chip and Auto-apply toggle on one row
   try {
     await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").setAutoApply(true));
     await expect(app.panel.getByRole("button", { name: "Auto-apply edits", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(app.panel.getByRole("button", { name: "Auto-apply edits", exact: true })).toHaveText("Auto");
+    const chip = app.panel.getByRole("button", { name: "Auto-apply edits", exact: true });
+    await expect(chip).toHaveText("Auto-apply", { useInnerText: true });
     await page.evaluate(() => {
       const side = document.querySelector(".acp-panel")!.closest("[data-dock]")!.getAttribute("data-dock");
       (window as any).__oxbit.workbench.resizeDock(side, 300);
@@ -441,6 +442,8 @@ test("the composer toolbar keeps the agent chip and Auto-apply toggle on one row
     await expect.poll(() => app.panel.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBeLessThan(340);
     expect(await app.panel.locator(".acp-composer-toolbar").evaluate((toolbar) => toolbar.scrollWidth <= toolbar.clientWidth)).toBe(true);
     await expect(app.panel.locator(".acp-agent-chip .select-trigger > span")).toBeVisible();
+    await expect(chip).toHaveText("Auto", { useInnerText: true });
+    expect(await app.panel.locator(".acp-agent-chip .select-trigger > span").evaluate((name) => name.scrollWidth <= name.clientWidth)).toBe(true);
     // A running turn with a draft adds Stop and Interrupt & send to the toolbar.
     await app.input.fill("wait");
     await app.input.press("Enter");

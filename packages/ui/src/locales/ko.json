@@ -1275,5 +1275,6 @@
   "Open AI settings": "AI 설정 열기",
   "Unstaged": "스테이징 안 됨",
   "Unstaged changes": "스테이징되지 않은 변경 사항",
-  "Auto": "자동"
+  "Auto": "자동",
+  "Auto-apply": "자동 적용"
 }

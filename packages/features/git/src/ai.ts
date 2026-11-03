@@ -6,6 +6,8 @@ export interface AiCompletion {
     request: { system: string; prompt: string; maxTokens?: number },
     signal?: AbortSignal,
   ): Promise<string>;
+  /** Resolves the setup message a request would fail with, or undefined when a request can run. */
+  available?(signal?: AbortSignal): Promise<string | undefined>;
 }
 export const AI_SERVICE_ID = "ai";
 /** True for provider, model and key errors that AI settings fix. */

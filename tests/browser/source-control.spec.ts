@@ -418,7 +418,7 @@ test("the accounts overflow action appears only when git.account is registered",
   }
 });
 
-test("a commit shows its hash under the Commit button and Undo restores the message and staged files", async ({
+test("a commit shows its hash in the empty message field and Undo restores the message and staged files", async ({
   page,
 }) => {
   const f = await fixture(page);
@@ -432,11 +432,15 @@ test("a commit shows its hash under the Commit button and Undo restores the mess
     expect(commitBox!.y).toBeGreaterThan(messageBox!.y + messageBox!.height - 1);
     await message.fill("Change example");
     await commitButton.click();
-    const result = panel.getByRole("status").filter({ hasText: "Committed" });
+    const result = panel.locator(".scm-message-box").getByRole("status");
     await expect.poll(() => git(f.root, "log", "-1", "--format=%s")).toBe("Change example");
     const hash = (await git(f.root, "rev-parse", "HEAD")).slice(0, 7);
     await expect(result).toContainText(`Committed ${hash}`);
     await expect(result).toContainText("Change example");
+    await message.focus();
+    await expect(result).toHaveCount(0);
+    await expect(message).toHaveAttribute("placeholder", "Commit message");
+    await message.blur();
     await expect(page.locator(".notification")).toHaveCount(0);
     await result.getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(() => git(f.root, "log", "-1", "--format=%s")).toBe("Initial project");
@@ -451,6 +455,35 @@ test("a commit shows its hash under the Commit button and Undo restores the mess
     await expect(page.getByRole("menuitem", { name: /^Refresh Source Control/ })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(panel.getByRole("region", { name: "Staged changes", exact: true })).toContainText("+1");
+  } finally {
+    await f.close();
+  }
+});
+
+test("the AI button shows the setup state before the first request and opens AI settings", async ({ page }) => {
+  const f = await fixture(page);
+  try {
+    await fs.writeFile(path.join(f.root, "example.txt"), "changed\n");
+    await refresh(page);
+    await page.evaluate(async () => {
+      const z = (window as any).__oxbit;
+      z.kernel.services.get("ai").available = async () => "Set ai.model, or a model in Agent setup";
+      await z.kernel.configuration.set("workbench.tooltipDelay", 401, "user");
+    });
+    const panel = page.locator(".scm-panel");
+    const button = panel.getByRole("button", { name: "Generate commit message", exact: true });
+    await expect(button).toHaveAttribute("aria-disabled", "true");
+    await expect(button).toHaveAttribute("data-tooltip", "Add an AI model in Settings to use AI in Source Control");
+    const groups = await panel.locator(".scm-group-header").first().boundingBox();
+    await button.click();
+    const notice = panel.locator(".scm-ai-popover");
+    await expect(notice).toContainText("Add an AI model in Settings to use AI in Source Control");
+    expect((await panel.locator(".scm-group-header").first().boundingBox())!.y).toBe(groups!.y);
+    await page.keyboard.press("Escape");
+    await expect(notice).toHaveCount(0);
+    await button.click();
+    await notice.getByRole("button", { name: "Open AI settings", exact: true }).click();
+    await expect(page.getByRole("tab", { name: /AI Editing Settings/ })).toBeVisible();
   } finally {
     await f.close();
   }

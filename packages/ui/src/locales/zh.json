@@ -1275,5 +1275,6 @@
   "Open AI settings": "打开 AI 设置",
   "Unstaged": "未暂存",
   "Unstaged changes": "未暂存的更改",
-  "Auto": "自动"
+  "Auto": "自动",
+  "Auto-apply": "自动应用"
 }
