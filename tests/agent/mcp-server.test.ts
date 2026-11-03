@@ -6,6 +6,10 @@ import path from "node:path";
 import * as fs from "node:fs";
 
 const repo = path.resolve(import.meta.dirname, "../..");
+/** Flaky-test IDs in the repo ledger, which grows as flakes are logged. */
+const repoFlakes = () =>
+  [...fs.readFileSync(path.join(repo, "docs/agents/ledgers/flaky-tests.md"), "utf8").matchAll(/^\| (T-\d{3}) \|/gm)].map((match) => match[1]!);
+const nextFlake = () => `T-${String(Math.max(0, ...repoFlakes().map((id) => Number(id.slice(2)))) + 1).padStart(3, "0")}`;
 const server = path.join(repo, "scripts/agent/mcp/server.mjs");
 
 type Message = { id?: number; result?: any; error?: any };
@@ -103,8 +107,8 @@ describe("MCP server over stdio", () => {
     const open = await client.call("ledger_list", { ledger: "open-questions", status: "open" });
     expect(open.structuredContent.ledgers[0].rows).toEqual([expect.objectContaining({ id: "Q-001", location: "local" })]);
     const added = await client.call("ledger_add", { ledger: "flaky-tests", item: "spawned test flake", source: "run 1" });
-    expect(added.structuredContent.row).toMatchObject({ id: "T-003", status: "open" });
-    const updated = await client.call("ledger_update", { ledger: "flaky-tests", id: "T-003", status: "done" });
+    expect(added.structuredContent.row).toMatchObject({ id: nextFlake(), status: "open" });
+    const updated = await client.call("ledger_update", { ledger: "flaky-tests", id: nextFlake(), status: "done" });
     expect(updated.structuredContent.row.status).toBe("done");
     expect(fs.readFileSync(path.join(repo, "docs/agents/ledgers/flaky-tests.md"), "utf8")).not.toContain("spawned test flake");
 
