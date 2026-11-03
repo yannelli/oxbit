@@ -1,6 +1,6 @@
 # Runtime features on iOS local workspaces
 
-Created: 2026-10-09. Last updated: 2026-10-12.
+Created: 2026-10-09. Last updated: 2026-11-03.
 
 This page compares the computer runtime (`apps/runtime`) with device folders on iOS and records how each runtime feature reaches iOS. A connected runtime gives iOS every runtime feature; the table covers folders on the device, where no runtime runs. The Runtime page connects to an `oxbit --lan` runtime found over Bonjour, a runtime entered by address, or a runtime iOS starts over [SSH](ios-ssh.md) ([iOS setup](ios.md)).
 
@@ -10,7 +10,7 @@ This page compares the computer runtime (`apps/runtime`) with device folders on 
 | --- | --- | --- | --- | --- |
 | Files: list, read, write, rename, delete | `fs.*` in `apps/runtime/src/runtime.ts`, `apps/runtime/src/filesystem.ts` | `fs_core.rs` through `ios_fs_*`; same error codes, SHA-256 revisions, 20 MiB limit | Done | Shipped before 0.6.0 |
 | File watching | `fs.watch` with chokidar (`runtime.ts`) | `watch.rs` polls every 2 s, up to 10,000 entries | Per-directory `DispatchSource` vnode sources or `NSFilePresenter` for coordinated Files app folders | Later |
-| Git | 37 `git.*` methods (`apps/runtime/src/git.ts`) | libgit2 in `git_core*`; all 37 methods have dispatch arms (`git.progress` is an event) | No method gaps | Shipped before 0.6.0 |
+| Git | The `git.*` methods in `packages/protocol/src/index.ts` (`apps/runtime/src/git.ts`) | libgit2 in `git_core*` has dispatch arms for all of them except `git.amend`, `git.undoCommit`, `git.createPullRequest`, `git.indexSnapshot` and `git.indexRestore` (`git.progress` is an event). Source Control hides Amend Last Commit, Undo Last Commit and draft pull requests on device folders. | Runtime-only: amend, undo commit, draft pull requests and index snapshots | Shipped before 0.6.0; the runtime-only methods arrived in 0.15.0 and later |
 | Content search | `search.query` runs ripgrep (`runtime.ts`) | Rust `search_core.rs` with the `ignore` walker and `grep-regex` matcher, through `FileSystem.search` | Done; rules below | Shipped in 0.6.0 |
 | Quick open | `search.files` runs `rg --files` with `.gitignore` applied in Git repositories (`runtime.ts`); older runtimes fall back to the `fs.list` walk in `packages/workbench/src/files.ts` | Rust `find_files` through `FileSystem.findFiles`, filtered natively | Done; rules below | Shipped in 0.6.0 |
 | Language servers | `lsp-manager.ts` starts server processes | TypeScript, JavaScript, JSON, JSONC, YAML, Dockerfile, Bash/sh, Zsh, and Python (Ruff and basedpyright) in JavaScriptCore; each server is an extension with an enable switch and a File Types setting ([iOS language servers](ios-language-servers.md)) | Done | Shipped in 0.6.0; Zsh syntax diagnostics in 0.6.1. Native-binary servers (gopls, rust-analyzer) need process execution: not possible on iOS |
