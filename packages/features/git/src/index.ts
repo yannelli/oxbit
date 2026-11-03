@@ -151,8 +151,7 @@ export function createFeature(o: FeatureOptions): Extension {
     aiCheck: AbortController | undefined,
     aiTask: "message" | "plan" | undefined,
     aiFailure = "",
-    aiReadiness = "",
-    aiNotice = "";
+    aiReadiness = "";
   let dialog:
     | { kind: "plan"; plan: PlannedCommit[] }
     | { kind: "pullRequest"; title: string }
@@ -535,9 +534,19 @@ export function createFeature(o: FeatureOptions): Extension {
       () => {},
     );
   };
+  const aiNeedsSetup = (message?: string) =>
+    message === tr(AI_SETUP) || message === tr(AI_MISSING);
+  const openAiSettings = () =>
+    void o.kernel.commands.execute("settings.open", { extension: "oxbit.ai" });
+  /** Setup errors become a toast with a settings action; other AI errors show in the panel. */
   const showAiError = (message: string) => {
-    if (message === tr(AI_SETUP) || message === tr(AI_MISSING)) aiNotice = message;
-    else error = message;
+    if (!aiNeedsSetup(message)) {
+      error = message;
+      return;
+    }
+    o.workbench.notify(message, "info", {
+      actions: [{ title: tr("Open AI settings"), command: "settings.open", args: { extension: "oxbit.ai" } }],
+    });
   };
   /** Runs one AI task at a time; AI service errors disable AI actions until settings change. */
   const withAi = async <T>(
@@ -546,8 +555,7 @@ export function createFeature(o: FeatureOptions): Extension {
   ) => {
     const ai = aiService();
     if (!ai) {
-      aiNotice = tr(AI_MISSING);
-      changed();
+      showAiError(tr(AI_MISSING));
       return undefined;
     }
     if (aiController) throw new Error("Wait for the current AI request to finish");
@@ -1048,25 +1056,24 @@ export function createFeature(o: FeatureOptions): Extension {
     const [filter, setFilter] = useState("");
     const [filtering, setFiltering] = useState(false);
     const [composing, setComposing] = useState(false);
-    const popover = useRef<HTMLDivElement>(null);
+    const pointerDown = useRef(false);
     useEffect(() => {
-      if (!aiNotice) return;
-      const close = (event: Event) => {
-        const outside =
-          event instanceof KeyboardEvent
-            ? event.key === "Escape"
-            : !popover.current?.contains(event.target as Node);
-        if (!outside) return;
-        aiNotice = "";
-        changed();
-      };
-      document.addEventListener("pointerdown", close, true);
-      document.addEventListener("keydown", close, true);
+      const down = () => (pointerDown.current = true);
+      const up = () => (pointerDown.current = false);
+      document.addEventListener("pointerdown", down, true);
+      document.addEventListener("pointerup", up, true);
+      document.addEventListener("pointercancel", up, true);
       return () => {
-        document.removeEventListener("pointerdown", close, true);
-        document.removeEventListener("keydown", close, true);
+        document.removeEventListener("pointerdown", down, true);
+        document.removeEventListener("pointerup", up, true);
+        document.removeEventListener("pointercancel", up, true);
       };
-    }, [aiNotice]);
+    }, []);
+    // A blur from a click shrinks the message box after the click, so the rows below do not move under the pointer.
+    const stopComposing = () => {
+      if (!pointerDown.current) return setComposing(false);
+      document.addEventListener("pointerup", () => setTimeout(() => setComposing(false)), { once: true });
+    };
     const [stashCount, setStashCount] = useState(0);
     useEffect(() => {
       if (!status.repository) {
@@ -1124,6 +1131,7 @@ export function createFeature(o: FeatureOptions): Extension {
     };
     const aiOff = aiUnavailable();
     const showCommit = !!lastCommit && !message && !composing;
+    const aiSetup = !aiTask && aiNeedsSetup(aiOff);
     const commitMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       const rect = event.currentTarget.getBoundingClientRect();
@@ -1593,7 +1601,7 @@ export function createFeature(o: FeatureOptions): Extension {
       status.repository &&
         h(
           "div",
-          { className: "scm-message-box" },
+          { className: "scm-message-box", "data-open": composing || !!message || showCommit || undefined },
           h("textarea", {
             className: "scm-message",
             "aria-label": tr("Commit message"),
@@ -1601,7 +1609,7 @@ export function createFeature(o: FeatureOptions): Extension {
             placeholder: showCommit ? "" : tr("Commit message"),
             value: message,
             onFocus: () => setComposing(true),
-            onBlur: () => setComposing(false),
+            onBlur: stopComposing,
             onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
               setMessage(event.target.value),
             onKeyDown: (event: React.KeyboardEvent) => {
@@ -1638,44 +1646,27 @@ export function createFeature(o: FeatureOptions): Extension {
             ),
           h(IconButton, {
             icon: aiTask === "message" ? "stop" : "agent",
+            className: aiSetup ? "icon-button scm-ai-setup" : "icon-button",
             label:
               aiTask === "message"
                 ? "Stop generating commit message"
-                : "Generate commit message",
-            title: aiTask === "message" ? undefined : aiOff,
+                : aiSetup
+                  ? aiOff!
+                  : "Generate commit message",
+            title: aiTask === "message" || aiSetup ? undefined : aiOff,
             "aria-busy": aiTask === "message",
-            // aria-disabled keeps pointer events so the tooltip explains why AI is off.
-            "aria-disabled": !aiTask && !!aiOff ? true : undefined,
-            "aria-expanded": aiNotice ? true : undefined,
             disabled:
-              aiTask !== "message" && (!!aiTask || !status.changes.length),
+              aiTask !== "message" &&
+              (!!aiTask || (!aiSetup && !status.changes.length)),
             onClick: () => {
               if (aiTask === "message") aiController?.abort();
-              else if (aiOff) {
-                aiNotice = aiOff;
-                changed();
-              } else report(generateMessage);
+              else if (aiSetup) openAiSettings();
+              else {
+                aiFailure = "";
+                report(generateMessage);
+              }
             },
           }),
-          aiNotice &&
-            h(
-              "div",
-              { ref: popover, className: "scm-ai-popover", role: "status" },
-              h("span", null, aiNotice),
-              (aiNotice === tr(AI_SETUP) || aiNotice === tr(AI_MISSING)) &&
-                h(
-                  "button",
-                  {
-                    className: "button",
-                    onClick: () => {
-                      aiNotice = "";
-                      changed();
-                      void o.kernel.commands.execute("settings.open", { extension: "oxbit.ai" });
-                    },
-                  },
-                  tr("Open AI settings"),
-                ),
-            ),
         ),
       status.repository &&
         h(

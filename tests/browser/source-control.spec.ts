@@ -431,12 +431,15 @@ test("a commit shows its hash in the empty message field and Undo restores the m
     const [messageBox, commitBox] = await Promise.all([message.boundingBox(), commitButton.boundingBox()]);
     expect(commitBox!.y).toBeGreaterThan(messageBox!.y + messageBox!.height - 1);
     await message.fill("Change example");
+    const header = panel.locator(".scm-group-header").first();
+    const before = (await header.boundingBox())!.y;
     await commitButton.click();
     const result = panel.locator(".scm-message-box").getByRole("status");
     await expect.poll(() => git(f.root, "log", "-1", "--format=%s")).toBe("Change example");
     const hash = (await git(f.root, "rev-parse", "HEAD")).slice(0, 7);
     await expect(result).toContainText(`Committed ${hash}`);
     await expect(result).toContainText("Change example");
+    expect((await header.boundingBox())!.y).toBe(before);
     await message.focus();
     await expect(result).toHaveCount(0);
     await expect(message).toHaveAttribute("placeholder", "Commit message");
@@ -471,20 +474,19 @@ test("the AI button shows the setup state before the first request and opens AI 
       await z.kernel.configuration.set("workbench.tooltipDelay", 401, "user");
     });
     const panel = page.locator(".scm-panel");
-    const button = panel.getByRole("button", { name: "Generate commit message", exact: true });
-    await expect(button).toHaveAttribute("aria-disabled", "true");
-    await expect(button).toHaveAttribute("data-tooltip", "Add an AI model in Settings to use AI in Source Control");
+    const setup = panel.getByRole("button", { name: "Add an AI model in Settings to use AI in Source Control", exact: true });
+    await expect(setup).toBeEnabled();
+    await expect(panel.getByRole("button", { name: "Generate commit message", exact: true })).toHaveCount(0);
     const groups = await panel.locator(".scm-group-header").first().boundingBox();
-    // aria-disabled keeps the button clickable so the notice can explain the state.
-    await button.click({ force: true });
-    const notice = panel.locator(".scm-ai-popover");
-    await expect(notice).toContainText("Add an AI model in Settings to use AI in Source Control");
-    expect((await panel.locator(".scm-group-header").first().boundingBox())!.y).toBe(groups!.y);
-    await page.keyboard.press("Escape");
-    await expect(notice).toHaveCount(0);
-    await button.click({ force: true });
-    await notice.getByRole("button", { name: "Open AI settings", exact: true }).click();
+    await setup.click();
     await expect(page.getByRole("tab", { name: /AI Editing Settings/ })).toBeVisible();
+    expect((await panel.locator(".scm-group-header").first().boundingBox())!.y).toBe(groups!.y);
+    await page.evaluate(async () => {
+      const z = (window as any).__oxbit;
+      z.kernel.services.get("ai").available = async () => undefined;
+      await z.kernel.configuration.set("workbench.tooltipDelay", 400, "user");
+    });
+    await expect(panel.getByRole("button", { name: "Generate commit message", exact: true })).toBeEnabled();
   } finally {
     await f.close();
   }
