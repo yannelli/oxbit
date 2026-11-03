@@ -1261,9 +1261,17 @@
   "{name} picker": "{name} picker",
   "Staged": "Staged",
   "Commits": "Commits",
-  "Uncommitted": "Uncommitted",
-  "Changes shown": "Changes shown",
   "Create branch…": "Create branch…",
   "Manage branches and remotes…": "Manage branches and remotes…",
-  "{0} added, {1} removed": "{0} added, {1} removed"
+  "{0} added, {1} removed": "{0} added, {1} removed",
+  "Add an AI model in Settings to use AI in Source Control": "Add an AI model in Settings to use AI in Source Control",
+  "Committed {0}": "Committed {0}",
+  "Amended {0}": "Amended {0}",
+  "Undo Last Commit": "Undo Last Commit",
+  "Undo pushed commit?": "Undo pushed commit?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "The last commit is already on {0}. Undoing it rewrites history you have pushed.",
+  "Open AI settings": "Open AI settings",
+  "Unstaged": "Unstaged",
+  "Unstaged changes": "Unstaged changes",
+  "Auto": "Auto"
 }

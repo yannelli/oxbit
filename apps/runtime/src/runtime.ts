@@ -973,6 +973,7 @@ export async function createRuntime(options: RuntimeOptions) {
       case "git.publish":
       case "git.pull":
       case "git.amend":
+      case "git.undoCommit":
       case "git.createPullRequest":
       case "git.indexSnapshot":
       case "git.indexRestore":

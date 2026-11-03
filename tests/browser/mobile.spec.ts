@@ -539,7 +539,10 @@ test("extra tool panels stay in More without crowding phone navigation", async (
   const nav = page.getByRole("navigation", { name: "Primary views" });
   await expect(nav.getByRole("button")).toHaveCount(4);
   await nav.getByRole("button", { name: "More", exact: true }).tap();
-  await page.getByRole("dialog", { name: "Panels", exact: true }).getByRole("button", { name: "Phone extra view", exact: true }).tap();
+  const sheet = page.getByRole("dialog", { name: "Panels", exact: true });
+  for (const name of ["Files", "Changes"]) await expect(sheet.getByRole("button", { name, exact: true })).toBeVisible();
+  for (const name of ["Explorer", "Source Control"]) await expect(sheet.getByRole("button", { name, exact: true })).toHaveCount(0);
+  await sheet.getByRole("button", { name: "Phone extra view", exact: true }).tap();
   await expect.poll(() => page.evaluate(() => (window as any).__oxbit.workbench.panelVisible("phone-extra-view"))).toBe(true);
 });
 

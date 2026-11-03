@@ -1263,9 +1263,17 @@
   "{name} picker": "{name} 색 선택기",
   "Staged": "스테이징됨",
   "Commits": "커밋",
-  "Uncommitted": "커밋되지 않음",
-  "Changes shown": "표시할 변경 사항",
   "Create branch…": "브랜치 만들기…",
   "Manage branches and remotes…": "브랜치 및 원격 관리…",
-  "{0} added, {1} removed": "{0}줄 추가, {1}줄 삭제"
+  "{0} added, {1} removed": "{0}줄 추가, {1}줄 삭제",
+  "Add an AI model in Settings to use AI in Source Control": "소스 제어에서 AI를 사용하려면 설정에서 AI 모델을 추가하세요",
+  "Committed {0}": "커밋 {0}을(를) 만들었습니다",
+  "Amended {0}": "커밋 {0}(으)로 수정했습니다",
+  "Undo Last Commit": "마지막 커밋 실행 취소",
+  "Undo pushed commit?": "푸시한 커밋을 실행 취소할까요?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "마지막 커밋이 이미 {0}에 있습니다. 실행 취소하면 푸시한 기록이 다시 작성됩니다.",
+  "Open AI settings": "AI 설정 열기",
+  "Unstaged": "스테이징 안 됨",
+  "Unstaged changes": "스테이징되지 않은 변경 사항",
+  "Auto": "자동"
 }

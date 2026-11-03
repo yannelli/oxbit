@@ -95,6 +95,9 @@ const phoneViewLabels: Record<string, string> = {
   scm: "Changes view",
   extensions: "Extensions view",
 };
+/** The phone bar and the phone More sheet use one name per view. */
+export const phoneViewLabel = (view: Contribution) =>
+  (view.data as { phoneLabel?: string } | undefined)?.phoneLabel || phoneViewLabels[view.id] || view.title;
 const coreViews = ["explorer", "search", "scm", "extensions"];
 const phoneCoreViews = ["explorer", "search", "scm"];
 export function phoneTabViews(views: Contribution[]) {
@@ -734,7 +737,7 @@ export function Workbench({
                           <span className="badge">{dirty}</span>
                         )
                       )}
-                      <span className="phone-label">{tr((view.data as { phoneLabel?: string } | undefined)?.phoneLabel || phoneViewLabels[view.id] || view.title)}</span>
+                      <span className="phone-label">{tr(phoneViewLabel(view))}</span>
                     </button>
                   ))}
                 {mode !== "phone" && extraViews.length > 3 && (

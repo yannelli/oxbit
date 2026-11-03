@@ -130,7 +130,7 @@
   & .acp-composer-toolbar .icon-button{width:28px;height:28px;min-width:28px;min-height:28px;border-radius:6px;color:var(--fg-2)}
   & .acp-composer-toolbar .icon-button:hover:not(:disabled){color:var(--fg);background:var(--bg-hover)}
   & .acp-composer-toolbar .icon-button svg{width:16px;height:16px}
-  & :is(.acp-auto-apply[aria-pressed=true],.acp-session-options[aria-expanded=true],.acp-composer-toolbar .icon-button[aria-expanded=true]){color:var(--fg);background:var(--bg-selected)}
+  & :is(.acp-session-options[aria-expanded=true],.acp-composer-toolbar .icon-button[aria-expanded=true]){color:var(--fg);background:var(--bg-selected)}
   & .acp-composer-toolbar .select-trigger{min-height:28px;padding:0 6px;border:0;border-radius:6px;color:var(--fg-2);font-size:var(--fs)}
   & .acp-provider{min-height:28px;padding:0 6px;color:var(--fg-2);font-size:var(--fs)}
   & .acp-hint{color:var(--fg-3);font-size:var(--fs-sm)}

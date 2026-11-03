@@ -160,6 +160,7 @@ export const operationMethods = [
   "git.publish",
   "git.pull",
   "git.amend",
+  "git.undoCommit",
   "git.createPullRequest",
   "git.indexSnapshot",
   "git.indexRestore",

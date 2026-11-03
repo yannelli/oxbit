@@ -169,9 +169,9 @@ test("source control supports hunks, commits, branch creation, publishing, histo
     await page
       .getByRole("button", { name: "Publish current branch", exact: true })
       .click();
-    await expect(page.locator(".scm-tracking")).toHaveAttribute(
-      "title",
-      "origin/feature/source-control",
+    await expect(page.locator(".scm-toolbar .scm-sync")).toHaveAttribute(
+      "data-tooltip",
+      "origin/feature/source-control: 0 ahead, 0 behind",
     );
     expect(
       await git(remote, "rev-parse", "refs/heads/feature/source-control"),
@@ -413,6 +413,44 @@ test("the accounts overflow action appears only when git.account is registered",
     await expect
       .poll(() => page.evaluate(() => (window as any).__oxbit.accountsOpened))
       .toBe(true);
+  } finally {
+    await f.close();
+  }
+});
+
+test("a commit shows its hash under the Commit button and Undo restores the message and staged files", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  try {
+    await fs.writeFile(path.join(f.root, "example.txt"), "changed\n");
+    await refresh(page);
+    const panel = page.locator(".scm-panel");
+    const message = panel.getByRole("textbox", { name: "Commit message", exact: true });
+    const commitButton = panel.getByRole("button", { name: "Commit All", exact: true });
+    const [messageBox, commitBox] = await Promise.all([message.boundingBox(), commitButton.boundingBox()]);
+    expect(commitBox!.y).toBeGreaterThan(messageBox!.y + messageBox!.height - 1);
+    await message.fill("Change example");
+    await commitButton.click();
+    const result = panel.getByRole("status").filter({ hasText: "Committed" });
+    await expect.poll(() => git(f.root, "log", "-1", "--format=%s")).toBe("Change example");
+    const hash = (await git(f.root, "rev-parse", "HEAD")).slice(0, 7);
+    await expect(result).toContainText(`Committed ${hash}`);
+    await expect(result).toContainText("Change example");
+    await expect(page.locator(".notification")).toHaveCount(0);
+    await result.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect.poll(() => git(f.root, "log", "-1", "--format=%s")).toBe("Initial project");
+    expect(await git(f.root, "diff", "--cached", "--name-only")).toBe("example.txt");
+    await expect(message).toHaveValue("Change example");
+    await expect(result).toHaveCount(0);
+    await panel.getByRole("button", { name: "More commit actions", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: /^Undo Last Commit/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await panel.getByRole("button", { name: "Source control actions", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: /^Move Source Control/ })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: /^Refresh Source Control/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(panel.getByRole("region", { name: "Staged changes", exact: true })).toContainText("+1");
   } finally {
     await f.close();
   }

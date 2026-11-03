@@ -1263,9 +1263,17 @@
   "{name} picker": "{name} のカラー ピッカー",
   "Staged": "ステージ済み",
   "Commits": "コミット",
-  "Uncommitted": "未コミット",
-  "Changes shown": "表示する変更",
   "Create branch…": "ブランチを作成…",
   "Manage branches and remotes…": "ブランチとリモートを管理…",
-  "{0} added, {1} removed": "{0} 行追加、{1} 行削除"
+  "{0} added, {1} removed": "{0} 行追加、{1} 行削除",
+  "Add an AI model in Settings to use AI in Source Control": "ソース管理で AI を使うには、設定で AI モデルを追加してください",
+  "Committed {0}": "コミット {0} を作成しました",
+  "Amended {0}": "コミット {0} に修正しました",
+  "Undo Last Commit": "直前のコミットを元に戻す",
+  "Undo pushed commit?": "プッシュ済みのコミットを元に戻しますか?",
+  "The last commit is already on {0}. Undoing it rewrites history you have pushed.": "直前のコミットはすでに {0} にあります。元に戻すとプッシュ済みの履歴が書き換わります。",
+  "Open AI settings": "AI 設定を開く",
+  "Unstaged": "未ステージ",
+  "Unstaged changes": "ステージされていない変更",
+  "Auto": "自動"
 }

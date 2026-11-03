@@ -1,14 +1,19 @@
 # Source Control
 
+Created: 2026-09-08. Last updated: 2026-11-03.
+
 Open **Source Control** in the activity bar. Runtime workspaces use the computer’s Git installation and credential helpers, so GitHub, Gitea, and other HTTPS or SSH remotes work as they do in a terminal. Device folders on iOS use libgit2, with GitHub and Gitea credentials stored in Keychain; the iOS Source Control toolbar opens **Git Accounts and Commit Author**. See [iOS source control](ios-source-control.md) for cloning and authentication.
 
 ## Changes and commits
 
-- Filter changed files by path or switch between list and folder views.
+- The header holds the branch picker, one sync button with the ahead and behind counts, the filter and view buttons, and the overflow menu. The sync button publishes, pulls, pushes or syncs, by the branch state; the overflow menu lists the other remote actions.
+- Filter changed files by path or switch between list and folder views. The **Staged** and **Unstaged** group headers show their file counts and line totals.
 - Review staged changes against HEAD and saved disk changes against the index. Renames show their original paths; binary changes have a clear placeholder.
 - Open a text diff and choose **Review hunks** to stage or unstage individual hunks. Each action checks the current patch against the reviewed version. Refresh after a stale-diff error.
 - Stage or unstage individual files or all changes. Staging an unsaved file offers to save it or stage its saved content. Bulk staging asks once about unsaved buffers.
-- Write a commit message and select **Commit staged changes**, or press Ctrl/Cmd+Enter. Only staged content is committed.
+- Write a commit message and select **Commit** under the message box, or press Ctrl/Cmd+Enter. Only staged content is committed. With nothing staged, the button reads **Commit All** and stages every change, untracked files included, before it commits.
+- After a commit, the line under the Commit button shows the short hash, the subject and **Undo** until HEAD moves. **Undo Last Commit** (also in the Commit menu, runtime workspaces only) runs `git reset --soft HEAD~1`, keeps the files staged and puts the message back in the box. It asks first when the commit is already on the upstream.
+- The AI button in the message box writes a commit message. When no AI model is set, the panel shows **Open AI settings**.
 - Discard actions require confirmation and preserve unsaved editor buffers.
 
 Per-hunk actions support ordinary tracked text modifications. New/deleted files, renames, binary files, mode changes, and conflicted files use whole-file actions. Git's own patch validation protects the index if it changes during the operation. Large previews return a size-limit message; whole-file staging remains available.
@@ -28,7 +33,7 @@ The **Branches** tab supports:
 - Merging a local or remote branch into the current branch with a clean working tree.
 - Adding/removing remote configuration and publishing the current branch with upstream tracking. Removing a remote never deletes the remote repository.
 
-The branch header shows upstream and ahead/behind counts. **Fetch** updates all remotes and prunes deleted tracking references. **Push** targets the current branch's upstream; **Pull** uses fast-forward only, and refuses divergent histories. Fetch first to refresh counts; if histories diverged, review the remote branch in History and merge it from Branches. This follows [Git's fast-forward pull behavior](https://git-scm.com/docs/git-pull).
+The sync button in the header shows the ahead and behind counts against the upstream. **Fetch** updates all remotes and prunes deleted tracking references. **Push** targets the current branch's upstream; **Pull** uses fast-forward only, and refuses divergent histories. Fetch first to refresh counts; if histories diverged, review the remote branch in History and merge it from Branches. This follows [Git's fast-forward pull behavior](https://git-scm.com/docs/git-pull).
 
 ## Stashes
 

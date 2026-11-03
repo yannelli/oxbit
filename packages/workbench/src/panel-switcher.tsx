@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Dialog, Icon, translate as tr } from "@oxbit/ui";
 import type { WorkbenchController } from "./controller.js";
 import type { ViewBadge } from "./controller.js";
-import { badgeLabel, useWorkbench, ViewBadgeMark, viewIcon } from "./index.js";
+import { badgeLabel, phoneViewLabel, useWorkbench, ViewBadgeMark, viewIcon } from "./index.js";
 
 const panelIcons: Record<string, string> = {
   terminal: "terminal", problems: "warning", output: "menu", tasks: "tasks",
@@ -68,7 +68,7 @@ export function PanelSwitcher({ workbench, title, navigation = false, barViews, 
           workbench.openPanel(item.id);
         }}>
           <Icon name={panelIcons[item.id] ?? viewIcon(item)} />
-          <span>{tr(item.title)}</span>
+          <span>{tr(navigation ? phoneViewLabel(item) : item.title)}</span>
           {workbench.panelVisible(item.id) && <Icon name="check" size={14} />}
         </button>)}
         {onSettings && <button aria-pressed={settingsActive} onClick={() => {
