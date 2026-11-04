@@ -74,7 +74,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           OXBIT_UPDATER_PUBLIC_KEY: ${{ vars.OXBIT_UPDATER_PUBLIC_KEY }}
+          # Tauri skips the Finder layout step when CI=true; without it the DMG has no .DS_Store and Finder ignores the background.
+          TAURI_BUNDLER_DMG_IGNORE_CI: "true"
         run: bun run desktop:release
+      - name: Check the DMG background and Finder layout
+        run: |
+          dmg=$(ls apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg)
+          mount=$(mktemp -d)
+          yes | hdiutil attach -nobrowse -readonly -noautoopen -mountpoint "$mount" "$dmg" > /dev/null
+          trap 'hdiutil detach -quiet "$mount"' EXIT
+          test -f "$mount/.background/dmg-background.png" || { echo "::error::The DMG has no background image"; exit 1; }
+          test -s "$mount/.DS_Store" || { echo "::error::The DMG has no Finder layout (.DS_Store), so Finder will not show the background"; exit 1; }
       - name: Sign, notarize, and staple the DMG
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
