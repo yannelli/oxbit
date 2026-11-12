@@ -53,6 +53,15 @@ describe("hooks panel", () => {
     expect(next.slice(2).map((row) => [row.label, row.enabled])).toEqual([["PreToolUse Bash", false], ["Stop", true]]);
     await expect(s.manager.toggle("hooks", "nope", false, s.context)).rejects.toThrow("Unknown setting nope");
   });
+  it("warns about a project hook file until the folder is trusted, then lists its hooks", async () => {
+    const s = await setup();
+    await mkdir(join(s.root, ".oxbit"));
+    await writeFile(join(s.root, ".oxbit", "settings.json"), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "./notify.sh" }] }] } }));
+    const labels = async () => (await s.manager.panel("hooks", s.context)).rows.slice(2).map((row) => row.label);
+    expect(await labels()).toEqual(["No command hooks in the loaded files", expect.stringContaining(".oxbit/settings.json is not trusted, so its hooks are off")]);
+    await s.manager.toggle("config", "project-mcp", true, s.context);
+    expect(await labels()).toEqual(["Stop"]);
+  });
 });
 
 describe("instructions panel", () => {

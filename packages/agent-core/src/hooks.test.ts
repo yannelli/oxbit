@@ -131,6 +131,7 @@ describe("createHookRunner", () => {
       "oxbit:/h/.oxbit/agent/settings.json", "oxbit:/p/.oxbit/settings.json", "claude:/h/.claude/settings.json", "claude:/p/.claude/settings.json",
       "claude:/p/.claude/settings.local.json", "codex:/h/.codex/hooks.json", "codex:/p/.codex/hooks.json"]);
     expect(hookSourcePaths("/h", "/p")).toHaveLength(2);
+    expect(hookSourcePaths("/h", "/p", { claude: true, codex: true }).map((source) => source.project)).toEqual([false, true, false, true, true, false, true]);
   });
   it("lists hooks with stable ids and leaves out the ones skip returns true for", async () => {
     const sources = [settings({ PreToolUse: [{ matcher: "Bash", hooks: [command("guard"), { type: "prompt" }] }], Stop: [{ hooks: [command("notify")] }] })];

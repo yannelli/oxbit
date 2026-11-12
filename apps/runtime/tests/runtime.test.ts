@@ -305,6 +305,40 @@ describe("authenticated runtime with real services", () => {
       code: "UNAUTHENTICATED",
     });
   });
+  it("keeps file grants out of Git internals and Oxbit configuration", async () => {
+    const config = path.join(root, ".git", "config");
+    const created = (await fs.mkdir(path.join(root, ".git"), { recursive: true })) !== undefined;
+    if (created) await fs.writeFile(config, "[core]\n");
+    await fs.symlink(path.join(root, ".git"), path.join(root, "git-alias"));
+    const grant = await client.request("workspace.grant", {
+      capabilities: ["filesystem.read", "filesystem.write", "collaboration"],
+    });
+    const guest = await connect(grant.token);
+    const denied = { code: "PATH_DENIED" };
+    const write = (file: string) => guest.request("fs.write", { path: file, text: "[core]\n\tfsmonitor = touch pwned\n", expectedRevision: null });
+    for (const file of [".git/config", ".GIT/config", "git-alias/config"]) {
+      await expect(guest.request("fs.read", { path: file })).rejects.toMatchObject(denied);
+      await expect(write(file)).rejects.toMatchObject(denied);
+    }
+    await expect(guest.request("fs.list", { path: ".git" })).rejects.toMatchObject(denied);
+    await expect(guest.request("collab.join", { path: ".git/config" })).rejects.toMatchObject(denied);
+    await expect(guest.request("fs.delete", { path: ".git" })).rejects.toMatchObject(denied);
+    for (const file of [".config/oxbit/settings.json", ".oxbit/settings.json", ".oxbit/tasks.json"])
+      await expect(write(file)).rejects.toMatchObject(denied);
+    await write("staged/oxbit/settings.json");
+    await expect(guest.request("fs.rename", { path: "staged", to: ".config" })).rejects.toMatchObject(denied);
+    await expect(guest.request("fs.rename", { path: "staged", to: ".oxbit" })).rejects.toMatchObject(denied);
+    await expect(guest.request("fs.rename", { path: "staged/oxbit", to: ".git/hooks" })).rejects.toMatchObject(denied);
+    expect(await fs.readFile(config, "utf8")).not.toContain("fsmonitor");
+    expect((await guest.request("fs.read", { path: "staged/oxbit/settings.json" })).text).toContain("fsmonitor");
+    await write(".config/other/tool.json");
+    expect((await client.request("fs.read", { path: ".git/config" })).text).toContain("[core]");
+    await client.request("workspace.revoke", { id: grant.sessionId });
+    await fs.rm(path.join(root, "git-alias"));
+    await fs.rm(path.join(root, "staged"), { recursive: true });
+    await fs.rm(path.join(root, ".config"), { recursive: true });
+    if (created) await fs.rm(path.join(root, ".git"), { recursive: true });
+  });
   it("serializes competing saves and validates encoding conversions", async () => {
     const snapshot = await client.request("fs.read", { path: "hello.ts" });
     const writes = await Promise.allSettled([
