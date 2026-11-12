@@ -46,11 +46,12 @@ const WARNING_LIMIT = 100;
 
 /** Settings files in load order. Claude and Codex files are opt-in. */
 export function hookSourcePaths(home: string, project: string, options: { claude?: boolean; codex?: boolean } = {}) {
-  const paths: { dialect: HookDialect; path: string }[] = [
-    { dialect: "oxbit", path: `${home}/.oxbit/agent/settings.json` }, { dialect: "oxbit", path: `${project}/.oxbit/settings.json` }];
-  if (options.claude) paths.push({ dialect: "claude", path: `${home}/.claude/settings.json` }, { dialect: "claude", path: `${project}/.claude/settings.json` },
-    { dialect: "claude", path: `${project}/.claude/settings.local.json` });
-  if (options.codex) paths.push({ dialect: "codex", path: `${home}/.codex/hooks.json` }, { dialect: "codex", path: `${project}/.codex/hooks.json` });
+  // `project` marks a file from the session folder, which a cloned repository controls; hosts load it only for trusted folders.
+  const paths: { dialect: HookDialect; path: string; project: boolean }[] = [
+    { dialect: "oxbit", path: `${home}/.oxbit/agent/settings.json`, project: false }, { dialect: "oxbit", path: `${project}/.oxbit/settings.json`, project: true }];
+  if (options.claude) paths.push({ dialect: "claude", path: `${home}/.claude/settings.json`, project: false },
+    { dialect: "claude", path: `${project}/.claude/settings.json`, project: true }, { dialect: "claude", path: `${project}/.claude/settings.local.json`, project: true });
+  if (options.codex) paths.push({ dialect: "codex", path: `${home}/.codex/hooks.json`, project: false }, { dialect: "codex", path: `${project}/.codex/hooks.json`, project: true });
   return paths;
 }
 

@@ -178,6 +178,16 @@ export class WorkspaceFiles {
       }
     }
   }
+  /** True for Git internals, and with `write` for the Oxbit folders whose files name commands. Grants without owner rights stay out of them. */
+  async restricted(relative: string, write: boolean): Promise<boolean> {
+    const resolved = path.relative(this.root, await this.resolve(relative, true)).split(path.sep);
+    // The requested spelling is checked too, since a case-insensitive volume opens `.GIT` as `.git`.
+    return [relative.split("/"), resolved].some(segments => {
+      const parts = segments.filter(Boolean).map(part => part.normalize("NFC").toLowerCase());
+      if (parts.includes(".git")) return true;
+      return write && (parts[0] === ".oxbit" || (parts[0] === ".config" && (parts.length === 1 || parts[1] === "oxbit")));
+    });
+  }
   async list(relative = ""): Promise<FileEntry[]> {
     const full = await this.resolve(relative);
     const entries = await fs.readdir(full, { withFileTypes: true });

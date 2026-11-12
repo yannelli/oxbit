@@ -1,6 +1,6 @@
 # Oxbit Agent CLI
 
-Created: 2026-10-11. Last updated: 2026-10-12.
+Created: 2026-10-11. Last updated: 2026-11-12.
 
 `oxbit-agent` (`apps/agent`, npm `@oxbit/agent`) is a terminal coding agent built
 on [`@oxbit/agent-core`](agent-core.md). It runs as a terminal UI, as a one-shot
@@ -100,7 +100,7 @@ Everything lives in `~/.oxbit/agent` (`OXBIT_AGENT_HOME` overrides it):
 | `disabledHooks` | `[]` | Hook ids (`<dialect>\|<file>\|<event>\|<matcher>\|<command>`) that do not run |
 | `disabledMcpServers` | `[]` | MCP server names left out of every session |
 | `disabledProviders` | `[]` | Provider ids that automatic selection skips |
-| `trustedProjects`, `trustProjectMcp` | `[]`, `false` | Which project `.mcp.json` files may start servers |
+| `trustedProjects`, `trustProjectMcp` | `[]`, `false` | Which project folders run their `.mcp.json` servers and hook files |
 | `hooks` | | Claude Code hook format, below |
 
 ## Settings commands
@@ -235,6 +235,11 @@ under `hooks` in `~/.oxbit/agent/settings.json` and `<project>/.oxbit/settings.j
 `.claude/settings.local.json`; `codexHooks` adds
 [Codex hooks](https://learn.chatgpt.com/docs/hooks.md) from `~/.codex/hooks.json`
 and `.codex/hooks.json`.
+
+Hook files inside the project run only when `trustedProjects` lists the folder or
+one of its parents, or `trustProjectMcp` is on. A hook is a shell command, so a
+cloned repository's hook files stay off until you trust the folder in `/config`.
+`/hooks` lists the files that are off.
 
 - Events: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse,
   PostToolUseFailure, Stop, PreCompact, PostCompact, SessionEnd.

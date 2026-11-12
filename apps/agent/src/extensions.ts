@@ -7,6 +7,7 @@ import {
   type AgentExtensions, type HookExec, type HookSource, type HostFiles, type Params,
 } from "@oxbit/agent-core";
 import { stringList, type AgentConfig } from "./config.js";
+import { projectTrusted } from "./mcp.js";
 
 /** settings.json keys read by the core extensions on each use. */
 export interface ExtensionSettings {
@@ -78,14 +79,34 @@ export const nodeHookExec: HookExec = (command, { stdin, cwd, env, timeoutMs, si
   child.on("close", finish);
 });
 
+/** The hook files that settings turn on for `cwd`. Project files count only when settings.json trusts the folder. */
+async function hookFiles(config: AgentConfig, home: string, cwd: string) {
+  const settings = settingsOf(config);
+  const paths = hookSourcePaths(home, cwd, { claude: settings.claudeHooks === true, codex: settings.codexHooks === true });
+  paths[0] = { ...paths[0], path: config.paths.settings };
+  const trusted = await projectTrusted(config.paths.settings, cwd);
+  return { loaded: paths.filter((file) => trusted || !file.project), untrusted: trusted ? [] : paths.filter((file) => file.project) };
+}
+
+/** Project hook files that exist in `cwd` and stay off until settings.json trusts the folder. */
+export async function untrustedHookFiles(config: AgentConfig, home: string, cwd: string) {
+  const { untrusted } = await hookFiles(config, home, cwd);
+  const present = await Promise.all(untrusted.map(({ path }) => access(path).then(() => path, () => undefined)));
+  return present.filter((path) => path !== undefined);
+}
+
 /** Reads the hook files that settings turn on, keeping each parsed file until its mtime changes. */
 export function hookSources(config: AgentConfig, home: string, log?: (text: string) => void) {
   const cache = new Map<string, { mtime: number; config: unknown }>();
+  const reported = new Set<string>();
   return async (cwd: string): Promise<HookSource[]> => {
-    const settings = settingsOf(config);
-    const paths = hookSourcePaths(home, cwd, { claude: settings.claudeHooks === true, codex: settings.codexHooks === true });
-    paths[0] = { ...paths[0], path: config.paths.settings };
-    const sources = await Promise.all(paths.map(async ({ dialect, path }) => {
+    const { loaded, untrusted } = await hookFiles(config, home, cwd);
+    for (const { path } of untrusted) {
+      if (reported.has(path) || !await access(path).then(() => true, () => false)) continue;
+      reported.add(path);
+      log?.(`Hooks in ${path} are off: add the project path to "trustedProjects" in ${config.paths.settings} to run them.`);
+    }
+    const sources = await Promise.all(loaded.map(async ({ dialect, path }) => {
       const mtime = await stat(path).then((info) => info.mtimeMs, () => undefined);
       if (mtime === undefined) return undefined;
       let entry = cache.get(path);

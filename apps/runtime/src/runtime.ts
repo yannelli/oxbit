@@ -254,6 +254,11 @@ export async function createRuntime(options: RuntimeOptions) {
       throw new RpcError("FORBIDDEN", "Owner access is required");
     return session;
   };
+  // A file grant would otherwise reach `.git/config` and Oxbit settings, which run commands for the owner.
+  const guest = async (session: Session, relative: string, write: boolean) => {
+    if (!session.owner && (await files.restricted(relative, write)))
+      throw new RpcError("PATH_DENIED", "This grant cannot open Git internals or change Oxbit configuration");
+  };
   const acpRegistry = new ACPRegistry(dataDir, options.acpRegistryUrl);
   const ai = new AiCompletions();
   const pushDevices = await PushDevices.open(dataDir);
@@ -798,19 +803,23 @@ export async function createRuntime(options: RuntimeOptions) {
         return operations.status(session.id, requireString(params, "id"));
       }
       case "fs.list":
+        await guest(session, typeof params.path === "string" ? params.path : "", false);
         return files.list(typeof params.path === "string" ? params.path : "");
       case "fs.read":
+        await guest(session, requireString(params, "path"), false);
         return files.read(
           requireString(params, "path"),
           params.encoding as Encoding | undefined,
         );
       case "fs.readBytes":
+        await guest(session, requireString(params, "path"), false);
         return files.readBytes(
           requireString(params, "path"),
           Number(params.offset ?? 0),
           Number(params.length ?? READ_CHUNK_BYTES),
         );
       case "fs.write": {
+        await guest(session, requireString(params, "path"), true);
         const snapshot = await files.write(
           requireString(params, "path"),
           requireString(params, "text", MAX_FILE_BYTES),
@@ -825,9 +834,12 @@ export async function createRuntime(options: RuntimeOptions) {
         return snapshot;
       }
       case "fs.mkdir":
+        await guest(session, requireString(params, "path"), true);
         await files.mkdir(requireString(params, "path"));
         return { ok: true };
       case "fs.rename":
+        await guest(session, requireString(params, "path"), true);
+        await guest(session, requireString(params, "to"), true);
         await files.rename(
           requireString(params, "path"),
           requireString(params, "to"),
@@ -836,6 +848,7 @@ export async function createRuntime(options: RuntimeOptions) {
         settings.workspaceChanged(requireString(params, "to"));
         return { ok: true };
       case "fs.delete":
+        await guest(session, requireString(params, "path"), true);
         await files.delete(requireString(params, "path"));
         settings.workspaceChanged(requireString(params, "path"));
         return { ok: true };
@@ -1060,9 +1073,11 @@ export async function createRuntime(options: RuntimeOptions) {
         return { ok: true };
       case "collab.join":
         authorized(connection, "filesystem.read");
+        await guest(session, requireString(params, "path"), false);
         return collaboration.join(requireString(params, "path"), connection.id);
       case "collab.update":
         authorized(connection, "filesystem.write");
+        await guest(session, requireString(params, "path"), true);
         return collaboration.update(
           requireString(params, "path"),
           connection.id,
@@ -1079,6 +1094,7 @@ export async function createRuntime(options: RuntimeOptions) {
         return { ok: true };
       case "collab.save":
         authorized(connection, "filesystem.write");
+        await guest(session, requireString(params, "path"), true);
         return collaboration.save(
           requireString(params, "path"),
           connection.id,

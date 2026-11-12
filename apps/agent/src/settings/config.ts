@@ -15,7 +15,7 @@ export const FLAGS: Record<string, { key: keyof ExtensionSettings | "trustProjec
   "claude-instructions": { key: "claudeInstructions", label: "Load ~/.claude/CLAUDE.md", detail: "After the global AGENTS.md" },
   "claude-hooks": { key: "claudeHooks", label: "Claude hooks", detail: "~/.claude/settings.json and the project's .claude settings files" },
   "codex-hooks": { key: "codexHooks", label: "Codex hooks", detail: "~/.codex/hooks.json and the project's .codex/hooks.json" },
-  "all-project-mcp": { key: "trustProjectMcp", label: "MCP servers in every project", detail: "Run .mcp.json servers without trusting each folder" },
+  "all-project-mcp": { key: "trustProjectMcp", label: "MCP servers and hooks in every project", detail: "Run .mcp.json servers and project hook files without trusting each folder" },
 };
 
 export const flagOn = (config: AgentConfig, id: string) => {
@@ -50,7 +50,7 @@ export const configPanel: PanelHandler = {
     const listed = stringList(config.settings.trustedProjects).includes(cwd);
     const trusted = await projectTrusted(config.paths.settings, cwd);
     const how = !trusted ? `Off for ${cwd}` : listed ? `Trusted: ${cwd}` : config.settings.trustProjectMcp === true
-      ? "Trusted because MCP servers run in every project" : "Trusted through a parent folder";
+      ? "Trusted because project MCP servers and hooks run in every project" : "Trusted through a parent folder";
     return { id: "config", title: "Config", rows: [
       { id: "mode", section: "Permissions", label: "Permission mode", detail: "Saved for new sessions and applied to this one",
         choice: { value: config.settings.mode ?? "ask", options: MODE_OPTIONS } },
@@ -59,8 +59,8 @@ export const configPanel: PanelHandler = {
       flagRow(config, "claude-instructions", "Instructions"),
       flagRow(config, "claude-hooks", "Hooks"),
       flagRow(config, "codex-hooks", "Hooks"),
-      { id: "project-mcp", section: "MCP", label: "Project MCP servers for this folder", detail: how, enabled: trusted },
-      flagRow(config, "all-project-mcp", "MCP"),
+      { id: "project-mcp", section: "Trust", label: "Project MCP servers and hooks for this folder", detail: how, enabled: trusted },
+      flagRow(config, "all-project-mcp", "Trust"),
     ] };
   },
   async toggle({ config }, rowId, enabled, { cwd }) {
@@ -68,8 +68,8 @@ export const configPanel: PanelHandler = {
     if (rowId !== "project-mcp") throw unknownRow(rowId);
     await setListed(config, "trustedProjects", cwd, enabled);
     const still = !enabled && await projectTrusted(config.paths.settings, cwd);
-    return { message: enabled ? `MCP servers in ${cwd}/.mcp.json run from the next turn`
-      : still ? `Removed ${cwd}; this folder stays trusted through another setting` : `MCP servers in ${cwd}/.mcp.json are off` };
+    return { message: enabled ? `MCP servers in ${cwd}/.mcp.json and this folder's hook files run from the next turn`
+      : still ? `Removed ${cwd}; this folder stays trusted through another setting` : `MCP servers in ${cwd}/.mcp.json and this folder's hook files are off` };
   },
   async choose({ config }, rowId, value) {
     if (rowId === "compact-at") return setCompactAt(config, value);

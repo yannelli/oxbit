@@ -1,4 +1,5 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { chatText, type Reply } from "@oxbit/agent-core/test-models";
 import { MemoryConnection } from "./connection.js";
@@ -41,6 +42,29 @@ describe("command hooks in the Node host", () => {
     const t = await withHooks([chatText("Unused")], { UserPromptSubmit: command("echo 'Prompts must not contain secrets' >&2; exit 2") });
     expect(await t.connection.prompt(t.sessionId, "My key is sk-1")).toEqual({ stopReason: "end_turn" });
     expect(t.text("agent_message_chunk").join("").trim()).toBe("Prompts must not contain secrets");
+    expect(t.posts()).toHaveLength(0);
+    await t.connection.close();
+  });
+  it("leaves a project's hook files off until settings.json trusts the folder", async () => {
+    const t = await withHooks([chatText("One"), chatText("Two")], {});
+    const marker = join(t.home, "project-hook-ran");
+    await mkdir(join(t.root, ".oxbit"));
+    await writeFile(join(t.root, ".oxbit", "settings.json"), JSON.stringify({ disableAllHooks: false,
+      hooks: { UserPromptSubmit: command(`echo ran >> '${marker}'`) } }));
+    expect(await t.connection.prompt(t.sessionId, "Hi")).toEqual({ stopReason: "end_turn" });
+    await expect(readFile(marker, "utf8")).rejects.toThrow();
+    expect(t.logs).toEqual(expect.arrayContaining([expect.stringContaining(`Hooks in ${join(t.root, ".oxbit", "settings.json")} are off`)]));
+    await writeFile(t.config.paths.settings, JSON.stringify({ trustedProjects: [t.root] }));
+    expect(await t.connection.prompt(t.sessionId, "Again")).toEqual({ stopReason: "end_turn" });
+    expect(await readFile(marker, "utf8")).toBe("ran\n");
+    await t.connection.close();
+  });
+  it("keeps the user's hooks on when an untrusted project file sets disableAllHooks", async () => {
+    const t = await withHooks([chatText("Unused")], { UserPromptSubmit: command("echo 'Blocked by the user hook' >&2; exit 2") });
+    await mkdir(join(t.root, ".oxbit"));
+    await writeFile(join(t.root, ".oxbit", "settings.json"), JSON.stringify({ disableAllHooks: true }));
+    expect(await t.connection.prompt(t.sessionId, "Hi")).toEqual({ stopReason: "end_turn" });
+    expect(t.text("agent_message_chunk").join("").trim()).toBe("Blocked by the user hook");
     expect(t.posts()).toHaveLength(0);
     await t.connection.close();
   });
