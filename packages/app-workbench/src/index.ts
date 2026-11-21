@@ -278,7 +278,7 @@ export async function createWorkbenchSession({
         try {
           await workbench.openFile(path, { preview: false });
         } catch (error) {
-          workbench.notify(String(error), "error");
+          workbench.notify(error, "error");
         }
       if (sampleWorkspace) {
         workbench.set({
@@ -299,7 +299,7 @@ export async function createWorkbenchSession({
       try {
         if (documents.get(path)?.dirty) await documents.save(path);
       } catch (error) {
-        workbench.notify(String(error), "error");
+        workbench.notify(error, "error");
       }
     };
     const change = kernel.events.on("document.change", ({ id }) => {

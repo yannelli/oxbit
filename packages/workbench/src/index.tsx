@@ -6,10 +6,12 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import {
@@ -38,6 +40,7 @@ import {
   type Tab,
   type Notification,
   type ViewBadge,
+  notificationVisible,
 } from "./controller.js";
 import catalog from "./catalog.json";
 import { menuContributions, currentTheme, themeMode, themeVariables } from "./contributions.js";
@@ -776,7 +779,14 @@ export function Workbench({
                     <span className="phone-label">{tr("Settings view")}</span>
                   </button>
                 )}
-                {mode === "tablet" && <PanelSwitcher workbench={workbench} navigation barViews={barViews.map((view) => view.id)} />}
+                {mode === "tablet" && (
+                  <PanelSwitcher
+                    workbench={workbench}
+                    navigation
+                    barViews={barViews.map((view) => view.id)}
+                    badge={overflowBadge(views.filter((view) => !barViews.includes(view)))}
+                  />
+                )}
                 {mode === "phone" && (
                   <PanelSwitcher
                     workbench={workbench}
@@ -944,7 +954,7 @@ export function Workbench({
             />
           </div>
         )}
-        {s.dialog && <WorkbenchDialog workbench={workbench} />}
+        {s.dialog && <WorkbenchDialog key={dialogKey(s.dialog)} workbench={workbench} />}
         {s.aboutOpen && <AboutDialog workbench={workbench} />}
         <KeyBar />
         <Notifications workbench={workbench} />
@@ -1445,7 +1455,7 @@ function DocumentView({
                   try {
                     await workbench.documents.reload(doc.path);
                   } catch (error) {
-                    workbench.notify(String(error), "error");
+                    workbench.notify(error, "error");
                   }
                 }}
               >
@@ -1455,7 +1465,7 @@ function DocumentView({
                 onClick={() =>
                   void workbench.documents
                     .overwriteConflict(doc.path)
-                    .catch((e) => workbench.notify(String(e), "error"))
+                    .catch((e) => workbench.notify(e, "error"))
                 }
               >
                 {tr("Keep mine")}
@@ -1736,7 +1746,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
         })
         .catch((error) => {
           if (!controller.signal.aborted)
-            workbench.notify(String(error), "error");
+            workbench.notify(error, "error");
         });
     }, 150);
     return () => {
@@ -1858,7 +1868,7 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     if (!row.enabled) return;
     workbench.set({ palette: undefined });
     void Promise.resolve(row.run()).catch((e) =>
-      workbench.notify(String(e), "error"),
+      workbench.notify(e, "error"),
     );
   };
   return (
@@ -1987,33 +1997,86 @@ function Palette({ workbench }: { workbench: WorkbenchController }) {
     </div>
   );
 }
+const dialogKeys = new WeakMap<object, number>();
+let nextDialogKey = 0;
+const dialogKey = (dialog: object) => {
+  if (!dialogKeys.has(dialog)) dialogKeys.set(dialog, ++nextDialogKey);
+  return dialogKeys.get(dialog);
+};
+/** Start and end of the initial prompt selection. */
+export function promptSelection(value: string, select?: "all" | "basename" | "end"): [number, number] {
+  if (select === "end") return [value.length, value.length];
+  if (select === "basename") {
+    const start = value.lastIndexOf("/") + 1;
+    const dot = value.lastIndexOf(".");
+    return [start, dot > start ? dot : value.length];
+  }
+  return [0, value.length];
+}
 function WorkbenchDialog({ workbench }: { workbench: WorkbenchController }) {
   const dialog = workbench.state.dialog!;
   const [value, setValue] = useState(dialog.value || "");
+  const [checked, setChecked] = useState(false);
+  const selected = useRef(false);
+  const input = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const id = useId();
   const close = useCallback(() => workbench.finishDialog(), [workbench]);
+  const error = checked ? dialog.validate?.(value) : undefined;
+  const submit = () => {
+    const message = dialog.input ? dialog.validate?.(value) : undefined;
+    if (message) {
+      setChecked(true);
+      input.current?.focus();
+      return;
+    }
+    workbench.finishDialog(dialog.choices[0], value);
+  };
+  const describedBy = [dialog.message && id + "-message", error && id + "-error"].filter(Boolean).join(" ");
+  const field = {
+    ref: input,
+    className: "dialog-input",
+    "aria-label": dialog.title,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": describedBy || undefined,
+    placeholder: dialog.placeholder ? tr(dialog.placeholder) : undefined,
+    value,
+    onFocus: () => {
+      if (selected.current || !value) return;
+      selected.current = true;
+      input.current?.setSelectionRange(...promptSelection(value, dialog.select));
+    },
+    onChange: (e: { target: { value: string } }) => {
+      setValue(e.target.value);
+      if (dialog.validate) setChecked(true);
+    },
+    onKeyDown: (e: ReactKeyboardEvent) => {
+      if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+      if (dialog.multiline && !(e.metaKey || e.ctrlKey)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      submit();
+    },
+  };
   return (
     <Dialog title={dialog.title} danger={dialog.danger} onClose={close}>
-      {dialog.message && <p>{tr(dialog.message)}</p>}
-      {dialog.input && (
-        <input
-          aria-label={dialog.title}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              workbench.finishDialog(dialog.choices[0], value);
-            }
-          }}
-        />
-      )}
+      {dialog.message && <p id={id + "-message"}>{tr(dialog.message)}</p>}
+      {dialog.input && (dialog.multiline
+        ? <textarea {...field} rows={6} />
+        : <input
+          {...field}
+          type={dialog.secret ? "password" : "text"}
+          autoComplete={dialog.secret ? "off" : undefined}
+          autoCapitalize={dialog.secret ? "off" : undefined}
+          autoCorrect={dialog.secret ? "off" : undefined}
+          spellCheck={dialog.secret ? false : undefined}
+        />)}
+      {error && <p id={id + "-error"} className="dialog-error" role="alert">{error}</p>}
       <div className="dialog-actions">
         {[...dialog.choices].reverse().map((choice) => (
           <button
             key={choice}
             className={`button ${choice === dialog.choices[0] ? (dialog.danger ? "danger" : "primary") : ""}`}
-            onClick={() => workbench.finishDialog(choice, value)}
+            onClick={() => choice === dialog.choices[0] ? submit() : workbench.finishDialog(choice, value)}
           >
             {tr(choice)}
           </button>
@@ -2026,13 +2089,27 @@ function Notifications({ workbench }: { workbench: WorkbenchController }) {
   const s = useWorkbench(workbench);
   const [, update] = useState(0);
   const center = useRef<HTMLElement>(null);
+  const stack = useRef<HTMLDivElement>(null);
+  const hover = useRef(false);
+  const focus = useRef(false);
+  const syncPause = () =>
+    hover.current || focus.current ? workbench.pauseToasts() : workbench.resumeToasts();
   useEffect(() => {
     if (!s.notificationCenter) return;
     const prior = document.activeElement as HTMLElement | null;
     center.current?.querySelector<HTMLElement>("button")?.focus();
     return () => prior?.focus();
   }, [s.notificationCenter]);
+  const now = workbench.toastNow();
+  const toasts = s.notifications
+    .filter((n) => notificationVisible(n, now))
+    .slice(innerWidth < 600 ? -1 : -3);
   useEffect(() => {
+    // Removed toasts fire no pointerleave or blur, so drop stale pause reasons.
+    if (focus.current && !stack.current?.contains(document.activeElement)) focus.current = false;
+    if (s.notificationCenter || !toasts.length) hover.current = focus.current = false;
+    syncPause();
+    if (hover.current || focus.current) return;
     const deadlines = s.notifications
       .filter((notification) => notification.ttl !== 0)
       .map(
@@ -2047,6 +2124,7 @@ function Notifications({ workbench }: { workbench: WorkbenchController }) {
     );
     return () => clearTimeout(id);
   });
+  useEffect(() => () => workbench.resumeToasts(), [workbench]);
   if (s.notificationCenter)
     return (
       <aside
@@ -2070,81 +2148,70 @@ function Notifications({ workbench }: { workbench: WorkbenchController }) {
           s.notifications
             .slice()
             .reverse()
-            .map((n) => (
-              <div className={`notification ${n.type}`} key={n.id}>
-                <span className="notification-icon">
-                  <Icon
-                    name={
-                      n.type === "error"
-                        ? "error"
-                        : n.type === "warning"
-                          ? "warning"
-                          : "info"
-                    }
-                  />
-                </span>
-                <div className="notification-content">
-                  <div className="notification-message">{tr(n.message)}</div>
-                  {n.source && <small>{n.source}</small>}
-                  <NotificationActions notification={n} workbench={workbench} />
-                  <small>{new Date(n.time).toLocaleTimeString()}</small>
-                </div>
-                <IconButton
-                  icon="x"
-                  label={tr("Dismiss notification")}
-                  onClick={() =>
-                    workbench.set({
-                      notifications: s.notifications.filter(
-                        (x) => x.id !== n.id,
-                      ),
-                    })
-                  }
-                />
-              </div>
-            ))
+            .map((n) => <NotificationRow key={n.id} notification={n} workbench={workbench} />)
         ) : (
           <div className="empty-state">{tr("No notifications")}</div>
         )}
       </aside>
     );
   return (
-    <div className="toasts" aria-live="polite">
-      {s.notifications
-        .filter((n) => n.ttl === 0 || Date.now() - n.time < (n.ttl ?? 6500))
-        .slice(innerWidth < 600 ? -1 : -3)
-        .map((n) => (
-          <div
-            className={`notification ${n.type}`}
-            role={n.type === "error" ? "alert" : "status"}
-            key={n.id}
-          >
-            <span className="notification-icon">
-              <Icon
-                name={
-                  n.type === "error"
-                    ? "error"
-                    : n.type === "warning"
-                      ? "warning"
-                      : "info"
-                }
-              />
-            </span>
-            <div className="notification-content">
-              <div className="notification-message">{tr(n.message)}</div>
-              {n.source && <small>{n.source}</small>}
-              <NotificationActions notification={n} workbench={workbench} />
-            </div>
-            <IconButton
-              icon="x"
-              label={tr("Dismiss notification")}
-              onClick={() =>
-                workbench.set({
-                  notifications: s.notifications.filter((x) => x.id !== n.id),
-                })
-              }
-            />
-          </div>
-        ))}
+    <div
+      ref={stack}
+      className="toasts"
+      aria-live="polite"
+      onPointerEnter={() => { hover.current = true; syncPause(); }}
+      onPointerLeave={() => { hover.current = false; syncPause(); }}
+      onFocus={() => { focus.current = true; syncPause(); }}
+      onBlur={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        focus.current = false;
+        syncPause();
+      }}
+    >
+      {toasts.map((n) => <NotificationRow key={n.id} notification={n} workbench={workbench} toast />)}
+    </div>
+  );
+}
+function NotificationRow({ notification: n, workbench, toast = false }: {
+  notification: Notification;
+  workbench: WorkbenchController;
+  toast?: boolean;
+}) {
+  const copy = () => {
+    const text = tr(n.message);
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(text))
+      .then(() => workbench.notify("Copied"), (error) => workbench.notify(error, "error"));
+  };
+  return (
+    <div
+      className={`notification ${n.type}${n.type === "error" ? " has-copy" : ""}`}
+      role={toast ? (n.type === "error" ? "alert" : "status") : undefined}
+    >
+      <span className="notification-icon">
+        <Icon name={n.type === "error" ? "error" : n.type === "warning" ? "warning" : "info"} />
+      </span>
+      <div className="notification-content">
+        <div className="notification-message">
+          {tr(n.message)}
+          {(n.count ?? 1) > 1 && (
+            <span className="notification-count">{tr("×{0}", { "0": n.count })}</span>
+          )}
+        </div>
+        {n.source && <small>{n.source}</small>}
+        <NotificationActions notification={n} workbench={workbench} />
+        {!toast && <small>{new Date(n.time).toLocaleTimeString()}</small>}
+      </div>
+      {n.type === "error" && <IconButton icon="copy" label={tr("Copy message")} onClick={copy} />}
+      <IconButton
+        icon="x"
+        label={tr("Dismiss notification")}
+        onClick={() =>
+          workbench.set({
+            notifications: workbench.state.notifications.filter((x) => x.id !== n.id),
+          })
+        }
+      />
     </div>
   );
 }

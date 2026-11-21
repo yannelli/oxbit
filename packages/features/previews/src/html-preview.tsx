@@ -107,7 +107,7 @@ export function createHtmlPreview(o: FeatureOptions) {
           anchor.current = target.anchor;
           setHistory(items => [...items, target.path]);
         } else if (target.kind === "file")
-          void Promise.resolve(o.workbench.openFile(target.path)).catch((error: unknown) => o.workbench.notify(String(error), "error"));
+          void Promise.resolve(o.workbench.openFile(target.path)).catch((error: unknown) => o.workbench.notify(error, "error"));
         else if (target.kind === "external") window.open(target.url, "_blank", "noopener,noreferrer");
         else o.workbench.notify(target.reason, "warning");
       };
@@ -117,7 +117,7 @@ export function createHtmlPreview(o: FeatureOptions) {
 
     const openSource = () => {
       void Promise.resolve(o.workbench.openFile(current, { preview: false }))
-        .catch((failure: unknown) => o.workbench.notify(String(failure), "error"));
+        .catch((failure: unknown) => o.workbench.notify(failure, "error"));
     };
 
     return <div className="html-document" aria-busy={loading}>

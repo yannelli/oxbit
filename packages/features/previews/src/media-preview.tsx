@@ -86,7 +86,7 @@ export function createMediaPreview(o: FeatureOptions, kind: "pdf" | "audio") {
                 void o.kernel.commands
                   .execute("desktop.reveal", { path })
                   .catch((failure: unknown) =>
-                    o.workbench.notify(String(failure), "error"),
+                    o.workbench.notify(failure, "error"),
                   )
               }
             >

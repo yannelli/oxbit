@@ -63,14 +63,19 @@ export function PanelSwitcher({ workbench, title, navigation = false, barViews, 
         <Icon name="files" /><span>{tr("Back to editor")}</span><Icon name="chevR" />
       </button>
       <div className="panel-switcher-grid">
-        {panels.map(item => <button key={item.id} aria-pressed={workbench.panelVisible(item.id)} onClick={() => {
-          setOpen(false);
-          workbench.openPanel(item.id);
-        }}>
-          <Icon name={panelIcons[item.id] ?? viewIcon(item)} />
-          <span>{tr(navigation ? phoneViewLabel(item) : item.title)}</span>
-          {workbench.panelVisible(item.id) && <Icon name="check" size={14} />}
-        </button>)}
+        {panels.map(item => {
+          const label = tr(navigation ? phoneViewLabel(item) : item.title);
+          const itemBadge = workbench.state.viewBadges[item.id];
+          return <button key={item.id} aria-label={itemBadge ? badgeLabel(label, itemBadge) : undefined} aria-pressed={workbench.panelVisible(item.id)} onClick={() => {
+            setOpen(false);
+            workbench.openPanel(item.id);
+          }}>
+            <Icon name={panelIcons[item.id] ?? viewIcon(item)} />
+            <span>{label}</span>
+            <ViewBadgeMark badge={itemBadge} />
+            {workbench.panelVisible(item.id) && <Icon name="check" size={14} />}
+          </button>;
+        })}
         {onSettings && <button aria-pressed={settingsActive} onClick={() => {
           setOpen(false);
           onSettings();

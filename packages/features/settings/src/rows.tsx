@@ -119,7 +119,7 @@ export function SettingRow({ setting: s, kernel, workbench, scope, language }: {
   };
   const copy = () => void Promise.resolve()
     .then(() => navigator.clipboard.writeText(s.id))
-    .then(() => workbench.notify(tr("Copied {0}", { "0": s.id })), (e: unknown) => workbench.notify(String(e), "error"));
+    .then(() => workbench.notify(tr("Copied {0}", { "0": s.id })), (e: unknown) => workbench.notify(e, "error"));
   const actions = (
     <span className="setting-actions">
       {modified && <IconButton icon="refresh" label={tr("Reset {0}", { "0": title })} onClick={() => {

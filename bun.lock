@@ -244,6 +244,7 @@
         "@codemirror/view": "6.43.6",
         "@oxbit/agent-core": "workspace:*",
         "@oxbit/sdk": "workspace:*",
+        "@oxbit/ui": "workspace:*",
       },
     },
     "packages/features/collaboration": {

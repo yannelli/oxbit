@@ -9,7 +9,8 @@
     "@codemirror/state": "6.7.1",
     "@codemirror/view": "6.43.6",
     "@oxbit/agent-core": "workspace:*",
-    "@oxbit/sdk": "workspace:*"
+    "@oxbit/sdk": "workspace:*",
+    "@oxbit/ui": "workspace:*"
   },
   "license": "MIT",
   "author": {

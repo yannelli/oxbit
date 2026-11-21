@@ -10,6 +10,15 @@ import type {
 } from "@oxbit/sdk";
 import { Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
 
+/** Mirrors the main rules of `git check-ref-format` so bad names fail in the dialog. */
+export const branchNameError = (value: string) => {
+  const name = value.trim();
+  if (!name) return tr("Enter a branch name.");
+  if (/[\s~^:?*[\\]|\.\.|@\{|\/\/|^[-/.]|[/.]$|\.lock$/.test(name))
+    return tr("Enter a valid branch name.");
+  return undefined;
+};
+
 export interface RepositoryUI {
   options: FeatureOptions;
   request<T = any>(
@@ -262,8 +271,12 @@ export function Branches({
           disabled={pending}
           onClick={() =>
             run(async () => {
-              const name = await prompt(tr("New branch name"));
-              if (name) await api.perform("branchCreate", { name });
+              const name = await prompt(tr("New branch name"), {
+                action: "Create Branch",
+                placeholder: "feature/my-change",
+                validate: branchNameError,
+              });
+              if (name) await api.perform("branchCreate", { name: name.trim() });
             })
           }
         >
@@ -320,12 +333,18 @@ export function Branches({
                           if (remote) {
                             const name = await prompt(
                               tr("Local tracking branch name"),
-                              branch.name.slice(branch.name.indexOf("/") + 1),
+                              {
+                                value: branch.name.slice(
+                                  branch.name.indexOf("/") + 1,
+                                ),
+                                action: "Track Branch",
+                                validate: branchNameError,
+                              },
                             );
                             if (name)
                               await api.perform("branchTrack", {
                                 ref: branch.ref,
-                                name,
+                                name: name.trim(),
                               });
                           } else
                             await api.perform("checkout", {
@@ -364,10 +383,13 @@ export function Branches({
                       disabled={pending}
                       onClick={() =>
                         run(async () => {
-                          const name = await prompt(
-                            tr("Rename branch"),
-                            branch.name,
-                          );
+                          const name = (
+                            await prompt(tr("Rename branch"), {
+                              value: branch.name,
+                              action: "Rename",
+                              validate: branchNameError,
+                            })
+                          )?.trim();
                           if (name && name !== branch.name)
                             await api.perform("branchRename", {
                               branch: branch.name,
@@ -419,9 +441,25 @@ export function Branches({
             disabled={pending}
             onClick={() =>
               run(async () => {
-                const name = await prompt(tr("Remote name"), "origin");
+                const name = (
+                  await prompt(tr("Remote name"), {
+                    value: "origin",
+                    action: "Next",
+                    validate: (value) =>
+                      /^[^\s/]+$/.test(value.trim())
+                        ? undefined
+                        : tr("Enter a remote name without spaces or slashes."),
+                  })
+                )?.trim();
                 if (!name) return;
-                const url = await prompt(tr("Repository URL"));
+                const url = (
+                  await prompt(tr("Repository URL"), {
+                    action: "Add Remote",
+                    placeholder: "https://github.com/owner/repo.git",
+                    validate: (value) =>
+                      value.trim() ? undefined : tr("Enter a repository URL."),
+                  })
+                )?.trim();
                 if (url) await api.perform("remoteAdd", { name, url });
               })
             }

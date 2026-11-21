@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Dialog, Icon, IconButton, Select } from "@oxbit/ui";
+import { Dialog, Icon, IconButton, Select, translate as tr } from "@oxbit/ui";
 import {
   taskPhases,
   type ConfiguredTask,
@@ -47,9 +47,40 @@ const cleanDefinition = (task: ConfiguredTask): TaskDefinition => {
 const sourceLabel = (source?: TaskSource) =>
   source
     ? source.private
-      ? "Private Oxbit tasks"
+      ? tr("Private Oxbit tasks")
       : source.path.split(/[\\/]/).slice(-2).join("/")
     : "";
+const stateLabels: Record<string, string> = {
+  starting: "starting",
+  running: "running",
+  ready: "ready",
+  unhealthy: "unhealthy",
+  restarting: "restarting",
+  stopping: "stopping",
+  stopped: "stopped",
+  completed: "completed",
+  failed: "failed",
+  cancelled: "cancelled",
+  creating: "creating",
+  "init-failed": "init failed",
+  removing: "removing",
+  "teardown-failed": "teardown failed",
+  removed: "removed",
+  "terminated (runtime stopped)": "terminated (runtime stopped)",
+};
+const stateLabel = (state: string) => tr(stateLabels[state] ?? state);
+// Translates a message and puts nodes in its {0}, {1} placeholders.
+const rich = (message: string, ...nodes: React.ReactNode[]) =>
+  tr(message)
+    .split(/\{(\d+)\}/)
+    .map((part, index) =>
+      index % 2 ? (
+        <React.Fragment key={index}>{nodes[Number(part)]}</React.Fragment>
+      ) : (
+        part
+      ),
+    );
+const code = (text: string) => <code>{text}</code>;
 const stripAnsi = (text: string) =>
   text
     .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "")
@@ -132,7 +163,7 @@ export function createTaskViews(model: TaskModel) {
       : { command: "", type: "command" as const };
     const { command: _command, type: _type, cwd: _cwd, ...extra } = initial;
     const [name, setName] = useState(
-      task ? task.name + (copy ? " copy" : "") : "",
+      task ? (copy ? tr("{0} copy", { "0": task.name }) : task.name) : "",
     );
     const [sourceId, setSource] = useState(
       copy
@@ -161,7 +192,7 @@ export function createTaskViews(model: TaskModel) {
           typeof settings !== "object" ||
           Array.isArray(settings)
         )
-          throw new Error("Advanced settings must be a JSON object");
+          throw new Error(tr("Advanced settings must be a JSON object"));
         const packageSource =
           source.kind === "npm" || source.kind === "composer";
         const definition: TaskDefinition = {
@@ -188,7 +219,7 @@ export function createTaskViews(model: TaskModel) {
     };
     return (
       <Dialog
-        title={task && !copy ? "Edit task" : "New task"}
+        title={task && !copy ? tr("Edit task") : tr("New task")}
         className="task-dialog"
         initialFocus={task && !copy ? ".task-command" : ".task-name"}
         onClose={onClose}
@@ -196,7 +227,7 @@ export function createTaskViews(model: TaskModel) {
         <form onSubmit={(event) => void submit(event)}>
           <div className="task-form-grid">
             <label>
-              Task name
+              {tr("Task name")}
               <input
                 className="task-name"
                 value={name}
@@ -207,22 +238,22 @@ export function createTaskViews(model: TaskModel) {
               />
             </label>
             <label>
-              Kind
+              {tr("Kind")}
               <Select
-                label="Task kind"
+                label={tr("Task kind")}
                 value={type}
                 options={[
-                  { value: "command", label: "Command · runs to completion" },
-                  { value: "service", label: "Service · stays running" },
+                  { value: "command", label: tr("Command · runs to completion") },
+                  { value: "service", label: tr("Service · stays running") },
                 ]}
                 onChange={(value) => setType(value as "command" | "service")}
               />
             </label>
           </div>
           <label>
-            Save to
+            {tr("Save to")}
             <Select
-              label="Task source"
+              label={tr("Task source")}
               value={sourceId}
               disabled={!!task && !copy}
               options={catalog.sources
@@ -234,8 +265,8 @@ export function createTaskViews(model: TaskModel) {
           <p className="task-hint task-source-path">{source.path}</p>
           <label>
             {source.kind === "npm" || source.kind === "composer"
-              ? "Script body"
-              : "Command"}
+              ? tr("Script body")
+              : tr("Command")}
             <textarea
               className="task-command"
               value={command}
@@ -249,7 +280,7 @@ export function createTaskViews(model: TaskModel) {
             />
           </label>
           <label>
-            Working directory
+            {tr("Working directory")}
             <input
               value={cwd}
               onChange={(e) => setCwd(e.target.value)}
@@ -257,21 +288,32 @@ export function createTaskViews(model: TaskModel) {
             />
           </label>
           <p className="task-hint">
-            Commands receive <code>$OXBIT_PROJECT_DIR</code>,{" "}
-            <code>$OXBIT_PREINIT_DIR</code>, <code>$OXBIT_HOST</code> and{" "}
-            <code>$OXBIT_HOSTNAME</code>. Services also receive{" "}
-            <code>$OXBIT_PORT</code>, <code>$OXBIT_URL</code> and peer-service
-            variables.
+            {rich(
+              "Commands receive {0}, {1}, {2} and {3}. Services also receive {4}, {5} and peer-service variables.",
+              code("$OXBIT_PROJECT_DIR"),
+              code("$OXBIT_PREINIT_DIR"),
+              code("$OXBIT_HOST"),
+              code("$OXBIT_HOSTNAME"),
+              code("$OXBIT_PORT"),
+              code("$OXBIT_URL"),
+            )}
           </p>
           <details open={!!task || type === "service"}>
-            <summary>Environment, dependencies and service settings</summary>
+            <summary>{tr("Environment, dependencies and service settings")}</summary>
             <p className="task-hint">
-              Set <code>env</code>, <code>dependsOn</code>, <code>port</code>{" "}
-              (number, "auto", or range), <code>ports</code>, <code>ready</code>
-              , <code>restart</code>, and <code>stop</code>.
+              {rich(
+                'Set {0}, {1}, {2} (number, "auto", or range), {3}, {4}, {5}, and {6}.',
+                code("env"),
+                code("dependsOn"),
+                code("port"),
+                code("ports"),
+                code("ready"),
+                code("restart"),
+                code("stop"),
+              )}
             </p>
             <textarea
-              aria-label="Advanced task settings"
+              aria-label={tr("Advanced task settings")}
               className="task-json"
               value={advanced}
               rows={8}
@@ -302,12 +344,12 @@ export function createTaskViews(model: TaskModel) {
                   setError("");
                 } catch {
                   setError(
-                    "Fix the advanced JSON before applying service settings",
+                    tr("Fix the advanced JSON before applying service settings"),
                   );
                 }
               }}
             >
-              Use service settings
+              {tr("Use service settings")}
             </button>
           </details>
           {task?.disabledReason && (
@@ -320,10 +362,10 @@ export function createTaskViews(model: TaskModel) {
           )}
           <div className="task-dialog-actions">
             <button type="button" className="button" onClick={onClose}>
-              Cancel
+              {tr("Cancel")}
             </button>
             <button className="button primary" type="submit" disabled={busy}>
-              {busy ? "Saving…" : "Save task"}
+              {busy ? tr("Saving…") : tr("Save task")}
             </button>
           </div>
         </form>
@@ -363,24 +405,28 @@ export function createTaskViews(model: TaskModel) {
     };
     return (
       <Dialog
-        title="Worktree lifecycle and environment"
+        title={tr("Worktree lifecycle and environment")}
         className="task-dialog"
         initialFocus="textarea"
         onClose={onClose}
       >
         <form onSubmit={(event) => void submit(event)}>
-          <p className="task-hint task-source-path">Saving to {source.path}</p>
+          <p className="task-hint task-source-path">
+            {tr("Saving to {0}", { "0": source.path })}
+          </p>
           <p className="task-hint">
-            Hooks run only during explicit Oxbit worktree operations. Each phase
-            stops on failure. <code>$OXBIT_PROJECT_DIR</code> is the target
-            checkout, <code>$OXBIT_SOURCE_DIR</code> is the source, and{" "}
-            <code>$OXBIT_PREINIT_DIR</code> is the private staging directory.
+            {rich(
+              "Hooks run only during explicit Oxbit worktree operations. Each phase stops on failure. {0} is the target checkout, {1} is the source, and {2} is the private staging directory.",
+              code("$OXBIT_PROJECT_DIR"),
+              code("$OXBIT_SOURCE_DIR"),
+              code("$OXBIT_PREINIT_DIR"),
+            )}
           </p>
           {taskPhases.map((phase) => (
             <label key={phase}>
               {phase}
               <small>
-                {
+                {tr(
                   {
                     preinit:
                       "Before checkout creation · working directory: staging",
@@ -389,11 +435,11 @@ export function createTaskViews(model: TaskModel) {
                       "Before checkout removal · working directory: checkout",
                     teardown:
                       "After checkout removal · working directory: staging",
-                  }[phase]
-                }
+                  }[phase],
+                )}
               </small>
               <textarea
-                aria-label={`${phase} script`}
+                aria-label={tr("{0} script", { "0": phase })}
                 value={
                   Array.isArray(scripts[phase])
                     ? scripts[phase].join("\n")
@@ -411,9 +457,9 @@ export function createTaskViews(model: TaskModel) {
             </label>
           ))}
           <label>
-            Shared environment (JSON)
+            {tr("Shared environment (JSON)")}
             <textarea
-              aria-label="Shared task environment"
+              aria-label={tr("Shared task environment")}
               value={env}
               rows={4}
               spellCheck={false}
@@ -427,10 +473,10 @@ export function createTaskViews(model: TaskModel) {
           )}
           <div className="task-dialog-actions">
             <button type="button" className="button" onClick={onClose}>
-              Cancel
+              {tr("Cancel")}
             </button>
             <button className="button primary" disabled={busy}>
-              {busy ? "Saving…" : "Save lifecycle"}
+              {busy ? tr("Saving…") : tr("Save lifecycle")}
             </button>
           </div>
         </form>
@@ -468,8 +514,10 @@ export function createTaskViews(model: TaskModel) {
     const share = async () => {
       if (!catalog) return;
       const answer = await o.workbench.ask(
-        "Save tasks in project",
-        "Create .oxbit/tasks.json with the currently detected, supported tasks and lifecycle scripts? This makes the configuration available to version control.",
+        tr("Save tasks in project"),
+        tr(
+          "Create .oxbit/tasks.json with the currently detected, supported tasks and lifecycle scripts? This makes the configuration available to version control.",
+        ),
         ["Save in project", "Cancel"],
       );
       if (answer !== "Save in project") return;
@@ -481,16 +529,22 @@ export function createTaskViews(model: TaskModel) {
       await model.refresh();
       o.workbench.notify(
         result.skipped.length
-          ? `Saved .oxbit/tasks.json. ${result.skipped.length} unsupported IDE configurations were left in their source files.`
-          : "Saved .oxbit/tasks.json. Review it in Source Control to commit.",
+          ? tr(
+              "Saved .oxbit/tasks.json. {0} unsupported IDE configurations were left in their source files.",
+              { "0": result.skipped.length },
+            )
+          : tr("Saved .oxbit/tasks.json. Review it in Source Control to commit."),
       );
     };
     const removeTask = async () => {
       if (!selectedTask || !source) return;
       if (
         (await o.workbench.ask(
-          "Delete task",
-          `Remove ${selectedTask.name} from ${source.path}?`,
+          tr("Delete task"),
+          tr("Remove {0} from {1}?", {
+            "0": selectedTask.name,
+            "1": source.path,
+          }),
           ["Delete task", "Cancel"],
           true,
         )) !== "Delete task"
@@ -504,11 +558,26 @@ export function createTaskViews(model: TaskModel) {
       await model.refresh();
     };
     const createWorktree = async () => {
-      const branch = await o.workbench.prompt("New worktree branch");
+      const branch = await o.workbench.prompt(tr("New worktree branch"), {
+        action: "Next",
+        placeholder: "Branch name",
+        validate: (value) =>
+          !value.trim()
+            ? tr("Enter a branch name")
+            : /\s/.test(value.trim())
+              ? tr("Branch names cannot contain spaces")
+              : undefined,
+      });
       if (!branch) return;
       const base = await o.workbench.prompt(
-        "Create worktree from revision",
-        "HEAD",
+        tr("Create worktree from revision"),
+        {
+          value: "HEAD",
+          action: "Create Worktree",
+          placeholder: "Branch, tag or commit",
+          validate: (value) =>
+            value.trim() ? undefined : tr("Enter a revision"),
+        },
       );
       if (!base) return;
       setBusy(true);
@@ -522,8 +591,11 @@ export function createTaskViews(model: TaskModel) {
     const removeWorktree = async (worktree: TaskWorktree) => {
       if (
         (await o.workbench.ask(
-          "Remove worktree",
-          `Run cleanup hooks and remove ${worktree.path}? Git will refuse removal if it has uncommitted or untracked files. The branch remains.`,
+          tr("Remove worktree"),
+          tr(
+            "Run cleanup hooks and remove {0}? Git will refuse removal if it has uncommitted or untracked files. The branch remains.",
+            { "0": worktree.path },
+          ),
           ["Remove worktree", "Cancel"],
           true,
         )) !== "Remove worktree"
@@ -540,7 +612,11 @@ export function createTaskViews(model: TaskModel) {
     return (
       <div className="tasks-panel">
         <div className="tasks-toolbar">
-          <div className="tasks-tabs" role="tablist" aria-label="Task views">
+          <div
+            className="tasks-tabs"
+            role="tablist"
+            aria-label={tr("Task views")}
+          >
             {(["tasks", "worktrees"] as const).map((value) => (
               <button
                 key={value}
@@ -548,7 +624,7 @@ export function createTaskViews(model: TaskModel) {
                 aria-selected={tab === value}
                 onClick={() => setTab(value)}
               >
-                {value === "tasks" ? "Tasks & services" : "Worktrees"}
+                {value === "tasks" ? tr("Tasks & services") : tr("Worktrees")}
               </button>
             ))}
           </div>
@@ -559,24 +635,24 @@ export function createTaskViews(model: TaskModel) {
             onClick={() => setEditor({})}
           >
             <Icon name="plus" size={13} />
-            New task
+            {tr("New task")}
           </button>
           <button
             className="button"
             disabled={!connected}
             onClick={() => perform(() => model.run())}
           >
-            Run command
+            {tr("Run command")}
           </button>
           <IconButton
             icon="settings"
-            label="Worktree lifecycle and environment"
+            label={tr("Worktree lifecycle and environment")}
             disabled={!catalog}
             onClick={() => setSettings(true)}
           />
           <IconButton
             icon="refresh"
-            label="Refresh tasks"
+            label={tr("Refresh tasks")}
             disabled={!connected || model.loading}
             onClick={() => perform(model.refresh)}
           />
@@ -589,9 +665,11 @@ export function createTaskViews(model: TaskModel) {
         {!connected && (
           <div className="tasks-empty">
             <Icon name="terminal" size={28} />
-            <strong>Connect a workspace to run tasks</strong>
+            <strong>{tr("Connect a workspace to run tasks")}</strong>
             <p>
-              Detected commands, services and their output will appear here.
+              {tr(
+                "Detected commands, services and their output will appear here.",
+              )}
             </p>
           </div>
         )}
@@ -599,18 +677,18 @@ export function createTaskViews(model: TaskModel) {
           <div className="tasks-layout">
             <aside
               className="tasks-list"
-              aria-label="Configured tasks and runs"
+              aria-label={tr("Configured tasks and runs")}
             >
               <input
                 className="tasks-search"
                 type="search"
-                aria-label="Filter tasks"
-                placeholder="Filter tasks…"
+                aria-label={tr("Filter tasks")}
+                placeholder={tr("Filter tasks…")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
               <div className="tasks-list-heading">
-                Configured <span>{catalog?.tasks.length ?? 0}</span>
+                {tr("Configured")} <span>{catalog?.tasks.length ?? 0}</span>
               </div>
               {catalog?.tasks
                 .filter((task) =>
@@ -645,16 +723,17 @@ export function createTaskViews(model: TaskModel) {
                         <span>
                           <strong>{task.name}</strong>
                           <small>
-                            {active?.state ??
-                              (task.disabledReason
-                                ? "Needs configuration"
-                                : sourceLabel(origin))}
+                            {active
+                              ? stateLabel(active.state)
+                              : task.disabledReason
+                                ? tr("Needs configuration")
+                                : sourceLabel(origin)}
                           </small>
                         </span>
                       </button>
                       <IconButton
                         icon={active ? "stop" : "play"}
-                        label={`${active ? "Stop" : "Start"} ${task.name}`}
+                        label={tr(active ? "Stop {0}" : "Start {0}", { "0": task.name })}
                         disabled={!!task.disabledReason}
                         onClick={() =>
                           perform(() =>
@@ -669,13 +748,14 @@ export function createTaskViews(model: TaskModel) {
                 })}
               {catalog && !catalog.tasks.length && (
                 <p className="task-hint tasks-list-empty">
-                  No tasks detected. Add a command or service; it will save
-                  privately by default.
+                  {tr(
+                    "No tasks detected. Add a command or service; it will save privately by default.",
+                  )}
                 </p>
               )}
               {!!runs.length && (
                 <div className="tasks-list-heading">
-                  Recent runs <span>{runs.length}</span>
+                  {tr("Recent runs")} <span>{runs.length}</span>
                 </div>
               )}
               {runs
@@ -695,16 +775,16 @@ export function createTaskViews(model: TaskModel) {
                     <span>
                       <strong>{run.name ?? run.command}</strong>
                       <small>
-                        {run.state}
+                        {stateLabel(run.state)}
                         {run.exitCode === undefined
                           ? ""
-                          : ` · exit ${run.exitCode}`}
+                          : ` · ${tr("exit {0}", { "0": run.exitCode })}`}
                       </small>
                     </span>
                   </button>
                 ))}
             </aside>
-            <section className="tasks-detail" aria-label="Task details">
+            <section className="tasks-detail" aria-label={tr("Task details")}>
               {selectedRun ? (
                 <>
                   <div className="task-detail-header">
@@ -714,7 +794,7 @@ export function createTaskViews(model: TaskModel) {
                         className="task-state"
                         data-state={selectedRun.state}
                       >
-                        {selectedRun.state}
+                        {stateLabel(selectedRun.state)}
                       </span>
                     </div>
                     <div className="task-detail-actions">
@@ -726,7 +806,7 @@ export function createTaskViews(model: TaskModel) {
                               perform(() => model.stop(selectedRun.id))
                             }
                           >
-                            Stop
+                            {tr("Stop")}
                           </button>
                           <button
                             className="button danger"
@@ -734,7 +814,15 @@ export function createTaskViews(model: TaskModel) {
                               perform(() => model.stop(selectedRun.id, true))
                             }
                           >
-                            Force stop
+                            {tr("Force stop")}
+                          </button>
+                          <button
+                            className="button"
+                            onClick={() =>
+                              perform(() => model.restart(selectedRun.id))
+                            }
+                          >
+                            {tr("Restart")}
                           </button>
                         </>
                       ) : (
@@ -744,26 +832,20 @@ export function createTaskViews(model: TaskModel) {
                             perform(() => model.restart(selectedRun.id))
                           }
                         >
-                          Run again
+                          {tr("Run again")}
                         </button>
                       )}
-                      <button
-                        className="button"
-                        onClick={() =>
-                          perform(() => model.restart(selectedRun.id))
-                        }
-                      >
-                        Restart
-                      </button>
                     </div>
                   </div>
                   <div className="task-run-meta">
                     <code>{selectedRun.command}</code>
                     <small>
                       {selectedRun.cwd}
-                      {selectedRun.pid ? ` · PID ${selectedRun.pid}` : ""}
+                      {selectedRun.pid
+                        ? ` · ${tr("PID {0}", { "0": selectedRun.pid })}`
+                        : ""}
                       {selectedRun.restarts
-                        ? ` · ${selectedRun.restarts} restarts`
+                        ? ` · ${tr("{0} restarts", { "0": selectedRun.restarts })}`
                         : ""}
                     </small>
                     {selectedRun.message && (
@@ -773,7 +855,7 @@ export function createTaskViews(model: TaskModel) {
                   {!!selectedRun.links?.length && (
                     <nav
                       className="task-links"
-                      aria-label="Detected task links"
+                      aria-label={tr("Detected task links")}
                     >
                       {selectedRun.links.map((link) => (
                         <a
@@ -790,7 +872,7 @@ export function createTaskViews(model: TaskModel) {
                   )}
                   {selectedRun.variables && (
                     <details className="task-variables">
-                      <summary>Assigned variables</summary>
+                      <summary>{tr("Assigned variables")}</summary>
                       <dl>
                         {Object.entries(selectedRun.variables).map(
                           ([key, value]) => (
@@ -805,10 +887,10 @@ export function createTaskViews(model: TaskModel) {
                   )}
                   {selectedRun.truncated && (
                     <p className="task-hint">
-                      Earlier task output is no longer available.
+                      {tr("Earlier task output is no longer available.")}
                     </p>
                   )}
-                  <div className="task-log" aria-label="Task output">
+                  <div className="task-log" aria-label={tr("Task output")}>
                     <Lines text={selectedRun.output} />
                   </div>
                 </>
@@ -818,7 +900,9 @@ export function createTaskViews(model: TaskModel) {
                     <div>
                       <strong>{selectedTask.name}</strong>
                       <span className="task-state">
-                        {selectedTask.type ?? "command"}
+                        {selectedTask.type === "service"
+                          ? tr("service")
+                          : tr("command")}
                       </span>
                     </div>
                     <div className="task-detail-actions">
@@ -829,14 +913,14 @@ export function createTaskViews(model: TaskModel) {
                           perform(() => model.start(selectedTask.id))
                         }
                       >
-                        Start
+                        {tr("Start")}
                       </button>
                       <button
                         className="button"
                         disabled={!source?.writable}
                         onClick={() => setEditor({ task: selectedTask })}
                       >
-                        Edit
+                        {tr("Edit")}
                       </button>
                       <button
                         className="button"
@@ -844,11 +928,11 @@ export function createTaskViews(model: TaskModel) {
                           setEditor({ task: selectedTask, copy: true })
                         }
                       >
-                        Copy to Oxbit
+                        {tr("Copy to Oxbit")}
                       </button>
                       <IconButton
                         icon="trash"
-                        label="Delete task"
+                        label={tr("Delete task")}
                         disabled={!source?.writable}
                         onClick={() => perform(removeTask)}
                       />
@@ -865,24 +949,25 @@ export function createTaskViews(model: TaskModel) {
               ) : (
                 <div className="tasks-empty">
                   <Icon name="terminal" size={28} />
-                  <strong>Commands and services, ready to run</strong>
+                  <strong>{tr("Commands and services, ready to run")}</strong>
                   <p>
-                    Select a task to inspect it, or start one to follow its
-                    output and detected links.
+                    {tr(
+                      "Select a task to inspect it, or start one to follow its output and detected links.",
+                    )}
                   </p>
                   {catalog && (
                     <>
                       <small>
-                        New tasks save to{" "}
-                        {sourceLabel(
-                          catalog.sources.find(
-                            (s) => s.id === catalog.defaultSourceId,
+                        {tr("New tasks save to {0}.", {
+                          "0": sourceLabel(
+                            catalog.sources.find(
+                              (s) => s.id === catalog.defaultSourceId,
+                            ),
                           ),
-                        )}
-                        .
+                        })}
                       </small>
                       <button className="button" onClick={() => perform(share)}>
-                        Save in project…
+                        {tr("Save in project…")}
                       </button>
                     </>
                   )}
@@ -892,7 +977,7 @@ export function createTaskViews(model: TaskModel) {
                 (source) => source.diagnostics.length,
               ) && (
                 <details className="task-import-notes">
-                  <summary>Import notes</summary>
+                  <summary>{tr("Import notes")}</summary>
                   {catalog.sources.flatMap((source) =>
                     source.diagnostics.map((note, index) => (
                       <p key={source.id + index}>
@@ -906,12 +991,15 @@ export function createTaskViews(model: TaskModel) {
           </div>
         )}
         {connected && tab === "worktrees" && (
-          <section className="tasks-worktrees" aria-label="Managed worktrees">
+          <section
+            className="tasks-worktrees"
+            aria-label={tr("Managed worktrees")}
+          >
             <div className="task-detail-header">
               <div>
-                <strong>Managed worktrees</strong>
+                <strong>{tr("Managed worktrees")}</strong>
                 <p className="task-hint">
-                  Create an isolated checkout with your lifecycle scripts.
+                  {tr("Create an isolated checkout with your lifecycle scripts.")}
                 </p>
               </div>
               <button
@@ -919,13 +1007,13 @@ export function createTaskViews(model: TaskModel) {
                 disabled={busy}
                 onClick={() => perform(createWorktree)}
               >
-                {busy ? "Working…" : "Create worktree"}
+                {busy ? tr("Working…") : tr("Create worktree")}
               </button>
             </div>
             {model.worktrees.map((worktree) => (
               <article className="task-worktree" key={worktree.id}>
                 <strong>{worktree.branch}</strong>
-                <span className="task-state">{worktree.state}</span>
+                <span className="task-state">{stateLabel(worktree.state)}</span>
                 <code>{worktree.path}</code>
                 {worktree.message && (
                   <p className="task-error">{worktree.message}</p>
@@ -937,11 +1025,11 @@ export function createTaskViews(model: TaskModel) {
                       void navigator.clipboard
                         .writeText(worktree.path)
                         .catch((error) =>
-                          o.workbench.notify(String(error), "error"),
+                          o.workbench.notify(error, "error"),
                         );
                     }}
                   >
-                    Copy path
+                    {tr("Copy path")}
                   </button>
                   {worktree.state === "init-failed" && (
                     <button
@@ -959,7 +1047,7 @@ export function createTaskViews(model: TaskModel) {
                         })
                       }
                     >
-                      Retry init
+                      {tr("Retry init")}
                     </button>
                   )}
                   <button
@@ -968,15 +1056,15 @@ export function createTaskViews(model: TaskModel) {
                     onClick={() => perform(() => removeWorktree(worktree))}
                   >
                     {worktree.state === "teardown-failed"
-                      ? "Retry teardown"
-                      : "Remove worktree"}
+                      ? tr("Retry teardown")
+                      : tr("Remove worktree")}
                   </button>
                 </div>
               </article>
             ))}
             {!model.worktrees.length && (
               <p className="task-hint">
-                No Oxbit-managed worktrees for this project yet.
+                {tr("No Oxbit-managed worktrees for this project yet.")}
               </p>
             )}
           </section>
@@ -985,10 +1073,16 @@ export function createTaskViews(model: TaskModel) {
           <footer className="tasks-footer">
             <span>
               {model.loading
-                ? "Refreshing…"
-                : `${catalog.tasks.filter((task) => task.type === "service").length} services · ${runs.filter((run) => run.exitCode === undefined).length} active`}
+                ? tr("Refreshing…")
+                : tr("{0} services · {1} active", {
+                    "0": catalog.tasks.filter((task) => task.type === "service")
+                      .length,
+                    "1": runs.filter((run) => run.exitCode === undefined).length,
+                  })}
             </span>
-            <button onClick={() => perform(share)}>Save in project…</button>
+            <button onClick={() => perform(share)}>
+              {tr("Save in project…")}
+            </button>
           </footer>
         )}
         {editor && <TaskEditor {...editor} onClose={closeEditor} />}
@@ -1018,7 +1112,7 @@ export function createTaskViews(model: TaskModel) {
         style={{ padding: 12, height: "100%", overflow: "auto" }}
       >
         <Select
-          label="Output channel"
+          label={tr("Output channel")}
           value={selected}
           icon="terminal"
           options={names.map((name) => ({ value: name, label: name }))}

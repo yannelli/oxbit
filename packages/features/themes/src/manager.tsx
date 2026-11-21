@@ -8,6 +8,7 @@ import {
   type InstalledPack,
 } from "@oxbit/themes";
 import type { WorkbenchController } from "@oxbit/workbench";
+import { translate as tr } from "@oxbit/ui";
 import { bundledPacks } from "./bundled.js";
 import { profilePacks } from "./profile.js";
 import { readPackFile, exportPack } from "./assets.js";
@@ -47,7 +48,7 @@ export function ManageThemePacks({
     setBusy(true);
     try {
       await action();
-      setStatus("Saved.");
+      setStatus(tr("Saved."));
     } catch (error) {
       setStatus(String(error));
     } finally {
@@ -71,9 +72,9 @@ export function ManageThemePacks({
   return (
     <div className="settings-screen theme-packs">
       <div className="settings-heading">
-        <h1>Manage Theme Packs</h1>
+        <h1>{tr("Manage Theme Packs")}</h1>
         <p className="muted">
-          Add your own colors and fonts with a theme pack.
+          {tr("Add your own colors and fonts with a theme pack.")}
         </p>
         <div className="theme-pack-import">
           <button
@@ -81,21 +82,21 @@ export function ManageThemePacks({
             disabled={busy}
             onClick={() => input.current?.click()}
           >
-            {busy ? "Importing…" : "Import Theme Pack"}
+            {busy ? tr("Importing…") : tr("Import Theme Pack")}
           </button>
           {editor && (
             <button
               className="button"
               onClick={() => void kernel.commands.execute("theme.editor.new")}
             >
-              New Color Theme
+              {tr("New Color Theme")}
             </button>
           )}
-          <span className="muted">JSON or ZIP · up to 50 MB</span>
+          <span className="muted">{tr("JSON or ZIP · up to 50 MB")}</span>
           <input
             ref={input}
             hidden
-            aria-label="Import Theme Pack"
+            aria-label={tr("Import Theme Pack")}
             type="file"
             accept=".json,.zip"
             disabled={busy}
@@ -115,7 +116,7 @@ export function ManageThemePacks({
                         result.warnings
                           .map((w) => `${w.path}: ${w.message}`)
                           .join("\n") ||
-                          "Pack installed. Select Apply to use a theme.",
+                          tr("Pack installed. Select Apply to use a theme."),
                       ),
                     0,
                   );
@@ -138,30 +139,33 @@ export function ManageThemePacks({
             </h2>
             {entry.pack.attribution && (
               <details>
-                <summary>Attribution and license</summary>
+                <summary>{tr("Attribution and license")}</summary>
                 <p style={{ whiteSpace: "pre-wrap" }}>
                   {entry.pack.attribution}
                 </p>
               </details>
             )}
             <p>
-              Fonts:{" "}
-              {entry.pack.fonts?.map((f) => `${f.id} (${f.path})`).join(", ") ||
-                "System and application fonts"}
+              {tr("Fonts: {0}", {
+                "0":
+                  entry.pack.fonts
+                    ?.map((f) => `${f.id} (${f.path})`)
+                    .join(", ") || tr("System and application fonts"),
+              })}
             </p>
             <details>
-              <summary>Validation: schema and references passed</summary>
+              <summary>{tr("Validation: schema and references passed")}</summary>
               <p>
                 {validatePack(entry.pack)
                   .warnings.map((w) => `${w.path}: ${w.message}`)
-                  .join("\n") || "No contrast warnings."}
+                  .join("\n") || tr("No contrast warnings.")}
               </p>
             </details>
             <p className="muted">
               {entry.pack.themes
                 .map(
                   (t) =>
-                    `${t.name}: ${t.mode}${t.highContrast ? " · high contrast" : ""}`,
+                    `${t.name}: ${t.mode === "light" ? tr("light") : tr("dark")}${t.highContrast ? ` · ${tr("high contrast")}` : ""}`,
                 )
                 .join(" · ")}
             </p>
@@ -179,7 +183,7 @@ export function ManageThemePacks({
                     workbench.touch();
                   }}
                 >
-                  Apply {theme.name}
+                  {tr("Apply {0}", { "0": theme.name })}
                 </button>
               ))}
               <button
@@ -191,7 +195,7 @@ export function ManageThemePacks({
                   )
                 }
               >
-                Export {entry.pack.name}
+                {tr("Export {0}", { "0": entry.pack.name })}
               </button>
               {!bundledPacks.some((p) => p.id === entry.pack.id) && (
                 <>
@@ -204,7 +208,9 @@ export function ManageThemePacks({
                       )
                     }
                   >
-                    {entry.enabled ? "Disable" : "Enable"} {entry.pack.name}
+                    {tr(entry.enabled ? "Disable {0}" : "Enable {0}", {
+                      "0": entry.pack.name,
+                    })}
                   </button>
                   {editor && (
                     <button
@@ -216,7 +222,7 @@ export function ManageThemePacks({
                         })
                       }
                     >
-                      Edit {entry.pack.name}
+                      {tr("Edit {0}", { "0": entry.pack.name })}
                     </button>
                   )}
                   <button
@@ -226,7 +232,7 @@ export function ManageThemePacks({
                       void perform(() => store.remove(entry.pack.id))
                     }
                   >
-                    Remove {entry.pack.name}
+                    {tr("Remove {0}", { "0": entry.pack.name })}
                   </button>
                 </>
               )}
@@ -385,7 +391,7 @@ export function attachPackManager(
     })
     .catch((error) =>
       workbench.notify(
-        `Theme packs could not be loaded: ${String(error)}`,
+        tr("Theme packs could not be loaded: {0}", { "0": String(error) }),
         "error",
       ),
     );

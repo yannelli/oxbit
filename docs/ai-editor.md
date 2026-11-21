@@ -1,6 +1,6 @@
 # AI editing
 
-Created: 2026-10-18. Last updated: 2026-11-03.
+Created: 2026-10-18. Last updated: 2026-11-21.
 
 The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and inline edits to the CodeMirror editor. Both send code from the open file to the provider `ai.provider` names: the Oxbit agent's provider, OpenRouter, a custom OpenAI-compatible API, or a local Ollama or llama.cpp server.
 
@@ -8,7 +8,7 @@ The `oxbit.ai` feature (`packages/features/ai`) adds ghost text completions and 
 
 | Feature | Use | Keys |
 | --- | --- | --- |
-| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. Deleting or moving the cursor dismisses the suggestion and cancels a running request without starting a new one. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
+| Inline completions | Off by default. Turn on `ai.inlineCompletions.enabled`, or run **AI: Toggle Inline Completions**. After `ai.inlineCompletions.delay` ms without typing, the model's suggestion appears as dim text at the cursor. Typing the suggested characters keeps the rest. Deleting or moving the cursor dismisses the suggestion and cancels a running request without starting a new one. A pulsing dot marks the cursor while a request runs, the first three suggestions in a session show a "Tab to accept" hint, and each new suggestion is announced to screen readers through CodeMirror's live region. | Tab accepts, Escape dismisses, Ctrl/Cmd+Right accepts one word. **AI: Suggest Inline Completion** requests one on demand. |
 | Edit Selection with AI | Asks for an instruction, replaces the selection with the model's rewrite, and highlights the new text. With no selection it inserts code at the cursor. The edit is one undo step. If the selected text changes while the request runs, nothing is applied. | Ctrl/Cmd+Alt+K. Escape cancels a running request. |
 
 Ctrl/Cmd+K is a chord prefix in Oxbit, so the inline edit uses Ctrl/Cmd+Alt+K.

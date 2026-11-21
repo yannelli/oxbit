@@ -66,7 +66,7 @@ export function LanguageStatus({ language, o }: { language: LanguageService; o: 
   async function control(server: string, action: "start" | "stop" | "restart") {
     setPending(ids => [...ids, server]);
     try { await language.control(server, action); }
-    catch (error) { o.workbench.notify(String(error), "error"); }
+    catch (error) { o.workbench.notify(error, "error"); }
     finally { setPending(ids => ids.filter(id => id !== server)); }
   }
   return <>

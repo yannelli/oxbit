@@ -254,7 +254,7 @@ export class ProjectSessionManager {
             void entry.storage
               .refreshProfile(entry.session)
               .catch((error) =>
-                entry.session?.workbench.notify(String(error), "error"),
+                entry.session?.workbench.notify(error, "error"),
               );
         void native
           .snapshot()
@@ -295,7 +295,7 @@ export class ProjectSessionManager {
             if (project.openFileId)
               await native.fileOpened(project.key, project.openFileId);
           } catch (error) {
-            entry.session.workbench.notify(String(error), "error");
+            entry.session.workbench.notify(error, "error");
           }
         }
         this.publish({
@@ -359,7 +359,7 @@ export class ProjectSessionManager {
         for (const setting of desktopConfiguration) session.kernel.configuration.register(setting);
         const mirrorProfile = () => {
           const { user, userLanguages } = session.kernel.configuration.export() as Profile;
-          void storage.set("profile-settings", { user, userLanguages }).catch(error => session.workbench.notify(String(error), "error"));
+          void storage.set("profile-settings", { user, userLanguages }).catch(error => session.workbench.notify(error, "error"));
         };
         mirrorProfile();
         const offProfile = session.kernel.configuration.subscribe(mirrorProfile);

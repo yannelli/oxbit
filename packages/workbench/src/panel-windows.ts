@@ -42,7 +42,7 @@ export class PanelWindows {
   private close(id: string, child: Window) {
     child.close();
     void Promise.resolve(host?.close?.(id)).catch((error) => {
-      if (!this.stopped) this.workbench.notify(String(error), "error");
+      if (!this.stopped) this.workbench.notify(error, "error");
     });
   }
   has(id: string) {
@@ -224,7 +224,7 @@ export class PanelWindows {
       });
       this.windows.get(id)?.focus();
     } catch (error) {
-      this.workbench.notify(String(error), "error");
+      this.workbench.notify(error, "error");
     }
   }
   focusOrRestore(id: string) {
@@ -241,7 +241,7 @@ export class PanelWindows {
         .then(() => {
           if (!this.stopped) this.workbench.touch();
         })
-        .catch((error) => this.workbench.notify(String(error), "warning"));
+        .catch((error) => this.workbench.notify(error, "warning"));
   }
   restoreAll = () => {
     // Open synchronously from one user gesture, then complete independent ready handshakes.

@@ -8,6 +8,7 @@ import {
   type Extension,
   type FeatureOptions,
 } from "@oxbit/sdk";
+import { translate as tr } from "@oxbit/ui";
 import { AI_SETTINGS, aiConfiguration } from "./configuration.js";
 import { ghostText, requestSuggestion } from "./ghost.js";
 import { editMarks, inlineEditExtension, runInlineEdit } from "./inline-edit.js";
@@ -115,7 +116,12 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
           }
           try {
             const endpoint = aiEndpoint(kernel, provider);
-            const key = (await workbench.prompt(`API key for ${AI_PROVIDER_NAMES[provider]}`))?.trim();
+            const key = (await workbench.prompt(tr("API key for {0}", { "0": AI_PROVIDER_NAMES[provider] }), {
+              secret: true,
+              action: "Save Key",
+              placeholder: "Paste the API key",
+              validate: (value) => value.trim() ? undefined : tr("Enter an API key."),
+            }))?.trim();
             if (!key) return;
             const models = kernel.services.optional<AgentModels>(AGENT_MODELS_SERVICE);
             if (models) await models.keys.save(endpoint, key);
@@ -137,7 +143,10 @@ export function createFeature({ kernel, runtime, workbench, documents }: Pick<Fe
           const view = activeView(), path = workbench.activePath();
           if (!view || !path || !view.state.field(editMarks, false)) return;
           const empty = view.state.selection.main.empty;
-          const instruction = (await workbench.prompt(empty ? "Describe the code to insert" : "Describe the change to the selection"))?.trim();
+          const instruction = (await workbench.prompt(empty ? tr("Describe the code to insert") : tr("Describe the change to the selection"), {
+            action: "Generate",
+            placeholder: empty ? "For example: a function that parses the date" : "For example: add error handling",
+          }))?.trim();
           view.focus();
           if (!instruction) return;
           try {

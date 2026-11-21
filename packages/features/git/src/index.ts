@@ -19,6 +19,8 @@ import type {
   GitDiff,
   GitLog,
   GitStash,
+  Persistence,
+  PromptOptions,
 } from "@oxbit/sdk";
 import {
   AI_SERVICE_ID,
@@ -44,6 +46,7 @@ import {
   CommitDetails,
   StashDetails,
   Patch,
+  branchNameError,
   type RepositoryUI,
 } from "./views.js";
 const CREATE_BRANCH = "\0create-branch",
@@ -131,6 +134,13 @@ const messageOf = (failure: unknown) =>
   failure instanceof Error ? failure.message : String(failure);
 const AI_MISSING = "Set up an AI provider to use AI in Source Control";
 const AI_SETUP = "Add an AI model in Settings to use AI in Source Control";
+const commitPrompt: PromptOptions = {
+  action: "Commit",
+  placeholder: "Describe your changes",
+  multiline: true,
+  validate: (value) =>
+    value.trim() ? undefined : tr("Enter a commit message."),
+};
 const aiMessage = (failure: unknown) => {
   const message = messageOf(failure);
   return aiSetupFailure(message) ? tr(AI_SETUP) : message;
@@ -147,6 +157,28 @@ export function createFeature(o: FeatureOptions): Extension {
     committing = false,
     mountedPanels = 0;
   let lastCommit: { hash: string; subject: string; amended: boolean } | undefined;
+  const persistence = (
+    o.workbench as typeof o.workbench & { persistence?: Persistence }
+  ).persistence;
+  const draftKey = `scm-commit-message:${o.filesystem.id}`;
+  let draftTimer: ReturnType<typeof setTimeout> | undefined,
+    savedDraft = "";
+  /** Stores the commit message draft for this workspace; `now` skips the debounce. */
+  const saveDraft = (now = false) => {
+    clearTimeout(draftTimer);
+    const write = () => {
+      draftTimer = undefined;
+      if (!persistence || commitMessage === savedDraft) return;
+      savedDraft = commitMessage;
+      void (
+        commitMessage.trim()
+          ? persistence.set(draftKey, commitMessage)
+          : persistence.delete(draftKey)
+      ).catch(() => {});
+    };
+    if (now) write();
+    else draftTimer = setTimeout(write, 500);
+  };
   let aiController: AbortController | undefined,
     aiCheck: AbortController | undefined,
     aiTask: "message" | "plan" | undefined,
@@ -406,7 +438,8 @@ export function createFeature(o: FeatureOptions): Extension {
   const commit = async (message?: string, method = "commit") => {
     if (committing) return false;
     message ??=
-      commitMessage || (await o.workbench.prompt(tr("Commit message")));
+      commitMessage ||
+      (await o.workbench.prompt(tr("Commit message"), commitPrompt));
     if (message === undefined) return false;
     if (!message.trim() && method === "commit")
       throw new Error("Enter a commit message");
@@ -414,7 +447,10 @@ export function createFeature(o: FeatureOptions): Extension {
     changed();
     try {
       const result = await request<{ commit?: string } | undefined>(method, { message });
-      if (commitMessage === message) commitMessage = "";
+      if (commitMessage === message) {
+        commitMessage = "";
+        saveDraft(true);
+      }
       // The result renders with the cleared message so the list moves once.
       if (result?.commit) showResult(result.commit, message, method === "amend");
       await refresh();
@@ -457,7 +493,10 @@ export function createFeature(o: FeatureOptions): Extension {
       return false;
     const { message } = await request<{ message: string }>("undoCommit");
     lastCommit = undefined;
-    if (!commitMessage.trim()) commitMessage = message.trim();
+    if (!commitMessage.trim()) {
+      commitMessage = message.trim();
+      saveDraft();
+    }
     await refresh();
     return true;
   };
@@ -479,7 +518,7 @@ export function createFeature(o: FeatureOptions): Extension {
       throw new Error("Resolve conflicts before committing");
     const message = commitMessage.trim()
       ? commitMessage
-      : await o.workbench.prompt(tr("Commit message"));
+      : await o.workbench.prompt(tr("Commit message"), commitPrompt);
     if (message === undefined) return false;
     if (!status.changes.some(staged)) {
       if (!status.changes.length) throw new Error("There are no changes to commit");
@@ -601,7 +640,9 @@ export function createFeature(o: FeatureOptions): Extension {
         recentSubjects(signal),
       ]);
       const text = await ai.complete(commitMessagePrompt(files, subjects), signal);
-      if (!signal.aborted) commitMessage = cleanCommitMessage(text);
+      if (signal.aborted) return;
+      commitMessage = cleanCommitMessage(text);
+      saveDraft();
     });
   const commitWithAi = () =>
     withAi("plan", async (ai, signal) => {
@@ -644,6 +685,7 @@ export function createFeature(o: FeatureOptions): Extension {
         );
       }
       commitMessage = "";
+      saveDraft(true);
       o.workbench.notify(tr("{0} commits created", { "0": plan.length }));
     } finally {
       await refresh().catch(() => {});
@@ -719,15 +761,33 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   const clone = async () => {
     if (cloning) throw new Error("A clone is already running");
-    const url = await o.workbench.prompt(tr("Repository URL"));
+    const url = (
+      await o.workbench.prompt(tr("Repository URL"), {
+        action: "Next",
+        placeholder: "https://github.com/owner/repository.git",
+        validate: (value) =>
+          value.trim() ? undefined : tr("Enter a repository URL."),
+      })
+    )?.trim();
     if (!url) return;
-    const destination = await o.workbench.prompt(
-      tr("Destination folder inside the workspace"),
-      url
-        .split("/")
-        .at(-1)
-        ?.replace(/\.git$/, "") ?? "repository",
-    );
+    const destination = (
+      await o.workbench.prompt(tr("Destination folder inside the workspace"), {
+        value:
+          url
+            .split("/")
+            .at(-1)
+            ?.replace(/\.git$/, "") || "repository",
+        action: "Clone",
+        placeholder: "Folder name",
+        validate: (value) =>
+          !value.trim()
+            ? tr("Enter a folder name.")
+            : value.trim().startsWith("/") ||
+                value.trim().split("/").includes("..")
+              ? tr("Enter a folder inside the workspace.")
+              : undefined,
+      })
+    )?.trim();
     if (!destination) return;
     cloning = true;
     o.kernel.context.set("gitCloning", true);
@@ -1046,6 +1106,7 @@ export function createFeature(o: FeatureOptions): Extension {
     const message = commitMessage;
     const setMessage = (value: string) => {
       commitMessage = value;
+      saveDraft();
       changed();
     };
     const view = currentView();
@@ -1916,6 +1977,14 @@ export function createFeature(o: FeatureOptions): Extension {
     },
     activate(ctx) {
       disposed = false;
+      void persistence
+        ?.get<string>(draftKey)
+        .then((draft) => {
+          if (disposed || typeof draft !== "string" || commitMessage) return;
+          commitMessage = savedDraft = draft;
+          changed();
+        })
+        .catch(() => {});
       ctx.own(
         ctx.services.register("git", {
           status: () => status,
@@ -1990,7 +2059,14 @@ export function createFeature(o: FeatureOptions): Extension {
       );
       command("git.stashes", "Manage Stashes", () => showSection("stashes"));
       const stashSave = async (includeUntracked: boolean) => {
-        const message = (await o.workbench.prompt(tr("Stash message")))?.trim();
+        const message = (
+          await o.workbench.prompt(tr("Stash message"), {
+            action: "Stash",
+            placeholder: "Work in progress",
+            validate: (value) =>
+              value.trim() ? undefined : tr("Enter a stash message."),
+          })
+        )?.trim();
         if (!message) return;
         if (await perform("stashSave", { message, includeUntracked }))
           showSection("stashes");
@@ -2000,7 +2076,13 @@ export function createFeature(o: FeatureOptions): Extension {
         stashSave(false),
       );
       command("git.branchCreate", "Create Branch", async () => {
-        const name = await o.workbench.prompt(tr("New branch name"));
+        const name = (
+          await o.workbench.prompt(tr("New branch name"), {
+            action: "Create Branch",
+            placeholder: "feature/my-change",
+            validate: branchNameError,
+          })
+        )?.trim();
         if (name) await perform("branchCreate", { name });
       });
       command("git.publish", "Publish Branch", pushOrPublish);
@@ -2155,6 +2237,7 @@ export function createFeature(o: FeatureOptions): Extension {
       schedule();
       ctx.subscribe(() => {
         disposed = true;
+        if (draftTimer) saveDraft(true);
         clearTimeout(timer);
         clearTimeout(refreshTimer);
         fetchController?.abort();
