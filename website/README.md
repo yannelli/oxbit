@@ -19,7 +19,9 @@ npm run deploy
 dashboard under Workers & Pages → oxbit → Settings → Domains & Routes.
 
 The hero's version label is `<span data-version>` in `public/index.html`; `bun run release`
-updates it with the other version files.
+updates it with the other version files. The hero's platform picker builds its direct
+release download links from that label, so the release asset names in its `data-asset`
+attributes must match the names the Release workflow uploads.
 
 ## Local preview
 
@@ -51,7 +53,7 @@ Check desktop and mobile layouts in the local preview after visual changes.
 | `public/changelog/`, `public/faq/` | Dated release highlights and direct answers |
 | `public/about/`, `public/support/`, `public/security/`, `public/privacy/` | Project, help, trust boundaries, and privacy |
 | `public/404.html` | Not-found page |
-| `public/styles.css`, `public/main.js` | Styling, scroll reveal, copy buttons, terminal animation, feature group navigation |
+| `public/styles.css`, `public/main.js` | Styling, scroll reveal, hero platform picker, copy buttons, terminal animation, feature group navigation |
 | `public/pages.css` | Shared navigation, subpages, feature sections and mockups, and responsive styles |
 | `public/sitemap.xml`, `public/robots.txt` | Canonical page discovery |
 | `check.mjs` | Static content and navigation checks |
