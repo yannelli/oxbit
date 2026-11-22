@@ -324,9 +324,12 @@ test("a system notification reports a finished turn while Oxbit is in the backgr
     });
     const notifications = () => page.evaluate(() =>
       (window as any).__notifications.map((n: any) => ({ title: n.title, tag: n.options.tag, closed: n.closed })));
+    const finishedToast = page.locator(".toasts").getByRole("status").filter({ hasText: "Agent finished" });
+    const dismissToast = finishedToast.getByRole("button", { name: "Dismiss notification" });
     await panel.getByRole("textbox", { name: "Message agent" }).fill("hello");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
     await expect.poll(notifications).toEqual([{ title: "Agent finished", tag: "oxbit-agent-acp", closed: false }]);
+    await dismissToast.click();
     await page.evaluate(() => (window as any).__oxbit.workbench.openPanel("agent-acp-agents"));
     await expect(panel).toBeHidden();
     await page.evaluate(() => (window as any).__notifications[0].onclick());
@@ -339,10 +342,11 @@ test("a system notification reports a finished turn while Oxbit is in the backgr
     await panel.getByRole("textbox", { name: "Message agent" }).fill("unfocused");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
     await expect.poll(async () => (await notifications()).length).toBe(2);
+    await dismissToast.click();
     await page.evaluate(() => (window as any).__oxbit.kernel.configuration.set("agentACP.notifications", "never", "user"));
     await panel.getByRole("textbox", { name: "Message agent" }).fill("again");
     await panel.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(page.locator(".toasts .notification").filter({ hasText: "Agent finished" }).first()).toBeVisible();
+    await expect(finishedToast).toBeVisible();
     expect(await notifications()).toHaveLength(2);
   } finally {
     await close();
