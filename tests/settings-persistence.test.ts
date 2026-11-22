@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -49,6 +49,26 @@ it("saves UI settings to JSON, reloads external files and merges objects in the 
   expect(JSON.parse(await fs.readFile(store.paths[3], "utf8")).number).toBe(5);
   kernel.configuration.reset("number", "workspace"); await kernel.configuration.flush!();
   expect(kernel.configuration.get("number")).toBe(1);
+});
+it("keeps a reset made while an older settings read is in flight", async () => {
+  const { store, create, emit } = await fixture();
+  await fs.writeFile(store.paths[0], '{"number":2}');
+  const { kernel } = await create();
+  const snapshot = await store.read();
+  let finishRead!: (value: typeof snapshot) => void;
+  const delayedRead = new Promise<typeof snapshot>(resolve => { finishRead = resolve; });
+  const read = vi.spyOn(store, "read").mockReturnValueOnce(delayedRead);
+  emit("settings.changed");
+  await expect.poll(() => read.mock.calls.length).toBeGreaterThan(0);
+
+  const observed: number[] = [];
+  cleanup.push(kernel.configuration.subscribe(() => observed.push(kernel.configuration.get<number>("number"))));
+  kernel.configuration.reset("number");
+  finishRead(snapshot);
+  await kernel.configuration.flush!();
+  expect(observed).not.toContain(2);
+  expect(kernel.configuration.get("number")).toBe(1);
+  expect((await store.read()).layers.user).not.toHaveProperty("number");
 });
 it("recovers offline changes after recreating the client without replacing unrelated disk values", async () => {
   const { store, runtime, create, emit } = await fixture(), first = await create();

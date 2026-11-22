@@ -1,6 +1,6 @@
 # JSON settings
 
-Created: 2026-09-08. Last updated: 2026-10-12.
+Created: 2026-09-08. Last updated: 2026-11-22.
 
 Oxbit merges settings in this order, from lowest to highest priority:
 
@@ -69,6 +69,8 @@ The generator discovers feature configuration modules and reads the same declara
 ## Editing and persistence
 
 The Settings UI's **User** scope writes to the user file. **Workspace** writes to the highest-priority existing workspace file, defaulting to the UUID file. Saves patch only changed properties and preserve other JSON properties. Reset removes the property from the active file, exposing any value inherited from a lower file; it does not delete lower overrides.
+
+If you edit or reset a setting while Oxbit reads the settings files, Oxbit keeps your new value when the read finishes.
 
 Changes on disk reload automatically across connected windows, including atomic editor saves and creation/deletion of optional files. Invalid JSON keeps the last valid contents of that file and reports the problem; Oxbit does not overwrite it. On a fresh runtime, an invalid file contributes no values until fixed. Strict JSON is required: comments and trailing commas are not supported. Files are limited to 256 KiB each.
 
