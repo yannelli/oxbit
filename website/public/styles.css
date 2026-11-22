@@ -121,34 +121,7 @@ code, pre, kbd { font-family: var(--mono); }
 }
 .hero-sub { margin-top: 28px; max-width: 62ch; font-size: clamp(1.05rem, 1.5vw, 1.25rem); color: var(--muted); text-wrap: pretty; }
 .hero-cta { margin-top: 36px; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
-
-/* Hero platform picker: every panel shares one grid cell so switching never moves the page */
-.get-tabs {
-  display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px;
-  border: 1px solid var(--line); background: rgba(20, 22, 26, 0.7);
-}
-.get-tab {
-  position: relative; padding: 6px 16px; border-radius: 999px; cursor: pointer;
-  font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.2s, background 0.2s;
-}
-.get-tab:hover { color: var(--text); }
-.get-tab input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-.get-tab:has(:checked) { color: var(--text); background: rgba(242, 243, 239, 0.08); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.get-tab:has(:focus-visible) { outline: 2px solid var(--mint); outline-offset: 2px; }
-.get-panels { display: grid; width: 100%; }
-.get-panel {
-  grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; gap: 14px;
-  visibility: hidden; opacity: 0; transform: translateY(6px);
-  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease), visibility 0s 0.3s;
-}
-.get:has([value="macos"]:checked) [data-panel="macos"],
-.get:has([value="linux"]:checked) [data-panel="linux"],
-.get:has([value="ios"]:checked) [data-panel="ios"],
-.get:has([value="cli"]:checked) [data-panel="cli"] { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
-.get-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.get-meta { font-size: 13.5px; color: var(--dim); }
-.get-meta a { color: var(--muted); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
-.get-meta a:hover { color: var(--text); }
+.hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
 .cmd {
   display: flex; align-items: center; gap: 12px; max-width: 100%;
@@ -437,7 +410,12 @@ kbd {
   .cmd code span { white-space: nowrap; }
   .hero-shot .window { max-width: 300px; margin-inline: auto; }
   .hero-shot .window-bar { display: none; }
-  .get-tab { padding: 6px 14px; }
+  .hero-buttons.is-ranked { column-gap: 24px; row-gap: 14px; }
+  .hero-buttons.is-ranked .btn:not(.btn-primary) {
+    padding: 0; border: 0; background: none; font-weight: 500; font-size: 14px;
+    color: var(--mint-2); text-decoration: underline; text-underline-offset: 4px;
+  }
+  .hero-buttons.is-ranked .btn-primary { flex-basis: 100%; justify-content: center; }
   .marquee { mask-image: none; -webkit-mask-image: none; }
   .marquee-track { width: auto; animation: none; flex-wrap: wrap; justify-content: center; gap: 12px 24px; padding: 0 16px; }
   .marquee-track [aria-hidden] { display: none; }

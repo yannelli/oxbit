@@ -224,7 +224,7 @@ export function createFeature(o: FeatureOptions): Extension {
               if (!line) line = undefined;
             }
             await o.workbench.openFile(target.path, { line });
-          })().catch((error) => o.workbench.notify(String(error), "error"));
+          })().catch((error) => o.workbench.notify(error, "error"));
         },
         dangerouslySetInnerHTML: { __html: preview.trust === trust && !error ? preview.html : "" },
       }),

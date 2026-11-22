@@ -1,12 +1,14 @@
 import {
+  useEffect,
   useRef,
   useId,
+  useState,
   useSyncExternalStore,
   type ReactNode,
   type KeyboardEvent,
 } from "react";
 import type { ACPSubagent } from "@oxbit/sdk";
-import { Icon, translate as tr } from "@oxbit/ui";
+import { getLocale, Icon, translate as tr } from "@oxbit/ui";
 import type { AgentController, AgentRequest } from "./controller.js";
 import { Markdown } from "./views.js";
 
@@ -26,6 +28,42 @@ const phases = {
   responding: "Responding",
   awaiting_input: "Awaiting input",
 };
+function formatDuration(ms: number) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const pad = (value: number) => String(value).padStart(2, "0");
+  if (total < 60) return tr("{0}s", { "0": total });
+  if (total < 3600)
+    return tr("{0}m {1}s", { "0": Math.floor(total / 60), "1": pad(total % 60) });
+  return tr("{0}h {1}m", {
+    "0": Math.floor(total / 3600),
+    "1": pad(Math.floor(total / 60) % 60),
+  });
+}
+const units: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["day", 86400],
+  ["hour", 3600],
+  ["minute", 60],
+];
+/** `value` as "2 minutes ago", re-rendered every 30 seconds; the absolute time is in `title`. */
+function RelativeTime({ value }: { value: string }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return <time>{value}</time>;
+  const seconds = Math.round((date.getTime() - now) / 1000);
+  const [unit, size] =
+    units.find(([, length]) => Math.abs(seconds) >= length) ??
+    (["second", 1] as const);
+  const format = new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" });
+  return (
+    <time dateTime={date.toISOString()} title={date.toLocaleString(getLocale())}>
+      {format.format(Math.round(seconds / size), unit)}
+    </time>
+  );
+}
 export function childStatus(child: ACPSubagent) {
   return tr(
     child.phase !== "unknown" &&
@@ -180,7 +218,7 @@ export function Subagents({
         ) : (
           <h2>{tr("Subagents")}</h2>
         )}
-        <span className="acp-agents-counts" role="status">
+        <span className="acp-agents-counts" aria-live="off">
           {agent.activeSubagentCount} {tr("active")} · {counts.completed}{" "}
           {tr("completed")} · {counts.failed} {tr("failed")}
         </span>
@@ -270,11 +308,9 @@ export function Subagents({
                   )}
                   <p className="muted">
                     {tr("Last observed activity")}:{" "}
-                    <time dateTime={detail.updatedAt}>
-                      {new Date(detail.updatedAt).toLocaleString()}
-                    </time>
+                    <RelativeTime value={detail.updatedAt} />
                     {detail.durationMs !== undefined
-                      ? ` · ${(detail.durationMs / 1000).toFixed(1)}s`
+                      ? ` · ${formatDuration(detail.durationMs)}`
                       : ""}
                   </p>
                   {requests.length > 0 && (
@@ -370,7 +406,9 @@ export function Subagents({
                                   )
                                 }
                               >
-                                {location.path}
+                                {typeof location.line === "number"
+                                  ? `${location.path}:${location.line + 1}`
+                                  : location.path}
                               </button>
                             ))}
                           </details>

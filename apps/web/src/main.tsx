@@ -199,7 +199,7 @@ function App() {
             next = await boot(await provider.open());
             next.workbench.set({ projectName: contribution!.title });
           } catch (failure) {
-            next.workbench.notify(String(failure), "error");
+            next.workbench.notify(failure, "error");
           }
         } else
           next.workbench.notify(
@@ -332,7 +332,7 @@ function App() {
           installSession(next);
           setOverlay(undefined);
         } catch (failure) {
-          session.workbench.notify(String(failure), "error");
+          session.workbench.notify(failure, "error");
         }
       }}
       openDirectory={async () => {
@@ -346,7 +346,7 @@ function App() {
           installSession(s);
           setOverlay(undefined);
         } catch (e) {
-          session.workbench.notify(String(e), "error");
+          session.workbench.notify(e, "error");
         }
       }}
       importWorkspace={async (file: File) => {
@@ -355,7 +355,7 @@ function App() {
           await browserFilesystem.import(archive);
           await useBrowserWorkspace();
         } catch (e) {
-          session.workbench.notify(String(e), "error");
+          session.workbench.notify(e, "error");
         }
       }}
     />

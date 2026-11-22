@@ -68,7 +68,8 @@ async function refresh(page: Page) {
 async function prompt(page: Page, text: string) {
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox").fill(text);
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  // Prompts label the primary button per action ("Create Branch", "Stash").
+  await dialog.locator(".dialog-actions .button.primary").click();
 }
 async function section(page: Page, name: string) {
   const toggle = page.locator(".scm-section-toggle", { hasText: name });

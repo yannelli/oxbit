@@ -13,16 +13,25 @@ export function RegistryBrowser({
   onDone(): void;
 }) {
   const [search, setSearch] = useState("");
+  const [failed, setFailed] = useState(false);
+  const load = () => {
+    setFailed(false);
+    void agent.action(() => agent.loadRegistry()).then(() => setFailed(!agent.registry));
+  };
   useEffect(() => {
-    if (!agent.registry) void agent.action(() => agent.loadRegistry());
+    if (!agent.registry) load();
   }, []);
   const query = search.trim().toLowerCase();
-  const agents = (agent.registry?.agents ?? []).filter(
-    (entry) =>
-      !query ||
-      `${entry.name} ${entry.id} ${entry.description}`.toLowerCase().includes(query),
-  );
-  const choose = (entry: ACPRegistryAgent) =>
+  // Available agents first; Array.prototype.sort is stable, so the registry order holds otherwise.
+  const agents = (agent.registry?.agents ?? [])
+    .filter(
+      (entry) =>
+        !query ||
+        `${entry.name} ${entry.id} ${entry.description}`.toLowerCase().includes(query),
+    )
+    .sort((a, b) => Number(!a.available) - Number(!b.available));
+  const choose = (entry: ACPRegistryAgent) => {
+    if (!entry.available || agent.connecting) return;
     void agent.action(async () => {
       await agent.select(
         entry.builtin
@@ -31,6 +40,7 @@ export function RegistryBrowser({
       );
       onDone();
     });
+  };
   return (
     <section className="acp-registry" aria-label={tr("ACP Registry")}>
       <div className="acp-registry-heading">
@@ -45,10 +55,25 @@ export function RegistryBrowser({
           value={search}
           autoFocus
           onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape" || !search) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setSearch("");
+          }}
         />
       </label>
-      {agent.registry?.error && (
-        <p className="muted">{tr("Showing a cached list. The registry could not be reached.")}</p>
+      {(agent.registry?.error || (failed && !agent.registry && !agent.registryLoading)) && (
+        <div className="acp-registry-retry">
+          <p className="muted">
+            {agent.registry
+              ? tr("Showing a cached list. The registry could not be reached.")
+              : tr("The registry could not be loaded.")}
+          </p>
+          <button type="button" className="button" disabled={agent.registryLoading} onClick={load}>
+            {tr("Retry")}
+          </button>
+        </div>
       )}
       {agent.registryLoading && !agent.registry && <p className="muted" role="status">{tr("Loading agents…")}</p>}
       {agent.registry && !agents.length && <p className="muted">{tr("No agents match your search")}</p>}
@@ -61,7 +86,7 @@ export function RegistryBrowser({
               type="button"
               className="acp-registry-entry"
               aria-pressed={agent.chosen.provider === (entry.builtin ?? entry.id)}
-              disabled={!entry.available || agent.connecting}
+              aria-disabled={!entry.available || agent.connecting}
               onClick={() => choose(entry)}
             >
               <span className="acp-registry-title">

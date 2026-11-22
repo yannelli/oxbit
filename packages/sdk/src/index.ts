@@ -488,6 +488,24 @@ export interface NotifyOptions {
   actions?: { title: string; command: string; args?: unknown }[];
   source?: string;
 }
+export interface PromptOptions {
+  /** Initial value. */
+  value?: string;
+  /** Primary button label in English; the dialog translates it. Default "OK". */
+  action?: string;
+  /** English placeholder; translated by the dialog. */
+  placeholder?: string;
+  /** Helper text shown above the input; translated by the dialog. */
+  message?: string;
+  /** Masked input without autocomplete or spellcheck. */
+  secret?: boolean;
+  /** Textarea; Enter inserts a newline and Mod-Enter submits. */
+  multiline?: boolean;
+  /** Initial selection; default "all" when value is set. */
+  select?: "all" | "basename" | "end";
+  /** Return a translated error message to block submit and show it inline. */
+  validate?(value: string): string | undefined;
+}
 export interface WorkbenchService {
   ask(
     title: string,
@@ -495,7 +513,7 @@ export interface WorkbenchService {
     choices?: string[],
     danger?: boolean,
   ): Promise<string | undefined>;
-  prompt(title: string, value?: string): Promise<string | undefined>;
+  prompt(title: string, valueOrOptions?: string | PromptOptions): Promise<string | undefined>;
   openFile(
     path: string,
     options?: {
@@ -528,7 +546,8 @@ export interface WorkbenchService {
     options?: OpenViewOptions,
   ): void;
   split(direction: "row" | "column"): string | undefined;
-  notify(message: string, type?: string, options?: NotifyOptions): void;
+  /** Errors show their message; a leading "Error: " is dropped. */
+  notify(message: unknown, type?: string, options?: NotifyOptions): void;
   showContextMenu(
     location: string,
     x: number,

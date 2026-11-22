@@ -15,6 +15,13 @@ export function Extensions({
   useSyncExternalStore(workbench.subscribe, workbench.snapshot);
   const [query, setQuery] = useState("");
   const extensions = kernel.extensions.list();
+  const needle = query.trim().toLowerCase();
+  const matches = extensions.filter((e) => {
+    const description = e.manifest.description || "";
+    return `${e.manifest.name} ${e.manifest.id} ${description} ${description ? tr(description) : ""}`
+      .toLowerCase()
+      .includes(needle);
+  });
   return (
     <div className="extensions-list">
       <div className="search-input">
@@ -23,6 +30,12 @@ export function Extensions({
           placeholder={tr("Search installed extensions")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Escape" || !query) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setQuery("");
+          }}
         />
         <IconButton
           icon="plus"
@@ -40,51 +53,53 @@ export function Extensions({
       <div className="section-label">
         {tr("Installed")} <span className="push">{extensions.length}</span>
       </div>
-      {extensions
-        .filter((e) =>
-          `${e.manifest.name} ${e.manifest.id}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-        )
-        .map((e) => (
-          <button
-            className="extension-card"
-            key={e.manifest.id}
-            onClick={() =>
-              workbench.openView(
-                "extension:" + e.manifest.id,
-                e.manifest.name,
-                ExtensionDetails,
-                {
-                  id: e.manifest.id,
-                  kernel,
-                  workbench,
-                },
-              )
-            }
-          >
-            <span className="extension-icon">
-              <ExtensionIcon manifest={e.manifest} kernel={kernel} size={24} />
-            </span>
-            <span>
-              <strong>{e.manifest.name}</strong>
-              <small>{tr(e.manifest.description || e.manifest.id)}</small>
-              <span className="muted">
-                {e.manifest.version} · {tr(e.state)}
-              </span>
-            </span>
-            <Icon
-              name={
-                e.state === "active"
-                  ? "check"
-                  : e.state === "failed"
-                    ? "warning"
-                    : "power"
-              }
-              size={13}
-            />
+      {needle && !matches.length && (
+        <div className="empty-state">
+          <p>{tr("No extensions match {0}", { "0": query.trim() })}</p>
+          <button className="button" onClick={() => setQuery("")}>
+            {tr("Clear search")}
           </button>
-        ))}
+        </div>
+      )}
+      {matches.map((e) => (
+        <button
+          className="extension-card"
+          key={e.manifest.id}
+          onClick={() =>
+            workbench.openView(
+              "extension:" + e.manifest.id,
+              e.manifest.name,
+              ExtensionDetails,
+              {
+                id: e.manifest.id,
+                kernel,
+                workbench,
+              },
+            )
+          }
+        >
+          <span className="extension-icon">
+            <ExtensionIcon manifest={e.manifest} kernel={kernel} size={24} />
+          </span>
+          <span>
+            <strong>{e.manifest.name}</strong>
+            <small>{tr(e.manifest.description || e.manifest.id)}</small>
+            <span className="muted">
+              {e.manifest.version} · {tr(e.state)}
+            </span>
+          </span>
+          <Icon
+            name={
+              e.state === "active"
+                ? "check"
+                : e.state === "failed"
+                  ? "warning"
+                  : "power"
+            }
+            size={13}
+          />
+        </button>
+      ))}
       <p className="small muted padded">
         {tr(
           "Install a trusted ESM artifact by URL. Extensions execute with this application's browser or runtime privileges.",
@@ -319,6 +334,8 @@ export function ExtensionDetails({
     </div>
   );
 }
+const validateExtensionUrl = (value: string) =>
+  value.trim() ? undefined : tr("Enter an extension URL.");
 export function createFeature({
   kernel,
   workbench,
@@ -378,7 +395,13 @@ export function createFeature({
           title: "Install Extension…",
           category: "Extensions",
           run: async () => {
-            const url = await workbench.prompt(tr("Trusted extension ESM URL"));
+            const url = (
+              await workbench.prompt(tr("Trusted extension ESM URL"), {
+                action: "Install",
+                placeholder: "https://example.com/extension.js",
+                validate: validateExtensionUrl,
+              })
+            )?.trim();
             if (!url) return;
             if (
               (await workbench.ask(
@@ -419,7 +442,13 @@ export function createFeature({
           category: "Extensions",
           run: async (args: unknown) => {
             const { id } = args as { id: string };
-            const url = await workbench.prompt(tr("Trusted update ESM URL"));
+            const url = (
+              await workbench.prompt(tr("Trusted update ESM URL"), {
+                action: "Update",
+                placeholder: "https://example.com/extension.js",
+                validate: validateExtensionUrl,
+              })
+            )?.trim();
             if (!url) return;
             const mod = await import(/* @vite-ignore */ url);
             const extension = (mod.default || mod.extension) as Extension;

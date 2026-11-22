@@ -163,9 +163,13 @@ export function Dialog({
     const prior = document.activeElement as HTMLElement | null;
     const el = ref.current;
     (initialFocus ? el?.querySelector<HTMLElement>(initialFocus) : undefined)?.focus();
-    if (!initialFocus || !el?.contains(document.activeElement)) el?.querySelector<HTMLElement>(
-      'input:not([hidden]),textarea,button,select,a[href],summary,[tabindex="0"]',
-    )?.focus();
+    if (el && (!initialFocus || !el.contains(document.activeElement))) {
+      // Prefer the first control in the body; the title's close button is the fallback.
+      const controls = Array.from(el.querySelectorAll<HTMLElement>(
+        'input:not([hidden]),textarea,button,select,a[href],summary,[tabindex="0"]',
+      )).filter(element => !element.matches(":disabled"));
+      (controls.find(element => !element.closest(".dialog-title")) ?? controls[0])?.focus();
+    }
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();

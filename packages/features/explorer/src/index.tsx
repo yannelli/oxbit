@@ -77,7 +77,7 @@ export function Explorer({
     else
       void workbench
         .openFile(e.path, { preview })
-        .catch((error) => workbench.notify(String(error), "error"));
+        .catch((error) => workbench.notify(error, "error"));
   };
   const menu = (e: React.MouseEvent, path?: string) => {
     e.preventDefault();
@@ -399,15 +399,24 @@ export function createFeature({
             const dir = parent();
             const name = await workbench.prompt(
               folder ? tr("New Folder") : tr("New File"),
+              {
+                action: "Create",
+                placeholder: folder
+                  ? "Folder name or relative path"
+                  : "File name or relative path",
+                message: dir ? tr("Location: {0}", { "0": dir }) : undefined,
+                validate: (value) =>
+                  !value
+                    ? tr("Enter a name.")
+                    : value.startsWith("/") ||
+                        value.split("/").some((p) => p === ".." || !p)
+                      ? tr(
+                          "Enter a relative path without empty or parent segments.",
+                        )
+                      : undefined,
+              },
             );
             if (!name) return;
-            if (
-              name.startsWith("/") ||
-              name.split("/").some((p) => p === ".." || !p)
-            )
-              throw new Error(
-                "Enter a relative path without empty or parent segments.",
-              );
             const path = (dir ? dir + "/" : "") + name;
             if (folder) await filesystem.mkdir(path);
             else await filesystem.write(path, "", { expectedRevision: null });
@@ -458,10 +467,17 @@ export function createFeature({
       cmd("file.rename", "Rename…", async () => {
         const from = workbench.state.selectedPath || workbench.activePath();
         if (!from) return;
-        const value = await workbench.prompt(
-          tr("Rename"),
-          from.split("/").pop(),
-        );
+        const value = await workbench.prompt(tr("Rename"), {
+          value: from.split("/").pop(),
+          action: "Rename",
+          select: "basename",
+          validate: (next) =>
+            !next.trim() || next === "." || next === ".."
+              ? tr("Enter a name.")
+              : next.includes("/")
+                ? tr('A name cannot contain "/".')
+                : undefined,
+        });
         if (!value || value === from.split("/").pop()) return;
         await kernel.commands.execute("file.move", {
           from,

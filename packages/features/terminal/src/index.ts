@@ -199,7 +199,13 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   const rename = (session: Session) => {
     void o.workbench
-      .prompt(tr("Terminal name"), session.name)
+      .prompt(tr("Terminal name"), {
+        value: session.name,
+        action: "Rename",
+        placeholder: "Terminal name",
+        validate: (value) =>
+          value.trim() ? undefined : tr("Enter a terminal name."),
+      })
       .then((name) => {
         if (name?.trim()) {
           session.name = name.trim();
@@ -209,7 +215,7 @@ export function createFeature(o: FeatureOptions): Extension {
   };
   const close = (session: Session) => {
     void kill(session.id).catch((error) =>
-      o.workbench.notify(String(error), "error"),
+      o.workbench.notify(error, "error"),
     );
   };
   const sessionActions = (session: Session) => [
@@ -290,7 +296,7 @@ export function createFeature(o: FeatureOptions): Extension {
       const data = terminal.onData((input) => {
         if (session.exitCode !== undefined) return;
         void request("terminal.input", { id: session.id, data: input }).catch(
-          (error) => o.workbench.notify(String(error), "error"),
+          (error) => o.workbench.notify(error, "error"),
         );
       });
       const updateTheme = () => {
@@ -423,10 +429,10 @@ export function createFeature(o: FeatureOptions): Extension {
         React.createElement("div", { className: "terminal-actions" },
           ...(current && !split ? sessionActions(current) : []),
           React.createElement("button", { className: "button terminal-new", disabled: !o.runtime?.connected, "aria-label": tr("New terminal"), title: tr("New terminal"),
-            onClick: () => { void o.kernel.commands.execute("terminal.new").catch(error => o.workbench.notify(String(error), "error")); } },
+            onClick: () => { void o.kernel.commands.execute("terminal.new").catch(error => o.workbench.notify(error, "error")); } },
             React.createElement(Icon, { name: "plus", size: 14 }), React.createElement("span", null, tr("New terminal"))),
           React.createElement(IconButton, { icon: "splitR", label: tr("Split terminal"), disabled: !current || !o.runtime?.connected,
-            onClick: () => { void o.kernel.commands.execute("terminal.split").catch(error => o.workbench.notify(String(error), "error")); } }),
+            onClick: () => { void o.kernel.commands.execute("terminal.split").catch(error => o.workbench.notify(error, "error")); } }),
           split && React.createElement(IconButton, { icon: "layoutSide", label: tr("Show single terminal"), onClick: () => { split = false; changed(); } }))),
       !current &&
         React.createElement(

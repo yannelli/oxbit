@@ -31,20 +31,19 @@
     revealed.forEach((el) => io.observe(el));
   }
 
-  const picker = document.querySelector('[data-get]');
-  if (picker) {
-    // Release asset names carry the version, which `bun run release` keeps current in the data-version label.
-    const version = document.querySelector('[data-version]')?.textContent.trim().replace(/^v/, '');
-    if (version) {
-      picker.querySelectorAll('[data-asset]').forEach((link) => {
-        link.href = `https://github.com/yannelli/oxbit/releases/download/v${version}/${link.dataset.asset.replace('{version}', version)}`;
+  const heroButtons = document.querySelector('[data-hero-buttons]');
+  if (heroButtons) {
+    const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const primary = heroButtons.querySelector(`[data-hero-action="${isAppleMobile ? 'ios' : 'install'}"]`);
+    if (primary) {
+      heroButtons.querySelectorAll('.btn').forEach((link) => {
+        link.classList.toggle('btn-primary', link === primary);
+        link.classList.toggle('btn-ghost', link !== primary);
       });
+      heroButtons.prepend(primary);
+      heroButtons.classList.add('is-ranked');
     }
-    const ua = navigator.userAgent;
-    const isAppleMobile = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    const platform = isAppleMobile ? 'ios' : /Linux/.test(ua) && !/Android/.test(ua) ? 'linux' : '';
-    const radio = platform && picker.querySelector(`input[value="${platform}"]`);
-    if (radio) radio.checked = true;
   }
 
   document.querySelectorAll('[data-copy]').forEach((button) => {

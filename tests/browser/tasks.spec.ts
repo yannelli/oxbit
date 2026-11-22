@@ -178,11 +178,11 @@ test("saves lifecycle scripts and executes them around managed worktree creation
     .fill("test/tasks-ui");
   await page
     .getByRole("dialog", { name: "New worktree branch" })
-    .getByRole("button", { name: "Save", exact: true })
+    .getByRole("button", { name: "Next", exact: true })
     .click();
   await page
     .getByRole("dialog", { name: "Create worktree from revision" })
-    .getByRole("button", { name: "Save", exact: true })
+    .getByRole("button", { name: "Create Worktree", exact: true })
     .click();
   const tree = page.locator(".task-worktree");
   await expect(tree).toContainText("test/tasks-ui");

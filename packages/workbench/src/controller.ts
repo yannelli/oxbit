@@ -17,7 +17,9 @@ import type {
   Persistence,
   OpenViewOptions,
   NotifyOptions,
+  PromptOptions,
 } from "@oxbit/sdk";
+export type { PromptOptions } from "@oxbit/sdk";
 export interface OpenOptions {
   line?: number;
   col?: number;
@@ -52,7 +54,18 @@ export interface Notification {
   ttl?: number;
   actions?: NotifyOptions["actions"];
   source?: string;
+  /** Times the same message arrived while it was still on screen. */
+  count?: number;
 }
+/** Errors show their message; a leading "Error: " is dropped. */
+export const notificationMessage = (message: unknown) => {
+  const text = message instanceof Error ? message.message || String(message) : String(message);
+  return text.startsWith("Error: ") ? text.slice(7) : text;
+};
+export const notificationTtl = (type: string, ttl?: number) =>
+  ttl === undefined ? (type === "error" ? 15000 : 6500) : Math.max(0, ttl);
+export const notificationVisible = (notification: Notification, now = Date.now()) =>
+  notification.ttl === 0 || now - notification.time < (notification.ttl ?? 6500);
 export interface ViewBadge {
   count: number;
   label: string;
@@ -102,6 +115,11 @@ export interface WorkbenchState {
     value?: string;
     input?: boolean;
     danger?: boolean;
+    placeholder?: string;
+    secret?: boolean;
+    multiline?: boolean;
+    select?: PromptOptions["select"];
+    validate?: PromptOptions["validate"];
     choices: string[];
     resolve: (value: string | undefined, input?: string) => void;
   };
@@ -152,6 +170,7 @@ export class WorkbenchController {
   private fileOpenRequests = new Map<string, number>();
   private nextFileOpenRequest = 0;
   private editorNavigation = 0;
+  private toastsPausedAt?: number;
   constructor(
     readonly kernel: Kernel,
     readonly documents: DocumentService,
@@ -816,7 +835,7 @@ export class WorkbenchController {
       if (location && !dockSides.includes(location.container as DockSide)) this.panelWindows.focusOrRestore(location.container);
     };
     reveal();
-    void this.kernel.extensions.trigger("onView:" + id).then(reveal).catch(error => this.notify(String(error), "error"));
+    void this.kernel.extensions.trigger("onView:" + id).then(reveal).catch(error => this.notify(error, "error"));
   }
   togglePanel(id: string) {
     const location = panelLocation(this.state.panelLayout, id);
@@ -913,22 +932,47 @@ export class WorkbenchController {
       menu: undefined,
     });
   }
-  notify(message: string, type = "info", options: NotifyOptions = {}) {
+  notify(input: unknown, type = "info", options: NotifyOptions = {}) {
+    const message = notificationMessage(input);
     if (message === "Cancelled") return;
-    const id = crypto.randomUUID();
+    const now = Date.now();
+    const visibleAt = this.toastNow();
+    const same = this.state.notifications.findLast(
+      (n) => n.message === message && n.type === type && n.source === options.source && notificationVisible(n, visibleAt),
+    );
+    const notification: Notification = {
+      id: same?.id ?? crypto.randomUUID(),
+      message,
+      type,
+      time: now,
+      ttl: notificationTtl(type, options.ttl),
+      actions: options.actions?.slice(0, 3),
+      source: options.source,
+      count: same ? (same.count ?? 1) + 1 : undefined,
+    };
     this.set({
       notifications: [
-        ...this.state.notifications,
-        {
-          id,
-          message,
-          type,
-          time: Date.now(),
-          ttl: options.ttl === undefined ? 6500 : Math.max(0, options.ttl),
-          actions: options.actions?.slice(0, 3),
-          source: options.source,
-        },
+        ...this.state.notifications.filter((n) => n !== same),
+        notification,
       ].slice(-100),
+    });
+  }
+  /** Time used for toast expiry; frozen while the toast stack is paused. */
+  toastNow() {
+    return this.toastsPausedAt ?? Date.now();
+  }
+  pauseToasts() {
+    this.toastsPausedAt ??= Date.now();
+  }
+  resumeToasts() {
+    const pausedAt = this.toastsPausedAt;
+    if (pausedAt === undefined) return;
+    this.toastsPausedAt = undefined;
+    const now = Date.now();
+    this.set({
+      notifications: this.state.notifications.map((n) =>
+        n.ttl === 0 ? n : { ...n, time: n.time + now - Math.max(n.time, pausedAt) },
+      ),
     });
   }
   async ask(
@@ -942,17 +986,25 @@ export class WorkbenchController {
       this.set({ dialog: { title, message, choices, danger, resolve } }),
     );
   }
-  async prompt(title: string, value = ""): Promise<string | undefined> {
+  async prompt(title: string, valueOrOptions: string | PromptOptions = {}): Promise<string | undefined> {
+    const options: PromptOptions = typeof valueOrOptions === "string" ? { value: valueOrOptions } : valueOrOptions;
+    const action = options.action ?? "OK";
     this.panelWindows.focusOwner();
     return new Promise((resolve) =>
       this.set({
         dialog: {
           title,
+          message: options.message,
           input: true,
-          value,
-          choices: ["Save", "Cancel"],
+          value: options.value ?? "",
+          placeholder: options.placeholder,
+          secret: options.secret,
+          multiline: options.multiline,
+          select: options.select,
+          validate: options.validate,
+          choices: [action, "Cancel"],
           resolve: (choice, input) =>
-            resolve(choice === "Save" ? input : undefined),
+            resolve(choice === action ? input : undefined),
         },
       }),
     );
@@ -995,7 +1047,7 @@ export class WorkbenchController {
         try {
           await this.documents.save(doc.path);
         } catch (e) {
-          this.notify(String(e), "error");
+          this.notify(e, "error");
           return;
         }
       } else doc.replace(doc.savedText);

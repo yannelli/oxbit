@@ -5,6 +5,7 @@ import type {
   TaskRun,
   TaskWorktree,
 } from "@oxbit/sdk";
+import { translate as tr } from "@oxbit/ui";
 import { createTaskViews, type TaskModel } from "./views.js";
 export type Task = {
   id: string;
@@ -197,7 +198,12 @@ export function createFeature(o: FeatureOptions): Extension {
     await refresh();
   };
   const run = async (command?: string) => {
-    command ??= await o.workbench.prompt("Workspace command", "npm test");
+    command ??= await o.workbench.prompt(tr("Workspace command"), {
+      value: "npm test",
+      action: "Run",
+      placeholder: "Command to run in the workspace",
+      validate: (value) => (value.trim() ? undefined : tr("Enter a command")),
+    });
     if (!command?.trim()) return;
     const record = await request<TaskRun>("tasks.run", { command });
     add(record);

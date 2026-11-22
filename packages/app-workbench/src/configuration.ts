@@ -166,8 +166,10 @@ export class ScopedConfigurationPersistence implements Persistence {
         if (this.disposed) return;
         try {
           await this.flush();
+          const snapshot = await this.runtime!.request<SettingsSnapshot>("settings.read");
+          // A local edit can arrive while the runtime is reading the settings file.
           if (this.pending.length || settingsChanges(this.local, kernel.configuration.export() as SettingsLayers).length) return;
-          this.apply(await this.runtime!.request<SettingsSnapshot>("settings.read"));
+          this.apply(snapshot);
           await this.cache();
         } catch (error) { this.failed("Settings reload failed", error); }
       });

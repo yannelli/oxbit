@@ -95,7 +95,7 @@ export class CollaborationService {
         this.changed();
         if (p.state === "connected")
           void this.resync().then(() => this.shareOpen()).catch((e) =>
-            o.workbench.notify(String(e), "error"),
+            o.workbench.notify(e, "error"),
           );
       }),
     );
@@ -123,7 +123,7 @@ export class CollaborationService {
       room = await runtime.request<Room>("collab.join", { path });
     } catch (error) {
       if (!["FORBIDDEN", "CAPABILITY_DENIED", "PERMISSION_DENIED"].includes((error as { code?: string }).code ?? ""))
-        this.o.workbench.notify(String(error), "error");
+        this.o.workbench.notify(error, "error");
       return;
     }
     const doc = this.o.documents.get(path);
@@ -203,7 +203,7 @@ export class CollaborationService {
           })
           .catch((e) => {
             this.state = "unsynced";
-            this.o.workbench.notify(String(e), "error");
+            this.o.workbench.notify(e, "error");
           });
       }
       this.changed();
@@ -253,7 +253,7 @@ export class CollaborationService {
         ),
       })
       .catch(() => {});
-    if (doc.dirty && this.o.runtime?.connected) void this.flush().catch(error => this.o.workbench.notify(String(error), "error"));
+    if (doc.dirty && this.o.runtime?.connected) void this.flush().catch(error => this.o.workbench.notify(error, "error"));
     this.changed();
   }
   async flush() {
@@ -367,10 +367,15 @@ export function createFeature(o: FeatureOptions): Extension {
         "button",
         { className: "button presence-rename",
           onClick: async () => {
-            const name = await o.workbench.prompt(
-              tr("Display name"),
-              localStorage.getItem("oxbit.presence.name") ?? "Guest",
-            );
+            const name = (
+              await o.workbench.prompt(tr("Display name"), {
+                value: localStorage.getItem("oxbit.presence.name") ?? "Guest",
+                action: "Save",
+                placeholder: "Your name",
+                validate: (value) =>
+                  value.trim() ? undefined : tr("Enter a display name."),
+              })
+            )?.trim();
             if (name) {
               localStorage.setItem("oxbit.presence.name", name);
               render(x => x + 1);

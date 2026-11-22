@@ -104,6 +104,14 @@ contributions supply SVG paths. See [the public types](../packages/sdk/src/index
 
 Workbench notifications accept an optional timeout and up to three command
 actions. Command IDs route those actions through the command registry.
+`notify` takes any value: an `Error` shows its message, and a leading
+"Error: " is dropped. Errors stay for 15 seconds and other notifications for
+6.5 seconds, and a repeat of a visible notification adds a count to it.
+`prompt(title, options)` takes `PromptOptions`: the primary button label
+(`action`, default "OK"), a placeholder, helper text, a masked or multiline
+input, the initial selection, and a `validate` callback that blocks submit
+and shows its message in the dialog. A string second argument is the
+initial value.
 `workspace.change` identifies opened and closed workspaces;
 `connection.change` reports the runtime connection state;
 `terminal.change` reports terminal lifecycle changes.

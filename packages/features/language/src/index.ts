@@ -192,7 +192,7 @@ export class RuntimeLanguageTransport implements LanguageTransport {
   notify(method: string, params: unknown) {
     void this.o.runtime
       ?.request("lsp.notify", { method, params, ...this.scope })
-      .catch((e) => this.o.workbench.notify(String(e), "error"));
+      .catch((e) => this.o.workbench.notify(e, "error"));
   }
   onNotification(fn: (method: string, params: any) => void) {
     return {
@@ -301,7 +301,7 @@ export class LanguageService {
       o.kernel.events.on("document.open", ({ path }) => {
         if (this.state === "ready")
           void this.syncDocument(path).catch((error) =>
-            o.workbench.notify(String(error), "error"),
+            o.workbench.notify(error, "error"),
           );
       }).dispose,
     );
@@ -312,7 +312,7 @@ export class LanguageService {
         ].find((doc) => doc.id === id);
         if (doc && this.state === "ready")
           void this.syncDocument(doc.path).catch((error) =>
-            o.workbench.notify(String(error), "error"),
+            o.workbench.notify(error, "error"),
           );
         if (doc && !this.providerContext && this.fenceHosts.has(doc.path)) this.updateFences(doc.path);
       }).dispose,
@@ -351,7 +351,7 @@ export class LanguageService {
               id: params.id,
               ...result,
             });
-          })().catch((error) => o.workbench.notify(String(error), "error"));
+          })().catch((error) => o.workbench.notify(error, "error"));
         }),
       );
     if (o.runtime && this.transport instanceof RuntimeLanguageTransport)
@@ -1332,8 +1332,8 @@ export class LanguageService {
                       try {
                         const transactions = completionTransactions(view.state, item, completion, from, to);
                         view.dispatch(transactions);
-                        if (item.command && view.state.doc.eq(transactions.at(-1)!.state.doc)) void source.snapshots().then(versions => source.applyCodeAction({ title: item.label, command: item.command }, versions)).catch(error => this.o.workbench.notify(String(error), "error"));
-                      } catch (error) { this.o.workbench.notify(String(error), "error"); }
+                        if (item.command && view.state.doc.eq(transactions.at(-1)!.state.doc)) void source.snapshots().then(versions => source.applyCodeAction({ title: item.label, command: item.command }, versions)).catch(error => this.o.workbench.notify(error, "error"));
+                      } catch (error) { this.o.workbench.notify(error, "error"); }
                     },
                   };
                 }),
@@ -1666,7 +1666,7 @@ export class LanguageService {
       for (const view of this.views.get(path) ?? []) showSignature(view, index, result);
     } catch (error) {
       if (this.state === "ready")
-        this.o.workbench.notify(String(error), "error");
+        this.o.workbench.notify(error, "error");
     }
   }
   async beforeSave(path: string, text: string, signal: AbortSignal): Promise<string> {
@@ -1994,7 +1994,7 @@ export function createFeature(o: FeatureOptions): Extension {
             onClick: () =>
               void selected
                 .start()
-                .catch((e) => o.workbench.notify(String(e), "error")),
+                .catch((e) => o.workbench.notify(e, "error")),
           },
           tr("Start language server"),
         ),
@@ -2057,7 +2057,7 @@ export function createFeature(o: FeatureOptions): Extension {
             key: i,
             style: { display: "block" },
             onClick: () =>
-              void (r.service ?? service).navigate(navigationTargets(r)[0], true, groupId).catch((error: unknown) => o.workbench.notify(String(error), "error")),
+              void (r.service ?? service).navigate(navigationTargets(r)[0], true, groupId).catch((error: unknown) => o.workbench.notify(error, "error")),
           },
           r.name ??
             `${decodeURI(r.uri ?? r.targetUri)}:${(r.range ?? r.targetSelectionRange).start.line + 1}`,
@@ -2219,7 +2219,12 @@ export function createFeature(o: FeatureOptions): Extension {
           const range = prepared.range ?? (prepared.start ? prepared : undefined), text = o.documents.get(path)!.text.toString();
           placeholder = prepared.placeholder ?? (range ? text.slice(offset(text, range.start), offset(text, range.end)) : "");
         }
-        const newName = await o.workbench.prompt(tr("Rename Symbol"), placeholder);
+        const newName = await o.workbench.prompt(tr("Rename Symbol"), {
+          value: placeholder,
+          action: "Rename",
+          placeholder: "New name",
+          validate: (value) => (value.trim() ? undefined : tr("Enter a new name.")),
+        });
         if (!newName) return;
         const versions = await target.snapshots(target.canUseLsp(path));
         const edit = await target.at("textDocument/rename", path, index, {
@@ -2276,7 +2281,7 @@ export function createFeature(o: FeatureOptions): Extension {
                         );
                       else await target.applyCodeAction(action, versions);
                       o.workbench.closeView("code-actions");
-                    })().catch((e) => o.workbench.notify(String(e), "error"));
+                    })().catch((e) => o.workbench.notify(e, "error"));
                   },
                 },
                 action.title,

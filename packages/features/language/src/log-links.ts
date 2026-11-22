@@ -27,7 +27,7 @@ export function logLinkExtensions(o: FeatureOptions) {
     const element = (event.target as HTMLElement)?.closest<HTMLElement>("[data-log-path]");
     if (!element) return false;
     event.preventDefault();
-    void Promise.resolve(o.workbench.openFile(element.dataset.logPath!, { line: Number(element.dataset.logLine), col: Number(element.dataset.logCol) })).catch(error => o.workbench.notify(String(error), "error"));
+    void Promise.resolve(o.workbench.openFile(element.dataset.logPath!, { line: Number(element.dataset.logLine), col: Number(element.dataset.logCol) })).catch(error => o.workbench.notify(error, "error"));
     return true;
   }
 }

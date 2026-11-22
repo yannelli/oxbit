@@ -1,12 +1,12 @@
 # Follow-ups ledger
 
-Created: 2026-10-21. Last updated: 2026-10-21.
+Created: 2026-10-21. Last updated: 2026-11-21.
 
 Work parked as "later" with no decision pending. Each PR updates the rows it opens or closes. Format and IDs: [README](README.md).
 
 | ID | Status | Item | Source | Updated |
 | --- | --- | --- | --- | --- |
-| F-001 | open | Full i18n coverage: route the hardcoded strings in `packages/features/tasks/src/views.tsx`, `packages/features/themes/src/manager.tsx` and the native menus in `apps/desktop/src-tauri/src/main.rs` through `tr()`, add keys to `packages/ui/src/locales/*.json`, and add a lint check for coverage | `packages/ui/src/locales` | 2026-10-21 |
+| F-001 | open | Full i18n coverage: route the native menus in `apps/desktop/src-tauri/src/main.rs` through translations and add a lint check for `tr()` coverage (tasks views and the theme manager were done on branch review-10-oxbit-ui-ux-areas) | `packages/ui/src/locales` | 2026-11-21 |
 | F-002 | open | Agent session fork works only from the latest message; iOS device folders have no `@` branch diff | `packages/features/agent-acp/src` | 2026-10-21 |
 | F-003 | open | The explorer tree and the runtime file watcher do not apply `.gitignore` (quick open and agent `@` search do) | `apps/runtime/src/runtime.ts`, `packages/features/explorer` | 2026-10-21 |
 | F-004 | open | Task dialogs use their own `task-dialog-actions` row; iOS Cancel Transfer stays disabled until the first progress update | `packages/features/tasks/src/views.tsx`, `apps/ios/src/ssh-transfer.tsx` | 2026-10-21 |
@@ -19,3 +19,4 @@ Work parked as "later" with no decision pending. Each PR updates the rows it ope
 | F-011 | open | The per-task loopback listener stays bound after the task stops | `apps/runtime/src` | 2026-10-21 |
 | F-012 | open | Record why basedpyright runs in JSContext instead of a WKWebView worker | `docs/ios-language-servers.md` | 2026-10-21 |
 | F-013 | open | markdown-it 14 renders `\|` in table code spans and a trailing `*` in linkified URLs differently from 10.0.0 | `package.json` | 2026-10-21 |
+| F-014 | open | Unit tests for `notify` (Error input, "Error: " strip, repeat count, 15 s error TTL, hover pause) and `prompt` (string and `PromptOptions`, validate, basename selection) in `packages/workbench/src/controller.test.ts` | `packages/workbench/src/controller.ts`, branch review-10-oxbit-ui-ux-areas | 2026-11-21 |

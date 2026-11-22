@@ -1,6 +1,6 @@
 # Settings UI
 
-Created: 2026-10-10. Last updated: 2026-10-10.
+Created: 2026-10-10. Last updated: 2026-11-21.
 
 This guide describes the Settings screen in `packages/features/settings` and the parts of Zed's Settings Editor it follows. For settings files, precedence, and the schema, see [JSON settings](settings.md).
 
@@ -55,6 +55,8 @@ Below 600px (`usePhone`, a `matchMedia("(max-width: 599px)")` hook), the content
 ### Edit as JSON
 
 Oxbit has no single settings.json editor tab for each scope and language layer, so the Edit as JSON dialog edits the layer shown in the header: user or workspace, or that scope's language layer when a language override is selected. Apply parses the JSON, calls `configuration.set` for changed keys and `configuration.reset` for removed keys, and leaves unchanged keys alone. If any call throws, `configuration.import` restores the snapshot taken before Apply and the dialog shows the error. Object settings keep their inline textarea.
+
+In the textarea, Tab inserts two spaces, Shift-Tab removes them, and Mod-Enter applies. A parse error shows its line and column and moves the caret there. Keys that are not registered settings and values of the wrong type are listed as warnings and do not block Apply (`json-tools.ts`). With unsaved edits, Escape, the backdrop and the close button ask to discard them inside the dialog; Cancel discards without asking.
 
 ## Tests
 

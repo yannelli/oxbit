@@ -75,6 +75,7 @@ import type { DocumentHandle } from "@oxbit/documents";
 import type { LanguageDefinition, Extension, Kernel } from "@oxbit/sdk";
 import { contributedLanguage, editorLanguageId } from "./languages.js";
 import { contributedDecorations } from "./decorations.js";
+import { Minimap, minimapListener } from "./minimap.js";
 import { commentFenceHighlighting, fenceCodeLanguages } from "./fence-syntax.js";
 import {
   captureView,
@@ -395,6 +396,7 @@ export function CodeEditor({
   const parent = useRef<HTMLDivElement>(null),
     viewRef = useRef<EditorView | null>(null);
   const [revision, setRevision] = useState(0);
+  const [liveView, setLiveView] = useState<EditorView | null>(null);
   const config = useRef(new Compartment()),
     lsp = useRef(new Compartment()),
     syntaxMode = useRef(new Compartment()),
@@ -445,7 +447,7 @@ export function CodeEditor({
             const marker = document.createElement("span");
             marker.className = "cm-fold-marker";
             marker.dataset.folded = String(!open);
-            marker.title = open ? "Fold code" : "Unfold code";
+            marker.title = open ? tr("Fold code") : tr("Unfold code");
             return marker;
           } }),
           dropCursor(),
@@ -482,6 +484,7 @@ export function CodeEditor({
             EditorState.readOnly.of(handle.readonly),
             EditorView.editable.of(!handle.readonly),
           ]),
+          minimapListener,
           EditorView.updateListener.of((update) => {
             if (
               update.selectionSet ||
@@ -539,6 +542,7 @@ export function CodeEditor({
       }),
     });
     viewRef.current = view;
+    setLiveView(view);
     workbench.editors.set(viewId, view);
     if (saved?.folds?.length)
       view.dispatch({
@@ -569,6 +573,7 @@ export function CodeEditor({
         workbench.editors.delete(viewId);
       view.destroy();
       viewRef.current = null;
+      setLiveView(null);
     };
   }, [handle, kernel, workbench, viewId]);
   useEffect(() => {
@@ -612,58 +617,9 @@ export function CodeEditor({
       />
       {kernel.configuration.get<boolean>("editor.minimap") &&
         handle.text.length <= LARGE_DOCUMENT_LENGTH && (
-          <Minimap handle={handle} view={viewRef.current} />
+          <Minimap view={liveView} />
         )}
     </div>
-  );
-}
-function Minimap({
-  handle,
-  view,
-}: {
-  handle: DocumentHandle;
-  view: EditorView | null;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const paint = () => {
-      const c = ref.current;
-      if (!c) return;
-      const ctx = c.getContext("2d");
-      if (!ctx) return;
-      ctx.clearRect(0, 0, c.width, c.height);
-      ctx.fillStyle = getComputedStyle(c).color;
-      handle.text
-        .toString()
-        .split("\n")
-        .slice(0, 450)
-        .forEach((line, i) =>
-          ctx.fillRect(
-            (line.match(/^\s*/)?.[0].length || 0) * 0.7,
-            i * 2,
-            Math.min(54, line.trim().length * 0.7),
-            1,
-          ),
-        );
-    };
-    paint();
-    handle.text.observe(paint);
-    return () => handle.text.unobserve(paint);
-  }, [handle]);
-  return (
-    <canvas
-      aria-label={tr("Document minimap")}
-      className="minimap"
-      width="60"
-      height="900"
-      ref={ref}
-      onClick={(e) => {
-        if (view)
-          view.scrollDOM.scrollTop =
-            (e.nativeEvent.offsetY / e.currentTarget.clientHeight) *
-            view.scrollDOM.scrollHeight;
-      }}
-    />
   );
 }
 export function createFeature({
