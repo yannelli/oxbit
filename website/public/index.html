@@ -84,39 +84,18 @@
           and open source under the MIT license. Connect the Node runtime for files, terminals, Git,
           tasks, language services, and agents.
         </p>
-        <div class="hero-cta get" data-reveal data-get>
-          <div class="get-tabs" role="radiogroup" aria-label="Platform">
-            <label class="get-tab"><input type="radio" name="get-platform" value="macos" checked />macOS</label>
-            <label class="get-tab"><input type="radio" name="get-platform" value="linux" />Linux</label>
-            <label class="get-tab"><input type="radio" name="get-platform" value="ios" />iOS</label>
-            <label class="get-tab"><input type="radio" name="get-platform" value="cli" />CLI</label>
+        <div class="hero-cta" data-reveal>
+          <div class="cmd" data-copy-root>
+            <span class="cmd-prompt">$</span>
+            <code data-copy-text>npm install -g @oxbit/cli <span>--allow-scripts=</span><wbr><span>@oxbit/cli,node-pty</span></code>
+            <button class="copy" type="button" aria-label="Copy install command" data-copy>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
           </div>
-          <div class="get-panels">
-            <div class="get-panel" data-panel="macos">
-              <a class="btn btn-primary" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener" data-asset="Oxbit_{version}_aarch64.dmg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download for macOS</a>
-              <p class="get-meta">Apple Silicon · macOS 26 or later</p>
-            </div>
-            <div class="get-panel" data-panel="linux">
-              <div class="get-row">
-                <a class="btn btn-primary" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener" data-asset="Oxbit_{version}_amd64.deb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download .deb</a>
-                <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener" data-asset="Oxbit_{version}_amd64.AppImage">AppImage</a>
-              </div>
-              <p class="get-meta">Ubuntu 24.04 or later on x64 · <a href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener">arm64 builds</a></p>
-            </div>
-            <div class="get-panel" data-panel="ios">
-              <a class="btn btn-primary" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener">Join the TestFlight beta</a>
-              <p class="get-meta">iPhone and iPad · iOS 26 or later</p>
-            </div>
-            <div class="get-panel" data-panel="cli">
-              <div class="cmd" data-copy-root>
-                <span class="cmd-prompt">$</span>
-                <code data-copy-text>npm install -g @oxbit/cli <span>--allow-scripts=</span><wbr><span>@oxbit/cli,node-pty</span></code>
-                <button class="copy" type="button" aria-label="Copy install command" data-copy>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-              </div>
-              <p class="get-meta">Needs Node 24, Git, and ripgrep · <a href="/get-started/#cli">Setup guide</a></p>
-            </div>
+          <div class="hero-buttons" data-hero-buttons>
+            <a class="btn btn-primary" href="/get-started/" data-hero-action="install">Install Oxbit</a>
+            <a class="btn btn-ghost" href="https://github.com/yannelli/oxbit/releases/latest" rel="noopener" data-hero-action="desktop">Download desktop app</a>
+            <a class="btn btn-ghost" href="https://testflight.apple.com/join/P2WqdUYS" rel="noopener" data-hero-action="ios">Join iOS TestFlight</a>
           </div>
         </div>
         <p class="home-proof"><a href="/changelog/">Latest release: <span data-version>v0.16.0</span></a> · <a href="/about/">Who maintains Oxbit</a> · <a href="/security/">How workspace trust works</a></p>
