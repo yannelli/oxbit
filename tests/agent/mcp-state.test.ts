@@ -18,7 +18,6 @@ const repo = path.resolve(import.meta.dirname, "../..");
 /** Flaky-test IDs in the repo ledger, which grows as flakes are logged. */
 const repoFlakes = () =>
   [...fs.readFileSync(path.join(repo, "docs/agents/ledgers/flaky-tests.md"), "utf8").matchAll(/^\| (T-\d{3}) \|/gm)].map((match) => match[1]!);
-const nextFlake = () => `T-${String(Math.max(0, ...repoFlakes().map((id) => Number(id.slice(2)))) + 1).padStart(3, "0")}`;
 const temps: string[] = [];
 const GIT_ENV = { ...process.env, GIT_CONFIG_COUNT: "3", GIT_CONFIG_KEY_0: "commit.gpgsign", GIT_CONFIG_VALUE_0: "false", GIT_CONFIG_KEY_1: "user.name", GIT_CONFIG_VALUE_1: "t", GIT_CONFIG_KEY_2: "user.email", GIT_CONFIG_VALUE_2: "t@example.com" };
 
@@ -139,12 +138,12 @@ describe("ledgers", () => {
   });
 
   it("adds, escapes, updates and filters rows", () => {
-    const dir = copyLedgers();
-    const id = nextFlake();
+    const dir = temp();
+    addEntry(dir, { ledger: "flaky-tests", item: "first flake", source: "run 41", date: "2026-10-31" });
     const added = addEntry(dir, { ledger: "flaky-tests", item: "a | b\nc", source: "run 42", date: "2026-11-01" });
-    expect(added.row.id).toBe(id);
+    expect(added.row.id).toBe("T-002");
     const text = fs.readFileSync(path.join(dir, "flaky-tests.md"), "utf8");
-    expect(text).toContain(`| ${id} | open | a \\| b c | run 42 | 2026-11-01 |`);
+    expect(text).toContain("| T-002 | open | a \\| b c | run 42 | 2026-11-01 |");
     expect(text).toContain("Last updated: 2026-11-01.");
     expect(parseLedger(text).at(-1).item).toBe("a | b c");
     updateEntry(dir, { ledger: "flaky-tests", id: "T-001", status: "done", date: "2026-11-02" });
