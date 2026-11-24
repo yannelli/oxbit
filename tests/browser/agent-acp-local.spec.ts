@@ -193,8 +193,14 @@ test("the ChatGPT plan signs in with a device code, shows expiry inline, cancels
   await panel.getByRole("button", { name: "Start Oxbit Agent" }).click();
   await expect(panel.getByRole("textbox", { name: "Message agent" })).toBeEnabled();
   const requests = await page.evaluate(() => (window as any).__models.requests);
-  expect(requests[0]).toEqual({ api: "chatgpt", method: "GET", path: "/codex/models?client_version=0.162.1" });
+  expect(requests[0]).toEqual({ api: "chatgpt", method: "GET", path: expect.stringMatching(/^\/codex\/models\?client_version=\d+\.\d+\.\d+$/) });
   expect(await page.evaluate(() => (window as any).__oxbit.kernel.services.get("agentACP").connection?.provider)).toBe("oxbit");
+  await panel.getByRole("button", { name: "Session settings", exact: true }).click();
+  const model = panel.getByRole("combobox", { name: "Model", exact: true });
+  await model.click();
+  await expect(page.getByRole("option", { name: "GPT-6.2-Sol", exact: true })).toBeVisible();
+  await page.getByRole("option", { name: "GPT-6.2-Astra", exact: true }).click();
+  await expect(model).toContainText("GPT-6.2-Astra");
 });
 
 test("the Claude plan choice points to Claude Agent on a runtime and keeps the saved API", async ({ page }) => {

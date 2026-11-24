@@ -54,14 +54,18 @@ describe("ChatGPT model list", () => {
       { id: "gpt-a", name: "GPT-A", contextWindow: 272000, efforts: [] },
       { id: "gpt-b", name: "GPT-B", contextWindow: 272000, efforts: [] },
     ]);
-    expect(requests).toEqual([{ api: "chatgpt", method: "GET", path: "/codex/models?client_version=0.162.1" }]);
+    expect(requests).toEqual([{ api: "chatgpt", method: "GET", path: "/codex/models?client_version=0.172.0" }]);
   });
   it("returns the bundled list when the request fails, the body has no models, or none is visible", async () => {
     const failing = { ...fakeModels([]).models, stream: () => { throw Object.assign(new Error("Unauthorized"), { status: 401, body: "" }); } };
     expect(await listModels(failing, { api: "chatgpt" })).toEqual(CHATGPT_MODELS);
     for (const list of [{ data: [{ id: "x" }] }, { models: [listed("hidden", 0, "hide")] }])
       expect((await listModels(fakeModels([], { list }).models, { api: "chatgpt" })).map((model) => model.id)).toEqual(CHATGPT_MODELS.map((model) => model.id));
-    expect(CHATGPT_MODELS[0].id).toBe("gpt-6.1-sol");
+    expect(CHATGPT_MODELS.slice(0, 3)).toMatchObject([
+      { id: "gpt-6.2-sol", contextWindow: 500000 },
+      { id: "gpt-6.2-astra", contextWindow: 272000 },
+      { id: "gpt-6.1-terra", contextWindow: 500000 },
+    ]);
     const aborted = AbortSignal.abort();
     await expect(listModels({ ...failing, stream: () => chunks(["{"]) }, { api: "chatgpt" }, aborted)).rejects.toThrow();
   });
