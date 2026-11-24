@@ -9,9 +9,12 @@ export interface CatalogCache {
 
 const OPENAI_WINDOW = { contextWindow: 1050000, maxOutput: 128000 };
 const CLAUDE_WINDOW = { contextWindow: 1000000, maxOutput: 128000 };
-/** From developers.openai.com/api/docs/models and platform.claude.com/docs/en/about-claude/models/overview, fetched 2026-10-11. */
+/** From developers.openai.com/api/docs/models and platform.claude.com/docs/en/about-claude/models/overview, new entries checked 2026-11-24. */
 export const BUILTIN_MODELS: Record<"openai" | "anthropic", ModelInfo[]> = {
   openai: [
+    { id: "gpt-6.2-sol", name: "GPT-6.2 Sol", ...OPENAI_WINDOW },
+    { id: "gpt-6.2-astra", name: "GPT-6.2 Astra", ...OPENAI_WINDOW },
+    { id: "gpt-6.1-terra", name: "GPT-6.1 Terra", ...OPENAI_WINDOW },
     { id: "gpt-6-astra", name: "GPT-6 Astra", ...OPENAI_WINDOW },
     { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", ...OPENAI_WINDOW },
     { id: "gpt-6-sol", name: "GPT-6 Sol", ...OPENAI_WINDOW },

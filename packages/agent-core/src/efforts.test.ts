@@ -13,6 +13,9 @@ const input = (effort?: string): ModelInput => ({ model: "m", system: "S", turns
 
 describe("reasoning levels per model", () => {
   it("uses the OpenAI family table for openai and chatgpt models the list does not describe", () => {
+    expect(of("openai", "gpt-6.2-sol")).toEqual(FIVE);
+    expect(of("openai", "gpt-6.2-astra")).toEqual(FIVE);
+    expect(of("openai", "gpt-6.1-terra")).toEqual(["none", ...FIVE]);
     expect(of("openai", "gpt-6.1-sol")).toEqual(FIVE);
     expect(of("openai", "gpt-6-astra")).toEqual(FIVE);
     expect(of("openai", "gpt-6-sol")).toEqual(["none", ...FIVE]);

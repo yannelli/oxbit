@@ -9,9 +9,10 @@ export const UNKNOWN_EFFORTS: readonly Effort[] = ["low", "medium", "high"];
 const FIVE = ["low", "medium", "high", "xhigh", "max"];
 const NONE_TO_MAX = ["none", ...FIVE];
 const NONE_TO_XHIGH = ["none", "low", "medium", "high", "xhigh"];
-/** Responses `reasoning.effort` by model ID prefix, from the developers.openai.com model pages on 2026-10-12.
+/** Responses `reasoning.effort` by model ID prefix, from the developers.openai.com model pages.
  * gpt-5.6 is from openai/codex models.json; the API docs list no levels for it. */
 const OPENAI: [string, Effort[]][] = [
+  ["gpt-6.2-sol", FIVE], ["gpt-6.2-astra", FIVE], ["gpt-6.1-terra", NONE_TO_MAX],
   ["gpt-6-astra", FIVE], ["gpt-6.1-sol", FIVE], ["gpt-6-sol", NONE_TO_MAX], ["gpt-6-luna", NONE_TO_MAX], ["gpt-5.6", FIVE],
   ["gpt-5.5", NONE_TO_XHIGH], ["gpt-5.4", NONE_TO_XHIGH], ["gpt-5.2", NONE_TO_XHIGH], ["gpt-5.1", ["none", "low", "medium", "high"]],
   ["gpt-5", ["minimal", "low", "medium", "high"]],

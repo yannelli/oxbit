@@ -1,6 +1,6 @@
 # Model APIs for the built-in Oxbit agent
 
-Created: 2026-10-10. Last updated: 2026-10-12.
+Created: 2026-10-10. Last updated: 2026-11-24.
 
 The Oxbit agent loop and model adapters live in `packages/agent-core/src/` (`@oxbit/agent-core`). `packages/features/agent-acp/src/local/runtime.ts` runs it in the app and sends model requests through the host's `AgentModels` service (`packages/sdk/src/agent-models.ts`). The host adds the saved key, pins the request to the API origin, and adds provider headers such as `anthropic-version`. JavaScript does not see the key. Each adapter builds the request body and turns the streamed body into text, reasoning, tool call, usage, and stop events.
 
@@ -48,7 +48,7 @@ References: [Create a response](https://developers.openai.com/api/reference/reso
 Added 2026-10-12. The host signs in with a device code (`AgentModels.chatgpt`), keeps the tokens in the keychain and adds the auth headers. `keys.has` reports a sign-in and `keys.remove` signs out.
 
 - Request: the OpenAI Responses body plus `include: ["reasoning.encrypted_content"]` and `tool_choice: "auto"`, with `store: false` (the backend rejects `true`) and without `max_output_tokens`. `instructions` is required. Events use the OpenAI Responses parser. Output items saved by the `openai` or `chatgpt` adapter replay; the `openai` adapter replays only its own.
-- Models: `GET /codex/models?client_version=0.162.1` returns `{models: ModelInfo[]}` (openai/codex `codex-rs/protocol/src/openai_models.rs`). The list keeps `visibility: "list"`, sorts by `priority`, and maps `slug`, `display_name` and `context_window`. A failed request or an empty list uses `CHATGPT_MODELS`, taken from openai/codex `codex-rs/models-manager/models.json` on 2026-10-12.
+- Models: `GET /codex/models?client_version=0.172.0` returns `{models: ModelInfo[]}` (openai/codex `codex-rs/protocol/src/openai_models.rs`). The list keeps `visibility: "list"`, sorts by `priority`, and maps `slug`, `display_name` and `context_window`. A failed request or an empty list uses `CHATGPT_MODELS`, from the [Codex 0.172.0 catalog](https://github.com/openai/codex/blob/rust-v0.172.0/codex-rs/models-manager/models.json). Update the query version and bundled list together: Codex omits models that require a newer client.
 
 ## Chat Completions (`openai-compatible`)
 
@@ -99,12 +99,12 @@ Added 2026-10-12. `agent-core/src/efforts.ts` gives each model its levels, lowes
 
 The `chatgpt` list drops `ultra` and `persistent`. The Codex client resolves `ultra` to `multi_agent_reasoning_effort`, else `max`, and adds task delegation; it sends `persistent` as `disabled` (`codex-rs/protocol/src/openai_models/reasoning_effort.rs`, 2026-10-12). OpenRouter documents `reasoning_effort` as equivalent to `reasoning.effort`, so the adapter sends one field for every OpenAI-compatible server.
 
-`openai` table, from the developers.openai.com model pages on 2026-10-12. An ID matches a row when it equals the prefix or starts with the prefix and `-`.
+`openai` table, from the OpenAI model pages, including [GPT-6.2 Sol](https://developers.openai.com/api/docs/models/gpt-6.2-sol), [GPT-6.2 Astra](https://developers.openai.com/api/docs/models/gpt-6.2-astra) and [GPT-6.1 Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra). An ID matches a row when it equals the prefix or starts with the prefix and `-`.
 
 | Model ID prefix | `reasoning.effort` |
 | --- | --- |
-| `gpt-6-astra`, `gpt-6.1-sol` | `low`, `medium`, `high`, `xhigh`, `max` |
-| `gpt-6-sol`, `gpt-6-luna` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
+| `gpt-6.2-sol`, `gpt-6.2-astra`, `gpt-6.1-sol`, `gpt-6-astra` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `gpt-6.1-terra`, `gpt-6-sol`, `gpt-6-luna` | `none`, `low`, `medium`, `high`, `xhigh`, `max` |
 | `gpt-5.6` | `low`, `medium`, `high`, `xhigh`, `max` (openai/codex `models.json`; the API docs list no levels) |
 | `gpt-5.5`, `gpt-5.4`, `gpt-5.2` | `none`, `low`, `medium`, `high`, `xhigh` |
 | `gpt-5.1` | `none`, `low`, `medium`, `high` |

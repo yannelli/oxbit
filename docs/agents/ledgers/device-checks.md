@@ -1,6 +1,6 @@
 # Device checks ledger
 
-Created: 2026-10-21. Last updated: 2026-11-21.
+Created: 2026-10-21. Last updated: 2026-11-24.
 
 On-device and on-screen checks that have not run. Link each to its `docs/testflight/X.Y.Z.md` when one exists. Run them through the Terminal `.command` route before calling them user-only. Format and IDs: [README](README.md).
 
@@ -17,3 +17,4 @@ On-device and on-screen checks that have not run. Link each to its `docs/testfli
 | D-009 | open | 0.16.0 iOS: dimmed AI button opens AI settings with no model, writes a message after a model is added (notes step 5) | docs/testflight/0.16.0.md, v0.16.0 | 2026-11-03 |
 | D-010 | open | 0.16.0 iOS: More sheet names match the bottom bar (Files, Changes); Auto chip keeps the agent name complete and turns orange; Paper light readability (notes steps 6 to 8) | docs/testflight/0.16.0.md, v0.16.0 | 2026-11-03 |
 | D-011 | open | iOS: prompt dialogs (New File, Rename, commit message) focus the input and raise the keyboard; More sheet shows each panel's badge; minimap drag scrolls | `packages/workbench/src/index.tsx`, `packages/ui/src/index.tsx`, branch review-10-oxbit-ui-ux-areas | 2026-11-21 |
+| D-012 | open | On iOS, start Oxbit Agent in a local folder with a ChatGPT plan that includes GPT-6.2. Open Session settings > Model, select GPT-6.2 Astra, then switch to GPT-6.2 Sol. | docs/agent-model-apis.md | 2026-11-24 |
